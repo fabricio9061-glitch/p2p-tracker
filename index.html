@@ -41,7 +41,6 @@
         .card-title { color: #64748b; font-size: 0.8em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
         .card-value { font-size: 1.7em; font-weight: bold; margin: 6px 0; }
         .card-subtitle { color: #94a3b8; font-size: 0.72em; }
-        .card-divider { height: 1px; background: #e2e8f0; margin: 10px 0; }
         .positive { color: #16a34a; } .negative { color: #dc2626; } .info { color: #0284c7; }
         .stats-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
         .stat-badge { font-size: 0.68em; background: #f1f5f9; padding: 3px 7px; border-radius: 4px; color: #64748b; }
@@ -109,12 +108,12 @@
     </style>
 </head>
 <body>
-    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div style="color: #64748b;">Conectando...</div></div>
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div style="color: #64748b;">Cargando...</div></div>
     <div class="container">
         <div class="header">
             <h1>💱 Registro P2P</h1>
             <p>Control completo de operaciones y saldos</p>
-            <div class="sync-status online" id="syncStatus"><div class="sync-dot"></div><span id="syncText">Conectado</span></div>
+            <div class="sync-status offline" id="syncStatus"><div class="sync-dot"></div><span id="syncText">Cargando...</span></div>
             <div class="menu-container">
                 <button class="menu-btn" onclick="toggleMenu()" id="menuBtn"><span></span><span></span><span></span></button>
                 <div class="menu-dropdown" id="menuDropdown">
@@ -163,12 +162,12 @@
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header">↔️ Transferir entre Bancos</div><div class="form-group"><label>Banco Origen</label><select id="bancoOrigen" onchange="mostrarSaldoOrigen()"><option value="">Seleccionar</option></select><small id="saldoOrigenInfo" style="color: #64748b;"></small></div><div class="form-group" style="margin-top: 15px;"><label>Banco Destino</label><select id="bancoDestino"><option value="">Seleccionar</option></select></div><div class="form-group" style="margin-top: 15px;"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia" placeholder="1000"></div><div class="form-group" style="margin-top: 15px;"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" placeholder="0" value="0"><small style="color: #94a3b8;">Se resta del origen</small></div><div class="form-group" style="margin-top: 15px;"><label>Fecha</label><input type="date" id="fechaTransferencia"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalTransferencia()">Cancelar</button><button class="btn" onclick="realizarTransferencia()">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo Saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco" placeholder="0"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalEditarSaldo()">Cancelar</button><button class="btn" onclick="guardarNuevoSaldo()">Guardar</button></div></div></div>
 
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <script>
-// ============ CONFIGURACIÓN FIREBASE ============
-// ⚠️ REEMPLAZA con tu configuración de Firebase Console
 const firebaseConfig = {
     apiKey: "AIzaSyCL2uxQMNIxC0oo35uN-lYQXaOWLxXNg7k",
     authDomain: "p2p-tracker-dc9cc.firebaseapp.com",
@@ -178,9 +177,8 @@ const firebaseConfig = {
     appId: "1:670856094446:web:390946887212a97e36c9ff"
 };
 
-let db = null;
-let datos = { operaciones: [], movimientos: [], transferencias: [], bancos: {}, saldoUsdt: 0 };
-let bancoEditando = null, tipoMovimiento = 'ingreso';
+let db = null, datos = { operaciones: [], movimientos: [], transferencias: [], bancos: {}, saldoUsdt: 0 };
+let bancoEditando = null, tipoMovimiento = 'ingreso', firebaseDisponible = false;
 const COMISION_PLATAFORMA = 0.0016;
 const BANCOS_DISPONIBLES = [
     { nombre: 'Santander', moneda: 'UYU' }, { nombre: 'BBVA', moneda: 'UYU' }, { nombre: 'Itau', moneda: 'UYU' },
@@ -190,50 +188,43 @@ const BANCOS_DISPONIBLES = [
 ];
 
 async function inicializarFirebase() {
+    if (typeof firebase === 'undefined') {
+        console.warn('Firebase no cargado');
+        setSyncStatus('offline', 'Modo local');
+        cargarDatosLocal();
+        ocultarLoading();
+        return;
+    }
     try {
-        if (firebaseConfig.apiKey === "TU_API_KEY") {
-            console.warn('Firebase no configurado, usando localStorage');
-            setSyncStatus('offline', 'Modo local');
-            cargarDatosLocal();
-            return;
-        }
         firebase.initializeApp(firebaseConfig);
-        
-        // Autenticación anónima
-        const auth = firebase.auth();
-        await auth.signInAnonymously();
-        console.log('Autenticado anónimamente');
-        
+        try { await firebase.auth().signInAnonymously(); } catch (e) { console.warn('Auth:', e.message); }
         db = firebase.firestore();
-        await db.enablePersistence().catch(() => {});
+        try { await db.enablePersistence(); } catch (e) {}
+        firebaseDisponible = true;
         db.collection('p2p').doc('datos').onSnapshot(doc => {
             if (doc.exists) {
                 const d = doc.data();
                 datos = { operaciones: d.operaciones || [], movimientos: d.movimientos || [], transferencias: d.transferencias || [], bancos: d.bancos || {}, saldoUsdt: d.saldoUsdt || 0 };
-                inicializarBancos();
-                actualizarVista();
             }
-            ocultarLoading();
-            setSyncStatus('online', 'Sincronizado');
+            inicializarBancos(); actualizarVista(); ocultarLoading(); setSyncStatus('online', 'Sincronizado');
         }, () => { setSyncStatus('offline', 'Sin conexión'); cargarDatosLocal(); ocultarLoading(); });
-    } catch (e) { console.error(e); setSyncStatus('offline', 'Error'); cargarDatosLocal(); }
+    } catch (e) { console.error(e); setSyncStatus('offline', 'Error'); cargarDatosLocal(); ocultarLoading(); }
 }
 
 async function guardarDatos() {
     localStorage.setItem('p2pData', JSON.stringify(datos));
-    if (!db) return;
+    if (!firebaseDisponible || !db) return;
     setSyncStatus('syncing', 'Guardando...');
     try { await db.collection('p2p').doc('datos').set({ ...datos, ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp() }); setSyncStatus('online', 'Guardado'); }
     catch (e) { setSyncStatus('offline', 'Error'); }
 }
 
 function cargarDatosLocal() {
-    const g = localStorage.getItem('p2pData');
-    if (g) try { datos = JSON.parse(g); } catch (e) {}
-    inicializarBancos(); actualizarVista(); ocultarLoading();
+    try { const g = localStorage.getItem('p2pData'); if (g) datos = JSON.parse(g); } catch (e) {}
+    inicializarBancos(); actualizarVista();
 }
 
-function setSyncStatus(status, text) { document.getElementById('syncStatus').className = 'sync-status ' + status; document.getElementById('syncText').textContent = text; }
+function setSyncStatus(s, t) { document.getElementById('syncStatus').className = 'sync-status ' + s; document.getElementById('syncText').textContent = t; }
 function ocultarLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 function toggleMenu() { document.getElementById('menuBtn').classList.toggle('active'); document.getElementById('menuDropdown').classList.toggle('active'); }
 function cerrarMenu() { document.getElementById('menuBtn').classList.remove('active'); document.getElementById('menuDropdown').classList.remove('active'); }
