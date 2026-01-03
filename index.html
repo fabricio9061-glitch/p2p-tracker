@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro P2P - Control Completo</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💱</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f0ee; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; padding-top: 20px; position: relative; }
+        .header h1 { color: #1e293b; font-size: 2.5em; margin-bottom: 10px; }
+        .header p { color: #64748b; font-size: 1.1em; }
+        .sync-status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; margin-top: 10px; }
+        .sync-status.online { background: #dcfce7; color: #16a34a; }
+        .sync-status.offline { background: #fee2e2; color: #dc2626; }
+        .sync-status.syncing { background: #fef3c7; color: #d97706; }
+        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+        .sync-status.syncing .sync-dot { animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .menu-container { position: absolute; top: 20px; right: 0; }
+        .menu-btn { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .menu-btn:hover { background: #f8fafc; }
+        .menu-btn span { display: block; width: 22px; height: 2.5px; background: #475569; border-radius: 2px; transition: all 0.3s; }
+        .menu-btn.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+        .menu-btn.active span:nth-child(2) { opacity: 0; }
+        .menu-btn.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+        .menu-dropdown { position: absolute; top: 55px; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; min-width: 220px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.2s; z-index: 1000; }
+        .menu-dropdown.active { opacity: 1; visibility: visible; transform: translateY(0); }
+        .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 8px; cursor: pointer; transition: background 0.2s; color: #1e293b; font-size: 0.92em; font-weight: 500; }
+        .menu-item:hover { background: #f1f5f9; }
+        .menu-item.danger { color: #dc2626; }
+        .menu-item.danger:hover { background: #fee2e2; }
+        .menu-divider { height: 1px; background: #e2e8f0; margin: 6px 0; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; color: #1e293b; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .card.main-card { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #16a34a; }
+        .card.main-card.negative { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 2px solid #dc2626; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .card-title { color: #64748b; font-size: 0.8em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card-value { font-size: 1.7em; font-weight: bold; margin: 6px 0; }
+        .card-subtitle { color: #94a3b8; font-size: 0.72em; }
+        .card-divider { height: 1px; background: #e2e8f0; margin: 10px 0; }
+        .positive { color: #16a34a; } .negative { color: #dc2626; } .info { color: #0284c7; }
+        .stats-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .stat-badge { font-size: 0.68em; background: #f1f5f9; padding: 3px 7px; border-radius: 4px; color: #64748b; }
+        .section-title { color: #1e293b; font-size: 1.1em; font-weight: 600; margin-bottom: 15px; }
+        .bancos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 30px; }
+        .banco-mini-card { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; cursor: pointer; transition: all 0.2s; }
+        .banco-mini-card:hover { border-color: #2563eb; box-shadow: 0 2px 8px rgba(37,99,235,0.15); }
+        .banco-nombre { font-weight: 600; color: #1e293b; font-size: 0.9em; margin-bottom: 4px; }
+        .banco-saldo { font-size: 1.2em; font-weight: bold; color: #16a34a; }
+        .banco-moneda { font-size: 0.7em; color: #94a3b8; }
+        .usdt-card { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; }
+        .usdt-card .banco-saldo { color: #2563eb; }
+        .form-container { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .form-title { color: #1e293b; font-size: 1.2em; margin-bottom: 20px; font-weight: 600; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { color: #64748b; font-size: 0.82em; margin-bottom: 5px; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 11px; color: #1e293b; font-size: 0.95em; font-family: inherit; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #2563eb; }
+        .form-group small { color: #94a3b8; font-size: 0.75em; margin-top: 4px; }
+        .btn { background: #2563eb; color: white; border: none; padding: 11px 22px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95em; }
+        .btn:hover { background: #1d4ed8; }
+        .btn-delete { background: transparent; color: #ef4444; border: none; cursor: pointer; font-size: 1.2em; padding: 4px 8px; border-radius: 4px; }
+        .btn-delete:hover { background: #fee2e2; }
+        .table-container { background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .table-header { background: #f8fafc; padding: 14px 18px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .table-title { color: #1e293b; font-size: 1.1em; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; color: #64748b; font-size: 0.75em; font-weight: 600; padding: 11px 14px; text-align: left; text-transform: uppercase; }
+        td { padding: 12px 14px; color: #1e293b; border-top: 1px solid #f1f5f9; font-size: 0.9em; }
+        tr:hover { background: #f8fafc; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.72em; font-weight: 600; }
+        .badge-compra { background: #dcfce7; color: #16a34a; }
+        .badge-venta { background: #fee2e2; color: #dc2626; }
+        .badge-ingreso { background: #dbeafe; color: #2563eb; }
+        .badge-egreso { background: #fef3c7; color: #d97706; }
+        .empty-state { text-align: center; padding: 45px; color: #94a3b8; }
+        .empty-state-icon { font-size: 2.5em; margin-bottom: 12px; }
+        .info-text { color: #64748b; font-size: 0.82em; margin-top: 10px; }
+        .preview-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; margin-top: 15px; color: #1e40af; font-size: 0.88em; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 14px; padding: 28px; max-width: 500px; width: 92%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { font-size: 1.3em; font-weight: bold; color: #1e293b; margin-bottom: 20px; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 22px; }
+        .btn-cancel { background: #e5e7eb; color: #4b5563; }
+        .btn-cancel:hover { background: #d1d5db; }
+        .banco-list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; background: #f8fafc; }
+        .banco-list-actions { display: flex; gap: 8px; align-items: center; }
+        .toggle-switch { position: relative; width: 44px; height: 24px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        .toggle-switch input:checked + .toggle-slider { background-color: #16a34a; }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+        .btn-edit-small { padding: 5px 10px; font-size: 0.75em; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9em; font-weight: 500; background: #f1f5f9; color: #64748b; border: none; }
+        .tab.active { background: #2563eb; color: white; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 2000; flex-direction: column; gap: 15px; }
+        .loading-overlay.hidden { display: none; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 600px) { .header h1 { font-size: 1.8em; } .cards, .bancos-grid { grid-template-columns: 1fr 1fr; } .form-grid { grid-template-columns: 1fr; } th, td { padding: 8px 10px; font-size: 0.8em; } }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div style="color: #64748b;">Conectando...</div></div>
+    <div class="container">
+        <div class="header">
+            <h1>💱 Registro P2P</h1>
+            <p>Control completo de operaciones y saldos</p>
+            <div class="sync-status online" id="syncStatus"><div class="sync-dot"></div><span id="syncText">Conectado</span></div>
+            <div class="menu-container">
+                <button class="menu-btn" onclick="toggleMenu()" id="menuBtn"><span></span><span></span><span></span></button>
+                <div class="menu-dropdown" id="menuDropdown">
+                    <div class="menu-item" onclick="abrirModalMovimiento(); cerrarMenu();"><span>💸</span><span>Movimiento Externo</span></div>
+                    <div class="menu-item" onclick="abrirModalBancos(); cerrarMenu();"><span>🏦</span><span>Gestionar Bancos</span></div>
+                    <div class="menu-item" onclick="abrirModalTransferencia(); cerrarMenu();"><span>↔️</span><span>Transferir entre Bancos</span></div>
+                    <div class="menu-divider"></div>
+                    <div class="menu-item" onclick="exportarDatos(); cerrarMenu();"><span>📤</span><span>Exportar Datos</span></div>
+                    <div class="menu-item" onclick="document.getElementById('importFile').click(); cerrarMenu();"><span>📥</span><span>Importar Datos</span></div>
+                    <div class="menu-divider"></div>
+                    <div class="menu-item danger" onclick="borrarTodo(); cerrarMenu();"><span>🗑️</span><span>Borrar Todo</span></div>
+                </div>
+            </div>
+            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importarDatos(event)">
+        </div>
+        <div class="cards">
+            <div class="card main-card" id="cardGanancia"><div class="card-header"><span class="card-title">💰 Ganancia Total</span></div><div class="card-value positive" id="gananciaTotal">$0,00</div><div class="card-subtitle">Por diferencia de tasas</div><div class="stats-row"><span class="stat-badge" id="operacionesCerradas">0 USDT cerrados</span></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">📦 USDT Tenencia</span></div><div class="card-value info" id="usdtEnTenencia">0,00</div><div class="card-subtitle">Sin vender aún</div><div class="stats-row"><span class="stat-badge" id="valorTenencia">≈ $0</span></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">🏦 Total en Bancos</span></div><div class="card-value positive" id="totalBancos">$0,00</div><div class="card-subtitle">Saldo disponible UYU</div></div>
+            <div class="card"><div class="card-header"><span class="card-title">📥 Compras</span></div><div style="display: flex; justify-content: space-between;"><div><div class="card-value" style="font-size: 1.3em;" id="totalPagado">$0</div><div class="card-subtitle">Pagado</div></div><div style="text-align: right;"><div style="font-size: 1.1em; font-weight: 600; color: #16a34a;" id="usdtComprados">0</div><div class="card-subtitle">USDT</div></div></div><div class="stats-row"><span class="stat-badge" id="tasaPromCompra">Tasa: --</span></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">📤 Ventas</span></div><div style="display: flex; justify-content: space-between;"><div><div class="card-value" style="font-size: 1.3em;" id="totalRecibido">$0</div><div class="card-subtitle">Recibido</div></div><div style="text-align: right;"><div style="font-size: 1.1em; font-weight: 600; color: #dc2626;" id="usdtVendidos">0</div><div class="card-subtitle">USDT</div></div></div><div class="stats-row"><span class="stat-badge" id="tasaPromVenta">Tasa: --</span></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">📊 Spread</span></div><div class="card-value info" id="spreadPromedio">$0,00</div><div class="card-subtitle">Ganancia por USDT</div><div class="stats-row"><span class="stat-badge" id="porcentajeSpread">0% margen</span></div></div>
+        </div>
+        <div class="section-title">💼 Mis Saldos <span style="font-weight: normal; font-size: 0.8em; color: #94a3b8;">(click para editar)</span></div>
+        <div class="bancos-grid" id="bancosGrid"></div>
+        <div class="form-container">
+            <div class="form-title">➕ Nueva Operación P2P</div>
+            <div class="form-grid">
+                <div class="form-group"><label>Tipo</label><select id="tipo" onchange="actualizarFormulario()"><option value="compra">🛒 Compra</option><option value="venta">💵 Venta</option></select></div>
+                <div class="form-group"><label id="montoLabel">Monto UYU</label><input type="number" step="0.01" id="monto" placeholder="3900" oninput="calcularPreview()"></div>
+                <div class="form-group"><label>Tasa</label><input type="number" step="0.01" id="tasa" placeholder="39.50" oninput="calcularPreview()"></div>
+                <div class="form-group" id="bancoGroup"><label id="bancoLabel">Banco (sale de)</label><select id="banco" onchange="mostrarSaldoBanco()"><option value="">Sin especificar</option></select><small id="saldoBancoInfo"></small></div>
+                <div class="form-group" id="comisionBancoGroup"><label>Comisión Banco</label><input type="number" step="0.01" id="comisionBanco" placeholder="0" value="0"></div>
+                <div class="form-group"><label>Fecha</label><input type="date" id="fecha"></div>
+                <div class="form-group" style="display: flex; align-items: flex-end;"><button class="btn" onclick="agregarOperacion()">Agregar</button></div>
+            </div>
+            <div class="preview-box" id="previewBox" style="display: none;"><span id="previewText"></span></div>
+            <div class="info-text">Comisión plataforma (0.16%): <strong id="comisionPlataformaInfo">0,00 USDT</strong></div>
+        </div>
+        <div class="table-container"><div class="table-header"><span class="table-title">📋 Historial de Operaciones</span><span style="color: #94a3b8; font-size: 0.85em;" id="totalOperaciones">0 operaciones</span></div><div id="tablaContent"><div class="empty-state"><div class="empty-state-icon">📝</div><div>No hay operaciones registradas</div></div></div></div>
+        <div class="table-container" id="seccionMovimientos" style="display: none;"><div class="table-header"><span class="table-title">💸 Movimientos Externos</span></div><div id="movimientosContent"></div></div>
+        <div class="table-container" id="seccionTransferencias" style="display: none;"><div class="table-header"><span class="table-title">↔️ Transferencias entre Bancos</span></div><div id="transferenciasContent"></div></div>
+    </div>
+    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><p style="color: #64748b; margin-bottom: 18px; font-size: 0.9em;">Registra ingresos o egresos externos</p><div class="tabs"><button class="tab active" onclick="setTipoMovimiento('ingreso')" id="tabIngreso">📥 Ingreso</button><button class="tab" onclick="setTipoMovimiento('egreso')" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de Cuenta</label><select id="movTipoCuenta" onchange="actualizarCuentasMovimiento()"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" style="margin-top: 15px;" id="movBancoGroup"><label>Banco</label><select id="movBanco"><option value="">Seleccionar</option></select></div><div class="form-group" style="margin-top: 15px;"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto" placeholder="1000"></div><div class="form-group" style="margin-top: 15px;"><label>Descripción (opcional)</label><textarea id="movDescripcion" placeholder="Ej: Depósito sueldo..."></textarea></div><div class="form-group" style="margin-top: 15px;"><label>Fecha</label><input type="date" id="movFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalMovimiento()">Cancelar</button><button class="btn" onclick="guardarMovimiento()">Guardar</button></div></div></div>
+    <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Gestionar Bancos</div><p style="color: #64748b; margin-bottom: 18px; font-size: 0.9em;">Activa los bancos que usas</p><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" onclick="cerrarModalBancos()">Cerrar</button></div></div></div>
+    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header">↔️ Transferir entre Bancos</div><div class="form-group"><label>Banco Origen</label><select id="bancoOrigen" onchange="mostrarSaldoOrigen()"><option value="">Seleccionar</option></select><small id="saldoOrigenInfo" style="color: #64748b;"></small></div><div class="form-group" style="margin-top: 15px;"><label>Banco Destino</label><select id="bancoDestino"><option value="">Seleccionar</option></select></div><div class="form-group" style="margin-top: 15px;"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia" placeholder="1000"></div><div class="form-group" style="margin-top: 15px;"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" placeholder="0" value="0"><small style="color: #94a3b8;">Se resta del origen</small></div><div class="form-group" style="margin-top: 15px;"><label>Fecha</label><input type="date" id="fechaTransferencia"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalTransferencia()">Cancelar</button><button class="btn" onclick="realizarTransferencia()">Transferir</button></div></div></div>
+    <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo Saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco" placeholder="0"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalEditarSaldo()">Cancelar</button><button class="btn" onclick="guardarNuevoSaldo()">Guardar</button></div></div></div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script>
+// ============ CONFIGURACIÓN FIREBASE ============
+// ⚠️ REEMPLAZA con tu configuración de Firebase Console
+const firebaseConfig = {
+    apiKey: "AIzaSyCL2uxQMNIxC0oo35uN-lYQXaOWLxXNg7k",
+    authDomain: "p2p-tracker-dc9cc.firebaseapp.com",
+    projectId: "p2p-tracker-dc9cc",
+    storageBucket: "p2p-tracker-dc9cc.firebasestorage.app",
+    messagingSenderId: "670856094446",
+    appId: "1:670856094446:web:390946887212a97e36c9ff"
+};
+
+let db = null;
+let datos = { operaciones: [], movimientos: [], transferencias: [], bancos: {}, saldoUsdt: 0 };
+let bancoEditando = null, tipoMovimiento = 'ingreso';
+const COMISION_PLATAFORMA = 0.0016;
+const BANCOS_DISPONIBLES = [
+    { nombre: 'Santander', moneda: 'UYU' }, { nombre: 'BBVA', moneda: 'UYU' }, { nombre: 'Itau', moneda: 'UYU' },
+    { nombre: 'Scotiabank', moneda: 'UYU' }, { nombre: 'BROU', moneda: 'UYU' }, { nombre: 'Prex', moneda: 'UYU' },
+    { nombre: 'OCA', moneda: 'UYU' }, { nombre: 'Mercado Pago', moneda: 'UYU' }, { nombre: 'Midinero', moneda: 'UYU' },
+    { nombre: 'Zelle', moneda: 'USD' }, { nombre: 'Zinli', moneda: 'USD' }, { nombre: 'Skrill', moneda: 'USD' }
+];
+
+async function inicializarFirebase() {
+    try {
+        if (firebaseConfig.apiKey === "TU_API_KEY") {
+            console.warn('Firebase no configurado, usando localStorage');
+            setSyncStatus('offline', 'Modo local');
+            cargarDatosLocal();
+            return;
+        }
+        firebase.initializeApp(firebaseConfig);
+        
+        // Autenticación anónima
+        const auth = firebase.auth();
+        await auth.signInAnonymously();
+        console.log('Autenticado anónimamente');
+        
+        db = firebase.firestore();
+        await db.enablePersistence().catch(() => {});
+        db.collection('p2p').doc('datos').onSnapshot(doc => {
+            if (doc.exists) {
+                const d = doc.data();
+                datos = { operaciones: d.operaciones || [], movimientos: d.movimientos || [], transferencias: d.transferencias || [], bancos: d.bancos || {}, saldoUsdt: d.saldoUsdt || 0 };
+                inicializarBancos();
+                actualizarVista();
+            }
+            ocultarLoading();
+            setSyncStatus('online', 'Sincronizado');
+        }, () => { setSyncStatus('offline', 'Sin conexión'); cargarDatosLocal(); ocultarLoading(); });
+    } catch (e) { console.error(e); setSyncStatus('offline', 'Error'); cargarDatosLocal(); }
+}
+
+async function guardarDatos() {
+    localStorage.setItem('p2pData', JSON.stringify(datos));
+    if (!db) return;
+    setSyncStatus('syncing', 'Guardando...');
+    try { await db.collection('p2p').doc('datos').set({ ...datos, ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp() }); setSyncStatus('online', 'Guardado'); }
+    catch (e) { setSyncStatus('offline', 'Error'); }
+}
+
+function cargarDatosLocal() {
+    const g = localStorage.getItem('p2pData');
+    if (g) try { datos = JSON.parse(g); } catch (e) {}
+    inicializarBancos(); actualizarVista(); ocultarLoading();
+}
+
+function setSyncStatus(status, text) { document.getElementById('syncStatus').className = 'sync-status ' + status; document.getElementById('syncText').textContent = text; }
+function ocultarLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+function toggleMenu() { document.getElementById('menuBtn').classList.toggle('active'); document.getElementById('menuDropdown').classList.toggle('active'); }
+function cerrarMenu() { document.getElementById('menuBtn').classList.remove('active'); document.getElementById('menuDropdown').classList.remove('active'); }
+document.addEventListener('click', e => { if (!document.querySelector('.menu-container').contains(e.target)) cerrarMenu(); });
+
+function formatearNumero(n, d = 2) { return n.toLocaleString('es-UY', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+function truncar(n, d = 2) { return Math.floor(n * Math.pow(10, d)) / Math.pow(10, d); }
+function inicializarBancos() { BANCOS_DISPONIBLES.forEach(b => { if (!datos.bancos[b.nombre]) datos.bancos[b.nombre] = { activo: false, saldo: 0 }; }); }
+
+function actualizarFormulario() {
+    const t = document.getElementById('tipo').value;
+    document.getElementById('montoLabel').textContent = t === 'compra' ? 'Monto que pagas' : 'Monto que recibes';
+    document.getElementById('bancoLabel').textContent = t === 'compra' ? 'Banco (sale de)' : 'Banco (entra a)';
+    document.getElementById('comisionBancoGroup').style.display = t === 'compra' ? 'flex' : 'none';
+    if (t === 'venta') document.getElementById('comisionBanco').value = '0';
+    calcularPreview();
+}
+
+function actualizarSelectBancos() {
+    const s = document.getElementById('banco'), v = s.value;
+    s.innerHTML = '<option value="">Sin especificar</option>';
+    BANCOS_DISPONIBLES.forEach(b => { if (datos.bancos[b.nombre]?.activo) s.innerHTML += `<option value="${b.nombre}">${b.nombre} (${b.moneda})</option>`; });
+    s.value = v;
+}
+
+function mostrarSaldoBanco() {
+    const b = document.getElementById('banco').value, info = document.getElementById('saldoBancoInfo');
+    if (b && datos.bancos[b]) { const bi = BANCOS_DISPONIBLES.find(x => x.nombre === b); info.textContent = 'Saldo: ' + (bi?.moneda === 'USD' ? 'US$' : '$') + formatearNumero(datos.bancos[b].saldo); }
+    else info.textContent = '';
+}
+
+function calcularPreview() {
+    const t = document.getElementById('tipo').value, m = parseFloat(document.getElementById('monto').value) || 0, ta = parseFloat(document.getElementById('tasa').value) || 0;
+    if (m > 0 && ta > 0) {
+        const u = m / ta, c = truncar(u * COMISION_PLATAFORMA, 2);
+        document.getElementById('comisionPlataformaInfo').textContent = formatearNumero(c, 2) + ' USDT';
+        document.getElementById('previewText').innerHTML = t === 'compra' ? `📥 Recibirás <strong>${formatearNumero(u - c, 2)} USDT</strong>` : `📤 Darás <strong>${formatearNumero(u + c, 2)} USDT</strong>`;
+        document.getElementById('previewBox').style.display = 'block';
+    } else { document.getElementById('previewBox').style.display = 'none'; document.getElementById('comisionPlataformaInfo').textContent = '0,00 USDT'; }
+}
+
+async function agregarOperacion() {
+    const t = document.getElementById('tipo').value, m = parseFloat(document.getElementById('monto').value), ta = parseFloat(document.getElementById('tasa').value), b = document.getElementById('banco').value, cb = parseFloat(document.getElementById('comisionBanco').value) || 0, f = document.getElementById('fecha').value;
+    if (!m || !ta || !f) return alert('Completa todos los campos');
+    const u = m / ta, cp = truncar(u * COMISION_PLATAFORMA, 2);
+    if (t === 'compra' && b && datos.bancos[b] && datos.bancos[b].saldo < m + cb && !confirm('Saldo insuficiente. ¿Continuar?')) return;
+    datos.operaciones.unshift({ id: Date.now(), tipo: t, monto: m, tasa: ta, usdt: u, banco: b || null, comisionBanco: t === 'compra' ? cb : 0, comisionPlataforma: cp, fecha: f, timestamp: new Date().toISOString() });
+    if (t === 'compra') { if (b && datos.bancos[b]) datos.bancos[b].saldo -= (m + cb); datos.saldoUsdt += (u - cp); }
+    else { if (b && datos.bancos[b]) datos.bancos[b].saldo += m; datos.saldoUsdt -= (u + cp); }
+    document.getElementById('monto').value = ''; document.getElementById('tasa').value = ''; document.getElementById('comisionBanco').value = '0'; document.getElementById('previewBox').style.display = 'none';
+    await guardarDatos(); actualizarVista();
+}
+
+async function eliminarOperacion(id) {
+    if (!confirm('¿Eliminar?')) return;
+    const op = datos.operaciones.find(o => o.id === id);
+    if (op) {
+        if (op.tipo === 'compra') { if (op.banco && datos.bancos[op.banco]) datos.bancos[op.banco].saldo += (op.monto + (op.comisionBanco || 0)); datos.saldoUsdt -= (op.usdt - op.comisionPlataforma); }
+        else { if (op.banco && datos.bancos[op.banco]) datos.bancos[op.banco].saldo -= op.monto; datos.saldoUsdt += (op.usdt + op.comisionPlataforma); }
+    }
+    datos.operaciones = datos.operaciones.filter(o => o.id !== id); await guardarDatos(); actualizarVista();
+}
+
+function abrirModalMovimiento() { tipoMovimiento = 'ingreso'; document.getElementById('tabIngreso').classList.add('active'); document.getElementById('tabEgreso').classList.remove('active'); document.getElementById('movTipoCuenta').value = 'banco'; document.getElementById('movMonto').value = ''; document.getElementById('movDescripcion').value = ''; document.getElementById('movFecha').valueAsDate = new Date(); actualizarCuentasMovimiento(); document.getElementById('modalMovimiento').classList.add('active'); }
+function cerrarModalMovimiento() { document.getElementById('modalMovimiento').classList.remove('active'); }
+function setTipoMovimiento(t) { tipoMovimiento = t; document.getElementById('tabIngreso').classList.toggle('active', t === 'ingreso'); document.getElementById('tabEgreso').classList.toggle('active', t === 'egreso'); }
+function actualizarCuentasMovimiento() { const tc = document.getElementById('movTipoCuenta').value; document.getElementById('movBancoGroup').style.display = tc === 'usdt' ? 'none' : 'flex'; document.getElementById('movMontoLabel').textContent = tc === 'usdt' ? 'Monto (USDT)' : 'Monto'; if (tc !== 'usdt') { const s = document.getElementById('movBanco'); s.innerHTML = '<option value="">Seleccionar</option>'; BANCOS_DISPONIBLES.forEach(b => { if (datos.bancos[b.nombre]?.activo) s.innerHTML += `<option value="${b.nombre}">${b.nombre}</option>`; }); } }
+
+async function guardarMovimiento() {
+    const tc = document.getElementById('movTipoCuenta').value, b = document.getElementById('movBanco').value, m = parseFloat(document.getElementById('movMonto').value), desc = document.getElementById('movDescripcion').value, f = document.getElementById('movFecha').value;
+    if (!m || m <= 0) return alert('Monto inválido'); if (tc === 'banco' && !b) return alert('Selecciona banco');
+    datos.movimientos.unshift({ id: Date.now(), tipoMovimiento, tipoCuenta: tc, banco: tc === 'banco' ? b : null, monto: m, descripcion: desc, fecha: f, timestamp: new Date().toISOString() });
+    if (tc === 'usdt') datos.saldoUsdt += tipoMovimiento === 'ingreso' ? m : -m; else datos.bancos[b].saldo += tipoMovimiento === 'ingreso' ? m : -m;
+    await guardarDatos(); actualizarVista(); cerrarModalMovimiento();
+}
+
+async function eliminarMovimiento(id) {
+    if (!confirm('¿Eliminar?')) return;
+    const mov = datos.movimientos.find(m => m.id === id);
+    if (mov) { if (mov.tipoCuenta === 'usdt') datos.saldoUsdt += mov.tipoMovimiento === 'ingreso' ? -mov.monto : mov.monto; else if (mov.banco && datos.bancos[mov.banco]) datos.bancos[mov.banco].saldo += mov.tipoMovimiento === 'ingreso' ? -mov.monto : mov.monto; }
+    datos.movimientos = datos.movimientos.filter(m => m.id !== id); await guardarDatos(); actualizarVista();
+}
+
+function abrirModalBancos() { renderizarListaBancos(); document.getElementById('modalBancos').classList.add('active'); }
+function cerrarModalBancos() { document.getElementById('modalBancos').classList.remove('active'); guardarDatos(); actualizarVista(); }
+function renderizarListaBancos() { let h = ''; BANCOS_DISPONIBLES.forEach(b => { const a = datos.bancos[b.nombre]?.activo || false, s = datos.bancos[b.nombre]?.saldo || 0; h += `<div class="banco-list-item"><div><div style="font-weight: 600;">${b.nombre} <span style="color: #94a3b8;">(${b.moneda})</span></div><div style="color: #64748b; font-size: 0.85em;">Saldo: ${b.moneda === 'USD' ? 'US$' : '$'}${formatearNumero(s)}</div></div><div class="banco-list-actions"><button class="btn-edit-small" onclick="abrirEditarSaldo('${b.nombre}')">Editar</button><label class="toggle-switch"><input type="checkbox" ${a ? 'checked' : ''} onchange="toggleBanco('${b.nombre}')"><span class="toggle-slider"></span></label></div></div>`; }); document.getElementById('listaBancos').innerHTML = h; }
+function toggleBanco(n) { if (!datos.bancos[n]) datos.bancos[n] = { activo: false, saldo: 0 }; datos.bancos[n].activo = !datos.bancos[n].activo; guardarDatos(); renderizarListaBancos(); }
+function abrirEditarSaldo(n) { bancoEditando = n; document.getElementById('editarSaldoHeader').textContent = n === 'USDT' ? 'Editar USDT' : 'Editar - ' + n; document.getElementById('nuevoSaldoBanco').value = n === 'USDT' ? datos.saldoUsdt : (datos.bancos[n]?.saldo || 0); document.getElementById('modalEditarSaldo').classList.add('active'); }
+function cerrarModalEditarSaldo() { document.getElementById('modalEditarSaldo').classList.remove('active'); bancoEditando = null; }
+async function guardarNuevoSaldo() { const ns = parseFloat(document.getElementById('nuevoSaldoBanco').value) || 0; if (bancoEditando === 'USDT') datos.saldoUsdt = ns; else if (bancoEditando && datos.bancos[bancoEditando]) datos.bancos[bancoEditando].saldo = ns; await guardarDatos(); actualizarVista(); renderizarListaBancos(); cerrarModalEditarSaldo(); }
+
+function abrirModalTransferencia() { document.getElementById('fechaTransferencia').valueAsDate = new Date(); document.getElementById('montoTransferencia').value = ''; document.getElementById('comisionTransferencia').value = '0'; const opts = '<option value="">Seleccionar</option>' + BANCOS_DISPONIBLES.filter(b => datos.bancos[b.nombre]?.activo).map(b => `<option value="${b.nombre}">${b.nombre}</option>`).join(''); document.getElementById('bancoOrigen').innerHTML = opts; document.getElementById('bancoDestino').innerHTML = opts; document.getElementById('saldoOrigenInfo').textContent = ''; document.getElementById('modalTransferencia').classList.add('active'); }
+function cerrarModalTransferencia() { document.getElementById('modalTransferencia').classList.remove('active'); }
+function mostrarSaldoOrigen() { const b = document.getElementById('bancoOrigen').value; document.getElementById('saldoOrigenInfo').textContent = b && datos.bancos[b] ? 'Disponible: $' + formatearNumero(datos.bancos[b].saldo) : ''; }
+
+async function realizarTransferencia() {
+    const o = document.getElementById('bancoOrigen').value, d = document.getElementById('bancoDestino').value, m = parseFloat(document.getElementById('montoTransferencia').value), c = parseFloat(document.getElementById('comisionTransferencia').value) || 0, f = document.getElementById('fechaTransferencia').value;
+    if (!o || !d || o === d) return alert('Bancos inválidos'); if (!m || m <= 0) return alert('Monto inválido');
+    datos.transferencias.unshift({ id: Date.now(), origen: o, destino: d, monto: m, comision: c, fecha: f, timestamp: new Date().toISOString() });
+    datos.bancos[o].saldo -= (m + c); datos.bancos[d].saldo += m;
+    await guardarDatos(); actualizarVista(); cerrarModalTransferencia();
+}
+
+async function eliminarTransferencia(id) { if (!confirm('¿Eliminar?')) return; const t = datos.transferencias.find(x => x.id === id); if (t) { datos.bancos[t.origen].saldo += (t.monto + t.comision); datos.bancos[t.destino].saldo -= t.monto; } datos.transferencias = datos.transferencias.filter(x => x.id !== id); await guardarDatos(); actualizarVista(); }
+
+function calcularResumen() {
+    let totalPagado = 0, totalRecibido = 0, usdtComprados = 0, usdtVendidos = 0, comisionesBanco = 0, sumaTasaC = 0, sumaTasaV = 0, countC = 0, countV = 0;
+    datos.operaciones.forEach(op => { if (op.tipo === 'compra') { totalPagado += op.monto + (op.comisionBanco || 0); usdtComprados += op.usdt - op.comisionPlataforma; comisionesBanco += op.comisionBanco || 0; sumaTasaC += op.tasa; countC++; } else { totalRecibido += op.monto; usdtVendidos += op.usdt + op.comisionPlataforma; sumaTasaV += op.tasa; countV++; } });
+    const tasaPromC = countC > 0 ? sumaTasaC / countC : 0, tasaPromV = countV > 0 ? sumaTasaV / countV : 0, spread = tasaPromV - tasaPromC, usdtCerrados = Math.min(usdtComprados, usdtVendidos), ganancia = (usdtCerrados * spread) - comisionesBanco, valorTenencia = datos.saldoUsdt * (tasaPromV || tasaPromC || 0);
+    let totalBancosUYU = 0; BANCOS_DISPONIBLES.forEach(b => { if (datos.bancos[b.nombre]?.activo && b.moneda === 'UYU') totalBancosUYU += datos.bancos[b.nombre].saldo; });
+    return { totalPagado, totalRecibido, usdtComprados, usdtVendidos, usdtCerrados, ganancia, tasaPromC, tasaPromV, spread, pctSpread: tasaPromC > 0 ? (spread / tasaPromC) * 100 : 0, valorTenencia, totalBancosUYU };
+}
+
+function actualizarVista() {
+    const r = calcularResumen();
+    const gEl = document.getElementById('gananciaTotal'), card = document.getElementById('cardGanancia');
+    if (r.ganancia >= 0) { gEl.textContent = '$' + formatearNumero(r.ganancia); gEl.className = 'card-value positive'; card.className = 'card main-card'; }
+    else { gEl.textContent = '-$' + formatearNumero(Math.abs(r.ganancia)); gEl.className = 'card-value negative'; card.className = 'card main-card negative'; }
+    document.getElementById('operacionesCerradas').textContent = formatearNumero(r.usdtCerrados, 2) + ' USDT cerrados';
+    document.getElementById('usdtEnTenencia').textContent = formatearNumero(Math.max(0, datos.saldoUsdt), 2);
+    document.getElementById('valorTenencia').textContent = '≈ $' + formatearNumero(r.valorTenencia, 0);
+    document.getElementById('totalBancos').textContent = '$' + formatearNumero(r.totalBancosUYU);
+    document.getElementById('totalPagado').textContent = '$' + formatearNumero(r.totalPagado, 0);
+    document.getElementById('usdtComprados').textContent = formatearNumero(r.usdtComprados, 2);
+    document.getElementById('tasaPromCompra').textContent = 'Tasa: $' + formatearNumero(r.tasaPromC);
+    document.getElementById('totalRecibido').textContent = '$' + formatearNumero(r.totalRecibido, 0);
+    document.getElementById('usdtVendidos').textContent = formatearNumero(r.usdtVendidos, 2);
+    document.getElementById('tasaPromVenta').textContent = 'Tasa: $' + formatearNumero(r.tasaPromV);
+    document.getElementById('spreadPromedio').textContent = '$' + formatearNumero(r.spread);
+    document.getElementById('porcentajeSpread').textContent = formatearNumero(r.pctSpread) + '% margen';
+    actualizarBancosGrid(); actualizarSelectBancos(); actualizarTablas();
+}
+
+function actualizarBancosGrid() {
+    let h = `<div class="banco-mini-card usdt-card" onclick="abrirEditarSaldo('USDT')"><div class="banco-nombre">🪙 USDT</div><div class="banco-saldo">${formatearNumero(Math.max(0, datos.saldoUsdt), 2)}</div><div class="banco-moneda">Tether</div></div>`;
+    BANCOS_DISPONIBLES.forEach(b => { if (datos.bancos[b.nombre]?.activo) { const s = datos.bancos[b.nombre].saldo; h += `<div class="banco-mini-card" onclick="abrirEditarSaldo('${b.nombre}')"><div class="banco-nombre">${b.nombre}</div><div class="banco-saldo" style="color: ${s >= 0 ? '#16a34a' : '#dc2626'}">${b.moneda === 'USD' ? 'US$' : '$'}${formatearNumero(s)}</div><div class="banco-moneda">${b.moneda}</div></div>`; } });
+    document.getElementById('bancosGrid').innerHTML = h;
+}
+
+function actualizarTablas() {
+    const tablaOp = document.getElementById('tablaContent'); document.getElementById('totalOperaciones').textContent = datos.operaciones.length + ' operaciones';
+    if (datos.operaciones.length === 0) tablaOp.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div>No hay operaciones</div></div>';
+    else { let h = '<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>Banco</th><th>Fecha</th><th></th></tr></thead><tbody>'; datos.operaciones.forEach(op => { const un = op.tipo === 'compra' ? op.usdt - op.comisionPlataforma : op.usdt + op.comisionPlataforma; h += `<tr><td><span class="badge badge-${op.tipo}">${op.tipo === 'compra' ? '🛒' : '💵'} ${op.tipo}</span></td><td><strong>$${formatearNumero(op.monto)}</strong></td><td style="color:#64748b">$${formatearNumero(op.tasa)}</td><td><strong>${formatearNumero(un, 2)}</strong></td><td style="color:#0284c7">${op.banco || '-'}</td><td style="color:#64748b">${op.fecha}</td><td><button class="btn-delete" onclick="eliminarOperacion(${op.id})">×</button></td></tr>`; }); h += '</tbody></table>'; tablaOp.innerHTML = h; }
+    const secMov = document.getElementById('seccionMovimientos');
+    if (datos.movimientos.length === 0) secMov.style.display = 'none';
+    else { secMov.style.display = 'block'; let h = '<table><thead><tr><th>Tipo</th><th>Cuenta</th><th>Monto</th><th>Descripción</th><th>Fecha</th><th></th></tr></thead><tbody>'; datos.movimientos.forEach(m => { h += `<tr><td><span class="badge badge-${m.tipoMovimiento}">${m.tipoMovimiento === 'ingreso' ? '📥' : '📤'} ${m.tipoMovimiento}</span></td><td>${m.tipoCuenta === 'usdt' ? '🪙 USDT' : '🏦 ' + m.banco}</td><td><strong>${m.tipoCuenta === 'usdt' ? '' : '$'}${formatearNumero(m.monto)}${m.tipoCuenta === 'usdt' ? ' USDT' : ''}</strong></td><td style="color:#64748b">${m.descripcion || '-'}</td><td style="color:#64748b">${m.fecha}</td><td><button class="btn-delete" onclick="eliminarMovimiento(${m.id})">×</button></td></tr>`; }); h += '</tbody></table>'; document.getElementById('movimientosContent').innerHTML = h; }
+    const secTrans = document.getElementById('seccionTransferencias');
+    if (datos.transferencias.length === 0) secTrans.style.display = 'none';
+    else { secTrans.style.display = 'block'; let h = '<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Comisión</th><th>Fecha</th><th></th></tr></thead><tbody>'; datos.transferencias.forEach(t => { h += `<tr><td style="color:#dc2626">← ${t.origen}</td><td style="color:#16a34a">→ ${t.destino}</td><td><strong>$${formatearNumero(t.monto)}</strong></td><td style="color:#ea580c">${t.comision > 0 ? '$' + formatearNumero(t.comision) : '-'}</td><td style="color:#64748b">${t.fecha}</td><td><button class="btn-delete" onclick="eliminarTransferencia(${t.id})">×</button></td></tr>`; }); h += '</tbody></table>'; document.getElementById('transferenciasContent').innerHTML = h; }
+}
+
+function exportarDatos() { const b = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' }); const l = document.createElement('a'); l.href = URL.createObjectURL(b); l.download = 'p2p-backup-' + new Date().toISOString().split('T')[0] + '.json'; l.click(); }
+
+async function importarDatos(event) {
+    const f = event.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = async function(e) { try { const d = JSON.parse(e.target.result); datos = { operaciones: d.operaciones || d.transactions?.map(t => ({ id: t.id, tipo: t.tipo, monto: t.total, tasa: t.tasa, usdt: t.cantidad, banco: t.banco || null, comisionBanco: t.comisionBanco || 0, comisionPlataforma: t.comisionPlataforma || 0, fecha: t.fecha, timestamp: t.timestamp })) || [], movimientos: d.movimientos || [], transferencias: d.transferencias || [], bancos: d.bancos || {}, saldoUsdt: d.saldoUsdt || d.saldoBaseUsdt || 0 }; inicializarBancos(); await guardarDatos(); actualizarVista(); alert('✅ Importado'); } catch (err) { alert('❌ Error: ' + err.message); } };
+    r.readAsText(f); event.target.value = '';
+}
+
+async function borrarTodo() { if (confirm('⚠️ ¿Borrar TODO?') && confirm('¿Seguro?')) { datos = { operaciones: [], movimientos: [], transferencias: [], bancos: {}, saldoUsdt: 0 }; inicializarBancos(); await guardarDatos(); actualizarVista(); } }
+
+document.addEventListener('DOMContentLoaded', function() { document.getElementById('fecha').valueAsDate = new Date(); actualizarFormulario(); inicializarFirebase(); });
+    </script>
+</body>
+</html>
