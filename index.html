@@ -51,8 +51,6 @@
         .banco-moneda{font-size:0.65em;color:#94a3b8}
         .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#93c5fd}
         .usdt-card .banco-saldo{color:#2563eb}
-        
-        /* TOGGLE SECTIONS */
         .toggle-section{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:15px;overflow:hidden}
         .toggle-header{display:flex;justify-content:space-between;align-items:center;padding:14px 15px;cursor:pointer;user-select:none}
         .toggle-header:active{background:#f8fafc}
@@ -63,24 +61,21 @@
         .toggle-section.open .toggle-arrow{transform:rotate(180deg)}
         .toggle-content{display:none;border-top:1px solid #e2e8f0}
         .toggle-section.open .toggle-content{display:block}
-        
-        /* FORM - MÓVIL PRIMERO */
         .form-content{padding:15px}
         .form-group{margin-bottom:12px}
         .form-group label{display:block;color:#64748b;font-size:0.75em;margin-bottom:4px;font-weight:500}
         .form-group input,.form-group select,.form-group textarea{width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;color:#1e293b;font-size:16px;font-family:inherit}
         .form-group input:focus,.form-group select:focus{outline:none;border-color:#2563eb}
+        .form-group input.error,.form-group select.error{border-color:#dc2626;background:#fef2f2}
         .form-group small{display:block;color:#94a3b8;font-size:0.7em;margin-top:3px}
+        .form-group small.error-text{color:#dc2626}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
         .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
         .btn:active{background:#1d4ed8}
-        .btn:disabled{background:#94a3b8}
+        .btn:disabled{background:#94a3b8;cursor:not-allowed}
         .btn-delete{background:transparent;color:#ef4444;border:none;cursor:pointer;font-size:1.1em;padding:4px 8px}
         .info-text{color:#64748b;font-size:0.75em;margin-top:10px}
         .preview-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;color:#1e40af;font-size:0.85em}
-        
-        /* TABLE */
-        .table-content{padding:0}
         .table-scroll{overflow-x:auto}
         table{width:100%;border-collapse:collapse;min-width:500px}
         th{background:#f8fafc;color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase}
@@ -92,14 +87,10 @@
         .badge-egreso{background:#fef3c7;color:#d97706}
         .empty-state{text-align:center;padding:30px;color:#94a3b8}
         .empty-state-icon{font-size:2em;margin-bottom:8px}
-        
-        /* PAGINATION */
         .pagination{display:flex;justify-content:center;align-items:center;gap:8px;padding:12px;border-top:1px solid #e2e8f0}
         .pagination button{background:#f1f5f9;border:none;padding:8px 14px;border-radius:6px;font-size:0.85em;cursor:pointer;color:#475569}
         .pagination button:disabled{opacity:0.4;cursor:not-allowed}
         .pagination-info{font-size:0.8em;color:#64748b}
-        
-        /* MODALS */
         .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:15px}
         .modal.active{display:flex}
         .modal-content{background:white;border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto}
@@ -123,8 +114,6 @@
         .loading-overlay.hidden{display:none}
         .spinner{width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite}
         @keyframes spin{to{transform:rotate(360deg)}}
-        
-        /* AUTH */
         .auth-container{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
         .auth-box{background:white;border-radius:16px;padding:30px 20px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.1)}
         .auth-logo{text-align:center;font-size:2.5em;margin-bottom:8px}
@@ -138,8 +127,6 @@
         .app-container{display:none}
         .app-container.active{display:block}
         .auth-container.hidden{display:none}
-        
-        /* CALENDAR */
         .calendar-container{background:#1a1a2e;border-radius:12px;padding:15px}
         .calendar-header{display:flex;justify-content:center;align-items:center;gap:15px;margin-bottom:15px}
         .calendar-header button{background:none;border:none;color:white;font-size:1.2em;cursor:pointer;padding:5px 10px}
@@ -160,16 +147,8 @@
         .calendar-stat{background:#2d2d44;border-radius:8px;padding:8px;text-align:center}
         .calendar-stat-value{color:white;font-size:1em;font-weight:bold}
         .calendar-stat-label{color:#64748b;font-size:0.65em;margin-top:2px}
-        
-        @media(min-width:640px){
-            .cards{grid-template-columns:repeat(3,1fr)}
-            .card.main-card{grid-column:span 1}
-            .bancos-grid{grid-template-columns:repeat(3,1fr)}
-        }
-        @media(min-width:1024px){
-            .cards{grid-template-columns:repeat(6,1fr)}
-            .bancos-grid{grid-template-columns:repeat(6,1fr)}
-        }
+        @media(min-width:640px){.cards{grid-template-columns:repeat(3,1fr)}.card.main-card{grid-column:span 1}.bancos-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(min-width:1024px){.cards{grid-template-columns:repeat(6,1fr)}.bancos-grid{grid-template-columns:repeat(6,1fr)}}
     </style>
 </head>
 <body>
@@ -258,16 +237,18 @@
                                 <input type="number" step="0.01" id="monto" placeholder="3900" oninput="calcularPreview()">
                             </div>
                             <div class="form-group">
-                                <label>Tasa</label>
-                                <input type="number" step="0.01" id="tasa" placeholder="39.50" oninput="calcularPreview()">
+                                <label>Tasa *</label>
+                                <input type="text" id="tasa" placeholder="39.50" oninput="calcularPreview()" inputmode="decimal">
+                                <small id="tasaHelp">Formato: 39.50 o 39,50</small>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label id="bancoLabel">Banco</label>
+                                <label id="bancoLabel">Banco *</label>
                                 <select id="banco" onchange="mostrarSaldoBanco()">
-                                    <option value="">Sin especificar</option>
+                                    <option value="">-- Seleccionar --</option>
                                 </select>
+                                <small id="bancoHelp"></small>
                             </div>
                             <div class="form-group" id="comisionBancoGroup">
                                 <label>Comisión banco</label>
@@ -279,7 +260,7 @@
                             <input type="date" id="fecha">
                         </div>
                         <div class="preview-box" id="previewBox" style="display:none"><span id="previewText"></span></div>
-                        <button class="btn" onclick="agregarOperacion()">Agregar Operación</button>
+                        <button class="btn" id="btnAgregarOp" onclick="agregarOperacion()">Agregar Operación</button>
                         <div class="info-text">Comisión 0.16%: <strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></div>
                     </div>
                 </div>
@@ -338,7 +319,7 @@
 
     <!-- MODALS -->
     <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:15px"><div class="calendar-container"><div class="calendar-header"><button onclick="cambiarMes(-1)">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button onclick="cambiarMes(1)">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Ganancias</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Pérdidas</div></div><div class="calendar-stat"><div class="calendar-stat-value" id="calNeto" style="color:white">$0</div><div class="calendar-stat-label">Neto</div></div></div></div><div class="modal-buttons"><button class="btn" onclick="cerrarCalendario()">Cerrar</button></div></div></div>
-    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab active" onclick="setTipoMovimiento('ingreso')" id="tabIngreso">📥 Ingreso</button><button class="tab" onclick="setTipoMovimiento('egreso')" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta" onchange="actualizarCuentasMovimiento()"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea></div><div class="form-group"><label>Fecha</label><input type="date" id="movFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalMovimiento()">Cancelar</button><button class="btn" onclick="guardarMovimiento()">Guardar</button></div></div></div>
+    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab active" onclick="setTipoMovimiento('ingreso')" id="tabIngreso">📥 Ingreso</button><button class="tab" onclick="setTipoMovimiento('egreso')" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta" onchange="actualizarCuentasMovimiento()"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea></div><div class="form-group"><label>Fecha</label><input type="date" id="movFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalMovimiento()">Cancelar</button><button class="btn" id="btnGuardarMov" onclick="guardarMovimiento()">Guardar</button></div></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Gestionar Bancos</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" onclick="cerrarModalBancos()">Cerrar</button></div></div></div>
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen" onchange="mostrarSaldoOrigen()"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="form-group"><label>Fecha</label><input type="date" id="fechaTransferencia"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalTransferencia()">Cancelar</button><button class="btn" onclick="realizarTransferencia()">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalEditarSaldo()">Cancelar</button><button class="btn" onclick="guardarNuevoSaldo()">Guardar</button></div></div></div>
@@ -349,13 +330,29 @@
     <script>
 const firebaseConfig={apiKey:"AIzaSyCL2uxQMNIxC0oo35uN-lYQXaOWLxXNg7k",authDomain:"p2p-tracker-dc9cc.firebaseapp.com",projectId:"p2p-tracker-dc9cc",storageBucket:"p2p-tracker-dc9cc.firebasestorage.app",messagingSenderId:"670856094446",appId:"1:670856094446:web:390946887212a97e36c9ff"};
 let db=null,auth=null,currentUser=null,unsubscribe=null;
-let datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0};
+let datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0};
 let bancoEditando=null,tipoMovimiento='ingreso',calendarDate=new Date(),paginaActual=1;
+let guardandoMovimiento=false; // Flag para evitar duplicados
 const POR_PAGINA=10,COMISION_PLATAFORMA=0.0016,EMAIL_DOMAIN='@p2p-tracker.app';
 const BANCOS_DISPONIBLES=[{nombre:'Santander',moneda:'UYU'},{nombre:'BBVA',moneda:'UYU'},{nombre:'Itau',moneda:'UYU'},{nombre:'Scotiabank',moneda:'UYU'},{nombre:'BROU',moneda:'UYU'},{nombre:'Prex',moneda:'UYU'},{nombre:'OCA',moneda:'UYU'},{nombre:'Mercado Pago',moneda:'UYU'},{nombre:'Midinero',moneda:'UYU'},{nombre:'Zelle',moneda:'USD'},{nombre:'Zinli',moneda:'USD'},{nombre:'Skrill',moneda:'USD'}];
 
 function toggleSeccion(id){document.getElementById(id).classList.toggle('open')}
 function cambiarPagina(dir){const total=Math.ceil(datos.operaciones.length/POR_PAGINA);paginaActual+=dir;if(paginaActual<1)paginaActual=1;if(paginaActual>total)paginaActual=total;actualizarTablaOperaciones()}
+
+// Validar y parsear tasa
+function parsearTasa(valor){
+    if(!valor)return null;
+    // Reemplazar coma por punto y limpiar
+    const limpio=valor.toString().replace(',','.').trim();
+    // Validar formato: números con punto decimal
+    if(!/^\d+(\.\d{1,2})?$/.test(limpio))return null;
+    const num=parseFloat(limpio);
+    return isNaN(num)||num<=0?null:num;
+}
+
+function formatearTasa(num){
+    return num.toFixed(2);
+}
 
 function switchAuthTab(t){document.getElementById('tabLogin').classList.toggle('active',t==='login');document.getElementById('tabRegister').classList.toggle('active',t==='register');document.getElementById('loginForm').style.display=t==='login'?'block':'none';document.getElementById('registerForm').style.display=t==='register'?'block':'none';hideAuthError()}
 function showAuthError(m){const e=document.getElementById('authError');e.textContent=m;e.classList.add('show')}
@@ -368,7 +365,7 @@ async function cerrarSesion(){if(confirm('¿Cerrar sesión?')){if(unsubscribe)un
 function showApp(u){currentUser=u;document.getElementById('menuUserName').textContent=emailToUser(u.email);document.getElementById('menuUserEmail').textContent=u.email;document.getElementById('authContainer').classList.add('hidden');document.getElementById('appContainer').classList.add('active');cargarDatosUsuario()}
 function showAuth(){currentUser=null;document.getElementById('authContainer').classList.remove('hidden');document.getElementById('appContainer').classList.remove('active');['loginBtn','registerBtn'].forEach(id=>{const b=document.getElementById(id);b.disabled=false;b.textContent=id==='loginBtn'?'Iniciar Sesión':'Crear Cuenta'});['loginUser','loginPass','regUser','regPass','regPassConfirm'].forEach(id=>document.getElementById(id).value='');ocultarLoading()}
 function inicializarFirebase(){if(typeof firebase==='undefined'){ocultarLoading();return}firebase.initializeApp(firebaseConfig);auth=firebase.auth();db=firebase.firestore();db.enablePersistence().catch(()=>{});auth.onAuthStateChanged(u=>u?showApp(u):showAuth())}
-function cargarDatosUsuario(){if(!currentUser)return;if(unsubscribe)unsubscribe();unsubscribe=db.collection('users').doc(currentUser.uid).onSnapshot(doc=>{if(doc.exists){const d=doc.data();datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},saldoUsdt:d.saldoUsdt||0}}else datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0};inicializarBancos();paginaActual=1;actualizarVista();ocultarLoading();setSyncStatus('online','✓')},()=>{setSyncStatus('offline','✗');ocultarLoading()})}
+function cargarDatosUsuario(){if(!currentUser)return;if(unsubscribe)unsubscribe();unsubscribe=db.collection('users').doc(currentUser.uid).onSnapshot(doc=>{if(doc.exists){const d=doc.data();datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0}}else datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0};inicializarBancos();paginaActual=1;actualizarVista();actualizarFormulario();ocultarLoading();setSyncStatus('online','✓')},()=>{setSyncStatus('offline','✗');ocultarLoading()})}
 async function guardarDatos(){if(!currentUser)return;setSyncStatus('syncing','...');try{await db.collection('users').doc(currentUser.uid).set({...datos,ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()});setSyncStatus('online','✓')}catch(e){setSyncStatus('offline','✗')}}
 function setSyncStatus(s,t){document.getElementById('syncStatus').className='sync-status '+s;document.getElementById('syncText').textContent=t}
 function ocultarLoading(){document.getElementById('loadingOverlay').classList.add('hidden')}
@@ -379,19 +376,198 @@ function formatearNumero(n,d=2){return n.toLocaleString('es-UY',{minimumFraction
 function truncar(n,d=2){return Math.floor(n*Math.pow(10,d))/Math.pow(10,d)}
 function inicializarBancos(){BANCOS_DISPONIBLES.forEach(b=>{if(!datos.bancos[b.nombre])datos.bancos[b.nombre]={activo:false,saldo:0}})}
 
-function actualizarFormulario(){const t=document.getElementById('tipo').value;document.getElementById('montoLabel').textContent=t==='compra'?'Pagás (UYU)':'Recibís (UYU)';document.getElementById('bancoLabel').textContent=t==='compra'?'Sale de':'Entra a';document.getElementById('comisionBancoGroup').style.display=t==='compra'?'block':'none';if(t==='venta')document.getElementById('comisionBanco').value='0';calcularPreview()}
-function actualizarSelectBancos(){const s=document.getElementById('banco'),v=s.value;s.innerHTML='<option value="">Sin especificar</option>';BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo)s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`});s.value=v}
-function mostrarSaldoBanco(){const b=document.getElementById('banco').value,i=document.getElementById('saldoBancoInfo');if(b&&datos.bancos[b]){const bi=BANCOS_DISPONIBLES.find(x=>x.nombre===b);i.textContent=' | '+b+': '+(bi?.moneda==='USD'?'US$':'$')+formatearNumero(datos.bancos[b].saldo)}else i.textContent=''}
-function calcularPreview(){const t=document.getElementById('tipo').value,m=parseFloat(document.getElementById('monto').value)||0,ta=parseFloat(document.getElementById('tasa').value)||0;if(m>0&&ta>0){const u=m/ta,c=truncar(u*COMISION_PLATAFORMA,2);document.getElementById('comisionPlataformaInfo').textContent=formatearNumero(c,2)+' USDT';document.getElementById('previewText').innerHTML=t==='compra'?`📥 Recibís <b>${formatearNumero(u-c,2)} USDT</b>`:`📤 Entregás <b>${formatearNumero(u+c,2)} USDT</b>`;document.getElementById('previewBox').style.display='block'}else{document.getElementById('previewBox').style.display='none';document.getElementById('comisionPlataformaInfo').textContent='0 USDT'}}
+function actualizarFormulario(){
+    const t=document.getElementById('tipo').value;
+    document.getElementById('montoLabel').textContent=t==='compra'?'Pagás (UYU)':'Recibís (UYU)';
+    document.getElementById('bancoLabel').textContent=t==='compra'?'Sale de *':'Entra a *';
+    document.getElementById('comisionBancoGroup').style.display=t==='compra'?'block':'none';
+    if(t==='venta')document.getElementById('comisionBanco').value='0';
+    
+    // Auto-rellenar última tasa usada
+    const tasaInput=document.getElementById('tasa');
+    if(t==='compra'&&datos.ultimaTasaCompra>0){
+        tasaInput.value=formatearTasa(datos.ultimaTasaCompra);
+    }else if(t==='venta'&&datos.ultimaTasaVenta>0){
+        tasaInput.value=formatearTasa(datos.ultimaTasaVenta);
+    }
+    calcularPreview();
+}
 
-async function agregarOperacion(){const t=document.getElementById('tipo').value,m=parseFloat(document.getElementById('monto').value),ta=parseFloat(document.getElementById('tasa').value),b=document.getElementById('banco').value,cb=parseFloat(document.getElementById('comisionBanco').value)||0,f=document.getElementById('fecha').value;if(!m||!ta||!f)return alert('Completá todos los campos');const u=m/ta,cp=truncar(u*COMISION_PLATAFORMA,2);if(t==='compra'&&b&&datos.bancos[b]&&datos.bancos[b].saldo<m+cb&&!confirm('Saldo insuficiente. ¿Continuar?'))return;datos.operaciones.unshift({id:Date.now(),tipo:t,monto:m,tasa:ta,usdt:u,banco:b||null,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cp,fecha:f,timestamp:new Date().toISOString()});if(t==='compra'){if(b&&datos.bancos[b])datos.bancos[b].saldo-=(m+cb);datos.saldoUsdt+=(u-cp)}else{if(b&&datos.bancos[b])datos.bancos[b].saldo+=m;datos.saldoUsdt-=(u+cp)}document.getElementById('monto').value='';document.getElementById('tasa').value='';document.getElementById('comisionBanco').value='0';document.getElementById('previewBox').style.display='none';paginaActual=1;await guardarDatos();actualizarVista()}
+function actualizarSelectBancos(){
+    const s=document.getElementById('banco'),v=s.value;
+    s.innerHTML='<option value="">-- Seleccionar --</option>';
+    BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo)s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`});
+    s.value=v;
+}
+
+function mostrarSaldoBanco(){
+    const b=document.getElementById('banco').value,i=document.getElementById('saldoBancoInfo'),h=document.getElementById('bancoHelp');
+    h.textContent='';
+    h.className='';
+    if(b&&datos.bancos[b]){
+        const bi=BANCOS_DISPONIBLES.find(x=>x.nombre===b);
+        i.textContent=' | '+b+': '+(bi?.moneda==='USD'?'US$':'$')+formatearNumero(datos.bancos[b].saldo);
+    }else{
+        i.textContent='';
+    }
+}
+
+function calcularPreview(){
+    const t=document.getElementById('tipo').value;
+    const m=parseFloat(document.getElementById('monto').value)||0;
+    const ta=parsearTasa(document.getElementById('tasa').value);
+    
+    // Limpiar errores visuales
+    document.getElementById('tasa').classList.remove('error');
+    document.getElementById('tasaHelp').className='';
+    document.getElementById('tasaHelp').textContent='Formato: 39.50 o 39,50';
+    
+    if(m>0&&ta){
+        const u=m/ta,c=truncar(u*COMISION_PLATAFORMA,2);
+        document.getElementById('comisionPlataformaInfo').textContent=formatearNumero(c,2)+' USDT';
+        document.getElementById('previewText').innerHTML=t==='compra'?`📥 Recibís <b>${formatearNumero(u-c,2)} USDT</b>`:`📤 Entregás <b>${formatearNumero(u+c,2)} USDT</b>`;
+        document.getElementById('previewBox').style.display='block';
+    }else{
+        document.getElementById('previewBox').style.display='none';
+        document.getElementById('comisionPlataformaInfo').textContent='0 USDT';
+    }
+}
+
+async function agregarOperacion(){
+    const btn=document.getElementById('btnAgregarOp');
+    if(btn.disabled)return;
+    
+    const t=document.getElementById('tipo').value;
+    const m=parseFloat(document.getElementById('monto').value);
+    const tasaInput=document.getElementById('tasa');
+    const ta=parsearTasa(tasaInput.value);
+    const b=document.getElementById('banco').value;
+    const cb=parseFloat(document.getElementById('comisionBanco').value)||0;
+    const f=document.getElementById('fecha').value;
+    
+    // Validaciones
+    let hayError=false;
+    
+    if(!m){
+        alert('Ingresá el monto');
+        return;
+    }
+    
+    if(!ta){
+        tasaInput.classList.add('error');
+        document.getElementById('tasaHelp').textContent='Formato inválido. Ej: 39.50';
+        document.getElementById('tasaHelp').className='error-text';
+        alert('La tasa debe tener formato válido (ej: 39.50 o 39,50)');
+        return;
+    }
+    
+    if(!b){
+        document.getElementById('bancoHelp').textContent='Seleccioná un banco';
+        document.getElementById('bancoHelp').className='error-text';
+        document.getElementById('banco').classList.add('error');
+        alert('Seleccioná un banco');
+        return;
+    }
+    document.getElementById('banco').classList.remove('error');
+    
+    if(!f){
+        alert('Seleccioná la fecha');
+        return;
+    }
+    
+    const u=m/ta,cp=truncar(u*COMISION_PLATAFORMA,2);
+    
+    if(t==='compra'&&datos.bancos[b]&&datos.bancos[b].saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar igual?'))return;
+    
+    // Deshabilitar botón
+    btn.disabled=true;
+    btn.textContent='Guardando...';
+    
+    try{
+        datos.operaciones.unshift({id:Date.now(),tipo:t,monto:m,tasa:ta,usdt:u,banco:b,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cp,fecha:f,timestamp:new Date().toISOString()});
+        
+        // Guardar última tasa usada
+        if(t==='compra'){
+            datos.ultimaTasaCompra=ta;
+            datos.bancos[b].saldo-=(m+cb);
+            datos.saldoUsdt+=(u-cp);
+        }else{
+            datos.ultimaTasaVenta=ta;
+            datos.bancos[b].saldo+=m;
+            datos.saldoUsdt-=(u+cp);
+        }
+        
+        document.getElementById('monto').value='';
+        document.getElementById('comisionBanco').value='0';
+        document.getElementById('previewBox').style.display='none';
+        paginaActual=1;
+        
+        await guardarDatos();
+        actualizarVista();
+    }finally{
+        btn.disabled=false;
+        btn.textContent='Agregar Operación';
+    }
+}
+
 async function eliminarOperacion(id){if(!confirm('¿Eliminar operación?'))return;const op=datos.operaciones.find(o=>o.id===id);if(op){if(op.tipo==='compra'){if(op.banco&&datos.bancos[op.banco])datos.bancos[op.banco].saldo+=(op.monto+(op.comisionBanco||0));datos.saldoUsdt-=(op.usdt-op.comisionPlataforma)}else{if(op.banco&&datos.bancos[op.banco])datos.bancos[op.banco].saldo-=op.monto;datos.saldoUsdt+=(op.usdt+op.comisionPlataforma)}}datos.operaciones=datos.operaciones.filter(o=>o.id!==id);await guardarDatos();actualizarVista()}
 
-function abrirModalMovimiento(){tipoMovimiento='ingreso';document.getElementById('tabIngreso').classList.add('active');document.getElementById('tabEgreso').classList.remove('active');document.getElementById('movTipoCuenta').value='banco';document.getElementById('movMonto').value='';document.getElementById('movDescripcion').value='';document.getElementById('movFecha').valueAsDate=new Date();actualizarCuentasMovimiento();document.getElementById('modalMovimiento').classList.add('active')}
+function abrirModalMovimiento(){
+    guardandoMovimiento=false;
+    tipoMovimiento='ingreso';
+    document.getElementById('tabIngreso').classList.add('active');
+    document.getElementById('tabEgreso').classList.remove('active');
+    document.getElementById('movTipoCuenta').value='banco';
+    document.getElementById('movMonto').value='';
+    document.getElementById('movDescripcion').value='';
+    document.getElementById('movFecha').valueAsDate=new Date();
+    document.getElementById('btnGuardarMov').disabled=false;
+    document.getElementById('btnGuardarMov').textContent='Guardar';
+    actualizarCuentasMovimiento();
+    document.getElementById('modalMovimiento').classList.add('active');
+}
 function cerrarModalMovimiento(){document.getElementById('modalMovimiento').classList.remove('active')}
 function setTipoMovimiento(t){tipoMovimiento=t;document.getElementById('tabIngreso').classList.toggle('active',t==='ingreso');document.getElementById('tabEgreso').classList.toggle('active',t==='egreso')}
 function actualizarCuentasMovimiento(){const tc=document.getElementById('movTipoCuenta').value;document.getElementById('movBancoGroup').style.display=tc==='usdt'?'none':'block';document.getElementById('movMontoLabel').textContent=tc==='usdt'?'Monto (USDT)':'Monto';if(tc!=='usdt'){const s=document.getElementById('movBanco');s.innerHTML='<option value="">Seleccionar banco</option>';BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo)s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`})}}
-async function guardarMovimiento(){const tc=document.getElementById('movTipoCuenta').value,b=document.getElementById('movBanco').value,m=parseFloat(document.getElementById('movMonto').value),desc=document.getElementById('movDescripcion').value,f=document.getElementById('movFecha').value;if(!m||m<=0)return alert('Monto inválido');if(tc==='banco'&&!b)return alert('Seleccioná un banco');datos.movimientos.unshift({id:Date.now(),tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,descripcion:desc,fecha:f,timestamp:new Date().toISOString()});if(tc==='usdt')datos.saldoUsdt+=tipoMovimiento==='ingreso'?m:-m;else datos.bancos[b].saldo+=tipoMovimiento==='ingreso'?m:-m;await guardarDatos();actualizarVista();cerrarModalMovimiento()}
+
+async function guardarMovimiento(){
+    // Evitar duplicados
+    if(guardandoMovimiento)return;
+    
+    const btn=document.getElementById('btnGuardarMov');
+    const tc=document.getElementById('movTipoCuenta').value;
+    const b=document.getElementById('movBanco').value;
+    const m=parseFloat(document.getElementById('movMonto').value);
+    const desc=document.getElementById('movDescripcion').value;
+    const f=document.getElementById('movFecha').value;
+    
+    if(!m||m<=0)return alert('Monto inválido');
+    if(tc==='banco'&&!b)return alert('Seleccioná un banco');
+    
+    // Bloquear
+    guardandoMovimiento=true;
+    btn.disabled=true;
+    btn.textContent='Guardando...';
+    
+    try{
+        datos.movimientos.unshift({id:Date.now(),tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,descripcion:desc,fecha:f,timestamp:new Date().toISOString()});
+        
+        if(tc==='usdt'){
+            datos.saldoUsdt+=tipoMovimiento==='ingreso'?m:-m;
+        }else{
+            datos.bancos[b].saldo+=tipoMovimiento==='ingreso'?m:-m;
+        }
+        
+        await guardarDatos();
+        actualizarVista();
+        cerrarModalMovimiento();
+    }finally{
+        guardandoMovimiento=false;
+        btn.disabled=false;
+        btn.textContent='Guardar';
+    }
+}
+
 async function eliminarMovimiento(id){if(!confirm('¿Eliminar?'))return;const mov=datos.movimientos.find(m=>m.id===id);if(mov){if(mov.tipoCuenta==='usdt')datos.saldoUsdt+=mov.tipoMovimiento==='ingreso'?-mov.monto:mov.monto;else if(mov.banco&&datos.bancos[mov.banco])datos.bancos[mov.banco].saldo+=mov.tipoMovimiento==='ingreso'?-mov.monto:mov.monto}datos.movimientos=datos.movimientos.filter(m=>m.id!==id);await guardarDatos();actualizarVista()}
 
 function abrirModalBancos(){renderizarListaBancos();document.getElementById('modalBancos').classList.add('active')}
@@ -428,8 +604,8 @@ function actualizarTablaMovimientos(){const sec=document.getElementById('seccion
 function actualizarTablaTransferencias(){const sec=document.getElementById('seccionTransferencias'),total=datos.transferencias.length;document.getElementById('totalTransferencias').textContent=total;if(!total){sec.style.display='none';return}sec.style.display='block';let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Comisión</th><th>Fecha</th><th></th></tr></thead><tbody>';datos.transferencias.forEach(tr=>{h+=`<tr><td style="color:#dc2626">${tr.origen}</td><td style="color:#16a34a">${tr.destino}</td><td><b>$${formatearNumero(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?'$'+formatearNumero(tr.comision):'-'}</td><td style="color:#64748b">${tr.fecha}</td><td><button class="btn-delete" onclick="eliminarTransferencia(${tr.id})">×</button></td></tr>`});document.getElementById('transferenciasContent').innerHTML=h+'</tbody></table>'}
 
 function exportarDatos(){const b=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'}),l=document.createElement('a');l.href=URL.createObjectURL(b);l.download='p2p-backup-'+new Date().toISOString().split('T')[0]+'.json';l.click()}
-async function importarDatos(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async ev=>{try{const d=JSON.parse(ev.target.result);datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},saldoUsdt:d.saldoUsdt||0};inicializarBancos();paginaActual=1;await guardarDatos();actualizarVista();alert('✅ Datos importados')}catch(err){alert('❌ Error al importar')}};r.readAsText(f);e.target.value=''}
-async function borrarTodo(){if(confirm('⚠️ ¿Borrar TODOS los datos?')&&confirm('Esta acción no se puede deshacer. ¿Continuar?')){datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0};inicializarBancos();paginaActual=1;await guardarDatos();actualizarVista()}}
+async function importarDatos(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async ev=>{try{const d=JSON.parse(ev.target.result);datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0};inicializarBancos();paginaActual=1;await guardarDatos();actualizarVista();alert('✅ Datos importados')}catch(err){alert('❌ Error al importar')}};r.readAsText(f);e.target.value=''}
+async function borrarTodo(){if(confirm('⚠️ ¿Borrar TODOS los datos?')&&confirm('Esta acción no se puede deshacer. ¿Continuar?')){datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0};inicializarBancos();paginaActual=1;await guardarDatos();actualizarVista()}}
 
 document.addEventListener('DOMContentLoaded',()=>{document.getElementById('fecha').valueAsDate=new Date();actualizarFormulario();inicializarFirebase()});
     </script>
