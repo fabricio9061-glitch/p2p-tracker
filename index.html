@@ -70,14 +70,13 @@
         .form-group small{display:block;color:#94a3b8;font-size:0.7em;margin-top:3px}
         .form-group small.error-text{color:#dc2626}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
         .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
         .btn:active{background:#1d4ed8}
         .btn:disabled{background:#94a3b8;cursor:not-allowed}
         .btn-delete{background:transparent;color:#ef4444;border:none;cursor:pointer;font-size:1.1em;padding:4px 8px}
         .info-text{color:#64748b;font-size:0.75em;margin-top:10px}
         .preview-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;color:#1e40af;font-size:0.85em}
-        .table-scroll{overflow-x:auto}
+        .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
         table{width:100%;border-collapse:collapse;min-width:500px}
         th{background:#f8fafc;color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase}
         td{padding:10px 8px;color:#1e293b;border-top:1px solid #f1f5f9;font-size:0.8em}
@@ -148,9 +147,14 @@
         .calendar-stat{background:#2d2d44;border-radius:8px;padding:8px;text-align:center}
         .calendar-stat-value{color:white;font-size:1em;font-weight:bold}
         .calendar-stat-label{color:#64748b;font-size:0.65em;margin-top:2px}
-        .comision-input-group{display:flex;align-items:center;gap:4px}
-        .comision-input-group input{width:70px;text-align:center;padding:8px}
-        .comision-input-group span{color:#64748b;font-weight:500}
+        
+        /* Comision inline */
+        .comision-inline{display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;margin-top:8px}
+        .comision-inline label{color:#64748b;font-size:0.75em;font-weight:500;white-space:nowrap}
+        .comision-inline input{width:60px;background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;color:#1e293b;font-size:16px;text-align:center}
+        .comision-inline input:focus{outline:none;border-color:#2563eb}
+        .comision-inline span{color:#64748b;font-weight:500}
+        
         @media(min-width:640px){.cards{grid-template-columns:repeat(3,1fr)}.card.main-card{grid-column:span 1}.bancos-grid{grid-template-columns:repeat(3,1fr)}}
         @media(min-width:1024px){.cards{grid-template-columns:repeat(6,1fr)}.bancos-grid{grid-template-columns:repeat(6,1fr)}}
     </style>
@@ -243,7 +247,7 @@
                             <div class="form-group">
                                 <label>Tasa *</label>
                                 <input type="text" id="tasa" placeholder="39.50" oninput="calcularPreview()" inputmode="decimal">
-                                <small id="tasaHelp">Formato: 39.50 o 39,50</small>
+                                <small id="tasaHelp">Ej: 39.50</small>
                             </div>
                         </div>
                         <div class="form-row">
@@ -259,22 +263,20 @@
                                 <input type="number" step="0.01" id="comisionBanco" value="0" placeholder="0">
                             </div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Fecha</label>
-                                <input type="date" id="fecha">
-                            </div>
-                            <div class="form-group">
-                                <label>Comisión plataforma</label>
-                                <div class="comision-input-group">
-                                    <input type="text" id="comisionPlataforma" value="0.14" placeholder="0.14" inputmode="decimal" oninput="guardarComisionYCalcular()">
-                                    <span>%</span>
-                                </div>
-                                <small>Binance: 0.14% - 0.16%</small>
-                            </div>
+                        <div class="form-group">
+                            <label>Fecha</label>
+                            <input type="date" id="fecha">
                         </div>
+                        
+                        <!-- Comisión plataforma inline -->
+                        <div class="comision-inline">
+                            <label>📊 Comisión Binance:</label>
+                            <input type="text" id="comisionPlataforma" value="0.14" placeholder="0.14" inputmode="decimal" oninput="guardarComisionYCalcular()">
+                            <span>%</span>
+                        </div>
+                        
                         <div class="preview-box" id="previewBox" style="display:none"><span id="previewText"></span></div>
-                        <button class="btn" id="btnAgregarOp" onclick="agregarOperacion()">Agregar Operación</button>
+                        <button class="btn" id="btnAgregarOp" onclick="agregarOperacion()" style="margin-top:12px">Agregar Operación</button>
                         <div class="info-text">Comisión <span id="comisionPctLabel">0.14</span>%: <strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></div>
                     </div>
                 </div>
@@ -294,9 +296,9 @@
                         <div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>
                     </div>
                     <div class="pagination" id="paginationOp" style="display:none">
-                        <button onclick="cambiarPagina(-1)" id="btnPrevOp">← Anterior</button>
+                        <button onclick="cambiarPagina(-1)" id="btnPrevOp">← Ant</button>
                         <span class="pagination-info" id="paginaInfoOp">1 / 1</span>
-                        <button onclick="cambiarPagina(1)" id="btnNextOp">Siguiente →</button>
+                        <button onclick="cambiarPagina(1)" id="btnNextOp">Sig →</button>
                     </div>
                 </div>
             </div>
@@ -350,42 +352,13 @@ let guardandoMovimiento=false;
 const POR_PAGINA=10,EMAIL_DOMAIN='@p2p-tracker.app';
 const BANCOS_DISPONIBLES=[{nombre:'Santander',moneda:'UYU'},{nombre:'BBVA',moneda:'UYU'},{nombre:'Itau',moneda:'UYU'},{nombre:'Scotiabank',moneda:'UYU'},{nombre:'BROU',moneda:'UYU'},{nombre:'Prex',moneda:'UYU'},{nombre:'OCA',moneda:'UYU'},{nombre:'Mercado Pago',moneda:'UYU'},{nombre:'Midinero',moneda:'UYU'},{nombre:'Zelle',moneda:'USD'},{nombre:'Zinli',moneda:'USD'},{nombre:'Skrill',moneda:'USD'}];
 
-function getComisionDecimal(){
-    return (datos.comisionPlataforma || 0.14) / 100;
-}
-
+function getComisionDecimal(){return(datos.comisionPlataforma||0.14)/100}
 function toggleSeccion(id){document.getElementById(id).classList.toggle('open')}
 function cambiarPagina(dir){const total=Math.ceil(datos.operaciones.length/POR_PAGINA);paginaActual+=dir;if(paginaActual<1)paginaActual=1;if(paginaActual>total)paginaActual=total;actualizarTablaOperaciones()}
-
-function parsearTasa(valor){
-    if(!valor)return null;
-    const limpio=valor.toString().replace(',','.').trim();
-    if(!/^\d+(\.\d{1,2})?$/.test(limpio))return null;
-    const num=parseFloat(limpio);
-    return isNaN(num)||num<=0?null:num;
-}
-
-function parsearComision(valor){
-    if(!valor)return null;
-    const limpio=valor.toString().replace(',','.').trim();
-    if(!/^\d+(\.\d{1,2})?$/.test(limpio))return null;
-    const num=parseFloat(limpio);
-    return isNaN(num)||num<0||num>10?null:num;
-}
-
+function parsearTasa(valor){if(!valor)return null;const limpio=valor.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,2})?$/.test(limpio))return null;const num=parseFloat(limpio);return isNaN(num)||num<=0?null:num}
+function parsearComision(valor){if(!valor)return null;const limpio=valor.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,2})?$/.test(limpio))return null;const num=parseFloat(limpio);return isNaN(num)||num<0||num>10?null:num}
 function formatearTasa(num){return num.toFixed(2)}
-
-function guardarComisionYCalcular(){
-    const input=document.getElementById('comisionPlataforma');
-    const valor=parsearComision(input.value);
-    if(valor!==null){
-        datos.comisionPlataforma=valor;
-        document.getElementById('comisionPctLabel').textContent=valor.toFixed(2);
-        guardarDatos();
-    }
-    calcularPreview();
-}
-
+function guardarComisionYCalcular(){const input=document.getElementById('comisionPlataforma');const valor=parsearComision(input.value);if(valor!==null){datos.comisionPlataforma=valor;document.getElementById('comisionPctLabel').textContent=valor.toFixed(2);guardarDatos()}calcularPreview()}
 function switchAuthTab(t){document.getElementById('tabLogin').classList.toggle('active',t==='login');document.getElementById('tabRegister').classList.toggle('active',t==='register');document.getElementById('loginForm').style.display=t==='login'?'block':'none';document.getElementById('registerForm').style.display=t==='register'?'block':'none';hideAuthError()}
 function showAuthError(m){const e=document.getElementById('authError');e.textContent=m;e.classList.add('show')}
 function hideAuthError(){document.getElementById('authError').classList.remove('show')}
@@ -407,184 +380,18 @@ document.addEventListener('click',e=>{const m=document.querySelector('.menu-cont
 function formatearNumero(n,d=2){return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function truncar(n,d=2){return Math.floor(n*Math.pow(10,d))/Math.pow(10,d)}
 function inicializarBancos(){BANCOS_DISPONIBLES.forEach(b=>{if(!datos.bancos[b.nombre])datos.bancos[b.nombre]={activo:false,saldo:0}})}
-
-function actualizarFormulario(){
-    const t=document.getElementById('tipo').value;
-    document.getElementById('montoLabel').textContent=t==='compra'?'Pagás (UYU)':'Recibís (UYU)';
-    document.getElementById('bancoLabel').textContent=t==='compra'?'Sale de *':'Entra a *';
-    document.getElementById('comisionBancoGroup').style.display=t==='compra'?'block':'none';
-    if(t==='venta')document.getElementById('comisionBanco').value='0';
-    const tasaInput=document.getElementById('tasa');
-    if(t==='compra'&&datos.ultimaTasaCompra>0){
-        tasaInput.value=formatearTasa(datos.ultimaTasaCompra);
-    }else if(t==='venta'&&datos.ultimaTasaVenta>0){
-        tasaInput.value=formatearTasa(datos.ultimaTasaVenta);
-    }
-    calcularPreview();
-}
-
-function actualizarSelectBancos(){
-    const s=document.getElementById('banco'),v=s.value;
-    s.innerHTML='<option value="">-- Seleccionar --</option>';
-    BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo)s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`});
-    s.value=v;
-}
-
-function mostrarSaldoBanco(){
-    const b=document.getElementById('banco').value,i=document.getElementById('saldoBancoInfo'),h=document.getElementById('bancoHelp');
-    h.textContent='';h.className='';
-    if(b&&datos.bancos[b]){
-        const bi=BANCOS_DISPONIBLES.find(x=>x.nombre===b);
-        i.textContent=' | '+b+': '+(bi?.moneda==='USD'?'US$':'$')+formatearNumero(datos.bancos[b].saldo);
-    }else i.textContent='';
-}
-
-function calcularPreview(){
-    const t=document.getElementById('tipo').value;
-    const m=parseFloat(document.getElementById('monto').value)||0;
-    const ta=parsearTasa(document.getElementById('tasa').value);
-    const comisionPct=getComisionDecimal();
-    
-    document.getElementById('tasa').classList.remove('error');
-    document.getElementById('tasaHelp').className='';
-    document.getElementById('tasaHelp').textContent='Formato: 39.50 o 39,50';
-    
-    if(m>0&&ta){
-        const u=m/ta,c=truncar(u*comisionPct,2);
-        document.getElementById('comisionPlataformaInfo').textContent=formatearNumero(c,2)+' USDT';
-        document.getElementById('previewText').innerHTML=t==='compra'?`📥 Recibís <b>${formatearNumero(u-c,2)} USDT</b>`:`📤 Entregás <b>${formatearNumero(u+c,2)} USDT</b>`;
-        document.getElementById('previewBox').style.display='block';
-    }else{
-        document.getElementById('previewBox').style.display='none';
-        document.getElementById('comisionPlataformaInfo').textContent='0 USDT';
-    }
-}
-
-async function agregarOperacion(){
-    const btn=document.getElementById('btnAgregarOp');
-    if(btn.disabled)return;
-    
-    const t=document.getElementById('tipo').value;
-    const m=parseFloat(document.getElementById('monto').value);
-    const tasaInput=document.getElementById('tasa');
-    const ta=parsearTasa(tasaInput.value);
-    const b=document.getElementById('banco').value;
-    const cb=parseFloat(document.getElementById('comisionBanco').value)||0;
-    const f=document.getElementById('fecha').value;
-    const comisionPct=getComisionDecimal();
-    
-    if(!m){alert('Ingresá el monto');return}
-    
-    if(!ta){
-        tasaInput.classList.add('error');
-        document.getElementById('tasaHelp').textContent='Formato inválido. Ej: 39.50';
-        document.getElementById('tasaHelp').className='error-text';
-        alert('La tasa debe tener formato válido (ej: 39.50 o 39,50)');
-        return;
-    }
-    
-    if(!b){
-        document.getElementById('bancoHelp').textContent='Seleccioná un banco';
-        document.getElementById('bancoHelp').className='error-text';
-        document.getElementById('banco').classList.add('error');
-        alert('Seleccioná un banco');
-        return;
-    }
-    document.getElementById('banco').classList.remove('error');
-    
-    if(!f){alert('Seleccioná la fecha');return}
-    
-    const u=m/ta,cp=truncar(u*comisionPct,2);
-    
-    if(t==='compra'&&datos.bancos[b]&&datos.bancos[b].saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar igual?'))return;
-    
-    btn.disabled=true;
-    btn.textContent='Guardando...';
-    
-    try{
-        datos.operaciones.unshift({id:Date.now(),tipo:t,monto:m,tasa:ta,usdt:u,banco:b,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cp,comisionPct:datos.comisionPlataforma,fecha:f,timestamp:new Date().toISOString()});
-        
-        if(t==='compra'){
-            datos.ultimaTasaCompra=ta;
-            datos.bancos[b].saldo-=(m+cb);
-            datos.saldoUsdt+=(u-cp);
-        }else{
-            datos.ultimaTasaVenta=ta;
-            datos.bancos[b].saldo+=m;
-            datos.saldoUsdt-=(u+cp);
-        }
-        
-        document.getElementById('monto').value='';
-        document.getElementById('comisionBanco').value='0';
-        document.getElementById('previewBox').style.display='none';
-        paginaActual=1;
-        
-        await guardarDatos();
-        actualizarVista();
-    }finally{
-        btn.disabled=false;
-        btn.textContent='Agregar Operación';
-    }
-}
-
+function actualizarFormulario(){const t=document.getElementById('tipo').value;document.getElementById('montoLabel').textContent=t==='compra'?'Pagás (UYU)':'Recibís (UYU)';document.getElementById('bancoLabel').textContent=t==='compra'?'Sale de *':'Entra a *';document.getElementById('comisionBancoGroup').style.display=t==='compra'?'block':'none';if(t==='venta')document.getElementById('comisionBanco').value='0';const tasaInput=document.getElementById('tasa');if(t==='compra'&&datos.ultimaTasaCompra>0){tasaInput.value=formatearTasa(datos.ultimaTasaCompra)}else if(t==='venta'&&datos.ultimaTasaVenta>0){tasaInput.value=formatearTasa(datos.ultimaTasaVenta)}calcularPreview()}
+function actualizarSelectBancos(){const s=document.getElementById('banco'),v=s.value;s.innerHTML='<option value="">-- Seleccionar --</option>';BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo)s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`});s.value=v}
+function mostrarSaldoBanco(){const b=document.getElementById('banco').value,i=document.getElementById('saldoBancoInfo'),h=document.getElementById('bancoHelp');h.textContent='';h.className='';if(b&&datos.bancos[b]){const bi=BANCOS_DISPONIBLES.find(x=>x.nombre===b);i.textContent=' | '+b+': '+(bi?.moneda==='USD'?'US$':'$')+formatearNumero(datos.bancos[b].saldo)}else i.textContent=''}
+function calcularPreview(){const t=document.getElementById('tipo').value;const m=parseFloat(document.getElementById('monto').value)||0;const ta=parsearTasa(document.getElementById('tasa').value);const comisionPct=getComisionDecimal();document.getElementById('tasa').classList.remove('error');document.getElementById('tasaHelp').className='';document.getElementById('tasaHelp').textContent='Ej: 39.50';if(m>0&&ta){const u=m/ta,c=truncar(u*comisionPct,2);document.getElementById('comisionPlataformaInfo').textContent=formatearNumero(c,2)+' USDT';document.getElementById('previewText').innerHTML=t==='compra'?`📥 Recibís <b>${formatearNumero(u-c,2)} USDT</b>`:`📤 Entregás <b>${formatearNumero(u+c,2)} USDT</b>`;document.getElementById('previewBox').style.display='block'}else{document.getElementById('previewBox').style.display='none';document.getElementById('comisionPlataformaInfo').textContent='0 USDT'}}
+async function agregarOperacion(){const btn=document.getElementById('btnAgregarOp');if(btn.disabled)return;const t=document.getElementById('tipo').value;const m=parseFloat(document.getElementById('monto').value);const tasaInput=document.getElementById('tasa');const ta=parsearTasa(tasaInput.value);const b=document.getElementById('banco').value;const cb=parseFloat(document.getElementById('comisionBanco').value)||0;const f=document.getElementById('fecha').value;const comisionPct=getComisionDecimal();if(!m){alert('Ingresá el monto');return}if(!ta){tasaInput.classList.add('error');document.getElementById('tasaHelp').textContent='Formato inválido';document.getElementById('tasaHelp').className='error-text';alert('Tasa inválida (ej: 39.50)');return}if(!b){document.getElementById('bancoHelp').textContent='Seleccioná un banco';document.getElementById('bancoHelp').className='error-text';document.getElementById('banco').classList.add('error');alert('Seleccioná un banco');return}document.getElementById('banco').classList.remove('error');if(!f){alert('Seleccioná la fecha');return}const u=m/ta,cp=truncar(u*comisionPct,2);if(t==='compra'&&datos.bancos[b]&&datos.bancos[b].saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return;btn.disabled=true;btn.textContent='Guardando...';try{datos.operaciones.unshift({id:Date.now(),tipo:t,monto:m,tasa:ta,usdt:u,banco:b,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cp,comisionPct:datos.comisionPlataforma,fecha:f,timestamp:new Date().toISOString()});if(t==='compra'){datos.ultimaTasaCompra=ta;datos.bancos[b].saldo-=(m+cb);datos.saldoUsdt+=(u-cp)}else{datos.ultimaTasaVenta=ta;datos.bancos[b].saldo+=m;datos.saldoUsdt-=(u+cp)}document.getElementById('monto').value='';document.getElementById('comisionBanco').value='0';document.getElementById('previewBox').style.display='none';paginaActual=1;await guardarDatos();actualizarVista()}finally{btn.disabled=false;btn.textContent='Agregar Operación'}}
 async function eliminarOperacion(id){if(!confirm('¿Eliminar operación?'))return;const op=datos.operaciones.find(o=>o.id===id);if(op){if(op.tipo==='compra'){if(op.banco&&datos.bancos[op.banco])datos.bancos[op.banco].saldo+=(op.monto+(op.comisionBanco||0));datos.saldoUsdt-=(op.usdt-op.comisionPlataforma)}else{if(op.banco&&datos.bancos[op.banco])datos.bancos[op.banco].saldo-=op.monto;datos.saldoUsdt+=(op.usdt+op.comisionPlataforma)}}datos.operaciones=datos.operaciones.filter(o=>o.id!==id);await guardarDatos();actualizarVista()}
-
-function abrirModalMovimiento(){
-    guardandoMovimiento=false;
-    tipoMovimiento='ingreso';
-    document.getElementById('tabIngreso').classList.add('active');
-    document.getElementById('tabEgreso').classList.remove('active');
-    document.getElementById('movTipoCuenta').value='banco';
-    document.getElementById('movMonto').value='';
-    document.getElementById('movDescripcion').value='';
-    document.getElementById('movFecha').valueAsDate=new Date();
-    document.getElementById('btnGuardarMov').disabled=false;
-    document.getElementById('btnGuardarMov').textContent='Guardar';
-    actualizarCuentasMovimiento();
-    document.getElementById('modalMovimiento').classList.add('active');
-}
+function abrirModalMovimiento(){guardandoMovimiento=false;tipoMovimiento='ingreso';document.getElementById('tabIngreso').classList.add('active');document.getElementById('tabEgreso').classList.remove('active');document.getElementById('movTipoCuenta').value='banco';document.getElementById('movMonto').value='';document.getElementById('movDescripcion').value='';document.getElementById('movFecha').valueAsDate=new Date();document.getElementById('btnGuardarMov').disabled=false;document.getElementById('btnGuardarMov').textContent='Guardar';actualizarCuentasMovimiento();document.getElementById('modalMovimiento').classList.add('active')}
 function cerrarModalMovimiento(){document.getElementById('modalMovimiento').classList.remove('active')}
 function setTipoMovimiento(t){tipoMovimiento=t;document.getElementById('tabIngreso').classList.toggle('active',t==='ingreso');document.getElementById('tabEgreso').classList.toggle('active',t==='egreso')}
 function actualizarCuentasMovimiento(){const tc=document.getElementById('movTipoCuenta').value;document.getElementById('movBancoGroup').style.display=tc==='usdt'?'none':'block';document.getElementById('movMontoLabel').textContent=tc==='usdt'?'Monto (USDT)':'Monto';if(tc!=='usdt'){const s=document.getElementById('movBanco');s.innerHTML='<option value="">Seleccionar banco</option>';BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo)s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`})}}
-
-async function guardarMovimiento(){
-    if(guardandoMovimiento)return;
-    
-    const btn=document.getElementById('btnGuardarMov');
-    const tc=document.getElementById('movTipoCuenta').value;
-    const b=document.getElementById('movBanco').value;
-    const m=parseFloat(document.getElementById('movMonto').value);
-    const desc=document.getElementById('movDescripcion').value;
-    const f=document.getElementById('movFecha').value;
-    
-    if(!m||m<=0)return alert('Monto inválido');
-    if(tc==='banco'&&!b)return alert('Seleccioná un banco');
-    
-    guardandoMovimiento=true;
-    btn.disabled=true;
-    btn.textContent='Guardando...';
-    
-    try{
-        datos.movimientos.unshift({id:Date.now(),tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,descripcion:desc,fecha:f,timestamp:new Date().toISOString()});
-        
-        if(tc==='usdt'){
-            datos.saldoUsdt+=tipoMovimiento==='ingreso'?m:-m;
-        }else{
-            datos.bancos[b].saldo+=tipoMovimiento==='ingreso'?m:-m;
-        }
-        
-        await guardarDatos();
-        actualizarVista();
-        cerrarModalMovimiento();
-    }finally{
-        guardandoMovimiento=false;
-        btn.disabled=false;
-        btn.textContent='Guardar';
-    }
-}
-
+async function guardarMovimiento(){if(guardandoMovimiento)return;const btn=document.getElementById('btnGuardarMov');const tc=document.getElementById('movTipoCuenta').value;const b=document.getElementById('movBanco').value;const m=parseFloat(document.getElementById('movMonto').value);const desc=document.getElementById('movDescripcion').value;const f=document.getElementById('movFecha').value;if(!m||m<=0)return alert('Monto inválido');if(tc==='banco'&&!b)return alert('Seleccioná un banco');guardandoMovimiento=true;btn.disabled=true;btn.textContent='Guardando...';try{datos.movimientos.unshift({id:Date.now(),tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,descripcion:desc,fecha:f,timestamp:new Date().toISOString()});if(tc==='usdt'){datos.saldoUsdt+=tipoMovimiento==='ingreso'?m:-m}else{datos.bancos[b].saldo+=tipoMovimiento==='ingreso'?m:-m}await guardarDatos();actualizarVista();cerrarModalMovimiento()}finally{guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar'}}
 async function eliminarMovimiento(id){if(!confirm('¿Eliminar?'))return;const mov=datos.movimientos.find(m=>m.id===id);if(mov){if(mov.tipoCuenta==='usdt')datos.saldoUsdt+=mov.tipoMovimiento==='ingreso'?-mov.monto:mov.monto;else if(mov.banco&&datos.bancos[mov.banco])datos.bancos[mov.banco].saldo+=mov.tipoMovimiento==='ingreso'?-mov.monto:mov.monto}datos.movimientos=datos.movimientos.filter(m=>m.id!==id);await guardarDatos();actualizarVista()}
-
 function abrirModalBancos(){renderizarListaBancos();document.getElementById('modalBancos').classList.add('active')}
 function cerrarModalBancos(){document.getElementById('modalBancos').classList.remove('active');guardarDatos();actualizarVista()}
 function renderizarListaBancos(){let h='';BANCOS_DISPONIBLES.forEach(b=>{const a=datos.bancos[b.nombre]?.activo||false,s=datos.bancos[b.nombre]?.saldo||0;h+=`<div class="banco-list-item"><div><div style="font-weight:600;font-size:0.9em">${b.nombre} <span style="color:#94a3b8">(${b.moneda})</span></div><div style="color:#64748b;font-size:0.8em">${b.moneda==='USD'?'US$':'$'}${formatearNumero(s)}</div></div><div class="banco-list-actions"><button class="btn-edit-small" onclick="abrirEditarSaldo('${b.nombre}')">Editar</button><label class="toggle-switch"><input type="checkbox" ${a?'checked':''} onchange="toggleBanco('${b.nombre}')"><span class="toggle-slider"></span></label></div></div>`});document.getElementById('listaBancos').innerHTML=h}
@@ -592,36 +399,26 @@ function toggleBanco(n){if(!datos.bancos[n])datos.bancos[n]={activo:false,saldo:
 function abrirEditarSaldo(n){bancoEditando=n;document.getElementById('editarSaldoHeader').textContent=n==='USDT'?'Editar USDT':'Editar '+n;document.getElementById('nuevoSaldoBanco').value=n==='USDT'?datos.saldoUsdt:(datos.bancos[n]?.saldo||0);document.getElementById('modalEditarSaldo').classList.add('active')}
 function cerrarModalEditarSaldo(){document.getElementById('modalEditarSaldo').classList.remove('active');bancoEditando=null}
 async function guardarNuevoSaldo(){const ns=parseFloat(document.getElementById('nuevoSaldoBanco').value)||0;if(bancoEditando==='USDT')datos.saldoUsdt=ns;else if(bancoEditando&&datos.bancos[bancoEditando])datos.bancos[bancoEditando].saldo=ns;await guardarDatos();actualizarVista();renderizarListaBancos();cerrarModalEditarSaldo()}
-
 function abrirModalTransferencia(){document.getElementById('fechaTransferencia').valueAsDate=new Date();document.getElementById('montoTransferencia').value='';document.getElementById('comisionTransferencia').value='0';const opts='<option value="">Seleccionar</option>'+BANCOS_DISPONIBLES.filter(b=>datos.bancos[b.nombre]?.activo).map(b=>`<option value="${b.nombre}">${b.nombre}</option>`).join('');document.getElementById('bancoOrigen').innerHTML=opts;document.getElementById('bancoDestino').innerHTML=opts;document.getElementById('saldoOrigenInfo').textContent='';document.getElementById('modalTransferencia').classList.add('active')}
 function cerrarModalTransferencia(){document.getElementById('modalTransferencia').classList.remove('active')}
 function mostrarSaldoOrigen(){const b=document.getElementById('bancoOrigen').value;document.getElementById('saldoOrigenInfo').textContent=b&&datos.bancos[b]?'Disponible: $'+formatearNumero(datos.bancos[b].saldo):''}
 async function realizarTransferencia(){const o=document.getElementById('bancoOrigen').value,d=document.getElementById('bancoDestino').value,m=parseFloat(document.getElementById('montoTransferencia').value),c=parseFloat(document.getElementById('comisionTransferencia').value)||0,f=document.getElementById('fechaTransferencia').value;if(!o||!d||o===d)return alert('Seleccioná bancos diferentes');if(!m||m<=0)return alert('Monto inválido');datos.transferencias.unshift({id:Date.now(),origen:o,destino:d,monto:m,comision:c,fecha:f,timestamp:new Date().toISOString()});datos.bancos[o].saldo-=(m+c);datos.bancos[d].saldo+=m;await guardarDatos();actualizarVista();cerrarModalTransferencia()}
 async function eliminarTransferencia(id){if(!confirm('¿Eliminar?'))return;const t=datos.transferencias.find(x=>x.id===id);if(t){datos.bancos[t.origen].saldo+=(t.monto+t.comision);datos.bancos[t.destino].saldo-=t.monto}datos.transferencias=datos.transferencias.filter(x=>x.id!==id);await guardarDatos();actualizarVista()}
-
 function abrirCalendario(){calendarDate=new Date();renderizarCalendario();document.getElementById('modalCalendario').classList.add('active')}
 function cerrarCalendario(){document.getElementById('modalCalendario').classList.remove('active')}
 function cambiarMes(d){calendarDate.setMonth(calendarDate.getMonth()+d);renderizarCalendario()}
 function calcularGananciaDiaria(){const g={},tasaPromC=calcularTasaPromedioCompra();datos.operaciones.forEach(op=>{if(!g[op.fecha])g[op.fecha]=0;if(op.tipo==='venta'&&tasaPromC>0){const spread=op.tasa-tasaPromC;g[op.fecha]+=(op.usdt+op.comisionPlataforma)*spread}});return g}
 function calcularTasaPromedioCompra(){const c=datos.operaciones.filter(o=>o.tipo==='compra');return c.length?c.reduce((s,o)=>s+o.tasa,0)/c.length:0}
 function renderizarCalendario(){const y=calendarDate.getFullYear(),mo=calendarDate.getMonth();document.getElementById('calendarMonth').textContent=`${y}-${String(mo+1).padStart(2,'0')}`;const fd=new Date(y,mo,1).getDay(),dm=new Date(y,mo+1,0).getDate(),hoy=new Date(),g=calcularGananciaDiaria();let h='',tg=0,tp=0;for(let i=0;i<fd;i++)h+='<div class="calendar-day empty"></div>';for(let d=1;d<=dm;d++){const ds=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,val=g[ds]||0,isHoy=hoy.getFullYear()===y&&hoy.getMonth()===mo&&hoy.getDate()===d;let cls='calendar-day';if(val>0){cls+=' positive';tg+=val}else if(val<0){cls+=' negative';tp+=Math.abs(val)}if(isHoy)cls+=' today';const vs=val!==0?(val>0?'+':'')+formatearNumero(val,0):'0',vc=val>0?'pos':val<0?'neg':'';h+=`<div class="${cls}"><div class="calendar-day-number">${d}</div><div class="calendar-day-value ${vc}">${vs}</div></div>`}document.getElementById('calendarDays').innerHTML=h;const n=tg-tp;document.getElementById('calGanancias').textContent='+$'+formatearNumero(tg,0);document.getElementById('calPerdidas').textContent='-$'+formatearNumero(tp,0);document.getElementById('calNeto').textContent=(n>=0?'+':'-')+'$'+formatearNumero(Math.abs(n),0);document.getElementById('calNeto').style.color=n>=0?'#4ade80':'#f87171'}
-
 function calcularResumen(){let tp=0,tr=0,uc=0,uv=0,cb=0,stc=0,stv=0,cc=0,cv=0;datos.operaciones.forEach(op=>{if(op.tipo==='compra'){tp+=op.monto+(op.comisionBanco||0);uc+=op.usdt-op.comisionPlataforma;cb+=op.comisionBanco||0;stc+=op.tasa;cc++}else{tr+=op.monto;uv+=op.usdt+op.comisionPlataforma;stv+=op.tasa;cv++}});const tpc=cc?stc/cc:0,tpv=cv?stv/cv:0,sp=tpv-tpc,ucr=Math.min(uc,uv),gan=(ucr*sp)-cb;let tb=0;BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo&&b.moneda==='UYU')tb+=datos.bancos[b.nombre].saldo});return{totalPagado:tp,totalRecibido:tr,usdtComprados:uc,usdtVendidos:uv,usdtCerrados:ucr,ganancia:gan,tasaPromC:tpc,tasaPromV:tpv,spread:sp,pctSpread:tpc?(sp/tpc)*100:0,totalBancosUYU:tb}}
-
 function actualizarVista(){const r=calcularResumen(),gEl=document.getElementById('gananciaTotal'),card=document.getElementById('cardGanancia');if(r.ganancia>=0){gEl.textContent='$'+formatearNumero(r.ganancia);gEl.className='card-value positive';card.className='card main-card'}else{gEl.textContent='-$'+formatearNumero(Math.abs(r.ganancia));gEl.className='card-value negative';card.className='card main-card negative'}document.getElementById('operacionesCerradas').textContent=formatearNumero(r.usdtCerrados,0)+' USDT';document.getElementById('usdtEnTenencia').textContent=formatearNumero(Math.max(0,datos.saldoUsdt),2);document.getElementById('totalBancos').textContent='$'+formatearNumero(r.totalBancosUYU,0);document.getElementById('totalPagado').textContent='$'+formatearNumero(r.totalPagado,0);document.getElementById('tasaPromCompra').textContent='$'+formatearNumero(r.tasaPromC);document.getElementById('totalRecibido').textContent='$'+formatearNumero(r.totalRecibido,0);document.getElementById('tasaPromVenta').textContent='$'+formatearNumero(r.tasaPromV);document.getElementById('spreadPromedio').textContent='$'+formatearNumero(r.spread);document.getElementById('porcentajeSpread').textContent=formatearNumero(r.pctSpread,1)+'%';actualizarBancosGrid();actualizarSelectBancos();actualizarTablaOperaciones();actualizarTablaMovimientos();actualizarTablaTransferencias()}
-
 function actualizarBancosGrid(){let h=`<div class="banco-mini-card usdt-card" onclick="abrirEditarSaldo('USDT')"><div class="banco-nombre">🪙 USDT</div><div class="banco-saldo">${formatearNumero(Math.max(0,datos.saldoUsdt),2)}</div><div class="banco-moneda">Tether</div></div>`;BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo){const s=datos.bancos[b.nombre].saldo;h+=`<div class="banco-mini-card" onclick="abrirEditarSaldo('${b.nombre}')"><div class="banco-nombre">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${b.moneda==='USD'?'US$':'$'}${formatearNumero(s)}</div><div class="banco-moneda">${b.moneda}</div></div>`}});document.getElementById('bancosGrid').innerHTML=h}
-
 function actualizarTablaOperaciones(){const t=document.getElementById('tablaContent'),total=datos.operaciones.length;document.getElementById('totalOperaciones').textContent=total;if(!total){t.innerHTML='<div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>';document.getElementById('paginationOp').style.display='none';return}const totalPaginas=Math.ceil(total/POR_PAGINA);if(paginaActual>totalPaginas)paginaActual=totalPaginas;const inicio=(paginaActual-1)*POR_PAGINA,fin=inicio+POR_PAGINA,ops=datos.operaciones.slice(inicio,fin);let h='<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>Banco</th><th>Fecha</th><th></th></tr></thead><tbody>';ops.forEach(op=>{const un=op.tipo==='compra'?op.usdt-op.comisionPlataforma:op.usdt+op.comisionPlataforma;h+=`<tr><td><span class="badge badge-${op.tipo}">${op.tipo==='compra'?'🛒':'💵'}</span></td><td><b>$${formatearNumero(op.monto)}</b></td><td>$${formatearNumero(op.tasa)}</td><td><b>${formatearNumero(un,2)}</b></td><td style="color:#0284c7">${op.banco||'-'}</td><td style="color:#64748b">${op.fecha}</td><td><button class="btn-delete" onclick="eliminarOperacion(${op.id})">×</button></td></tr>`});t.innerHTML=h+'</tbody></table>';document.getElementById('paginationOp').style.display=totalPaginas>1?'flex':'none';document.getElementById('paginaInfoOp').textContent=`${paginaActual} / ${totalPaginas}`;document.getElementById('btnPrevOp').disabled=paginaActual===1;document.getElementById('btnNextOp').disabled=paginaActual===totalPaginas}
-
-function actualizarTablaMovimientos(){const sec=document.getElementById('seccionMovimientos'),total=datos.movimientos.length;document.getElementById('totalMovimientos').textContent=total;if(!total){sec.style.display='none';return}sec.style.display='block';let h='<table><thead><tr><th>Tipo</th><th>Cuenta</th><th>Monto</th><th>Descripción</th><th>Fecha</th><th></th></tr></thead><tbody>';datos.movimientos.forEach(m=>{h+=`<tr><td><span class="badge badge-${m.tipoMovimiento}">${m.tipoMovimiento==='ingreso'?'📥':'📤'}</span></td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':m.banco}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${formatearNumero(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td style="color:#64748b">${m.fecha}</td><td><button class="btn-delete" onclick="eliminarMovimiento(${m.id})">×</button></td></tr>`});document.getElementById('movimientosContent').innerHTML=h+'</tbody></table>'}
-
-function actualizarTablaTransferencias(){const sec=document.getElementById('seccionTransferencias'),total=datos.transferencias.length;document.getElementById('totalTransferencias').textContent=total;if(!total){sec.style.display='none';return}sec.style.display='block';let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Comisión</th><th>Fecha</th><th></th></tr></thead><tbody>';datos.transferencias.forEach(tr=>{h+=`<tr><td style="color:#dc2626">${tr.origen}</td><td style="color:#16a34a">${tr.destino}</td><td><b>$${formatearNumero(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?'$'+formatearNumero(tr.comision):'-'}</td><td style="color:#64748b">${tr.fecha}</td><td><button class="btn-delete" onclick="eliminarTransferencia(${tr.id})">×</button></td></tr>`});document.getElementById('transferenciasContent').innerHTML=h+'</tbody></table>'}
-
+function actualizarTablaMovimientos(){const sec=document.getElementById('seccionMovimientos'),total=datos.movimientos.length;document.getElementById('totalMovimientos').textContent=total;if(!total){sec.style.display='none';return}sec.style.display='block';let h='<table><thead><tr><th>Tipo</th><th>Cuenta</th><th>Monto</th><th>Desc</th><th>Fecha</th><th></th></tr></thead><tbody>';datos.movimientos.forEach(m=>{h+=`<tr><td><span class="badge badge-${m.tipoMovimiento}">${m.tipoMovimiento==='ingreso'?'📥':'📤'}</span></td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':m.banco}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${formatearNumero(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td style="color:#64748b">${m.fecha}</td><td><button class="btn-delete" onclick="eliminarMovimiento(${m.id})">×</button></td></tr>`});document.getElementById('movimientosContent').innerHTML=h+'</tbody></table>'}
+function actualizarTablaTransferencias(){const sec=document.getElementById('seccionTransferencias'),total=datos.transferencias.length;document.getElementById('totalTransferencias').textContent=total;if(!total){sec.style.display='none';return}sec.style.display='block';let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Com</th><th>Fecha</th><th></th></tr></thead><tbody>';datos.transferencias.forEach(tr=>{h+=`<tr><td style="color:#dc2626">${tr.origen}</td><td style="color:#16a34a">${tr.destino}</td><td><b>$${formatearNumero(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?'$'+formatearNumero(tr.comision):'-'}</td><td style="color:#64748b">${tr.fecha}</td><td><button class="btn-delete" onclick="eliminarTransferencia(${tr.id})">×</button></td></tr>`});document.getElementById('transferenciasContent').innerHTML=h+'</tbody></table>'}
 function exportarDatos(){const b=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'}),l=document.createElement('a');l.href=URL.createObjectURL(b);l.download='p2p-backup-'+new Date().toISOString().split('T')[0]+'.json';l.click()}
-async function importarDatos(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async ev=>{try{const d=JSON.parse(ev.target.result);datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14};inicializarBancos();paginaActual=1;document.getElementById('comisionPlataforma').value=datos.comisionPlataforma.toFixed(2);document.getElementById('comisionPctLabel').textContent=datos.comisionPlataforma.toFixed(2);await guardarDatos();actualizarVista();alert('✅ Datos importados')}catch(err){alert('❌ Error al importar')}};r.readAsText(f);e.target.value=''}
-async function borrarTodo(){if(confirm('⚠️ ¿Borrar TODOS los datos?')&&confirm('Esta acción no se puede deshacer. ¿Continuar?')){datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};inicializarBancos();paginaActual=1;document.getElementById('comisionPlataforma').value='0.14';document.getElementById('comisionPctLabel').textContent='0.14';await guardarDatos();actualizarVista()}}
-
+async function importarDatos(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async ev=>{try{const d=JSON.parse(ev.target.result);datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14};inicializarBancos();paginaActual=1;document.getElementById('comisionPlataforma').value=datos.comisionPlataforma.toFixed(2);document.getElementById('comisionPctLabel').textContent=datos.comisionPlataforma.toFixed(2);await guardarDatos();actualizarVista();alert('✅ Importado')}catch(err){alert('❌ Error')}};r.readAsText(f);e.target.value=''}
+async function borrarTodo(){if(confirm('⚠️ ¿Borrar TODO?')&&confirm('No se puede deshacer. ¿Continuar?')){datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};inicializarBancos();paginaActual=1;document.getElementById('comisionPlataforma').value='0.14';document.getElementById('comisionPctLabel').textContent='0.14';await guardarDatos();actualizarVista()}}
 document.addEventListener('DOMContentLoaded',()=>{document.getElementById('fecha').valueAsDate=new Date();actualizarFormulario();inicializarFirebase()});
     </script>
 </body>
