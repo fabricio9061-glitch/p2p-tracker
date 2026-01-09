@@ -75,6 +75,12 @@
         .form-group small{display:block;color:#94a3b8;font-size:0.7em;margin-top:3px}
         .form-group small.error-text{color:#dc2626}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        
+        /* Select de tipo de operación con colores */
+        #tipo{font-weight:700}
+        #tipo option[value="compra"]{color:#16a34a;font-weight:700}
+        #tipo option[value="venta"]{color:#dc2626;font-weight:700}
+        
         .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
         .btn:active{background:#1d4ed8}
         .btn:disabled{background:#94a3b8;cursor:not-allowed}
@@ -90,8 +96,8 @@
         .badge-venta{background:#fee2e2;color:#dc2626}
         .badge-ingreso{background:#dcfce7;color:#16a34a}
         .badge-egreso{background:#fee2e2;color:#dc2626}
-        .text-compra,.text-ingreso{color:#16a34a;font-weight:700}
-        .text-venta,.text-egreso{color:#dc2626;font-weight:700}
+        .text-compra{color:#16a34a;font-weight:700}
+        .text-venta{color:#dc2626;font-weight:700}
         .empty-state{text-align:center;padding:30px;color:#94a3b8}
         .empty-state-icon{font-size:2em;margin-bottom:8px}
         .pagination{display:flex;justify-content:center;align-items:center;gap:8px;padding:12px;border-top:1px solid #e2e8f0}
@@ -114,11 +120,17 @@
         .toggle-switch input:checked+.toggle-slider{background-color:#16a34a}
         .toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
         .btn-edit-small{padding:5px 10px;font-size:0.7em;background:#3b82f6;color:white;border:none;border-radius:5px}
+        
+        /* Tabs de movimiento con contraste correcto */
         .tabs{display:flex;gap:5px;margin-bottom:12px}
-        .tab{padding:8px 14px;border-radius:8px;cursor:pointer;font-size:0.85em;font-weight:500;background:#f1f5f9;color:#64748b;border:none;flex:1;text-align:center}
-        .tab.active.tab-ingreso{background:#16a34a;color:white}
-        .tab.active.tab-egreso{background:#dc2626;color:white}
-        .tab.active{background:#2563eb;color:white}
+        .tab{padding:10px 14px;border-radius:8px;cursor:pointer;font-size:0.85em;font-weight:600;border:2px solid #e2e8f0;flex:1;text-align:center;transition:all 0.2s}
+        .tab-ingreso{background:#f8fafc;color:#16a34a;border-color:#e2e8f0}
+        .tab-ingreso:hover{background:#f0fdf4;border-color:#86efac}
+        .tab-ingreso.active{background:#16a34a;color:white;border-color:#16a34a}
+        .tab-egreso{background:#f8fafc;color:#dc2626;border-color:#e2e8f0}
+        .tab-egreso:hover{background:#fef2f2;border-color:#fca5a5}
+        .tab-egreso.active{background:#dc2626;color:white;border-color:#dc2626}
+        
         .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;z-index:2000;flex-direction:column;gap:12px}
         .loading-overlay.hidden{display:none}
         .spinner{width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite}
@@ -212,20 +224,16 @@
                         <div class="menu-item" onclick="abrirModalBancos();cerrarMenu()"><span>🏦</span><span>Gestionar Bancos</span></div>
                         <div class="menu-item" onclick="abrirModalTransferencia();cerrarMenu()"><span>↔️</span><span>Transferencia</span></div>
                         <div class="menu-divider"></div>
-                        <div class="menu-item" onclick="exportarDatos();cerrarMenu()"><span>📤</span><span>Exportar</span></div>
-                        <div class="menu-item" onclick="document.getElementById('importFile').click();cerrarMenu()"><span>📥</span><span>Importar</span></div>
-                        <div class="menu-divider"></div>
                         <div class="menu-item danger" onclick="borrarTodo();cerrarMenu()"><span>🗑️</span><span>Borrar Todo</span></div>
                         <div class="menu-divider"></div>
                         <div class="menu-item" onclick="cerrarSesion();cerrarMenu()"><span>🚪</span><span>Cerrar Sesión</span></div>
                     </div>
                 </div>
-                <input type="file" id="importFile" accept=".json" style="display:none" onchange="importarDatos(event)">
             </div>
             
             <div class="cards">
                 <div class="card main-card" id="cardGananciaHoy"><div class="card-title">📈 Ganancia Hoy</div><div class="card-value positive" id="gananciaHoy">$0</div><div class="card-subtitle" id="fechaHoy">--</div><div class="stats-row"><span class="stat-badge" id="opsHoy">0 ops</span></div></div>
-                <div class="card"><div class="card-title">📦 USDT</div><div class="card-value info" id="usdtEnTenencia">0,00</div><div class="card-subtitle">En tenencia</div></div>
+                <div class="card"><div class="card-title">📦 <b style="color:#1e293b">USDT</b></div><div class="card-value info" id="usdtEnTenencia">0,00</div><div class="card-subtitle">En tenencia</div></div>
                 <div class="card"><div class="card-title">🏦 Bancos</div><div class="card-value positive" id="totalBancos">$0</div><div class="card-subtitle">Saldo UYU</div></div>
                 <div class="card"><div class="card-title">📥 <span class="text-compra">Compras</span></div><div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromCompra">--</span></div></div>
                 <div class="card"><div class="card-title">📤 <span class="text-venta">Ventas</span></div><div class="card-value" style="font-size:1.2em" id="totalRecibido">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromVenta">--</span></div></div>
@@ -245,7 +253,7 @@
                     <div class="form-content">
                         <div class="form-group">
                             <label>Tipo de operación</label>
-                            <select id="tipo" onchange="actualizarFormulario()">
+                            <select id="tipo" onchange="actualizarFormulario();actualizarColorSelect()">
                                 <option value="compra">🛒 Compra USDT</option>
                                 <option value="venta">💵 Venta USDT</option>
                             </select>
@@ -304,9 +312,9 @@
                         <div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>
                     </div>
                     <div class="pagination" id="paginationOp" style="display:none">
-                        <button onclick="cambiarPagina(-1)" id="btnPrevOp">← Ant</button>
+                        <button onclick="cambiarPaginaOp(-1)" id="btnPrevOp">← Ant</button>
                         <span class="pagination-info" id="paginaInfoOp">1 / 1</span>
-                        <button onclick="cambiarPagina(1)" id="btnNextOp">Sig →</button>
+                        <button onclick="cambiarPaginaOp(1)" id="btnNextOp">Sig →</button>
                     </div>
                 </div>
             </div>
@@ -322,6 +330,11 @@
                 </div>
                 <div class="toggle-content">
                     <div class="table-scroll" id="movimientosContent"></div>
+                    <div class="pagination" id="paginationMov" style="display:none">
+                        <button onclick="cambiarPaginaMov(-1)" id="btnPrevMov">← Ant</button>
+                        <span class="pagination-info" id="paginaInfoMov">1 / 1</span>
+                        <button onclick="cambiarPaginaMov(1)" id="btnNextMov">Sig →</button>
+                    </div>
                 </div>
             </div>
 
@@ -336,6 +349,11 @@
                 </div>
                 <div class="toggle-content">
                     <div class="table-scroll" id="transferenciasContent"></div>
+                    <div class="pagination" id="paginationTrans" style="display:none">
+                        <button onclick="cambiarPaginaTrans(-1)" id="btnPrevTrans">← Ant</button>
+                        <span class="pagination-info" id="paginaInfoTrans">1 / 1</span>
+                        <button onclick="cambiarPaginaTrans(1)" id="btnNextTrans">Sig →</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -343,10 +361,10 @@
 
     <!-- MODALS -->
     <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:15px"><div class="calendar-container"><div class="calendar-header"><button onclick="cambiarMes(-1)">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button onclick="cambiarMes(1)">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" onclick="cerrarCalendario()">Cerrar</button></div></div></div>
-    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" onclick="setTipoMovimiento('ingreso')" id="tabIngreso">📥 <span class="text-compra">Ingreso</span></button><button class="tab tab-egreso" onclick="setTipoMovimiento('egreso')" id="tabEgreso">📤 <span class="text-venta">Egreso</span></button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta" onchange="actualizarCuentasMovimiento()"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea></div><div class="form-group"><label>Fecha</label><input type="date" id="movFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalMovimiento()">Cancelar</button><button class="btn" id="btnGuardarMov" onclick="guardarMovimiento()">Guardar</button></div></div></div>
+    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" onclick="setTipoMovimiento('ingreso')" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" onclick="setTipoMovimiento('egreso')" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta" onchange="actualizarCuentasMovimiento()"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea></div><div class="form-group"><label>Fecha</label><input type="date" id="movFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalMovimiento()">Cancelar</button><button class="btn" id="btnGuardarMov" onclick="guardarMovimiento()">Guardar</button></div></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Gestionar Bancos</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" onclick="cerrarModalBancos()">Cerrar</button></div></div></div>
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen" onchange="mostrarSaldoOrigen()"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="form-group"><label>Fecha</label><input type="date" id="fechaTransferencia"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalTransferencia()">Cancelar</button><button class="btn" id="btnTransferir" onclick="realizarTransferencia()">Transferir</button></div></div></div>
-    <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario de transferencia</label><input type="number" step="1" id="limiteDiarioBanco" placeholder="0 = sin límite"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalEditarSaldo()">Cancelar</button><button class="btn" onclick="guardarNuevoSaldo()">Guardar</button></div></div></div>
+    <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="number" step="1" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalEditarSaldo()">Cancelar</button><button class="btn" onclick="guardarNuevoSaldo()">Guardar</button></div></div></div>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -355,89 +373,60 @@
 const firebaseConfig={apiKey:"AIzaSyCL2uxQMNIxC0oo35uN-lYQXaOWLxXNg7k",authDomain:"p2p-tracker-dc9cc.firebaseapp.com",projectId:"p2p-tracker-dc9cc",storageBucket:"p2p-tracker-dc9cc.firebasestorage.app",messagingSenderId:"670856094446",appId:"1:670856094446:web:390946887212a97e36c9ff"};
 let db=null,auth=null,currentUser=null,unsubscribe=null;
 let datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};
-let bancoEditando=null,tipoMovimiento='ingreso',calendarDate=new Date(),paginaActual=1;
+let bancoEditando=null,tipoMovimiento='ingreso',calendarDate=new Date();
+let paginaOp=1,paginaMov=1,paginaTrans=1;
 let guardandoMovimiento=false,enCooldown=false;
 const POR_PAGINA=10,EMAIL_DOMAIN='@p2p-tracker.app',COOLDOWN_MS=3000;
 const BANCOS_DISPONIBLES=[{nombre:'Santander',moneda:'UYU'},{nombre:'BBVA',moneda:'UYU'},{nombre:'Itau',moneda:'UYU',especial:'itau'},{nombre:'Scotiabank',moneda:'UYU'},{nombre:'BROU',moneda:'UYU'},{nombre:'Prex',moneda:'UYU'},{nombre:'OCA',moneda:'UYU'},{nombre:'Mercado Pago',moneda:'UYU'},{nombre:'Midinero',moneda:'UYU'},{nombre:'Zelle',moneda:'USD'},{nombre:'Zinli',moneda:'USD'},{nombre:'Skrill',moneda:'USD'}];
 
-// Utilidades
 function fixNegativeZero(n){return Object.is(n,-0)?0:Math.round(n*100)/100}
 function getComisionDecimal(){return(datos.comisionPlataforma||0.14)/100}
 function toggleSeccion(id){document.getElementById(id).classList.toggle('open')}
-function cambiarPagina(dir){const total=Math.ceil(datos.operaciones.length/POR_PAGINA);paginaActual+=dir;if(paginaActual<1)paginaActual=1;if(paginaActual>total)paginaActual=total;actualizarTablaOperaciones()}
+
+// Paginación
+function cambiarPaginaOp(dir){const total=Math.ceil(datos.operaciones.length/POR_PAGINA);paginaOp+=dir;if(paginaOp<1)paginaOp=1;if(paginaOp>total)paginaOp=total;actualizarTablaOperaciones()}
+function cambiarPaginaMov(dir){const total=Math.ceil(datos.movimientos.length/POR_PAGINA);paginaMov+=dir;if(paginaMov<1)paginaMov=1;if(paginaMov>total)paginaMov=total;actualizarTablaMovimientos()}
+function cambiarPaginaTrans(dir){const total=Math.ceil(datos.transferencias.length/POR_PAGINA);paginaTrans+=dir;if(paginaTrans<1)paginaTrans=1;if(paginaTrans>total)paginaTrans=total;actualizarTablaTransferencias()}
+
 function parsearTasa(valor){if(!valor)return null;const limpio=valor.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,2})?$/.test(limpio))return null;const num=parseFloat(limpio);return isNaN(num)||num<=0?null:num}
 function parsearComision(valor){if(!valor)return null;const limpio=valor.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,2})?$/.test(limpio))return null;const num=parseFloat(limpio);return isNaN(num)||num<0||num>10?null:num}
 function formatearTasa(num){return num.toFixed(2)}
 function formatearNumero(n,d=2){return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function truncar(n,d=2){return Math.floor(n*Math.pow(10,d))/Math.pow(10,d)}
 
-// Zona horaria Uruguay (UTC-3)
-function getUruguayDate(){
-    const now=new Date();
-    const utc=now.getTime()+now.getTimezoneOffset()*60000;
-    return new Date(utc-3*3600000);
-}
-function getUruguayDateString(){
-    const d=getUruguayDate();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function getUruguayResetTime(){
-    const d=getUruguayDate();
-    d.setHours(0,30,0,0);
-    return d;
-}
+function getUruguayDate(){const now=new Date();const utc=now.getTime()+now.getTimezoneOffset()*60000;return new Date(utc-3*3600000)}
+function getUruguayDateString(){const d=getUruguayDate();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 
-// Cooldown para evitar duplicados
-function activarCooldown(){
-    enCooldown=true;
-    document.getElementById('cooldownOverlay').classList.remove('hidden');
-    setTimeout(()=>{
-        enCooldown=false;
-        document.getElementById('cooldownOverlay').classList.add('hidden');
-    },COOLDOWN_MS);
-}
+function activarCooldown(){enCooldown=true;document.getElementById('cooldownOverlay').classList.remove('hidden');setTimeout(()=>{enCooldown=false;document.getElementById('cooldownOverlay').classList.add('hidden')},COOLDOWN_MS)}
 
-// Límites diarios
 function verificarResetLimites(){
     const ahora=getUruguayDate();
-    const horaReset=0.5; // 12:30 AM = 0.5 horas
+    const horaReset=0.5;
     const horaActual=ahora.getHours()+ahora.getMinutes()/60;
-    
     BANCOS_DISPONIBLES.forEach(b=>{
         if(!datos.bancos[b.nombre])return;
         const banco=datos.bancos[b.nombre];
         if(!banco.ultimoResetLimite)banco.ultimoResetLimite=null;
-        
         const hoy=getUruguayDateString();
         const ultimoReset=banco.ultimoResetLimite;
-        
-        // Regla especial ITAU: sáb-dom-lun cuentan como un día
         if(b.especial==='itau'){
-            const diaSemana=ahora.getDay(); // 0=dom,1=lun,6=sáb
-            if(diaSemana===2&&horaActual>=horaReset){ // Martes después de 12:30
-                if(ultimoReset!==hoy){
-                    banco.limiteUsado=0;
-                    banco.ultimoResetLimite=hoy;
-                }
-            }else if(diaSemana>2&&diaSemana<6&&horaActual>=horaReset){
-                if(ultimoReset!==hoy){
-                    banco.limiteUsado=0;
-                    banco.ultimoResetLimite=hoy;
-                }
-            }
+            const diaSemana=ahora.getDay();
+            if(diaSemana===2&&horaActual>=horaReset){if(ultimoReset!==hoy){banco.limiteUsadoUSD=0;banco.ultimoResetLimite=hoy}}
+            else if(diaSemana>2&&diaSemana<6&&horaActual>=horaReset){if(ultimoReset!==hoy){banco.limiteUsadoUSD=0;banco.ultimoResetLimite=hoy}}
         }else{
-            // Reset normal a las 12:30 AM
-            if(horaActual>=horaReset&&ultimoReset!==hoy){
-                banco.limiteUsado=0;
-                banco.ultimoResetLimite=hoy;
-            }
+            if(horaActual>=horaReset&&ultimoReset!==hoy){banco.limiteUsadoUSD=0;banco.ultimoResetLimite=hoy}
         }
     });
 }
 
+// Color del select según tipo
+function actualizarColorSelect(){
+    const sel=document.getElementById('tipo');
+    sel.style.color=sel.value==='compra'?'#16a34a':'#dc2626';
+}
+
 function guardarComisionYCalcular(){const input=document.getElementById('comisionPlataforma');const valor=parsearComision(input.value);if(valor!==null){datos.comisionPlataforma=valor;document.getElementById('comisionPctLabel').textContent=valor.toFixed(2);guardarDatos()}calcularPreview()}
 
-// Auth
 function switchAuthTab(t){document.getElementById('tabLogin').classList.toggle('active',t==='login');document.getElementById('tabRegister').classList.toggle('active',t==='register');document.getElementById('loginForm').style.display=t==='login'?'block':'none';document.getElementById('registerForm').style.display=t==='register'?'block':'none';hideAuthError()}
 function showAuthError(m){const e=document.getElementById('authError');e.textContent=m;e.classList.add('show')}
 function hideAuthError(){document.getElementById('authError').classList.remove('show')}
@@ -456,26 +445,18 @@ function cargarDatosUsuario(){
     unsubscribe=db.collection('users').doc(currentUser.uid).onSnapshot(doc=>{
         if(doc.exists){
             const d=doc.data();
-            datos={
-                operaciones:d.operaciones||[],
-                movimientos:d.movimientos||[],
-                transferencias:d.transferencias||[],
-                bancos:d.bancos||{},
-                saldoUsdt:d.saldoUsdt||0,
-                ultimaTasaCompra:d.ultimaTasaCompra||0,
-                ultimaTasaVenta:d.ultimaTasaVenta||0,
-                comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14
-            };
+            datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14};
         }else{
             datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};
         }
         inicializarBancos();
         verificarResetLimites();
-        paginaActual=1;
+        paginaOp=1;paginaMov=1;paginaTrans=1;
         document.getElementById('comisionPlataforma').value=datos.comisionPlataforma.toFixed(2);
         document.getElementById('comisionPctLabel').textContent=datos.comisionPlataforma.toFixed(2);
         actualizarVista();
         actualizarFormulario();
+        actualizarColorSelect();
         ocultarLoading();
         setSyncStatus('online','✓');
     },()=>{setSyncStatus('offline','✗');ocultarLoading()});
@@ -491,11 +472,10 @@ document.addEventListener('click',e=>{const m=document.querySelector('.menu-cont
 function inicializarBancos(){
     BANCOS_DISPONIBLES.forEach(b=>{
         if(!datos.bancos[b.nombre]){
-            datos.bancos[b.nombre]={activo:false,saldo:0,limiteDiario:0,limiteUsado:0,ultimoResetLimite:null};
+            datos.bancos[b.nombre]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0,ultimoResetLimite:null};
         }else{
-            // Asegurar campos nuevos
-            if(datos.bancos[b.nombre].limiteDiario===undefined)datos.bancos[b.nombre].limiteDiario=0;
-            if(datos.bancos[b.nombre].limiteUsado===undefined)datos.bancos[b.nombre].limiteUsado=0;
+            if(datos.bancos[b.nombre].limiteDiarioUSD===undefined)datos.bancos[b.nombre].limiteDiarioUSD=datos.bancos[b.nombre].limiteDiario||0;
+            if(datos.bancos[b.nombre].limiteUsadoUSD===undefined)datos.bancos[b.nombre].limiteUsadoUSD=datos.bancos[b.nombre].limiteUsado||0;
             if(datos.bancos[b.nombre].ultimoResetLimite===undefined)datos.bancos[b.nombre].ultimoResetLimite=null;
         }
     });
@@ -569,7 +549,20 @@ async function agregarOperacion(){
     if(!f){alert('Seleccioná la fecha');return}
     
     const u=m/ta,cp=truncar(u*comisionPct,2);
-    if(t==='compra'&&datos.bancos[b]&&datos.bancos[b].saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return;
+    
+    // Verificar límite en USD para compras
+    if(t==='compra'){
+        const banco=datos.bancos[b];
+        if(banco.limiteDiarioUSD>0){
+            const montoUSD=m/ta; // Convertir pesos a USD usando la tasa
+            const disponibleUSD=banco.limiteDiarioUSD-(banco.limiteUsadoUSD||0);
+            if(montoUSD>disponibleUSD){
+                alert(`Excede el límite diario. Disponible: US$${formatearNumero(disponibleUSD,0)} (${formatearNumero(montoUSD,2)} USD requeridos)`);
+                return;
+            }
+        }
+        if(banco.saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return;
+    }
     
     btn.disabled=true;
     btn.textContent='Guardando...';
@@ -581,6 +574,11 @@ async function agregarOperacion(){
             datos.ultimaTasaCompra=ta;
             datos.bancos[b].saldo=fixNegativeZero(datos.bancos[b].saldo-(m+cb));
             datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt+(u-cp));
+            // Descontar del límite en USD
+            if(datos.bancos[b].limiteDiarioUSD>0){
+                const montoUSD=m/ta;
+                datos.bancos[b].limiteUsadoUSD=Math.min(datos.bancos[b].limiteDiarioUSD,(datos.bancos[b].limiteUsadoUSD||0)+montoUSD);
+            }
         }else{
             datos.ultimaTasaVenta=ta;
             datos.bancos[b].saldo=fixNegativeZero(datos.bancos[b].saldo+m);
@@ -590,7 +588,7 @@ async function agregarOperacion(){
         document.getElementById('monto').value='';
         document.getElementById('comisionBanco').value='0';
         document.getElementById('previewBox').style.display='none';
-        paginaActual=1;
+        paginaOp=1;
         
         await guardarDatos();
         actualizarVista();
@@ -606,7 +604,14 @@ async function eliminarOperacion(id){
     const op=datos.operaciones.find(o=>o.id===id);
     if(op){
         if(op.tipo==='compra'){
-            if(op.banco&&datos.bancos[op.banco])datos.bancos[op.banco].saldo=fixNegativeZero(datos.bancos[op.banco].saldo+(op.monto+(op.comisionBanco||0)));
+            if(op.banco&&datos.bancos[op.banco]){
+                datos.bancos[op.banco].saldo=fixNegativeZero(datos.bancos[op.banco].saldo+(op.monto+(op.comisionBanco||0)));
+                // Restaurar límite
+                if(datos.bancos[op.banco].limiteDiarioUSD>0){
+                    const montoUSD=op.monto/op.tasa;
+                    datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,(datos.bancos[op.banco].limiteUsadoUSD||0)-montoUSD);
+                }
+            }
             datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt-(op.usdt-op.comisionPlataforma));
         }else{
             if(op.banco&&datos.bancos[op.banco])datos.bancos[op.banco].saldo=fixNegativeZero(datos.bancos[op.banco].saldo-op.monto);
@@ -618,13 +623,11 @@ async function eliminarOperacion(id){
     actualizarVista();
 }
 
-// Movimientos
 function abrirModalMovimiento(){
     guardandoMovimiento=false;
     tipoMovimiento='ingreso';
-    document.getElementById('tabIngreso').classList.add('active','tab-ingreso');
-    document.getElementById('tabIngreso').classList.remove('tab-egreso');
-    document.getElementById('tabEgreso').classList.remove('active','tab-egreso');
+    document.getElementById('tabIngreso').className='tab tab-ingreso active';
+    document.getElementById('tabEgreso').className='tab tab-egreso';
     document.getElementById('movTipoCuenta').value='banco';
     document.getElementById('movMonto').value='';
     document.getElementById('movDescripcion').value='';
@@ -637,12 +640,8 @@ function abrirModalMovimiento(){
 function cerrarModalMovimiento(){document.getElementById('modalMovimiento').classList.remove('active')}
 function setTipoMovimiento(t){
     tipoMovimiento=t;
-    const tabIng=document.getElementById('tabIngreso');
-    const tabEgr=document.getElementById('tabEgreso');
-    tabIng.classList.toggle('active',t==='ingreso');
-    tabIng.classList.toggle('tab-ingreso',t==='ingreso');
-    tabEgr.classList.toggle('active',t==='egreso');
-    tabEgr.classList.toggle('tab-egreso',t==='egreso');
+    document.getElementById('tabIngreso').className='tab tab-ingreso'+(t==='ingreso'?' active':'');
+    document.getElementById('tabEgreso').className='tab tab-egreso'+(t==='egreso'?' active':'');
 }
 function actualizarCuentasMovimiento(){
     const tc=document.getElementById('movTipoCuenta').value;
@@ -672,24 +671,12 @@ async function guardarMovimiento(){
     btn.textContent='Guardando...';
     
     try{
-        // Calcular valor en UYU para egresos (para descontar de ganancia)
         let valorUYU=m;
         if(tc==='usdt'&&tipoMovimiento==='egreso'){
-            // Usar última tasa de compra para convertir USDT a UYU
             valorUYU=m*(datos.ultimaTasaCompra||1);
         }
         
-        datos.movimientos.unshift({
-            id:Date.now(),
-            tipoMovimiento,
-            tipoCuenta:tc,
-            banco:tc==='banco'?b:null,
-            monto:m,
-            valorUYU:tipoMovimiento==='egreso'?valorUYU:0,
-            descripcion:desc,
-            fecha:f,
-            timestamp:new Date().toISOString()
-        });
+        datos.movimientos.unshift({id:Date.now(),tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,valorUYU:tipoMovimiento==='egreso'?valorUYU:0,descripcion:desc,fecha:f,timestamp:new Date().toISOString()});
         
         if(tc==='usdt'){
             datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt+(tipoMovimiento==='ingreso'?m:-m));
@@ -720,7 +707,6 @@ async function eliminarMovimiento(id){
     actualizarVista();
 }
 
-// Bancos
 function abrirModalBancos(){renderizarListaBancos();document.getElementById('modalBancos').classList.add('active')}
 function cerrarModalBancos(){document.getElementById('modalBancos').classList.remove('active');guardarDatos();actualizarVista()}
 function renderizarListaBancos(){
@@ -728,14 +714,14 @@ function renderizarListaBancos(){
     BANCOS_DISPONIBLES.forEach(b=>{
         const a=datos.bancos[b.nombre]?.activo||false;
         const s=datos.bancos[b.nombre]?.saldo||0;
-        const lim=datos.bancos[b.nombre]?.limiteDiario||0;
-        let limInfo=lim>0?` | Límite: ${b.moneda==='USD'?'US$':'$'}${formatearNumero(lim,0)}/día`:'';
+        const lim=datos.bancos[b.nombre]?.limiteDiarioUSD||0;
+        let limInfo=lim>0?` | Límite: US$${formatearNumero(lim,0)}/día`:'';
         if(b.especial==='itau')limInfo+=' (sáb-lun=1día)';
         h+=`<div class="banco-list-item"><div><div style="font-weight:600;font-size:0.9em">${b.nombre} <span style="color:#94a3b8">(${b.moneda})</span></div><div style="color:#64748b;font-size:0.8em">${b.moneda==='USD'?'US$':'$'}${formatearNumero(s)}${limInfo}</div></div><div class="banco-list-actions"><button class="btn-edit-small" onclick="abrirEditarSaldo('${b.nombre}')">Editar</button><label class="toggle-switch"><input type="checkbox" ${a?'checked':''} onchange="toggleBanco('${b.nombre}')"><span class="toggle-slider"></span></label></div></div>`;
     });
     document.getElementById('listaBancos').innerHTML=h;
 }
-function toggleBanco(n){if(!datos.bancos[n])datos.bancos[n]={activo:false,saldo:0,limiteDiario:0,limiteUsado:0};datos.bancos[n].activo=!datos.bancos[n].activo;guardarDatos();renderizarListaBancos()}
+function toggleBanco(n){if(!datos.bancos[n])datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};datos.bancos[n].activo=!datos.bancos[n].activo;guardarDatos();renderizarListaBancos()}
 
 function abrirEditarSaldo(n){
     bancoEditando=n;
@@ -744,7 +730,7 @@ function abrirEditarSaldo(n){
     document.getElementById('nuevoSaldoBanco').value=isUSDT?datos.saldoUsdt:(datos.bancos[n]?.saldo||0);
     document.getElementById('limiteDiarioGroup').style.display=isUSDT?'none':'block';
     if(!isUSDT){
-        document.getElementById('limiteDiarioBanco').value=datos.bancos[n]?.limiteDiario||0;
+        document.getElementById('limiteDiarioBanco').value=datos.bancos[n]?.limiteDiarioUSD||0;
     }
     document.getElementById('modalEditarSaldo').classList.add('active');
 }
@@ -757,7 +743,7 @@ async function guardarNuevoSaldo(){
     }else if(bancoEditando&&datos.bancos[bancoEditando]){
         datos.bancos[bancoEditando].saldo=fixNegativeZero(ns);
         const lim=parseFloat(document.getElementById('limiteDiarioBanco').value)||0;
-        datos.bancos[bancoEditando].limiteDiario=lim;
+        datos.bancos[bancoEditando].limiteDiarioUSD=lim;
     }
     await guardarDatos();
     actualizarVista();
@@ -765,7 +751,6 @@ async function guardarNuevoSaldo(){
     cerrarModalEditarSaldo();
 }
 
-// Transferencias
 function abrirModalTransferencia(){
     document.getElementById('fechaTransferencia').valueAsDate=new Date();
     document.getElementById('montoTransferencia').value='';
@@ -782,13 +767,7 @@ function mostrarSaldoOrigen(){
     const b=document.getElementById('bancoOrigen').value;
     if(b&&datos.bancos[b]){
         const bi=BANCOS_DISPONIBLES.find(x=>x.nombre===b);
-        let info='Disponible: '+(bi?.moneda==='USD'?'US$':'$')+formatearNumero(datos.bancos[b].saldo);
-        if(datos.bancos[b].limiteDiario>0){
-            const usado=datos.bancos[b].limiteUsado||0;
-            const disponible=datos.bancos[b].limiteDiario-usado;
-            info+=` | Límite hoy: ${formatearNumero(disponible,0)}`;
-        }
-        document.getElementById('saldoOrigenInfo').textContent=info;
+        document.getElementById('saldoOrigenInfo').textContent='Disponible: '+(bi?.moneda==='USD'?'US$':'$')+formatearNumero(datos.bancos[b].saldo);
     }else{
         document.getElementById('saldoOrigenInfo').textContent='';
     }
@@ -808,15 +787,6 @@ async function realizarTransferencia(){
     if(!o||!d||o===d)return alert('Seleccioná bancos diferentes');
     if(!m||m<=0)return alert('Monto inválido');
     
-    // Verificar límite diario
-    if(datos.bancos[o].limiteDiario>0){
-        const usado=datos.bancos[o].limiteUsado||0;
-        const disponible=datos.bancos[o].limiteDiario-usado;
-        if(m+c>disponible){
-            return alert(`Excede el límite diario. Disponible: $${formatearNumero(disponible,0)}`);
-        }
-    }
-    
     btn.disabled=true;
     btn.textContent='Transfiriendo...';
     
@@ -824,11 +794,6 @@ async function realizarTransferencia(){
         datos.transferencias.unshift({id:Date.now(),origen:o,destino:d,monto:m,comision:c,fecha:f,timestamp:new Date().toISOString()});
         datos.bancos[o].saldo=fixNegativeZero(datos.bancos[o].saldo-(m+c));
         datos.bancos[d].saldo=fixNegativeZero(datos.bancos[d].saldo+m);
-        
-        // Actualizar límite usado
-        if(datos.bancos[o].limiteDiario>0){
-            datos.bancos[o].limiteUsado=(datos.bancos[o].limiteUsado||0)+(m+c);
-        }
         
         await guardarDatos();
         actualizarVista();
@@ -852,7 +817,6 @@ async function eliminarTransferencia(id){
     actualizarVista();
 }
 
-// Calendario
 function abrirCalendario(){calendarDate=new Date();renderizarCalendario();document.getElementById('modalCalendario').classList.add('active')}
 function cerrarCalendario(){document.getElementById('modalCalendario').classList.remove('active')}
 function cambiarMes(d){calendarDate.setMonth(calendarDate.getMonth()+d);renderizarCalendario()}
@@ -860,8 +824,6 @@ function cambiarMes(d){calendarDate.setMonth(calendarDate.getMonth()+d);renderiz
 function calcularGananciaDiaria(){
     const g={};
     const tasaPromC=calcularTasaPromedioCompra();
-    
-    // Ganancias por operaciones de venta
     datos.operaciones.forEach(op=>{
         if(!g[op.fecha])g[op.fecha]=0;
         if(op.tipo==='venta'&&tasaPromC>0){
@@ -869,12 +831,9 @@ function calcularGananciaDiaria(){
             g[op.fecha]+=(op.usdt+op.comisionPlataforma)*spread;
         }
     });
-    
-    // Restar egresos externos
     datos.movimientos.forEach(mov=>{
         if(mov.tipoMovimiento==='egreso'){
             if(!g[mov.fecha])g[mov.fecha]=0;
-            // Si es USDT, usar valorUYU guardado o calcular
             if(mov.tipoCuenta==='usdt'){
                 const valorUYU=mov.valorUYU||(mov.monto*(datos.ultimaTasaCompra||1));
                 g[mov.fecha]-=valorUYU;
@@ -883,7 +842,6 @@ function calcularGananciaDiaria(){
             }
         }
     });
-    
     return g;
 }
 
@@ -910,7 +868,6 @@ function renderizarCalendario(){
     }
     document.getElementById('calendarDays').innerHTML=h;
     
-    // Ganancia total
     const gananciaTotal=calcularGananciaTotal();
     const gtEl=document.getElementById('calGananciaTotal');
     gtEl.textContent=(gananciaTotal>=0?'+':'-')+'$'+formatearNumero(Math.abs(gananciaTotal),0);
@@ -920,26 +877,21 @@ function renderizarCalendario(){
     document.getElementById('calPerdidas').textContent='-$'+formatearNumero(tp,0);
 }
 
-// Cálculo de ganancia total corregido
 function calcularGananciaTotal(){
     let ganancia=0;
     const tasaPromC=calcularTasaPromedioCompra();
     let comisionesBanco=0;
     
-    // Ganancias por spread en ventas
     datos.operaciones.forEach(op=>{
-        if(op.tipo==='compra'){
-            comisionesBanco+=op.comisionBanco||0;
-        }else if(op.tipo==='venta'&&tasaPromC>0){
+        if(op.tipo==='compra'){comisionesBanco+=op.comisionBanco||0}
+        else if(op.tipo==='venta'&&tasaPromC>0){
             const spread=op.tasa-tasaPromC;
             ganancia+=(op.usdt+op.comisionPlataforma)*spread;
         }
     });
     
-    // Restar comisiones de banco
     ganancia-=comisionesBanco;
     
-    // Restar egresos externos
     datos.movimientos.forEach(mov=>{
         if(mov.tipoMovimiento==='egreso'){
             if(mov.tipoCuenta==='usdt'){
@@ -963,46 +915,26 @@ function calcularGananciaHoy(){
 function calcularResumen(){
     let tp=0,tr=0,uc=0,uv=0,cb=0,stc=0,stv=0,cc=0,cv=0;
     datos.operaciones.forEach(op=>{
-        if(op.tipo==='compra'){
-            tp+=op.monto+(op.comisionBanco||0);
-            uc+=op.usdt-op.comisionPlataforma;
-            cb+=op.comisionBanco||0;
-            stc+=op.tasa;cc++;
-        }else{
-            tr+=op.monto;
-            uv+=op.usdt+op.comisionPlataforma;
-            stv+=op.tasa;cv++;
-        }
+        if(op.tipo==='compra'){tp+=op.monto+(op.comisionBanco||0);uc+=op.usdt-op.comisionPlataforma;cb+=op.comisionBanco||0;stc+=op.tasa;cc++}
+        else{tr+=op.monto;uv+=op.usdt+op.comisionPlataforma;stv+=op.tasa;cv++}
     });
-    const tpc=cc?stc/cc:0,tpv=cv?stv/cv:0,sp=tpv-tpc,ucr=Math.min(uc,uv);
+    const tpc=cc?stc/cc:0,tpv=cv?stv/cv:0,sp=tpv-tpc;
     let tb=0;
     BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo&&b.moneda==='UYU')tb+=datos.bancos[b.nombre].saldo});
-    
-    // Contar operaciones de hoy
     const hoy=getUruguayDateString();
     const opsHoy=datos.operaciones.filter(o=>o.fecha===hoy).length;
-    
-    return{totalPagado:tp,totalRecibido:tr,usdtComprados:uc,usdtVendidos:uv,usdtCerrados:ucr,tasaPromC:tpc,tasaPromV:tpv,spread:sp,pctSpread:tpc?(sp/tpc)*100:0,totalBancosUYU:tb,opsHoy};
+    return{totalPagado:tp,totalRecibido:tr,usdtComprados:uc,usdtVendidos:uv,tasaPromC:tpc,tasaPromV:tpv,spread:sp,pctSpread:tpc?(sp/tpc)*100:0,totalBancosUYU:tb,opsHoy};
 }
 
 function actualizarVista(){
     const r=calcularResumen();
     
-    // Ganancia del día
     const gananciaHoy=calcularGananciaHoy();
     const ghEl=document.getElementById('gananciaHoy');
     const cardHoy=document.getElementById('cardGananciaHoy');
-    if(gananciaHoy>=0){
-        ghEl.textContent='+$'+formatearNumero(gananciaHoy);
-        ghEl.className='card-value positive';
-        cardHoy.className='card main-card';
-    }else{
-        ghEl.textContent='-$'+formatearNumero(Math.abs(gananciaHoy));
-        ghEl.className='card-value negative';
-        cardHoy.className='card main-card negative';
-    }
+    if(gananciaHoy>=0){ghEl.textContent='+$'+formatearNumero(gananciaHoy);ghEl.className='card-value positive';cardHoy.className='card main-card'}
+    else{ghEl.textContent='-$'+formatearNumero(Math.abs(gananciaHoy));ghEl.className='card-value negative';cardHoy.className='card main-card negative'}
     
-    // Fecha de hoy
     const uruguayDate=getUruguayDate();
     const diasSemana=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     document.getElementById('fechaHoy').textContent=diasSemana[uruguayDate.getDay()]+' '+uruguayDate.getDate()+'/'+(uruguayDate.getMonth()+1);
@@ -1025,21 +957,22 @@ function actualizarVista(){
 }
 
 function actualizarBancosGrid(){
-    let h=`<div class="banco-mini-card usdt-card" onclick="abrirEditarSaldo('USDT')"><div class="banco-nombre">🪙 USDT</div><div class="banco-saldo">${formatearNumero(Math.max(0,datos.saldoUsdt),2)}</div><div class="banco-moneda">Tether</div></div>`;
+    let h=`<div class="banco-mini-card usdt-card" onclick="abrirEditarSaldo('USDT')"><div class="banco-nombre">🪙 <b style="color:#1e293b">USDT</b></div><div class="banco-saldo">${formatearNumero(Math.max(0,datos.saldoUsdt),2)}</div><div class="banco-moneda">Tether</div></div>`;
     
     BANCOS_DISPONIBLES.forEach(b=>{
         if(datos.bancos[b.nombre]?.activo){
             const s=datos.bancos[b.nombre].saldo;
-            const lim=datos.bancos[b.nombre].limiteDiario||0;
-            const usado=datos.bancos[b.nombre].limiteUsado||0;
+            const lim=datos.bancos[b.nombre].limiteDiarioUSD||0;
+            const usado=datos.bancos[b.nombre].limiteUsadoUSD||0;
             let limiteHtml='';
             
             if(lim>0){
+                const disponible=Math.max(0,lim-usado);
                 const pct=Math.min(100,(usado/lim)*100);
                 let fillClass='';
                 if(pct>=90)fillClass='danger';
                 else if(pct>=70)fillClass='warning';
-                limiteHtml=`<div class="banco-limite">Límite: ${formatearNumero(lim-usado,0)}/${formatearNumero(lim,0)}</div><div class="banco-limite-bar"><div class="banco-limite-fill ${fillClass}" style="width:${pct}%"></div></div>`;
+                limiteHtml=`<div class="banco-limite">US$${formatearNumero(disponible,0)}/${formatearNumero(lim,0)}</div><div class="banco-limite-bar"><div class="banco-limite-fill ${fillClass}" style="width:${pct}%"></div></div>`;
             }
             
             h+=`<div class="banco-mini-card" onclick="abrirEditarSaldo('${b.nombre}')"><div class="banco-nombre">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${b.moneda==='USD'?'US$':'$'}${formatearNumero(s)}</div><div class="banco-moneda">${b.moneda}</div>${limiteHtml}</div>`;
@@ -1053,19 +986,19 @@ function actualizarTablaOperaciones(){
     document.getElementById('totalOperaciones').textContent=total;
     if(!total){t.innerHTML='<div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>';document.getElementById('paginationOp').style.display='none';return}
     const totalPaginas=Math.ceil(total/POR_PAGINA);
-    if(paginaActual>totalPaginas)paginaActual=totalPaginas;
-    const inicio=(paginaActual-1)*POR_PAGINA,fin=inicio+POR_PAGINA,ops=datos.operaciones.slice(inicio,fin);
+    if(paginaOp>totalPaginas)paginaOp=totalPaginas;
+    const inicio=(paginaOp-1)*POR_PAGINA,fin=inicio+POR_PAGINA,ops=datos.operaciones.slice(inicio,fin);
     let h='<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>Banco</th><th>Fecha</th><th></th></tr></thead><tbody>';
     ops.forEach(op=>{
         const un=op.tipo==='compra'?op.usdt-op.comisionPlataforma:op.usdt+op.comisionPlataforma;
-        const badge=op.tipo==='compra'?'<span class="badge badge-compra">🛒 <b>Compra</b></span>':'<span class="badge badge-venta">💵 <b>Venta</b></span>';
+        const badge=op.tipo==='compra'?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';
         h+=`<tr><td>${badge}</td><td><b>$${formatearNumero(op.monto)}</b></td><td>$${formatearNumero(op.tasa)}</td><td><b>${formatearNumero(un,2)}</b></td><td style="color:#0284c7">${op.banco||'-'}</td><td style="color:#64748b">${op.fecha}</td><td><button class="btn-delete" onclick="eliminarOperacion(${op.id})">×</button></td></tr>`;
     });
     t.innerHTML=h+'</tbody></table>';
     document.getElementById('paginationOp').style.display=totalPaginas>1?'flex':'none';
-    document.getElementById('paginaInfoOp').textContent=`${paginaActual} / ${totalPaginas}`;
-    document.getElementById('btnPrevOp').disabled=paginaActual===1;
-    document.getElementById('btnNextOp').disabled=paginaActual===totalPaginas;
+    document.getElementById('paginaInfoOp').textContent=`${paginaOp} / ${totalPaginas}`;
+    document.getElementById('btnPrevOp').disabled=paginaOp===1;
+    document.getElementById('btnNextOp').disabled=paginaOp===totalPaginas;
 }
 
 function actualizarTablaMovimientos(){
@@ -1073,12 +1006,23 @@ function actualizarTablaMovimientos(){
     document.getElementById('totalMovimientos').textContent=total;
     if(!total){sec.style.display='none';return}
     sec.style.display='block';
+    
+    const totalPaginas=Math.ceil(total/POR_PAGINA);
+    if(paginaMov>totalPaginas)paginaMov=totalPaginas;
+    const inicio=(paginaMov-1)*POR_PAGINA,fin=inicio+POR_PAGINA;
+    const movs=datos.movimientos.slice(inicio,fin);
+    
     let h='<table><thead><tr><th>Tipo</th><th>Cuenta</th><th>Monto</th><th>Desc</th><th>Fecha</th><th></th></tr></thead><tbody>';
-    datos.movimientos.forEach(m=>{
-        const badge=m.tipoMovimiento==='ingreso'?'<span class="badge badge-ingreso">📥 <b>Ingreso</b></span>':'<span class="badge badge-egreso">📤 <b>Egreso</b></span>';
+    movs.forEach(m=>{
+        const badge=m.tipoMovimiento==='ingreso'?'<span class="badge badge-ingreso"><b>Ingreso</b></span>':'<span class="badge badge-egreso"><b>Egreso</b></span>';
         h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':m.banco}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${formatearNumero(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td style="color:#64748b">${m.fecha}</td><td><button class="btn-delete" onclick="eliminarMovimiento(${m.id})">×</button></td></tr>`;
     });
     document.getElementById('movimientosContent').innerHTML=h+'</tbody></table>';
+    
+    document.getElementById('paginationMov').style.display=totalPaginas>1?'flex':'none';
+    document.getElementById('paginaInfoMov').textContent=`${paginaMov} / ${totalPaginas}`;
+    document.getElementById('btnPrevMov').disabled=paginaMov===1;
+    document.getElementById('btnNextMov').disabled=paginaMov===totalPaginas;
 }
 
 function actualizarTablaTransferencias(){
@@ -1086,49 +1030,29 @@ function actualizarTablaTransferencias(){
     document.getElementById('totalTransferencias').textContent=total;
     if(!total){sec.style.display='none';return}
     sec.style.display='block';
+    
+    const totalPaginas=Math.ceil(total/POR_PAGINA);
+    if(paginaTrans>totalPaginas)paginaTrans=totalPaginas;
+    const inicio=(paginaTrans-1)*POR_PAGINA,fin=inicio+POR_PAGINA;
+    const trans=datos.transferencias.slice(inicio,fin);
+    
     let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Com</th><th>Fecha</th><th></th></tr></thead><tbody>';
-    datos.transferencias.forEach(tr=>{
+    trans.forEach(tr=>{
         h+=`<tr><td style="color:#dc2626">${tr.origen}</td><td style="color:#16a34a">${tr.destino}</td><td><b>$${formatearNumero(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?'$'+formatearNumero(tr.comision):'-'}</td><td style="color:#64748b">${tr.fecha}</td><td><button class="btn-delete" onclick="eliminarTransferencia(${tr.id})">×</button></td></tr>`;
     });
     document.getElementById('transferenciasContent').innerHTML=h+'</tbody></table>';
-}
-
-function exportarDatos(){const b=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'}),l=document.createElement('a');l.href=URL.createObjectURL(b);l.download='p2p-backup-'+new Date().toISOString().split('T')[0]+'.json';l.click()}
-
-async function importarDatos(e){
-    const f=e.target.files[0];if(!f)return;
-    const r=new FileReader();
-    r.onload=async ev=>{
-        try{
-            const d=JSON.parse(ev.target.result);
-            datos={
-                operaciones:d.operaciones||[],
-                movimientos:d.movimientos||[],
-                transferencias:d.transferencias||[],
-                bancos:d.bancos||{},
-                saldoUsdt:d.saldoUsdt||0,
-                ultimaTasaCompra:d.ultimaTasaCompra||0,
-                ultimaTasaVenta:d.ultimaTasaVenta||0,
-                comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14
-            };
-            inicializarBancos();
-            paginaActual=1;
-            document.getElementById('comisionPlataforma').value=datos.comisionPlataforma.toFixed(2);
-            document.getElementById('comisionPctLabel').textContent=datos.comisionPlataforma.toFixed(2);
-            await guardarDatos();
-            actualizarVista();
-            alert('✅ Importado');
-        }catch(err){alert('❌ Error')}
-    };
-    r.readAsText(f);
-    e.target.value='';
+    
+    document.getElementById('paginationTrans').style.display=totalPaginas>1?'flex':'none';
+    document.getElementById('paginaInfoTrans').textContent=`${paginaTrans} / ${totalPaginas}`;
+    document.getElementById('btnPrevTrans').disabled=paginaTrans===1;
+    document.getElementById('btnNextTrans').disabled=paginaTrans===totalPaginas;
 }
 
 async function borrarTodo(){
     if(confirm('⚠️ ¿Borrar TODO?')&&confirm('No se puede deshacer. ¿Continuar?')){
         datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};
         inicializarBancos();
-        paginaActual=1;
+        paginaOp=1;paginaMov=1;paginaTrans=1;
         document.getElementById('comisionPlataforma').value='0.14';
         document.getElementById('comisionPctLabel').textContent='0.14';
         await guardarDatos();
@@ -1136,15 +1060,12 @@ async function borrarTodo(){
     }
 }
 
-// Verificar reset de límites cada minuto
-setInterval(()=>{
-    verificarResetLimites();
-    actualizarVista();
-},60000);
+setInterval(()=>{verificarResetLimites();actualizarVista()},60000);
 
 document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('fecha').valueAsDate=new Date();
     actualizarFormulario();
+    actualizarColorSelect();
     inicializarFirebase();
 });
     </script>
