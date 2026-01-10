@@ -75,7 +75,6 @@
         .form-group small{display:block;color:#94a3b8;font-size:0.7em;margin-top:3px}
         .form-group small.error-text{color:#dc2626}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        .form-row-3{display:grid;grid-template-columns:1fr 1fr;gap:10px}
         
         #tipo{font-weight:700}
         #tipo option[value="compra"]{color:#16a34a;font-weight:700}
@@ -179,7 +178,7 @@
         .cooldown-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.8);z-index:1500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px}
         .cooldown-overlay.hidden{display:none}
         .cooldown-text{color:#1e293b;font-weight:600;font-size:1.1em}
-        @media(min-width:640px){.cards{grid-template-columns:repeat(3,1fr)}.card.main-card{grid-column:span 1}.bancos-grid{grid-template-columns:repeat(3,1fr)}.form-row-3{grid-template-columns:1fr 1fr}}
+        @media(min-width:640px){.cards{grid-template-columns:repeat(3,1fr)}.card.main-card{grid-column:span 1}.bancos-grid{grid-template-columns:repeat(3,1fr)}}
         @media(min-width:1024px){.cards{grid-template-columns:repeat(6,1fr)}.bancos-grid{grid-template-columns:repeat(6,1fr)}}
     </style>
 </head>
@@ -284,16 +283,7 @@
                                 <input type="number" step="0.01" id="comisionBanco" value="0" placeholder="0">
                             </div>
                         </div>
-                        <div class="form-row-3">
-                            <div class="form-group">
-                                <label>📅 Fecha</label>
-                                <input type="date" id="fecha">
-                            </div>
-                            <div class="form-group">
-                                <label>🕐 Hora</label>
-                                <input type="time" id="hora">
-                            </div>
-                        </div>
+                        
                         <div class="comision-inline">
                             <label>📊 Comisión Binance:</label>
                             <input type="text" id="comisionPlataforma" value="0.14" placeholder="0.14" inputmode="decimal" oninput="guardarComisionYCalcular()">
@@ -546,16 +536,13 @@ async function agregarOperacion(){
     const ta=parsearTasa(tasaInput.value);
     const b=document.getElementById('banco').value;
     const cb=parseFloat(document.getElementById('comisionBanco').value)||0;
-    const f=document.getElementById('fecha').value;
-    const h=document.getElementById('hora').value;
+    const f=getUruguayDateString();
+    const h=getUruguayTimeString();
     const comisionPct=getComisionDecimal();
     
     if(!m){alert('Ingresá el monto');return}
     if(!ta){tasaInput.classList.add('error');document.getElementById('tasaHelp').textContent='Formato inválido';document.getElementById('tasaHelp').className='error-text';alert('Tasa inválida (ej: 39.50)');return}
     if(!b){document.getElementById('bancoHelp').textContent='Seleccioná un banco';document.getElementById('bancoHelp').className='error-text';document.getElementById('banco').classList.add('error');alert('Seleccioná un banco');return}
-    document.getElementById('banco').classList.remove('error');
-    if(!f){alert('Seleccioná la fecha');return}
-    if(!h){alert('Seleccioná la hora');return}
     
     const u=m/ta,cp=truncar(u*comisionPct,2);
     
@@ -595,8 +582,6 @@ async function agregarOperacion(){
         document.getElementById('monto').value='';
         document.getElementById('comisionBanco').value='0';
         document.getElementById('previewBox').style.display='none';
-        // Actualizar hora actual
-        document.getElementById('hora').value=getUruguayTimeString();
         paginaOp=1;
         
         await guardarDatos();
@@ -1079,8 +1064,6 @@ async function borrarTodo(){
 setInterval(()=>{verificarResetLimites();actualizarVista()},60000);
 
 document.addEventListener('DOMContentLoaded',()=>{
-    document.getElementById('fecha').valueAsDate=new Date();
-    document.getElementById('hora').value=getUruguayTimeString();
     actualizarFormulario();
     actualizarColorSelect();
     inicializarFirebase();
