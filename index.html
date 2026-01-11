@@ -359,9 +359,9 @@
 
     <!-- MODALS -->
     <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:15px"><div class="calendar-container"><div class="calendar-header"><button onclick="cambiarMes(-1)">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button onclick="cambiarMes(1)">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" onclick="cerrarCalendario()">Cerrar</button></div></div></div>
-    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" onclick="setTipoMovimiento('ingreso')" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" onclick="setTipoMovimiento('egreso')" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta" onchange="actualizarCuentasMovimiento()"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea></div><div class="form-group"><label>Fecha</label><input type="date" id="movFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalMovimiento()">Cancelar</button><button class="btn" id="btnGuardarMov" onclick="guardarMovimiento()">Guardar</button></div></div></div>
+    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" onclick="setTipoMovimiento('ingreso')" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" onclick="setTipoMovimiento('egreso')" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta" onchange="actualizarCuentasMovimiento()"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalMovimiento()">Cancelar</button><button class="btn" id="btnGuardarMov" onclick="guardarMovimiento()">Guardar</button></div></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Gestionar Bancos</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" onclick="cerrarModalBancos()">Cerrar</button></div></div></div>
-    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen" onchange="mostrarSaldoOrigen()"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="form-group"><label>Fecha</label><input type="date" id="fechaTransferencia"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalTransferencia()">Cancelar</button><button class="btn" id="btnTransferir" onclick="realizarTransferencia()">Transferir</button></div></div></div>
+    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen" onchange="mostrarSaldoOrigen()"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalTransferencia()">Cancelar</button><button class="btn" id="btnTransferir" onclick="realizarTransferencia()">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="number" step="1" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalEditarSaldo()">Cancelar</button><button class="btn" onclick="guardarNuevoSaldo()">Guardar</button></div></div></div>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -543,6 +543,7 @@ async function agregarOperacion(){
     if(!m){alert('Ingresá el monto');return}
     if(!ta){tasaInput.classList.add('error');document.getElementById('tasaHelp').textContent='Formato inválido';document.getElementById('tasaHelp').className='error-text';alert('Tasa inválida (ej: 39.50)');return}
     if(!b){document.getElementById('bancoHelp').textContent='Seleccioná un banco';document.getElementById('bancoHelp').className='error-text';document.getElementById('banco').classList.add('error');alert('Seleccioná un banco');return}
+    document.getElementById('banco').classList.remove('error');
     
     const u=m/ta,cp=truncar(u*comisionPct,2);
     
@@ -624,7 +625,6 @@ function abrirModalMovimiento(){
     document.getElementById('movTipoCuenta').value='banco';
     document.getElementById('movMonto').value='';
     document.getElementById('movDescripcion').value='';
-    document.getElementById('movFecha').valueAsDate=new Date();
     document.getElementById('btnGuardarMov').disabled=false;
     document.getElementById('btnGuardarMov').textContent='Guardar';
     actualizarCuentasMovimiento();
@@ -654,7 +654,7 @@ async function guardarMovimiento(){
     const b=document.getElementById('movBanco').value;
     const m=parseFloat(document.getElementById('movMonto').value);
     const desc=document.getElementById('movDescripcion').value;
-    const f=document.getElementById('movFecha').value;
+    const f=getUruguayDateString();
     
     if(!m||m<=0)return alert('Monto inválido');
     if(tc==='banco'&&!b)return alert('Seleccioná un banco');
@@ -669,7 +669,7 @@ async function guardarMovimiento(){
             valorUYU=m*(datos.ultimaTasaCompra||1);
         }
         
-        datos.movimientos.unshift({id:Date.now(),tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,valorUYU:tipoMovimiento==='egreso'?valorUYU:0,descripcion:desc,fecha:f,timestamp:new Date().toISOString()});
+        datos.movimientos.unshift({id:Date.now(),tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,valorUYU:tipoMovimiento==='egreso'?valorUYU:0,descripcion:desc,fecha:f,hora:getUruguayTimeString(),timestamp:new Date().toISOString()});
         
         if(tc==='usdt'){
             datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt+(tipoMovimiento==='ingreso'?m:-m));
@@ -745,7 +745,6 @@ async function guardarNuevoSaldo(){
 }
 
 function abrirModalTransferencia(){
-    document.getElementById('fechaTransferencia').valueAsDate=new Date();
     document.getElementById('montoTransferencia').value='';
     document.getElementById('comisionTransferencia').value='0';
     const opts='<option value="">Seleccionar</option>'+BANCOS_DISPONIBLES.filter(b=>datos.bancos[b.nombre]?.activo).map(b=>`<option value="${b.nombre}">${b.nombre}</option>`).join('');
@@ -775,7 +774,7 @@ async function realizarTransferencia(){
     const d=document.getElementById('bancoDestino').value;
     const m=parseFloat(document.getElementById('montoTransferencia').value);
     const c=parseFloat(document.getElementById('comisionTransferencia').value)||0;
-    const f=document.getElementById('fechaTransferencia').value;
+    const f=getUruguayDateString();
     
     if(!o||!d||o===d)return alert('Seleccioná bancos diferentes');
     if(!m||m<=0)return alert('Monto inválido');
@@ -784,7 +783,7 @@ async function realizarTransferencia(){
     btn.textContent='Transfiriendo...';
     
     try{
-        datos.transferencias.unshift({id:Date.now(),origen:o,destino:d,monto:m,comision:c,fecha:f,timestamp:new Date().toISOString()});
+        datos.transferencias.unshift({id:Date.now(),origen:o,destino:d,monto:m,comision:c,fecha:f,hora:getUruguayTimeString(),timestamp:new Date().toISOString()});
         datos.bancos[o].saldo=fixNegativeZero(datos.bancos[o].saldo-(m+c));
         datos.bancos[d].saldo=fixNegativeZero(datos.bancos[d].saldo+m);
         
@@ -1016,7 +1015,8 @@ function actualizarTablaMovimientos(){
     let h='<table><thead><tr><th>Tipo</th><th>Cuenta</th><th>Monto</th><th>Desc</th><th>Fecha</th><th></th></tr></thead><tbody>';
     movs.forEach(m=>{
         const badge=m.tipoMovimiento==='ingreso'?'<span class="badge badge-ingreso"><b>Ingreso</b></span>':'<span class="badge badge-egreso"><b>Egreso</b></span>';
-        h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':m.banco}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${formatearNumero(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td style="color:#64748b">${formatearFechaCorta(m.fecha)}</td><td><button class="btn-delete" onclick="eliminarMovimiento(${m.id})">×</button></td></tr>`;
+        const fechaHtml=`<div class="fecha-hora"><span class="fecha">${formatearFechaCorta(m.fecha)}</span><span class="hora">${m.hora||'--:--'}</span></div>`;
+        h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':m.banco}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${formatearNumero(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td>${fechaHtml}</td><td><button class="btn-delete" onclick="eliminarMovimiento(${m.id})">×</button></td></tr>`;
     });
     document.getElementById('movimientosContent').innerHTML=h+'</tbody></table>';
     
@@ -1039,7 +1039,8 @@ function actualizarTablaTransferencias(){
     
     let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Com</th><th>Fecha</th><th></th></tr></thead><tbody>';
     trans.forEach(tr=>{
-        h+=`<tr><td style="color:#dc2626">${tr.origen}</td><td style="color:#16a34a">${tr.destino}</td><td><b>$${formatearNumero(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?'$'+formatearNumero(tr.comision):'-'}</td><td style="color:#64748b">${formatearFechaCorta(tr.fecha)}</td><td><button class="btn-delete" onclick="eliminarTransferencia(${tr.id})">×</button></td></tr>`;
+        const fechaHtml=`<div class="fecha-hora"><span class="fecha">${formatearFechaCorta(tr.fecha)}</span><span class="hora">${tr.hora||'--:--'}</span></div>`;
+        h+=`<tr><td style="color:#dc2626">${tr.origen}</td><td style="color:#16a34a">${tr.destino}</td><td><b>$${formatearNumero(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?'$'+formatearNumero(tr.comision):'-'}</td><td>${fechaHtml}</td><td><button class="btn-delete" onclick="eliminarTransferencia(${tr.id})">×</button></td></tr>`;
     });
     document.getElementById('transferenciasContent').innerHTML=h+'</tbody></table>';
     
