@@ -236,7 +236,7 @@
                 <div class="card main-card" id="cardGananciaHoy"><div class="card-title">📈 Ganancia Hoy</div><div class="card-value positive" id="gananciaHoy">$0</div><div class="card-subtitle" id="fechaHoy">--</div><div class="stats-row"><span class="stat-badge" id="opsHoy">0 ops</span></div></div>
                 <div class="card"><div class="card-title">📦 <b style="color:#1e293b">USDT</b></div><div class="card-value info" id="usdtEnTenencia">0,00</div><div class="card-subtitle">En tenencia</div></div>
                 <div class="card"><div class="card-title">🏦 Bancos</div><div class="card-value positive" id="totalBancos">$0</div><div class="card-subtitle">Saldo UYU</div></div>
-                <div class="card"><div class="card-title">📥 <span class="text-compra">Compras</span></div><div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromCompra">--</span></div></div>
+                <div class="card"><div class="card-title">📥 <span class="text-compra">Compras</span></div><div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromCompra">--</span><span class="stat-badge" id="costoPromedio">Costo: --</span></div></div>
                 <div class="card"><div class="card-title">📤 <span class="text-venta">Ventas</span></div><div class="card-value" style="font-size:1.2em" id="totalRecibido">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromVenta">--</span></div></div>
                 <div class="card"><div class="card-title">📊 Spread</div><div class="card-value info" id="spreadPromedio">$0</div><div class="stats-row"><span class="stat-badge" id="porcentajeSpread">0%</span></div></div>
             </div>
@@ -815,14 +815,35 @@ function cambiarMes(d){calendarDate.setMonth(calendarDate.getMonth()+d);renderiz
 
 function calcularGananciaDiaria(){
     const g={};
-    const tasaPromC=calcularTasaPromedioCompra();
+    const costoProm=calcularCostoPromedioPonderado();
+    
+    // Calcular comisiones de banco por día
+    const comisionesPorDia={};
     datos.operaciones.forEach(op=>{
-        if(!g[op.fecha])g[op.fecha]=0;
-        if(op.tipo==='venta'&&tasaPromC>0){
-            const spread=op.tasa-tasaPromC;
-            g[op.fecha]+=(op.usdt+op.comisionPlataforma)*spread;
+        if(op.tipo==='compra'&&op.comisionBanco>0){
+            if(!comisionesPorDia[op.fecha])comisionesPorDia[op.fecha]=0;
+            comisionesPorDia[op.fecha]+=op.comisionBanco;
         }
     });
+    
+    // Calcular ganancia por ventas
+    datos.operaciones.forEach(op=>{
+        if(!g[op.fecha])g[op.fecha]=0;
+        if(op.tipo==='venta'&&costoProm>0){
+            const usdtVendidos=op.usdt+op.comisionPlataforma;
+            const costoUSDT=usdtVendidos*costoProm;
+            const ingresoVenta=op.monto;
+            g[op.fecha]+=ingresoVenta-costoUSDT;
+        }
+    });
+    
+    // Restar comisiones de banco del día de compra
+    Object.keys(comisionesPorDia).forEach(fecha=>{
+        if(!g[fecha])g[fecha]=0;
+        g[fecha]-=comisionesPorDia[fecha];
+    });
+    
+    // Restar egresos
     datos.movimientos.forEach(mov=>{
         if(mov.tipoMovimiento==='egreso'){
             if(!g[mov.fecha])g[mov.fecha]=0;
@@ -838,6 +859,18 @@ function calcularGananciaDiaria(){
 }
 
 function calcularTasaPromedioCompra(){const c=datos.operaciones.filter(o=>o.tipo==='compra');return c.length?c.reduce((s,o)=>s+o.tasa,0)/c.length:0}
+
+function calcularCostoPromedioPonderado(){
+    let totalPagado=0;
+    let totalUSDTRecibidos=0;
+    datos.operaciones.forEach(op=>{
+        if(op.tipo==='compra'){
+            totalPagado+=op.monto+(op.comisionBanco||0);
+            totalUSDTRecibidos+=op.usdt-op.comisionPlataforma;
+        }
+    });
+    return totalUSDTRecibidos>0?totalPagado/totalUSDTRecibidos:0;
+}
 
 function renderizarCalendario(){
     const y=calendarDate.getFullYear(),mo=calendarDate.getMonth();
@@ -871,14 +904,17 @@ function renderizarCalendario(){
 
 function calcularGananciaTotal(){
     let ganancia=0;
-    const tasaPromC=calcularTasaPromedioCompra();
+    const costoProm=calcularCostoPromedioPonderado();
     let comisionesBanco=0;
     
     datos.operaciones.forEach(op=>{
-        if(op.tipo==='compra'){comisionesBanco+=op.comisionBanco||0}
-        else if(op.tipo==='venta'&&tasaPromC>0){
-            const spread=op.tasa-tasaPromC;
-            ganancia+=(op.usdt+op.comisionPlataforma)*spread;
+        if(op.tipo==='compra'){
+            comisionesBanco+=op.comisionBanco||0;
+        }else if(op.tipo==='venta'&&costoProm>0){
+            const usdtVendidos=op.usdt+op.comisionPlataforma;
+            const costoUSDT=usdtVendidos*costoProm;
+            const ingresoVenta=op.monto;
+            ganancia+=ingresoVenta-costoUSDT;
         }
     });
     
@@ -911,11 +947,12 @@ function calcularResumen(){
         else{tr+=op.monto;uv+=op.usdt+op.comisionPlataforma;stv+=op.tasa;cv++}
     });
     const tpc=cc?stc/cc:0,tpv=cv?stv/cv:0,sp=tpv-tpc;
+    const costoProm=calcularCostoPromedioPonderado();
     let tb=0;
     BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo&&b.moneda==='UYU')tb+=datos.bancos[b.nombre].saldo});
     const hoy=getUruguayDateString();
     const opsHoy=datos.operaciones.filter(o=>o.fecha===hoy).length;
-    return{totalPagado:tp,totalRecibido:tr,usdtComprados:uc,usdtVendidos:uv,tasaPromC:tpc,tasaPromV:tpv,spread:sp,pctSpread:tpc?(sp/tpc)*100:0,totalBancosUYU:tb,opsHoy};
+    return{totalPagado:tp,totalRecibido:tr,usdtComprados:uc,usdtVendidos:uv,tasaPromC:tpc,tasaPromV:tpv,spread:sp,pctSpread:tpc?(sp/tpc)*100:0,totalBancosUYU:tb,opsHoy,costoProm};
 }
 
 function actualizarVista(){
@@ -935,7 +972,8 @@ function actualizarVista(){
     document.getElementById('usdtEnTenencia').textContent=formatearNumero(Math.max(0,datos.saldoUsdt),2);
     document.getElementById('totalBancos').textContent='$'+formatearNumero(r.totalBancosUYU,0);
     document.getElementById('totalPagado').textContent='$'+formatearNumero(r.totalPagado,0);
-    document.getElementById('tasaPromCompra').textContent='$'+formatearNumero(r.tasaPromC);
+    document.getElementById('tasaPromCompra').textContent='Prom: $'+formatearNumero(r.tasaPromC);
+    document.getElementById('costoPromedio').textContent='Costo: $'+formatearNumero(r.costoProm);
     document.getElementById('totalRecibido').textContent='$'+formatearNumero(r.totalRecibido,0);
     document.getElementById('tasaPromVenta').textContent='$'+formatearNumero(r.tasaPromV);
     document.getElementById('spreadPromedio').textContent='$'+formatearNumero(r.spread);
