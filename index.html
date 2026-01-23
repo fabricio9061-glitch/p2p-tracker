@@ -815,32 +815,31 @@ function cambiarMes(d){calendarDate.setMonth(calendarDate.getMonth()+d);renderiz
 
 function calcularGananciaDiaria(){
     const g={};
-    const costoProm=calcularCostoPromedioPonderado();
     
-    // Calcular comisiones de banco por día
-    const comisionesPorDia={};
-    datos.operaciones.forEach(op=>{
-        if(op.tipo==='compra'&&op.comisionBanco>0){
-            if(!comisionesPorDia[op.fecha])comisionesPorDia[op.fecha]=0;
-            comisionesPorDia[op.fecha]+=op.comisionBanco;
-        }
+    // Ordenar operaciones por fecha y hora
+    const opsOrdenadas=[...datos.operaciones].sort((a,b)=>{
+        const fa=a.fecha+(a.hora||'00:00');
+        const fb=b.fecha+(b.hora||'00:00');
+        return fa.localeCompare(fb);
     });
     
-    // Calcular ganancia por ventas
-    datos.operaciones.forEach(op=>{
-        if(!g[op.fecha])g[op.fecha]=0;
-        if(op.tipo==='venta'&&costoProm>0){
+    let ultimaTasaCompraLocal=0;
+    
+    // Calcular ganancia de ventas
+    opsOrdenadas.forEach(op=>{
+        if(op.tipo==='compra'){
+            ultimaTasaCompraLocal=op.tasa;
+            // Restar comisión banco el día de la compra
+            if(op.comisionBanco>0){
+                if(!g[op.fecha])g[op.fecha]=0;
+                g[op.fecha]-=op.comisionBanco;
+            }
+        }else if(op.tipo==='venta'&&ultimaTasaCompraLocal>0){
+            if(!g[op.fecha])g[op.fecha]=0;
             const usdtVendidos=op.usdt+op.comisionPlataforma;
-            const costoUSDT=usdtVendidos*costoProm;
-            const ingresoVenta=op.monto;
-            g[op.fecha]+=ingresoVenta-costoUSDT;
+            const spread=op.tasa-ultimaTasaCompraLocal;
+            g[op.fecha]+=usdtVendidos*spread;
         }
-    });
-    
-    // Restar comisiones de banco del día de compra
-    Object.keys(comisionesPorDia).forEach(fecha=>{
-        if(!g[fecha])g[fecha]=0;
-        g[fecha]-=comisionesPorDia[fecha];
     });
     
     // Restar egresos
@@ -859,18 +858,6 @@ function calcularGananciaDiaria(){
 }
 
 function calcularTasaPromedioCompra(){const c=datos.operaciones.filter(o=>o.tipo==='compra');return c.length?c.reduce((s,o)=>s+o.tasa,0)/c.length:0}
-
-function calcularCostoPromedioPonderado(){
-    let totalPagado=0;
-    let totalUSDTRecibidos=0;
-    datos.operaciones.forEach(op=>{
-        if(op.tipo==='compra'){
-            totalPagado+=op.monto+(op.comisionBanco||0);
-            totalUSDTRecibidos+=op.usdt-op.comisionPlataforma;
-        }
-    });
-    return totalUSDTRecibidos>0?totalPagado/totalUSDTRecibidos:0;
-}
 
 function renderizarCalendario(){
     const y=calendarDate.getFullYear(),mo=calendarDate.getMonth();
@@ -904,21 +891,26 @@ function renderizarCalendario(){
 
 function calcularGananciaTotal(){
     let ganancia=0;
-    const costoProm=calcularCostoPromedioPonderado();
-    let comisionesBanco=0;
     
-    datos.operaciones.forEach(op=>{
-        if(op.tipo==='compra'){
-            comisionesBanco+=op.comisionBanco||0;
-        }else if(op.tipo==='venta'&&costoProm>0){
-            const usdtVendidos=op.usdt+op.comisionPlataforma;
-            const costoUSDT=usdtVendidos*costoProm;
-            const ingresoVenta=op.monto;
-            ganancia+=ingresoVenta-costoUSDT;
-        }
+    // Ordenar operaciones por fecha y hora
+    const opsOrdenadas=[...datos.operaciones].sort((a,b)=>{
+        const fa=a.fecha+(a.hora||'00:00');
+        const fb=b.fecha+(b.hora||'00:00');
+        return fa.localeCompare(fb);
     });
     
-    ganancia-=comisionesBanco;
+    let ultimaTasaCompraLocal=0;
+    
+    opsOrdenadas.forEach(op=>{
+        if(op.tipo==='compra'){
+            ultimaTasaCompraLocal=op.tasa;
+            ganancia-=op.comisionBanco||0;
+        }else if(op.tipo==='venta'&&ultimaTasaCompraLocal>0){
+            const usdtVendidos=op.usdt+op.comisionPlataforma;
+            const spread=op.tasa-ultimaTasaCompraLocal;
+            ganancia+=usdtVendidos*spread;
+        }
+    });
     
     datos.movimientos.forEach(mov=>{
         if(mov.tipoMovimiento==='egreso'){
@@ -947,12 +939,11 @@ function calcularResumen(){
         else{tr+=op.monto;uv+=op.usdt+op.comisionPlataforma;stv+=op.tasa;cv++}
     });
     const tpc=cc?stc/cc:0,tpv=cv?stv/cv:0,sp=tpv-tpc;
-    const costoProm=calcularCostoPromedioPonderado();
     let tb=0;
     BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo&&b.moneda==='UYU')tb+=datos.bancos[b.nombre].saldo});
     const hoy=getUruguayDateString();
     const opsHoy=datos.operaciones.filter(o=>o.fecha===hoy).length;
-    return{totalPagado:tp,totalRecibido:tr,usdtComprados:uc,usdtVendidos:uv,tasaPromC:tpc,tasaPromV:tpv,spread:sp,pctSpread:tpc?(sp/tpc)*100:0,totalBancosUYU:tb,opsHoy,costoProm};
+    return{totalPagado:tp,totalRecibido:tr,usdtComprados:uc,usdtVendidos:uv,tasaPromC:tpc,tasaPromV:tpv,spread:sp,pctSpread:tpc?(sp/tpc)*100:0,totalBancosUYU:tb,opsHoy};
 }
 
 function actualizarVista(){
@@ -973,7 +964,7 @@ function actualizarVista(){
     document.getElementById('totalBancos').textContent='$'+formatearNumero(r.totalBancosUYU,0);
     document.getElementById('totalPagado').textContent='$'+formatearNumero(r.totalPagado,0);
     document.getElementById('tasaPromCompra').textContent='Prom: $'+formatearNumero(r.tasaPromC);
-    document.getElementById('costoPromedio').textContent='Costo: $'+formatearNumero(r.costoProm);
+    document.getElementById('costoPromedio').textContent='Última: $'+formatearNumero(datos.ultimaTasaCompra||0);
     document.getElementById('totalRecibido').textContent='$'+formatearNumero(r.totalRecibido,0);
     document.getElementById('tasaPromVenta').textContent='$'+formatearNumero(r.tasaPromV);
     document.getElementById('spreadPromedio').textContent='$'+formatearNumero(r.spread);
