@@ -376,7 +376,7 @@ let datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},lotes:[],sa
 let bancoEditando=null,tipoMovimiento='ingreso',calendarDate=new Date();
 let paginaOp=1,paginaMov=1,paginaTrans=1;
 let guardandoMovimiento=false,enCooldown=false;
-const POR_PAGINA=10,EMAIL_DOMAIN='@p2p-tracker.app',COOLDOWN_MS=3000;
+const POR_PAGINA=10,EMAIL_DOMAIN='@p2p-tracker.app',COOLDOWN_MS=1000;
 const BANCOS_DISPONIBLES=[{nombre:'Santander',moneda:'UYU'},{nombre:'BBVA',moneda:'UYU'},{nombre:'Itau',moneda:'UYU',especial:'itau'},{nombre:'Scotiabank',moneda:'UYU'},{nombre:'BROU',moneda:'UYU'},{nombre:'Prex',moneda:'UYU'},{nombre:'OCA',moneda:'UYU'},{nombre:'Mercado Pago',moneda:'UYU'},{nombre:'Midinero',moneda:'UYU'},{nombre:'Zelle',moneda:'USD'},{nombre:'Zinli',moneda:'USD'},{nombre:'Skrill',moneda:'USD'}];
 
 function fixNegativeZero(n){return Object.is(n,-0)?0:Math.round(n*100)/100}
