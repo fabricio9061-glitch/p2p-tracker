@@ -451,9 +451,12 @@ function cargarDatosUsuario(){
         inicializarBancos();
         verificarResetLimites();
         
-        // Migrar datos antiguos: recalcular si hay operaciones sin campo ganancia
+        // Migrar datos antiguos: recalcular si hay operaciones sin campo ganancia o inconsistencia
         const necesitaRecalculo=datos.operaciones.some(op=>op.ganancia===undefined);
-        if(necesitaRecalculo){
+        const totalLotes=datos.lotes.reduce((sum,l)=>sum+(l.disponible||0),0);
+        const hayInconsistencia=Math.abs(datos.saldoUsdt-totalLotes)>0.01;
+        
+        if(necesitaRecalculo||hayInconsistencia){
             recalcularLotesYGanancias();
             guardarDatos(); // Guardar los datos migrados
         }
@@ -548,6 +551,22 @@ function recalcularLotesYGanancias(){
             op.ganancia=gananciaOp;
         }
     });
+    
+    // Sincronizar saldoUsdt con el total de lotes disponibles + movimientos externos
+    let totalLotes=datos.lotes.reduce((sum,l)=>sum+l.disponible,0);
+    
+    // Ajustar por movimientos externos de USDT
+    datos.movimientos.forEach(mov=>{
+        if(mov.tipoCuenta==='usdt'){
+            if(mov.tipoMovimiento==='ingreso'){
+                totalLotes+=mov.monto;
+            }else{
+                totalLotes-=mov.monto;
+            }
+        }
+    });
+    
+    datos.saldoUsdt=fixNegativeZero(totalLotes);
 }
 
 function actualizarFormulario(){
@@ -878,41 +897,61 @@ function renderizarInventario(){
         return fa.localeCompare(fb);
     });
     
-    if(lotesActivos.length===0){
+    // Calcular USDT de movimientos externos
+    let usdtExterno=0;
+    datos.movimientos.forEach(mov=>{
+        if(mov.tipoCuenta==='usdt'){
+            usdtExterno+=mov.tipoMovimiento==='ingreso'?mov.monto:-mov.monto;
+        }
+    });
+    
+    const totalLotes=lotesActivos.reduce((sum,l)=>sum+l.disponible,0);
+    const totalReal=datos.saldoUsdt;
+    
+    if(lotesActivos.length===0&&usdtExterno<=0){
         document.getElementById('inventarioContent').innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px">📭</div><div>Sin USDT en inventario</div></div>';
         return;
     }
     
-    let totalUsdt=0;
-    let h='<table style="min-width:auto"><thead><tr><th>#</th><th>Precio</th><th>Disponible</th><th>Valor</th></tr></thead><tbody>';
+    let h='';
     
-    lotesActivos.forEach((lote,i)=>{
-        totalUsdt+=lote.disponible;
-        const valor=lote.disponible*lote.precioCompra;
-        h+=`<tr>
-            <td style="color:#64748b">${i+1}</td>
-            <td><b>$${formatearNumero(lote.precioCompra)}</b></td>
-            <td style="color:#2563eb"><b>${formatearNumero(lote.disponible,2)}</b></td>
-            <td style="color:#64748b">$${formatearNumero(valor,0)}</td>
-        </tr>`;
-    });
+    if(lotesActivos.length>0){
+        h+='<table style="min-width:auto"><thead><tr><th>#</th><th>Precio</th><th>Disponible</th><th>Valor</th></tr></thead><tbody>';
+        lotesActivos.forEach((lote,i)=>{
+            const valor=lote.disponible*lote.precioCompra;
+            h+=`<tr>
+                <td style="color:#64748b">${i+1}</td>
+                <td><b>$${formatearNumero(lote.precioCompra)}</b></td>
+                <td style="color:#2563eb"><b>${formatearNumero(lote.disponible,2)}</b></td>
+                <td style="color:#64748b">$${formatearNumero(valor,0)}</td>
+            </tr>`;
+        });
+        h+='</tbody></table>';
+    }
     
-    h+='</tbody></table>';
+    // Mostrar USDT de movimientos externos si hay
+    if(usdtExterno>0){
+        h+=`<div style="margin-top:12px;padding:10px;background:#fef3c7;border-radius:8px;display:flex;justify-content:space-between">
+            <span style="color:#92400e">USDT externos (sin lote):</span>
+            <span style="color:#d97706;font-weight:bold">+${formatearNumero(usdtExterno,2)}</span>
+        </div>`;
+    }
+    
     h+=`<div style="margin-top:12px;padding:10px;background:#eff6ff;border-radius:8px;display:flex;justify-content:space-between">
-        <span style="color:#64748b">Total en inventario:</span>
-        <span style="color:#2563eb;font-weight:bold">${formatearNumero(totalUsdt,2)} USDT</span>
+        <span style="color:#64748b">Total en tenencia:</span>
+        <span style="color:#2563eb;font-weight:bold">${formatearNumero(totalReal,2)} USDT</span>
     </div>`;
     
     document.getElementById('inventarioContent').innerHTML=h;
 }
 
 async function forzarRecalculo(){
-    if(!confirm('¿Recalcular todos los lotes y ganancias desde las operaciones?'))return;
+    if(!confirm('¿Recalcular todos los lotes, ganancias y sincronizar saldo USDT?'))return;
     recalcularLotesYGanancias();
     await guardarDatos();
     actualizarVista();
     renderizarInventario();
-    alert('✅ Lotes y ganancias recalculados');
+    alert('✅ Lotes, ganancias y saldo USDT sincronizados\nTotal USDT: '+formatearNumero(datos.saldoUsdt,2));
 }
 
 function abrirModalTransferencia(){
