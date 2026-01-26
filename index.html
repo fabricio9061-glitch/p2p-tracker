@@ -451,14 +451,15 @@ function cargarDatosUsuario(){
         inicializarBancos();
         verificarResetLimites();
         
-        // Migrar datos antiguos: recalcular si hay operaciones sin campo ganancia o inconsistencia
-        const necesitaRecalculo=datos.operaciones.some(op=>op.ganancia===undefined);
-        const totalLotes=datos.lotes.reduce((sum,l)=>sum+(l.disponible||0),0);
-        const hayInconsistencia=Math.abs(datos.saldoUsdt-totalLotes)>0.01;
+        // SIEMPRE recalcular para garantizar integridad de datos
+        // La fuente de verdad son las operaciones y movimientos, no el saldoUsdt guardado
+        const saldoAntes=datos.saldoUsdt;
+        recalcularLotesYGanancias();
         
-        if(necesitaRecalculo||hayInconsistencia){
-            recalcularLotesYGanancias();
-            guardarDatos(); // Guardar los datos migrados
+        // Guardar si hubo correcciones
+        if(Math.abs(datos.saldoUsdt-saldoAntes)>0.01){
+            console.log('Corrección de saldo aplicada:',saldoAntes,'→',datos.saldoUsdt);
+            guardarDatos();
         }
         
         paginaOp=1;paginaMov=1;paginaTrans=1;
@@ -491,19 +492,20 @@ function inicializarBancos(){
     });
 }
 
-// Recalcular lotes y ganancias desde operaciones (para migrar datos antiguos)
+// Recalcular lotes y ganancias desde operaciones (FUENTE ÚNICA DE VERDAD)
+// El saldoUsdt SIEMPRE se deriva de: lotes FIFO + movimientos externos
 function recalcularLotesYGanancias(){
-    // Reiniciar lotes
+    // 1. REINICIAR lotes completamente
     datos.lotes=[];
     
-    // Ordenar operaciones por fecha/hora (más antiguas primero)
+    // 2. Ordenar operaciones por fecha/hora (más antiguas primero)
     const opsOrdenadas=[...datos.operaciones].sort((a,b)=>{
         const fa=a.fecha+(a.hora||'00:00');
         const fb=b.fecha+(b.hora||'00:00');
         return fa.localeCompare(fb);
     });
     
-    // Procesar cada operación
+    // 3. Procesar cada operación para construir lotes
     opsOrdenadas.forEach(op=>{
         const comisionPct=(op.comisionPct||0.14)/100;
         const cp=truncar(op.usdt*comisionPct,2);
@@ -552,21 +554,27 @@ function recalcularLotesYGanancias(){
         }
     });
     
-    // Sincronizar saldoUsdt con el total de lotes disponibles + movimientos externos
-    let totalLotes=datos.lotes.reduce((sum,l)=>sum+l.disponible,0);
+    // 4. CALCULAR saldoUsdt ÚNICAMENTE desde fuentes válidas
+    // Fuente 1: Total de lotes disponibles
+    const totalLotes=datos.lotes.reduce((sum,l)=>sum+l.disponible,0);
     
-    // Ajustar por movimientos externos de USDT
+    // Fuente 2: Movimientos externos de USDT (ingresos - egresos)
+    let movimientosExternos=0;
     datos.movimientos.forEach(mov=>{
         if(mov.tipoCuenta==='usdt'){
-            if(mov.tipoMovimiento==='ingreso'){
-                totalLotes+=mov.monto;
-            }else{
-                totalLotes-=mov.monto;
-            }
+            movimientosExternos+=mov.tipoMovimiento==='ingreso'?mov.monto:-mov.monto;
         }
     });
     
-    datos.saldoUsdt=fixNegativeZero(totalLotes);
+    // 5. saldoUsdt = lotes + movimientos externos (NUNCA otro valor)
+    datos.saldoUsdt=fixNegativeZero(totalLotes+movimientosExternos);
+    
+    console.log('Recálculo FIFO completado:',{
+        totalLotes:totalLotes.toFixed(2),
+        movimientosExternos:movimientosExternos.toFixed(2),
+        saldoUsdtFinal:datos.saldoUsdt.toFixed(2),
+        cantidadLotes:datos.lotes.filter(l=>l.disponible>0).length
+    });
 }
 
 function actualizarFormulario(){
@@ -891,31 +899,46 @@ function abrirModalInventario(){
 function cerrarModalInventario(){document.getElementById('modalInventario').classList.remove('active')}
 
 function renderizarInventario(){
+    // 1. Obtener lotes activos ordenados por FIFO
     const lotesActivos=datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>{
         const fa=a.fecha+(a.hora||'00:00');
         const fb=b.fecha+(b.hora||'00:00');
         return fa.localeCompare(fb);
     });
     
-    // Calcular USDT de movimientos externos
-    let usdtExterno=0;
+    // 2. Calcular totales desde FUENTES REALES (no desde saldoUsdt guardado)
+    const totalLotes=lotesActivos.reduce((sum,l)=>sum+l.disponible,0);
+    
+    // 3. Calcular movimientos externos REALES desde la lista de movimientos
+    let movimientosExternos=0;
+    const movsExternosDetalle=[];
     datos.movimientos.forEach(mov=>{
         if(mov.tipoCuenta==='usdt'){
-            usdtExterno+=mov.tipoMovimiento==='ingreso'?mov.monto:-mov.monto;
+            const cantidad=mov.tipoMovimiento==='ingreso'?mov.monto:-mov.monto;
+            movimientosExternos+=cantidad;
+            movsExternosDetalle.push({
+                tipo:mov.tipoMovimiento,
+                monto:mov.monto,
+                fecha:mov.fecha,
+                descripcion:mov.descripcion||''
+            });
         }
     });
     
-    const totalLotes=lotesActivos.reduce((sum,l)=>sum+l.disponible,0);
-    const totalReal=datos.saldoUsdt;
+    // 4. El total REAL es lotes + movimientos externos (calculado, no guardado)
+    const totalReal=fixNegativeZero(totalLotes+movimientosExternos);
     
-    if(lotesActivos.length===0&&usdtExterno<=0){
+    // 5. Renderizar
+    if(lotesActivos.length===0&&movimientosExternos<=0){
         document.getElementById('inventarioContent').innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px">📭</div><div>Sin USDT en inventario</div></div>';
         return;
     }
     
     let h='';
     
+    // Mostrar lotes
     if(lotesActivos.length>0){
+        h+=`<div style="font-size:0.75em;color:#64748b;margin-bottom:8px;font-weight:600">LOTES DE COMPRA (${lotesActivos.length})</div>`;
         h+='<table style="min-width:auto"><thead><tr><th>#</th><th>Precio</th><th>Disponible</th><th>Valor</th></tr></thead><tbody>';
         lotesActivos.forEach((lote,i)=>{
             const valor=lote.disponible*lote.precioCompra;
@@ -927,31 +950,69 @@ function renderizarInventario(){
             </tr>`;
         });
         h+='</tbody></table>';
-    }
-    
-    // Mostrar USDT de movimientos externos si hay
-    if(usdtExterno>0){
-        h+=`<div style="margin-top:12px;padding:10px;background:#fef3c7;border-radius:8px;display:flex;justify-content:space-between">
-            <span style="color:#92400e">USDT externos (sin lote):</span>
-            <span style="color:#d97706;font-weight:bold">+${formatearNumero(usdtExterno,2)}</span>
+        h+=`<div style="margin-top:8px;padding:8px;background:#eff6ff;border-radius:6px;display:flex;justify-content:space-between;font-size:0.85em">
+            <span style="color:#64748b">Subtotal lotes:</span>
+            <span style="color:#2563eb;font-weight:600">${formatearNumero(totalLotes,2)} USDT</span>
         </div>`;
     }
     
-    h+=`<div style="margin-top:12px;padding:10px;background:#eff6ff;border-radius:8px;display:flex;justify-content:space-between">
-        <span style="color:#64748b">Total en tenencia:</span>
-        <span style="color:#2563eb;font-weight:bold">${formatearNumero(totalReal,2)} USDT</span>
+    // Mostrar movimientos externos SOLO si existen realmente
+    if(movsExternosDetalle.length>0){
+        h+=`<div style="font-size:0.75em;color:#64748b;margin:12px 0 8px;font-weight:600">MOVIMIENTOS EXTERNOS (${movsExternosDetalle.length})</div>`;
+        movsExternosDetalle.forEach(mov=>{
+            const color=mov.tipo==='ingreso'?'#16a34a':'#dc2626';
+            const signo=mov.tipo==='ingreso'?'+':'-';
+            h+=`<div style="display:flex;justify-content:space-between;padding:6px 8px;background:#f8fafc;border-radius:4px;margin-bottom:4px;font-size:0.85em">
+                <span style="color:#64748b">${mov.tipo==='ingreso'?'📥 Ingreso':'📤 Egreso'} ${mov.descripcion?'('+mov.descripcion+')':''}</span>
+                <span style="color:${color};font-weight:600">${signo}${formatearNumero(mov.monto,2)}</span>
+            </div>`;
+        });
+        h+=`<div style="margin-top:8px;padding:8px;background:${movimientosExternos>=0?'#f0fdf4':'#fef2f2'};border-radius:6px;display:flex;justify-content:space-between;font-size:0.85em">
+            <span style="color:#64748b">Subtotal externos:</span>
+            <span style="color:${movimientosExternos>=0?'#16a34a':'#dc2626'};font-weight:600">${movimientosExternos>=0?'+':''}${formatearNumero(movimientosExternos,2)} USDT</span>
+        </div>`;
+    }
+    
+    // Total final
+    h+=`<div style="margin-top:12px;padding:12px;background:#1e293b;border-radius:8px;display:flex;justify-content:space-between">
+        <span style="color:#94a3b8;font-weight:600">TOTAL EN TENENCIA:</span>
+        <span style="color:#22d3ee;font-weight:bold;font-size:1.1em">${formatearNumero(totalReal,2)} USDT</span>
     </div>`;
+    
+    // Validación: mostrar alerta si hay inconsistencia
+    if(Math.abs(datos.saldoUsdt-totalReal)>0.01){
+        h+=`<div style="margin-top:8px;padding:10px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;color:#dc2626;font-size:0.8em">
+            ⚠️ Inconsistencia detectada: saldo guardado (${formatearNumero(datos.saldoUsdt,2)}) ≠ calculado (${formatearNumero(totalReal,2)}). 
+            <br>Presiona <b>Recalcular</b> para corregir.
+        </div>`;
+    }
     
     document.getElementById('inventarioContent').innerHTML=h;
 }
 
 async function forzarRecalculo(){
-    if(!confirm('¿Recalcular todos los lotes, ganancias y sincronizar saldo USDT?'))return;
+    if(!confirm('¿Reconstruir inventario FIFO desde todas las operaciones?\n\nEsto eliminará cualquier saldo inconsistente y calculará todo desde cero.'))return;
+    
+    const saldoAntes=datos.saldoUsdt;
     recalcularLotesYGanancias();
+    const saldoDespues=datos.saldoUsdt;
+    
     await guardarDatos();
     actualizarVista();
     renderizarInventario();
-    alert('✅ Lotes, ganancias y saldo USDT sincronizados\nTotal USDT: '+formatearNumero(datos.saldoUsdt,2));
+    
+    const lotesActivos=datos.lotes.filter(l=>l.disponible>0).length;
+    const diferencia=saldoDespues-saldoAntes;
+    
+    let mensaje='✅ Recálculo completado\n\n';
+    mensaje+=`📦 Lotes activos: ${lotesActivos}\n`;
+    mensaje+=`💰 USDT en tenencia: ${formatearNumero(saldoDespues,2)}\n`;
+    if(Math.abs(diferencia)>0.01){
+        mensaje+=`\n⚠️ Corrección aplicada: ${diferencia>0?'+':''}${formatearNumero(diferencia,2)} USDT`;
+        mensaje+=`\n(Saldo anterior: ${formatearNumero(saldoAntes,2)})`;
+    }
+    
+    alert(mensaje);
 }
 
 function abrirModalTransferencia(){
