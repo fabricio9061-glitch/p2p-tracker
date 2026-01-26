@@ -221,6 +221,7 @@
                     <div class="menu-dropdown" id="menuDropdown">
                         <div class="menu-user"><div class="menu-user-name" id="menuUserName">Usuario</div><div class="menu-user-email" id="menuUserEmail">@p2p</div></div>
                         <div class="menu-item" onclick="abrirCalendario();cerrarMenu()"><span>📅</span><span>Calendario</span></div>
+                        <div class="menu-item" onclick="abrirModalInventario();cerrarMenu()"><span>📦</span><span>Inventario USDT</span></div>
                         <div class="menu-item" onclick="abrirModalMovimiento();cerrarMenu()"><span>💸</span><span>Movimiento Externo</span></div>
                         <div class="menu-item" onclick="abrirModalBancos();cerrarMenu()"><span>🏦</span><span>Gestionar Bancos</span></div>
                         <div class="menu-item" onclick="abrirModalTransferencia();cerrarMenu()"><span>↔️</span><span>Transferencia</span></div>
@@ -236,8 +237,8 @@
                 <div class="card main-card" id="cardGananciaHoy"><div class="card-title">📈 Ganancia Hoy</div><div class="card-value positive" id="gananciaHoy">$0</div><div class="card-subtitle" id="fechaHoy">--</div><div class="stats-row"><span class="stat-badge" id="opsHoy">0 ops</span></div></div>
                 <div class="card"><div class="card-title">📦 <b style="color:#1e293b">USDT</b></div><div class="card-value info" id="usdtEnTenencia">0,00</div><div class="card-subtitle">En tenencia</div></div>
                 <div class="card"><div class="card-title">🏦 Bancos</div><div class="card-value positive" id="totalBancos">$0</div><div class="card-subtitle">Saldo UYU</div></div>
-                <div class="card"><div class="card-title">📥 <span class="text-compra">Compras</span></div><div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromCompra">--</span><span class="stat-badge" id="costoPromedio">Costo: --</span></div></div>
-                <div class="card"><div class="card-title">📤 <span class="text-venta">Ventas</span></div><div class="card-value" style="font-size:1.2em" id="totalRecibido">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromVenta">--</span></div></div>
+                <div class="card"><div class="card-title">📥 <span class="text-compra">Compras</span> <span id="mesCompras" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromCompra">--</span><span class="stat-badge" id="loteMasBarato">--</span></div></div>
+                <div class="card"><div class="card-title">📤 <span class="text-venta">Ventas</span> <span id="mesVentas" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalRecibido">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromVenta">--</span><span class="stat-badge" id="lotesDisponibles">--</span></div></div>
                 <div class="card"><div class="card-title">📊 Spread</div><div class="card-value info" id="spreadPromedio">$0</div><div class="stats-row"><span class="stat-badge" id="porcentajeSpread">0%</span></div></div>
             </div>
             
@@ -363,6 +364,7 @@
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Gestionar Bancos</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" onclick="cerrarModalBancos()">Cerrar</button></div></div></div>
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen" onchange="mostrarSaldoOrigen()"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalTransferencia()">Cancelar</button><button class="btn" id="btnTransferir" onclick="realizarTransferencia()">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="number" step="1" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="cerrarModalEditarSaldo()">Cancelar</button><button class="btn" onclick="guardarNuevoSaldo()">Guardar</button></div></div></div>
+    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Inventario USDT (FIFO)</div><div id="inventarioContent" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Sistema FIFO: Al vender se consumen primero los lotes más antiguos</div></div><div class="modal-buttons"><button class="btn btn-cancel" onclick="forzarRecalculo()">🔄 Recalcular</button><button class="btn" onclick="cerrarModalInventario()">Cerrar</button></div></div></div>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -370,11 +372,11 @@
     <script>
 const firebaseConfig={apiKey:"AIzaSyCL2uxQMNIxC0oo35uN-lYQXaOWLxXNg7k",authDomain:"p2p-tracker-dc9cc.firebaseapp.com",projectId:"p2p-tracker-dc9cc",storageBucket:"p2p-tracker-dc9cc.firebasestorage.app",messagingSenderId:"670856094446",appId:"1:670856094446:web:390946887212a97e36c9ff"};
 let db=null,auth=null,currentUser=null,unsubscribe=null;
-let datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};
+let datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},lotes:[],saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};
 let bancoEditando=null,tipoMovimiento='ingreso',calendarDate=new Date();
 let paginaOp=1,paginaMov=1,paginaTrans=1;
 let guardandoMovimiento=false,enCooldown=false;
-const POR_PAGINA=10,EMAIL_DOMAIN='@p2p-tracker.app',COOLDOWN_MS=3000;
+const POR_PAGINA=10,EMAIL_DOMAIN='@p2p-tracker.app',COOLDOWN_MS=1000;
 const BANCOS_DISPONIBLES=[{nombre:'Santander',moneda:'UYU'},{nombre:'BBVA',moneda:'UYU'},{nombre:'Itau',moneda:'UYU',especial:'itau'},{nombre:'Scotiabank',moneda:'UYU'},{nombre:'BROU',moneda:'UYU'},{nombre:'Prex',moneda:'UYU'},{nombre:'OCA',moneda:'UYU'},{nombre:'Mercado Pago',moneda:'UYU'},{nombre:'Midinero',moneda:'UYU'},{nombre:'Zelle',moneda:'USD'},{nombre:'Zinli',moneda:'USD'},{nombre:'Skrill',moneda:'USD'}];
 
 function fixNegativeZero(n){return Object.is(n,-0)?0:Math.round(n*100)/100}
@@ -442,12 +444,20 @@ function cargarDatosUsuario(){
     unsubscribe=db.collection('users').doc(currentUser.uid).onSnapshot(doc=>{
         if(doc.exists){
             const d=doc.data();
-            datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14};
+            datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},lotes:d.lotes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14};
         }else{
-            datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};
+            datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},lotes:[],saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};
         }
         inicializarBancos();
         verificarResetLimites();
+        
+        // Migrar datos antiguos: recalcular si hay operaciones sin campo ganancia
+        const necesitaRecalculo=datos.operaciones.some(op=>op.ganancia===undefined);
+        if(necesitaRecalculo){
+            recalcularLotesYGanancias();
+            guardarDatos(); // Guardar los datos migrados
+        }
+        
         paginaOp=1;paginaMov=1;paginaTrans=1;
         document.getElementById('comisionPlataforma').value=datos.comisionPlataforma.toFixed(2);
         document.getElementById('comisionPctLabel').textContent=datos.comisionPlataforma.toFixed(2);
@@ -474,6 +484,68 @@ function inicializarBancos(){
             if(datos.bancos[b.nombre].limiteDiarioUSD===undefined)datos.bancos[b.nombre].limiteDiarioUSD=datos.bancos[b.nombre].limiteDiario||0;
             if(datos.bancos[b.nombre].limiteUsadoUSD===undefined)datos.bancos[b.nombre].limiteUsadoUSD=datos.bancos[b.nombre].limiteUsado||0;
             if(datos.bancos[b.nombre].ultimoResetLimite===undefined)datos.bancos[b.nombre].ultimoResetLimite=null;
+        }
+    });
+}
+
+// Recalcular lotes y ganancias desde operaciones (para migrar datos antiguos)
+function recalcularLotesYGanancias(){
+    // Reiniciar lotes
+    datos.lotes=[];
+    
+    // Ordenar operaciones por fecha/hora (más antiguas primero)
+    const opsOrdenadas=[...datos.operaciones].sort((a,b)=>{
+        const fa=a.fecha+(a.hora||'00:00');
+        const fb=b.fecha+(b.hora||'00:00');
+        return fa.localeCompare(fb);
+    });
+    
+    // Procesar cada operación
+    opsOrdenadas.forEach(op=>{
+        const comisionPct=(op.comisionPct||0.14)/100;
+        const cp=truncar(op.usdt*comisionPct,2);
+        
+        if(op.tipo==='compra'){
+            const usdtNetos=op.usdt-cp;
+            // Buscar lote existente con mismo precio
+            const loteExistente=datos.lotes.find(l=>l.precioCompra===op.tasa&&l.disponible>0);
+            if(loteExistente){
+                loteExistente.cantidad+=usdtNetos;
+                loteExistente.disponible+=usdtNetos;
+            }else{
+                datos.lotes.push({
+                    id:op.id,
+                    fecha:op.fecha,
+                    hora:op.hora||'00:00',
+                    precioCompra:op.tasa,
+                    cantidad:usdtNetos,
+                    disponible:usdtNetos
+                });
+            }
+            op.ganancia=-(op.comisionBanco||0);
+        }else{
+            // VENTA - Sistema FIFO
+            const usdtAVender=op.usdt+cp;
+            let usdtRestantes=usdtAVender;
+            let gananciaOp=0;
+            
+            // Ordenar lotes por fecha/hora (FIFO)
+            const lotesOrdenados=datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>{
+                const fa=a.fecha+(a.hora||'00:00');
+                const fb=b.fecha+(b.hora||'00:00');
+                return fa.localeCompare(fb);
+            });
+            
+            for(const lote of lotesOrdenados){
+                if(usdtRestantes<=0)break;
+                const usdtDeEsteLote=Math.min(lote.disponible,usdtRestantes);
+                const gananciaDeLote=usdtDeEsteLote*(op.tasa-lote.precioCompra);
+                gananciaOp+=gananciaDeLote;
+                lote.disponible=fixNegativeZero(lote.disponible-usdtDeEsteLote);
+                usdtRestantes=fixNegativeZero(usdtRestantes-usdtDeEsteLote);
+            }
+            
+            op.ganancia=gananciaOp;
         }
     });
 }
@@ -558,27 +630,72 @@ async function agregarOperacion(){
             }
         }
         if(banco.saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return;
+    }else{
+        // Verificar que hay suficiente USDT para vender
+        const usdtNecesarios=u+cp;
+        if(datos.saldoUsdt<usdtNecesarios&&!confirm(`Solo tenés ${formatearNumero(datos.saldoUsdt,2)} USDT. ¿Continuar?`))return;
     }
     
     btn.disabled=true;
     btn.textContent='Guardando...';
     
     try{
-        datos.operaciones.unshift({id:Date.now(),tipo:t,monto:m,tasa:ta,usdt:u,banco:b,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cp,comisionPct:datos.comisionPlataforma,fecha:f,hora:h,timestamp:new Date().toISOString()});
+        const opId=Date.now();
+        let gananciaOp=0;
         
         if(t==='compra'){
+            const usdtNetos=u-cp;
+            // Buscar lote existente con mismo precio
+            const loteExistente=datos.lotes.find(l=>l.precioCompra===ta&&l.disponible>0);
+            if(loteExistente){
+                loteExistente.cantidad+=usdtNetos;
+                loteExistente.disponible+=usdtNetos;
+            }else{
+                datos.lotes.push({
+                    id:opId,
+                    fecha:f,
+                    hora:h,
+                    precioCompra:ta,
+                    cantidad:usdtNetos,
+                    disponible:usdtNetos
+                });
+            }
             datos.ultimaTasaCompra=ta;
             datos.bancos[b].saldo=fixNegativeZero(datos.bancos[b].saldo-(m+cb));
-            datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt+(u-cp));
+            datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt+usdtNetos);
             if(datos.bancos[b].limiteDiarioUSD>0){
                 const montoUSD=m/ta;
                 datos.bancos[b].limiteUsadoUSD=Math.min(datos.bancos[b].limiteDiarioUSD,(datos.bancos[b].limiteUsadoUSD||0)+montoUSD);
             }
+            gananciaOp=-cb; // Solo la comisión de banco como pérdida
         }else{
+            // VENTA - Sistema FIFO
+            const usdtAVender=u+cp;
+            let usdtRestantes=usdtAVender;
+            
+            // Ordenar lotes por fecha/hora (FIFO - más antiguos primero)
+            const lotesOrdenados=datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>{
+                const fa=a.fecha+(a.hora||'00:00');
+                const fb=b.fecha+(b.hora||'00:00');
+                return fa.localeCompare(fb);
+            });
+            
+            // Consumir lotes FIFO
+            for(const lote of lotesOrdenados){
+                if(usdtRestantes<=0)break;
+                const usdtDeEsteLote=Math.min(lote.disponible,usdtRestantes);
+                const gananciaDeLote=usdtDeEsteLote*(ta-lote.precioCompra);
+                gananciaOp+=gananciaDeLote;
+                lote.disponible=fixNegativeZero(lote.disponible-usdtDeEsteLote);
+                usdtRestantes=fixNegativeZero(usdtRestantes-usdtDeEsteLote);
+            }
+            
             datos.ultimaTasaVenta=ta;
             datos.bancos[b].saldo=fixNegativeZero(datos.bancos[b].saldo+m);
-            datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt-(u+cp));
+            datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt-usdtAVender);
         }
+        
+        datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cp,comisionPct:datos.comisionPlataforma,fecha:f,hora:h,ganancia:gananciaOp,timestamp:new Date().toISOString()});
         
         document.getElementById('monto').value='';
         document.getElementById('comisionBanco').value='0';
@@ -595,7 +712,7 @@ async function agregarOperacion(){
 }
 
 async function eliminarOperacion(id){
-    if(!confirm('¿Eliminar operación?'))return;
+    if(!confirm('¿Eliminar operación? Se recalcularán los lotes y ganancias.'))return;
     const op=datos.operaciones.find(o=>o.id===id);
     if(op){
         if(op.tipo==='compra'){
@@ -613,6 +730,10 @@ async function eliminarOperacion(id){
         }
     }
     datos.operaciones=datos.operaciones.filter(o=>o.id!==id);
+    
+    // Recalcular lotes y ganancias
+    recalcularLotesYGanancias();
+    
     await guardarDatos();
     actualizarVista();
 }
@@ -744,6 +865,56 @@ async function guardarNuevoSaldo(){
     cerrarModalEditarSaldo();
 }
 
+function abrirModalInventario(){
+    renderizarInventario();
+    document.getElementById('modalInventario').classList.add('active');
+}
+function cerrarModalInventario(){document.getElementById('modalInventario').classList.remove('active')}
+
+function renderizarInventario(){
+    const lotesActivos=datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>{
+        const fa=a.fecha+(a.hora||'00:00');
+        const fb=b.fecha+(b.hora||'00:00');
+        return fa.localeCompare(fb);
+    });
+    
+    if(lotesActivos.length===0){
+        document.getElementById('inventarioContent').innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px">📭</div><div>Sin USDT en inventario</div></div>';
+        return;
+    }
+    
+    let totalUsdt=0;
+    let h='<table style="min-width:auto"><thead><tr><th>#</th><th>Precio</th><th>Disponible</th><th>Valor</th></tr></thead><tbody>';
+    
+    lotesActivos.forEach((lote,i)=>{
+        totalUsdt+=lote.disponible;
+        const valor=lote.disponible*lote.precioCompra;
+        h+=`<tr>
+            <td style="color:#64748b">${i+1}</td>
+            <td><b>$${formatearNumero(lote.precioCompra)}</b></td>
+            <td style="color:#2563eb"><b>${formatearNumero(lote.disponible,2)}</b></td>
+            <td style="color:#64748b">$${formatearNumero(valor,0)}</td>
+        </tr>`;
+    });
+    
+    h+='</tbody></table>';
+    h+=`<div style="margin-top:12px;padding:10px;background:#eff6ff;border-radius:8px;display:flex;justify-content:space-between">
+        <span style="color:#64748b">Total en inventario:</span>
+        <span style="color:#2563eb;font-weight:bold">${formatearNumero(totalUsdt,2)} USDT</span>
+    </div>`;
+    
+    document.getElementById('inventarioContent').innerHTML=h;
+}
+
+async function forzarRecalculo(){
+    if(!confirm('¿Recalcular todos los lotes y ganancias desde las operaciones?'))return;
+    recalcularLotesYGanancias();
+    await guardarDatos();
+    actualizarVista();
+    renderizarInventario();
+    alert('✅ Lotes y ganancias recalculados');
+}
+
 function abrirModalTransferencia(){
     document.getElementById('montoTransferencia').value='';
     document.getElementById('comisionTransferencia').value='0';
@@ -816,33 +987,15 @@ function cambiarMes(d){calendarDate.setMonth(calendarDate.getMonth()+d);renderiz
 function calcularGananciaDiaria(){
     const g={};
     
-    // Ordenar operaciones por fecha y hora
-    const opsOrdenadas=[...datos.operaciones].sort((a,b)=>{
-        const fa=a.fecha+(a.hora||'00:00');
-        const fb=b.fecha+(b.hora||'00:00');
-        return fa.localeCompare(fb);
-    });
-    
-    let ultimaTasaCompraLocal=0;
-    
-    // Calcular ganancia de ventas
-    opsOrdenadas.forEach(op=>{
-        if(op.tipo==='compra'){
-            ultimaTasaCompraLocal=op.tasa;
-            // Restar comisión banco el día de la compra
-            if(op.comisionBanco>0){
-                if(!g[op.fecha])g[op.fecha]=0;
-                g[op.fecha]-=op.comisionBanco;
-            }
-        }else if(op.tipo==='venta'&&ultimaTasaCompraLocal>0){
-            if(!g[op.fecha])g[op.fecha]=0;
-            const usdtVendidos=op.usdt+op.comisionPlataforma;
-            const spread=op.tasa-ultimaTasaCompraLocal;
-            g[op.fecha]+=usdtVendidos*spread;
+    // Usar el campo ganancia precalculado de cada operación
+    datos.operaciones.forEach(op=>{
+        if(!g[op.fecha])g[op.fecha]=0;
+        if(op.ganancia!==undefined){
+            g[op.fecha]+=op.ganancia;
         }
     });
     
-    // Restar egresos
+    // Restar egresos externos
     datos.movimientos.forEach(mov=>{
         if(mov.tipoMovimiento==='egreso'){
             if(!g[mov.fecha])g[mov.fecha]=0;
@@ -892,26 +1045,14 @@ function renderizarCalendario(){
 function calcularGananciaTotal(){
     let ganancia=0;
     
-    // Ordenar operaciones por fecha y hora
-    const opsOrdenadas=[...datos.operaciones].sort((a,b)=>{
-        const fa=a.fecha+(a.hora||'00:00');
-        const fb=b.fecha+(b.hora||'00:00');
-        return fa.localeCompare(fb);
-    });
-    
-    let ultimaTasaCompraLocal=0;
-    
-    opsOrdenadas.forEach(op=>{
-        if(op.tipo==='compra'){
-            ultimaTasaCompraLocal=op.tasa;
-            ganancia-=op.comisionBanco||0;
-        }else if(op.tipo==='venta'&&ultimaTasaCompraLocal>0){
-            const usdtVendidos=op.usdt+op.comisionPlataforma;
-            const spread=op.tasa-ultimaTasaCompraLocal;
-            ganancia+=usdtVendidos*spread;
+    // Sumar ganancia precalculada de cada operación
+    datos.operaciones.forEach(op=>{
+        if(op.ganancia!==undefined){
+            ganancia+=op.ganancia;
         }
     });
     
+    // Restar egresos externos
     datos.movimientos.forEach(mov=>{
         if(mov.tipoMovimiento==='egreso'){
             if(mov.tipoCuenta==='usdt'){
@@ -933,17 +1074,24 @@ function calcularGananciaHoy(){
 }
 
 function calcularResumen(){
-    let tp=0,tr=0,uc=0,uv=0,cb=0,stc=0,stv=0,cc=0,cv=0;
-    datos.operaciones.forEach(op=>{
-        if(op.tipo==='compra'){tp+=op.monto+(op.comisionBanco||0);uc+=op.usdt-op.comisionPlataforma;cb+=op.comisionBanco||0;stc+=op.tasa;cc++}
+    // Obtener mes actual
+    const hoy=getUruguayDate();
+    const mesActual=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+    
+    // Filtrar operaciones del mes actual para las tarjetas
+    const opsMes=datos.operaciones.filter(op=>op.fecha&&op.fecha.startsWith(mesActual));
+    
+    let tp=0,tr=0,uc=0,uv=0,stc=0,stv=0,cc=0,cv=0;
+    opsMes.forEach(op=>{
+        if(op.tipo==='compra'){tp+=op.monto+(op.comisionBanco||0);uc+=op.usdt-op.comisionPlataforma;stc+=op.tasa;cc++}
         else{tr+=op.monto;uv+=op.usdt+op.comisionPlataforma;stv+=op.tasa;cv++}
     });
     const tpc=cc?stc/cc:0,tpv=cv?stv/cv:0,sp=tpv-tpc;
     let tb=0;
     BANCOS_DISPONIBLES.forEach(b=>{if(datos.bancos[b.nombre]?.activo&&b.moneda==='UYU')tb+=datos.bancos[b.nombre].saldo});
-    const hoy=getUruguayDateString();
-    const opsHoy=datos.operaciones.filter(o=>o.fecha===hoy).length;
-    return{totalPagado:tp,totalRecibido:tr,usdtComprados:uc,usdtVendidos:uv,tasaPromC:tpc,tasaPromV:tpv,spread:sp,pctSpread:tpc?(sp/tpc)*100:0,totalBancosUYU:tb,opsHoy};
+    const hoyStr=getUruguayDateString();
+    const opsHoy=datos.operaciones.filter(o=>o.fecha===hoyStr).length;
+    return{totalPagado:tp,totalRecibido:tr,usdtComprados:uc,usdtVendidos:uv,tasaPromC:tpc,tasaPromV:tpv,spread:sp,pctSpread:tpc?(sp/tpc)*100:0,totalBancosUYU:tb,opsHoy,mesActual};
 }
 
 function actualizarVista(){
@@ -964,9 +1112,26 @@ function actualizarVista(){
     document.getElementById('totalBancos').textContent='$'+formatearNumero(r.totalBancosUYU,0);
     document.getElementById('totalPagado').textContent='$'+formatearNumero(r.totalPagado,0);
     document.getElementById('tasaPromCompra').textContent='Prom: $'+formatearNumero(r.tasaPromC);
-    document.getElementById('costoPromedio').textContent='Última: $'+formatearNumero(datos.ultimaTasaCompra||0);
+    
+    // Mostrar mes actual en tarjetas
+    const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const mesNum=parseInt(r.mesActual.split('-')[1])-1;
+    document.getElementById('mesCompras').textContent='('+meses[mesNum]+')';
+    document.getElementById('mesVentas').textContent='('+meses[mesNum]+')';
+    
+    // Info de lotes
+    const lotesActivos=datos.lotes.filter(l=>l.disponible>0);
+    if(lotesActivos.length>0){
+        const loteMasBarato=lotesActivos.reduce((min,l)=>l.precioCompra<min.precioCompra?l:min,lotesActivos[0]);
+        document.getElementById('loteMasBarato').textContent='Min: $'+formatearNumero(loteMasBarato.precioCompra);
+        document.getElementById('lotesDisponibles').textContent=lotesActivos.length+' lotes';
+    }else{
+        document.getElementById('loteMasBarato').textContent='Sin stock';
+        document.getElementById('lotesDisponibles').textContent='0 lotes';
+    }
+    
     document.getElementById('totalRecibido').textContent='$'+formatearNumero(r.totalRecibido,0);
-    document.getElementById('tasaPromVenta').textContent='$'+formatearNumero(r.tasaPromV);
+    document.getElementById('tasaPromVenta').textContent='Prom: $'+formatearNumero(r.tasaPromV);
     document.getElementById('spreadPromedio').textContent='$'+formatearNumero(r.spread);
     document.getElementById('porcentajeSpread').textContent=formatearNumero(r.pctSpread,1)+'%';
     
@@ -1016,12 +1181,15 @@ function actualizarTablaOperaciones(){
     const totalPaginas=Math.ceil(total/POR_PAGINA);
     if(paginaOp>totalPaginas)paginaOp=totalPaginas;
     const inicio=(paginaOp-1)*POR_PAGINA,fin=inicio+POR_PAGINA,ops=datos.operaciones.slice(inicio,fin);
-    let h='<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>Banco</th><th>Fecha</th><th></th></tr></thead><tbody>';
+    let h='<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>G/P</th><th>Fecha</th><th></th></tr></thead><tbody>';
     ops.forEach(op=>{
         const un=op.tipo==='compra'?op.usdt-op.comisionPlataforma:op.usdt+op.comisionPlataforma;
         const badge=op.tipo==='compra'?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';
         const fechaHtml=`<div class="fecha-hora"><span class="fecha">${formatearFechaCorta(op.fecha)}</span><span class="hora">${op.hora||'--:--'}</span></div>`;
-        h+=`<tr><td>${badge}</td><td><b>$${formatearNumero(op.monto)}</b></td><td>$${formatearNumero(op.tasa)}</td><td><b>${formatearNumero(un,2)}</b></td><td style="color:#0284c7">${op.banco||'-'}</td><td>${fechaHtml}</td><td><button class="btn-delete" onclick="eliminarOperacion(${op.id})">×</button></td></tr>`;
+        const gan=op.ganancia||0;
+        const ganColor=gan>=0?'#16a34a':'#dc2626';
+        const ganText=gan>=0?'+$'+formatearNumero(gan):'-$'+formatearNumero(Math.abs(gan));
+        h+=`<tr><td>${badge}</td><td><b>$${formatearNumero(op.monto)}</b></td><td>$${formatearNumero(op.tasa)}</td><td><b>${formatearNumero(un,2)}</b></td><td style="color:${ganColor};font-weight:600">${ganText}</td><td>${fechaHtml}</td><td><button class="btn-delete" onclick="eliminarOperacion(${op.id})">×</button></td></tr>`;
     });
     t.innerHTML=h+'</tbody></table>';
     document.getElementById('paginationOp').style.display=totalPaginas>1?'flex':'none';
@@ -1081,7 +1249,7 @@ function actualizarTablaTransferencias(){
 
 async function borrarTodo(){
     if(confirm('⚠️ ¿Borrar TODO?')&&confirm('No se puede deshacer. ¿Continuar?')){
-        datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};
+        datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},lotes:[],saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14};
         inicializarBancos();
         paginaOp=1;paginaMov=1;paginaTrans=1;
         document.getElementById('comisionPlataforma').value='0.14';
