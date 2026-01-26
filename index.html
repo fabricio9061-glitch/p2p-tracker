@@ -488,64 +488,104 @@ function inicializarBancos(){
     });
 }
 
-// Recalcular lotes y ganancias desde operaciones (para migrar datos antiguos)
+// Recalcular lotes y ganancias desde operaciones y movimientos (para migrar datos antiguos)
 function recalcularLotesYGanancias(){
     // Reiniciar lotes
     datos.lotes=[];
     
-    // Ordenar operaciones por fecha/hora (más antiguas primero)
-    const opsOrdenadas=[...datos.operaciones].sort((a,b)=>{
+    // Crear lista combinada de operaciones y movimientos de USDT ordenados cronológicamente
+    const eventos=[];
+    
+    datos.operaciones.forEach(op=>{
+        eventos.push({
+            tipo:'operacion',
+            fecha:op.fecha,
+            hora:op.hora||'00:00',
+            data:op
+        });
+    });
+    
+    // Agregar movimientos de USDT (egresos)
+    datos.movimientos.filter(m=>m.tipoCuenta==='usdt'&&m.tipoMovimiento==='egreso').forEach(m=>{
+        eventos.push({
+            tipo:'movimiento_egreso',
+            fecha:m.fecha,
+            hora:m.hora||'00:00',
+            data:m
+        });
+    });
+    
+    // Ordenar por fecha/hora (más antiguos primero)
+    eventos.sort((a,b)=>{
         const fa=a.fecha+(a.hora||'00:00');
         const fb=b.fecha+(b.hora||'00:00');
         return fa.localeCompare(fb);
     });
     
-    // Procesar cada operación
-    opsOrdenadas.forEach(op=>{
-        const comisionPct=(op.comisionPct||0.14)/100;
-        const cp=truncar(op.usdt*comisionPct,2);
-        
-        if(op.tipo==='compra'){
-            const usdtNetos=op.usdt-cp;
-            // Buscar lote existente con mismo precio
-            const loteExistente=datos.lotes.find(l=>l.precioCompra===op.tasa&&l.disponible>0);
-            if(loteExistente){
-                loteExistente.cantidad+=usdtNetos;
-                loteExistente.disponible+=usdtNetos;
-            }else{
-                datos.lotes.push({
-                    id:op.id,
-                    fecha:op.fecha,
-                    hora:op.hora||'00:00',
-                    precioCompra:op.tasa,
-                    cantidad:usdtNetos,
-                    disponible:usdtNetos
-                });
-            }
-            op.ganancia=-(op.comisionBanco||0);
-        }else{
-            // VENTA - Sistema FIFO
-            const usdtAVender=op.usdt+cp;
-            let usdtRestantes=usdtAVender;
-            let gananciaOp=0;
+    // Procesar cada evento
+    eventos.forEach(ev=>{
+        if(ev.tipo==='operacion'){
+            const op=ev.data;
+            const comisionPct=(op.comisionPct||0.14)/100;
+            const cp=truncar(op.usdt*comisionPct,2);
             
-            // Ordenar lotes por fecha/hora (FIFO)
+            if(op.tipo==='compra'){
+                const usdtNetos=op.usdt-cp;
+                // Buscar lote existente con mismo precio
+                const loteExistente=datos.lotes.find(l=>l.precioCompra===op.tasa&&l.disponible>0);
+                if(loteExistente){
+                    loteExistente.cantidad+=usdtNetos;
+                    loteExistente.disponible+=usdtNetos;
+                }else{
+                    datos.lotes.push({
+                        id:op.id,
+                        fecha:op.fecha,
+                        hora:op.hora||'00:00',
+                        precioCompra:op.tasa,
+                        cantidad:usdtNetos,
+                        disponible:usdtNetos
+                    });
+                }
+                op.ganancia=-(op.comisionBanco||0);
+            }else{
+                // VENTA - Sistema FIFO
+                const usdtAVender=op.usdt+cp;
+                let usdtRestantes=usdtAVender;
+                let gananciaOp=0;
+                
+                // Ordenar lotes por fecha/hora (FIFO)
+                const lotesOrdenados=datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>{
+                    const fa=a.fecha+(a.hora||'00:00');
+                    const fb=b.fecha+(b.hora||'00:00');
+                    return fa.localeCompare(fb);
+                });
+                
+                for(const lote of lotesOrdenados){
+                    if(usdtRestantes<=0)break;
+                    const usdtDeEsteLote=Math.min(lote.disponible,usdtRestantes);
+                    const gananciaDeLote=usdtDeEsteLote*(op.tasa-lote.precioCompra);
+                    gananciaOp+=gananciaDeLote;
+                    lote.disponible=fixNegativeZero(lote.disponible-usdtDeEsteLote);
+                    usdtRestantes=fixNegativeZero(usdtRestantes-usdtDeEsteLote);
+                }
+                
+                op.ganancia=gananciaOp;
+            }
+        }else if(ev.tipo==='movimiento_egreso'){
+            // Egreso de USDT - descontar de lotes FIFO
+            const m=ev.data;
+            let usdtRestantes=m.monto;
             const lotesOrdenados=datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>{
                 const fa=a.fecha+(a.hora||'00:00');
                 const fb=b.fecha+(b.hora||'00:00');
                 return fa.localeCompare(fb);
             });
-            
             for(const lote of lotesOrdenados){
                 if(usdtRestantes<=0)break;
                 const usdtDeEsteLote=Math.min(lote.disponible,usdtRestantes);
-                const gananciaDeLote=usdtDeEsteLote*(op.tasa-lote.precioCompra);
-                gananciaOp+=gananciaDeLote;
                 lote.disponible=fixNegativeZero(lote.disponible-usdtDeEsteLote);
                 usdtRestantes=fixNegativeZero(usdtRestantes-usdtDeEsteLote);
             }
-            
-            op.ganancia=gananciaOp;
         }
     });
 }
@@ -794,6 +834,22 @@ async function guardarMovimiento(){
         
         if(tc==='usdt'){
             datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt+(tipoMovimiento==='ingreso'?m:-m));
+            
+            // Si es egreso de USDT, descontar del inventario FIFO
+            if(tipoMovimiento==='egreso'){
+                let usdtRestantes=m;
+                const lotesOrdenados=datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>{
+                    const fa=a.fecha+(a.hora||'00:00');
+                    const fb=b.fecha+(b.hora||'00:00');
+                    return fa.localeCompare(fb);
+                });
+                for(const lote of lotesOrdenados){
+                    if(usdtRestantes<=0)break;
+                    const usdtDeEsteLote=Math.min(lote.disponible,usdtRestantes);
+                    lote.disponible=fixNegativeZero(lote.disponible-usdtDeEsteLote);
+                    usdtRestantes=fixNegativeZero(usdtRestantes-usdtDeEsteLote);
+                }
+            }
         }else{
             datos.bancos[b].saldo=fixNegativeZero(datos.bancos[b].saldo+(tipoMovimiento==='ingreso'?m:-m));
         }
@@ -813,7 +869,36 @@ async function eliminarMovimiento(id){
     if(!confirm('¿Eliminar?'))return;
     const mov=datos.movimientos.find(m=>m.id===id);
     if(mov){
-        if(mov.tipoCuenta==='usdt')datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt+(mov.tipoMovimiento==='ingreso'?-mov.monto:mov.monto));
+        if(mov.tipoCuenta==='usdt'){
+            datos.saldoUsdt=fixNegativeZero(datos.saldoUsdt+(mov.tipoMovimiento==='ingreso'?-mov.monto:mov.monto));
+            
+            // Si era un egreso, restaurar a los lotes FIFO
+            if(mov.tipoMovimiento==='egreso'){
+                // Usar tasa promedio de lotes existentes o última tasa de compra
+                const lotesConStock=datos.lotes.filter(l=>l.disponible>0);
+                let precioRestaurar=datos.ultimaTasaCompra||0;
+                if(lotesConStock.length>0){
+                    precioRestaurar=lotesConStock.reduce((s,l)=>s+l.precioCompra,0)/lotesConStock.length;
+                }
+                if(precioRestaurar>0){
+                    // Buscar lote con precio similar o crear uno nuevo
+                    const loteExistente=datos.lotes.find(l=>Math.abs(l.precioCompra-precioRestaurar)<0.01);
+                    if(loteExistente){
+                        loteExistente.disponible+=mov.monto;
+                        loteExistente.cantidad+=mov.monto;
+                    }else{
+                        datos.lotes.push({
+                            id:Date.now(),
+                            fecha:mov.fecha,
+                            hora:mov.hora||'00:00',
+                            precioCompra:precioRestaurar,
+                            cantidad:mov.monto,
+                            disponible:mov.monto
+                        });
+                    }
+                }
+            }
+        }
         else if(mov.banco&&datos.bancos[mov.banco])datos.bancos[mov.banco].saldo=fixNegativeZero(datos.bancos[mov.banco].saldo+(mov.tipoMovimiento==='ingreso'?-mov.monto:mov.monto));
     }
     datos.movimientos=datos.movimientos.filter(m=>m.id!==id);
@@ -909,10 +994,15 @@ function renderizarInventario(){
 async function forzarRecalculo(){
     if(!confirm('¿Recalcular todos los lotes y ganancias desde las operaciones?'))return;
     recalcularLotesYGanancias();
+    
+    // Sincronizar saldoUsdt con el total del inventario FIFO
+    const totalInventario=datos.lotes.reduce((sum,l)=>sum+l.disponible,0);
+    datos.saldoUsdt=fixNegativeZero(totalInventario);
+    
     await guardarDatos();
     actualizarVista();
     renderizarInventario();
-    alert('✅ Lotes y ganancias recalculados');
+    alert('✅ Lotes, saldo USDT y ganancias recalculados');
 }
 
 function abrirModalTransferencia(){
@@ -958,6 +1048,13 @@ async function realizarTransferencia(){
         datos.bancos[o].saldo=fixNegativeZero(datos.bancos[o].saldo-(m+c));
         datos.bancos[d].saldo=fixNegativeZero(datos.bancos[d].saldo+m);
         
+        // Actualizar límite diario del banco destino si tiene límite configurado
+        const bancoDestInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===d);
+        if(datos.bancos[d].limiteDiarioUSD>0&&bancoDestInfo?.moneda==='UYU'&&datos.ultimaTasaCompra>0){
+            const montoUSD=m/datos.ultimaTasaCompra;
+            datos.bancos[d].limiteUsadoUSD=Math.min(datos.bancos[d].limiteDiarioUSD,(datos.bancos[d].limiteUsadoUSD||0)+montoUSD);
+        }
+        
         await guardarDatos();
         actualizarVista();
         cerrarModalTransferencia();
@@ -974,6 +1071,13 @@ async function eliminarTransferencia(id){
     if(t){
         datos.bancos[t.origen].saldo=fixNegativeZero(datos.bancos[t.origen].saldo+(t.monto+t.comision));
         datos.bancos[t.destino].saldo=fixNegativeZero(datos.bancos[t.destino].saldo-t.monto);
+        
+        // Revertir límite diario del banco destino si corresponde
+        const bancoDestInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===t.destino);
+        if(datos.bancos[t.destino].limiteDiarioUSD>0&&bancoDestInfo?.moneda==='UYU'&&datos.ultimaTasaCompra>0){
+            const montoUSD=t.monto/datos.ultimaTasaCompra;
+            datos.bancos[t.destino].limiteUsadoUSD=Math.max(0,(datos.bancos[t.destino].limiteUsadoUSD||0)-montoUSD);
+        }
     }
     datos.transferencias=datos.transferencias.filter(x=>x.id!==id);
     await guardarDatos();
