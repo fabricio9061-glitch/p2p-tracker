@@ -1111,7 +1111,14 @@ function mostrarSaldoOrigen(){
     const b=document.getElementById('bancoOrigen').value;
     if(b&&datos.bancos[b]){
         const bi=BANCOS_DISPONIBLES.find(x=>x.nombre===b);
-        document.getElementById('saldoOrigenInfo').textContent='Disponible: '+(bi?.moneda==='USD'?'US$':'$')+formatearNumero(datos.bancos[b].saldo);
+        const sym=bi?.moneda==='USD'?'US$':'$';
+        let info='Disponible: '+sym+formatearNumero(datos.bancos[b].saldo);
+        if(datos.bancos[b].limiteDiarioUSD>0){
+            const usado=datos.bancos[b].limiteUsadoUSD||0;
+            const disponible=Math.max(0,datos.bancos[b].limiteDiarioUSD-usado);
+            info+=` | Límite: US$${formatearNumero(disponible,0)}/${formatearNumero(datos.bancos[b].limiteDiarioUSD,0)}`;
+        }
+        document.getElementById('saldoOrigenInfo').textContent=info;
     }else{
         document.getElementById('saldoOrigenInfo').textContent='';
     }
@@ -1131,6 +1138,22 @@ async function realizarTransferencia(){
     if(!o||!d||o===d)return alert('Seleccioná bancos diferentes');
     if(!m||m<=0)return alert('Monto inválido');
     
+    // Validar límite diario del banco ORIGEN
+    if(datos.bancos[o].limiteDiarioUSD>0){
+        const bancoOrigenInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===o);
+        let montoUSD=0;
+        if(bancoOrigenInfo?.moneda==='USD'){
+            montoUSD=m+c;
+        }else if(datos.ultimaTasaCompra>0){
+            montoUSD=(m+c)/datos.ultimaTasaCompra;
+        }
+        const disponibleUSD=datos.bancos[o].limiteDiarioUSD-(datos.bancos[o].limiteUsadoUSD||0);
+        if(montoUSD>disponibleUSD){
+            alert(`Excede el límite diario de ${o}. Disponible: US$${formatearNumero(disponibleUSD,0)} (necesitás US$${formatearNumero(montoUSD,0)})`);
+            return;
+        }
+    }
+    
     btn.disabled=true;
     btn.textContent='Transfiriendo...';
     
@@ -1139,17 +1162,17 @@ async function realizarTransferencia(){
         datos.bancos[o].saldo=fixNegativeZero(datos.bancos[o].saldo-(m+c));
         datos.bancos[d].saldo=fixNegativeZero(datos.bancos[d].saldo+m);
         
-        // Actualizar límite diario del banco destino si tiene límite configurado
-        if(datos.bancos[d].limiteDiarioUSD>0){
-            const bancoDestInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===d);
+        // Descontar del límite diario del banco ORIGEN (emisor)
+        if(datos.bancos[o].limiteDiarioUSD>0){
+            const bancoOrigenInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===o);
             let montoUSD=0;
-            if(bancoDestInfo?.moneda==='USD'){
-                montoUSD=m;
+            if(bancoOrigenInfo?.moneda==='USD'){
+                montoUSD=m+c;
             }else if(datos.ultimaTasaCompra>0){
-                montoUSD=m/datos.ultimaTasaCompra;
+                montoUSD=(m+c)/datos.ultimaTasaCompra;
             }
             if(montoUSD>0){
-                datos.bancos[d].limiteUsadoUSD=Math.min(datos.bancos[d].limiteDiarioUSD,(datos.bancos[d].limiteUsadoUSD||0)+montoUSD);
+                datos.bancos[o].limiteUsadoUSD=Math.min(datos.bancos[o].limiteDiarioUSD,(datos.bancos[o].limiteUsadoUSD||0)+montoUSD);
             }
         }
         
@@ -1170,17 +1193,17 @@ async function eliminarTransferencia(id){
         datos.bancos[t.origen].saldo=fixNegativeZero(datos.bancos[t.origen].saldo+(t.monto+t.comision));
         datos.bancos[t.destino].saldo=fixNegativeZero(datos.bancos[t.destino].saldo-t.monto);
         
-        // Revertir límite diario del banco destino
-        if(datos.bancos[t.destino].limiteDiarioUSD>0){
-            const bancoDestInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===t.destino);
+        // Revertir límite diario del banco ORIGEN
+        if(datos.bancos[t.origen].limiteDiarioUSD>0){
+            const bancoOrigenInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===t.origen);
             let montoUSD=0;
-            if(bancoDestInfo?.moneda==='USD'){
-                montoUSD=t.monto;
+            if(bancoOrigenInfo?.moneda==='USD'){
+                montoUSD=t.monto+t.comision;
             }else if(datos.ultimaTasaCompra>0){
-                montoUSD=t.monto/datos.ultimaTasaCompra;
+                montoUSD=(t.monto+t.comision)/datos.ultimaTasaCompra;
             }
             if(montoUSD>0){
-                datos.bancos[t.destino].limiteUsadoUSD=Math.max(0,(datos.bancos[t.destino].limiteUsadoUSD||0)-montoUSD);
+                datos.bancos[t.origen].limiteUsadoUSD=Math.max(0,(datos.bancos[t.origen].limiteUsadoUSD||0)-montoUSD);
             }
         }
     }
