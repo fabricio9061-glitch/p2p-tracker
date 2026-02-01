@@ -391,9 +391,17 @@ function cambiarPaginaOp(dir){const total=Math.ceil(datos.operaciones.length/POR
 function cambiarPaginaMov(dir){const total=Math.ceil(datos.movimientos.length/POR_PAGINA);paginaMov+=dir;if(paginaMov<1)paginaMov=1;if(paginaMov>total)paginaMov=total;actualizarTablaMovimientos()}
 function cambiarPaginaTrans(dir){const total=Math.ceil(datos.transferencias.length/POR_PAGINA);paginaTrans+=dir;if(paginaTrans<1)paginaTrans=1;if(paginaTrans>total)paginaTrans=total;actualizarTablaTransferencias()}
 
-function parsearTasa(valor){if(!valor)return null;const limpio=valor.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,2})?$/.test(limpio))return null;const num=parseFloat(limpio);return isNaN(num)||num<=0?null:num}
+function parsearTasa(valor){if(!valor)return null;const limpio=valor.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,3})?$/.test(limpio))return null;const num=parseFloat(limpio);return isNaN(num)||num<=0?null:num}
 function parsearComision(valor){if(!valor&&valor!==0)return null;const limpio=valor.toString().replace(',','.').trim();if(!limpio||limpio==='.')return null;if(!/^\d*\.?\d*$/.test(limpio))return null;const num=parseFloat(limpio);return isNaN(num)||num<0||num>10?null:num}
-function formatearTasa(num){return num.toFixed(2)}
+function formatearTasa(num,moneda){
+    if(moneda==='USD'){
+        // USD: mostrar 3 decimales si los tiene, sino 2
+        const s=num.toString();
+        const dec=s.includes('.')?s.split('.')[1].length:0;
+        return dec>2?num.toFixed(3):num.toFixed(2);
+    }
+    return num.toFixed(2);
+}
 function formatearNumero(n,d=2){return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function truncar(n,d=2){return Math.floor(n*Math.pow(10,d))/Math.pow(10,d)}
 
@@ -549,16 +557,18 @@ function recalcularLotesYGanancias(){
     });
     
     let ultimaTasaCompraLocal=datos.ultimaTasaCompra||0;
+    let ultimaTasaCompraUSDLocal=datos.ultimaTasaCompraUSD||0;
     
     eventos.forEach(ev=>{
         if(ev.tipo==='operacion'){
             const op=ev.data;
             const comisionPct=(op.comisionPct||0.14)/100;
             const cp=truncar(op.usdt*comisionPct,2);
+            const opIsUSD=op.moneda==='USD';
             
             if(op.tipo==='compra'){
                 const usdtNetos=op.usdt-cp;
-                ultimaTasaCompraLocal=op.tasa;
+                if(opIsUSD){ultimaTasaCompraUSDLocal=op.tasa}else{ultimaTasaCompraLocal=op.tasa}
                 const loteExistente=datos.lotes.find(l=>l.precioCompra===op.tasa&&l.disponible>0);
                 if(loteExistente){
                     loteExistente.cantidad+=usdtNetos;
@@ -583,6 +593,7 @@ function recalcularLotesYGanancias(){
                     usdtRestantes=fixNegativeZero(usdtRestantes-usdtDeEsteLote);
                 }
                 op.ganancia=gananciaOp;
+                if(opIsUSD){datos.ultimaTasaVentaUSD=op.tasa}else{datos.ultimaTasaVenta=op.tasa}
             }
         }else if(ev.tipo==='movimiento_ingreso'){
             const m=ev.data;
@@ -610,6 +621,8 @@ function recalcularLotesYGanancias(){
         }
     });
     
+    datos.ultimaTasaCompra=ultimaTasaCompraLocal;
+    datos.ultimaTasaCompraUSD=ultimaTasaCompraUSDLocal;
     sincronizarSaldoUsdt();
 }
 
@@ -622,18 +635,19 @@ function actualizarFormulario(){
     document.getElementById('bancoLabel').textContent=t==='compra'?'Sale de *':'Entra a *';
     document.getElementById('comisionBancoGroup').style.display=t==='compra'?'block':'none';
     if(t==='venta')document.getElementById('comisionBanco').value='0';
-    // Solo actualizar tasa si el input no está enfocado
+    // Actualizar tasa según moneda y tipo (siempre que no esté enfocado)
     const tasaInput=document.getElementById('tasa');
     if(document.activeElement!==tasaInput){
-        if(t==='compra'){
-            const tasa=isUSD?datos.ultimaTasaCompraUSD:datos.ultimaTasaCompra;
-            if(tasa>0)tasaInput.value=formatearTasa(tasa);
+        const tasa=t==='compra'
+            ?(isUSD?datos.ultimaTasaCompraUSD:datos.ultimaTasaCompra)
+            :(isUSD?datos.ultimaTasaVentaUSD:datos.ultimaTasaVenta);
+        if(tasa>0){
+            tasaInput.value=formatearTasa(tasa,moneda);
         }else{
-            const tasa=isUSD?datos.ultimaTasaVentaUSD:datos.ultimaTasaVenta;
-            if(tasa>0)tasaInput.value=formatearTasa(tasa);
+            tasaInput.value='';
         }
     }
-    document.getElementById('tasaHelp').textContent=isUSD?'Ej: 1.02':'Ej: 39.50';
+    document.getElementById('tasaHelp').textContent=isUSD?'Ej: 1.025':'Ej: 39.50';
     // Actualizar comisión según moneda
     const comInput=document.getElementById('comisionPlataforma');
     if(document.activeElement!==comInput){
@@ -670,7 +684,7 @@ function calcularPreview(){
     const isUSD=moneda==='USD';
     document.getElementById('tasa').classList.remove('error');
     document.getElementById('tasaHelp').className='';
-    document.getElementById('tasaHelp').textContent=isUSD?'Ej: 1.02':'Ej: 39.50';
+    document.getElementById('tasaHelp').textContent=isUSD?'Ej: 1.025':'Ej: 39.50';
     if(m>0&&ta){
         const u=m/ta,c=truncar(u*comisionPct,2);
         document.getElementById('comisionPlataformaInfo').textContent=formatearNumero(c,2)+' USDT';
@@ -701,7 +715,7 @@ async function agregarOperacion(){
     const comisionPct=comisionPctVal/100;
     
     if(!m){alert('Ingresá el monto');return}
-    if(!ta){tasaInput.classList.add('error');document.getElementById('tasaHelp').textContent='Formato inválido';document.getElementById('tasaHelp').className='error-text';alert('Tasa inválida (ej: '+(isUSD?'1.02':'39.50')+')');return}
+    if(!ta){tasaInput.classList.add('error');document.getElementById('tasaHelp').textContent='Formato inválido';document.getElementById('tasaHelp').className='error-text';alert('Tasa inválida (ej: '+(isUSD?'1.025':'39.50')+')');return}
     if(!b){document.getElementById('bancoHelp').textContent='Seleccioná un banco';document.getElementById('bancoHelp').className='error-text';document.getElementById('banco').classList.add('error');alert('Seleccioná un banco');return}
     document.getElementById('banco').classList.remove('error');
     
@@ -1423,7 +1437,8 @@ function actualizarTablaOperaciones(){
         const ganColor=gan>=0?'#16a34a':'#dc2626';
         const ganText=gan>=0?'+$'+formatearNumero(gan):'-$'+formatearNumero(Math.abs(gan));
         const sym=op.moneda==='USD'?'US$':'$';
-        h+=`<tr><td>${badge}</td><td><b>${sym}${formatearNumero(op.monto)}</b></td><td>${sym}${formatearNumero(op.tasa)}</td><td><b>${formatearNumero(un,2)}</b></td><td style="color:${ganColor};font-weight:600">${ganText}</td><td>${fechaHtml}</td><td><button class="btn-delete" onclick="eliminarOperacion(${op.id})">×</button></td></tr>`;
+        const tasaDec=op.moneda==='USD'?3:2;
+        h+=`<tr><td>${badge}</td><td><b>${sym}${formatearNumero(op.monto)}</b></td><td>${sym}${formatearNumero(op.tasa,tasaDec)}</td><td><b>${formatearNumero(un,2)}</b></td><td style="color:${ganColor};font-weight:600">${ganText}</td><td>${fechaHtml}</td><td><button class="btn-delete" onclick="eliminarOperacion(${op.id})">×</button></td></tr>`;
     });
     t.innerHTML=h+'</tbody></table>';
     document.getElementById('paginationOp').style.display=totalPaginas>1?'flex':'none';
