@@ -431,13 +431,18 @@ function actualizarColorSelect(){
 let comisionDebounce=null;
 function guardarComisionYCalcular(){
     const input=document.getElementById('comisionPlataforma');
-    const valor=parsearComision(input.value);
-    const moneda=getMonedaBancoSeleccionado();
-    if(valor!==null){
-        if(moneda==='USD'){datos.comisionUSD=valor}else{datos.comisionPlataforma=valor}
-        document.getElementById('comisionPctLabel').textContent=valor.toFixed(2);
-        clearTimeout(comisionDebounce);
-        comisionDebounce=setTimeout(()=>guardarDatos(),800);
+    const raw=input.value.replace(',','.').trim();
+    // Permitir que el usuario escriba sin interferencia
+    if(raw===''||raw==='.'){}
+    else{
+        const valor=parsearComision(raw);
+        if(valor!==null){
+            const moneda=getMonedaBancoSeleccionado();
+            if(moneda==='USD'){datos.comisionUSD=valor}else{datos.comisionPlataforma=valor}
+            document.getElementById('comisionPctLabel').textContent=valor.toFixed(2);
+            clearTimeout(comisionDebounce);
+            comisionDebounce=setTimeout(()=>guardarDatos(),1200);
+        }
     }
     calcularPreview();
 }
@@ -458,12 +463,25 @@ function cargarDatosUsuario(){
     if(!currentUser)return;
     if(unsubscribe)unsubscribe();
     unsubscribe=db.collection('users').doc(currentUser.uid).onSnapshot(doc=>{
+        // Preservar valores locales de comisión si están siendo editados
+        const comInput=document.getElementById('comisionPlataforma');
+        const comFocused=document.activeElement===comInput;
+        const localComUYU=datos.comisionPlataforma;
+        const localComUSD=datos.comisionUSD;
+        
         if(doc.exists){
             const d=doc.data();
             datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},lotes:d.lotes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14};
         }else{
             datos={operaciones:[],movimientos:[],transferencias:[],bancos:{},lotes:[],saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14};
         }
+        
+        // Si estaba editando comisión, restaurar valores locales para no perder lo que escribió
+        if(comFocused){
+            datos.comisionPlataforma=localComUYU;
+            datos.comisionUSD=localComUSD;
+        }
+        
         inicializarBancos();
         verificarResetLimites();
         
@@ -474,9 +492,7 @@ function cargarDatosUsuario(){
         }
         
         paginaOp=1;paginaMov=1;paginaTrans=1;
-        // No resetear input de comisión si está enfocado (el usuario está editando)
-        const comInput=document.getElementById('comisionPlataforma');
-        if(document.activeElement!==comInput){
+        if(!comFocused){
             const moneda=getMonedaBancoSeleccionado();
             const comVal=moneda==='USD'?datos.comisionUSD:datos.comisionPlataforma;
             comInput.value=comVal.toFixed(2);
@@ -1124,10 +1140,17 @@ async function realizarTransferencia(){
         datos.bancos[d].saldo=fixNegativeZero(datos.bancos[d].saldo+m);
         
         // Actualizar límite diario del banco destino si tiene límite configurado
-        const bancoDestInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===d);
-        if(datos.bancos[d].limiteDiarioUSD>0&&bancoDestInfo?.moneda==='UYU'&&datos.ultimaTasaCompra>0){
-            const montoUSD=m/datos.ultimaTasaCompra;
-            datos.bancos[d].limiteUsadoUSD=Math.min(datos.bancos[d].limiteDiarioUSD,(datos.bancos[d].limiteUsadoUSD||0)+montoUSD);
+        if(datos.bancos[d].limiteDiarioUSD>0){
+            const bancoDestInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===d);
+            let montoUSD=0;
+            if(bancoDestInfo?.moneda==='USD'){
+                montoUSD=m;
+            }else if(datos.ultimaTasaCompra>0){
+                montoUSD=m/datos.ultimaTasaCompra;
+            }
+            if(montoUSD>0){
+                datos.bancos[d].limiteUsadoUSD=Math.min(datos.bancos[d].limiteDiarioUSD,(datos.bancos[d].limiteUsadoUSD||0)+montoUSD);
+            }
         }
         
         await guardarDatos();
@@ -1147,11 +1170,18 @@ async function eliminarTransferencia(id){
         datos.bancos[t.origen].saldo=fixNegativeZero(datos.bancos[t.origen].saldo+(t.monto+t.comision));
         datos.bancos[t.destino].saldo=fixNegativeZero(datos.bancos[t.destino].saldo-t.monto);
         
-        // Revertir límite diario del banco destino si corresponde
-        const bancoDestInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===t.destino);
-        if(datos.bancos[t.destino].limiteDiarioUSD>0&&bancoDestInfo?.moneda==='UYU'&&datos.ultimaTasaCompra>0){
-            const montoUSD=t.monto/datos.ultimaTasaCompra;
-            datos.bancos[t.destino].limiteUsadoUSD=Math.max(0,(datos.bancos[t.destino].limiteUsadoUSD||0)-montoUSD);
+        // Revertir límite diario del banco destino
+        if(datos.bancos[t.destino].limiteDiarioUSD>0){
+            const bancoDestInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===t.destino);
+            let montoUSD=0;
+            if(bancoDestInfo?.moneda==='USD'){
+                montoUSD=t.monto;
+            }else if(datos.ultimaTasaCompra>0){
+                montoUSD=t.monto/datos.ultimaTasaCompra;
+            }
+            if(montoUSD>0){
+                datos.bancos[t.destino].limiteUsadoUSD=Math.max(0,(datos.bancos[t.destino].limiteUsadoUSD||0)-montoUSD);
+            }
         }
     }
     datos.transferencias=datos.transferencias.filter(x=>x.id!==id);
@@ -1418,7 +1448,9 @@ function actualizarTablaTransferencias(){
     let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Com</th><th>Fecha</th><th></th></tr></thead><tbody>';
     trans.forEach(tr=>{
         const fechaHtml=`<div class="fecha-hora"><span class="fecha">${formatearFechaCorta(tr.fecha)}</span><span class="hora">${tr.hora||'--:--'}</span></div>`;
-        h+=`<tr><td style="color:#dc2626">${tr.origen}</td><td style="color:#16a34a">${tr.destino}</td><td><b>$${formatearNumero(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?'$'+formatearNumero(tr.comision):'-'}</td><td>${fechaHtml}</td><td><button class="btn-delete" onclick="eliminarTransferencia(${tr.id})">×</button></td></tr>`;
+        const origenInfo=BANCOS_DISPONIBLES.find(x=>x.nombre===tr.origen);
+        const sym=origenInfo?.moneda==='USD'?'US$':'$';
+        h+=`<tr><td style="color:#dc2626">${tr.origen}</td><td style="color:#16a34a">${tr.destino}</td><td><b>${sym}${formatearNumero(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?sym+formatearNumero(tr.comision):'-'}</td><td>${fechaHtml}</td><td><button class="btn-delete" onclick="eliminarTransferencia(${tr.id})">×</button></td></tr>`;
     });
     document.getElementById('transferenciasContent').innerHTML=h+'</tbody></table>';
     
