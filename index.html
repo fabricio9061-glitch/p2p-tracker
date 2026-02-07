@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Registro P2P</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💱</text></svg>">
+    <style>
+        /* ═══ Reset & Base ═══ */
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f0ee;min-height:100vh}
+        .container{max-width:1400px;margin:0 auto;padding:15px;padding-bottom:30px}
+
+        /* ═══ Header ═══ */
+        .header{text-align:center;margin-bottom:20px;padding-top:10px;position:relative}
+        .header h1{color:#1e293b;font-size:1.8em;margin-bottom:5px}
+        .header p{color:#64748b;font-size:0.9em}
+
+        /* ═══ Sync ═══ */
+        .sync-status{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;font-size:0.75em;margin-top:8px}
+        .sync-status.online{background:#dcfce7;color:#16a34a}
+        .sync-status.offline{background:#fee2e2;color:#dc2626}
+        .sync-status.syncing{background:#fef3c7;color:#d97706}
+        .sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+        /* ═══ Menu ═══ */
+        .menu-container{position:absolute;top:10px;right:0}
+        .menu-btn{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+        .menu-btn span{display:block;width:20px;height:2px;background:#475569;border-radius:2px;transition:all 0.3s}
+        .menu-btn.active span:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
+        .menu-btn.active span:nth-child(2){opacity:0}
+        .menu-btn.active span:nth-child(3){transform:rotate(-45deg) translate(4px,-4px)}
+        .menu-dropdown{position:absolute;top:50px;right:0;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:8px;min-width:200px;box-shadow:0 10px 40px rgba(0,0,0,0.15);opacity:0;visibility:hidden;transform:translateY(-10px);transition:all 0.2s;z-index:1000}
+        .menu-dropdown.active{opacity:1;visibility:visible;transform:translateY(0)}
+        .menu-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:8px;cursor:pointer;color:#1e293b;font-size:0.88em;font-weight:500;white-space:nowrap}
+        .menu-item:active{background:#f1f5f9}
+        .menu-item.danger{color:#dc2626}
+        .menu-divider{height:1px;background:#e2e8f0;margin:6px 0}
+        .menu-user{padding:10px 12px;border-bottom:1px solid #e2e8f0;margin-bottom:6px}
+        .menu-user-name{font-weight:600;color:#1e293b;font-size:0.9em}
+        .menu-user-email{color:#64748b;font-size:0.7em;margin-top:2px}
+
+        /* ═══ Cards ═══ */
+        .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
+        .card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px}
+        .card.main-card{grid-column:span 2;background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%);border:2px solid #16a34a}
+        .card.main-card.negative{background:linear-gradient(135deg,#fef2f2 0%,#fee2e2 100%);border-color:#dc2626}
+        .card-title{color:#64748b;font-size:0.7em;font-weight:600;text-transform:uppercase;margin-bottom:4px}
+        .card-value{font-size:1.4em;font-weight:bold}
+        .card-subtitle{color:#94a3b8;font-size:0.65em;margin-top:2px}
+        .positive{color:#16a34a}.negative{color:#dc2626}.info{color:#0284c7}
+        .stats-row{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+        .stat-badge{font-size:0.6em;background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#64748b}
+
+        /* ═══ Section ═══ */
+        .section-title{color:#1e293b;font-size:1em;font-weight:600;margin-bottom:12px}
+
+        /* ═══ Bancos Grid ═══ */
+        .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
+        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer}
+        .banco-nombre{font-weight:600;color:#1e293b;font-size:0.8em;margin-bottom:2px}
+        .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
+        .banco-moneda{font-size:0.65em;color:#94a3b8}
+        .banco-limite{font-size:0.6em;color:#64748b;margin-top:2px}
+        .banco-limite-bar{height:4px;background:#e2e8f0;border-radius:2px;margin-top:3px;overflow:hidden}
+        .banco-limite-fill{height:100%;background:#3b82f6;border-radius:2px;transition:width 0.3s}
+        .banco-limite-fill.warning{background:#f59e0b}
+        .banco-limite-fill.danger{background:#dc2626}
+        .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#93c5fd}
+        .usdt-card .banco-saldo{color:#2563eb}
+
+        /* ═══ Toggle Sections ═══ */
+        .toggle-section{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:15px;overflow:hidden}
+        .toggle-header{display:flex;justify-content:space-between;align-items:center;padding:14px 15px;cursor:pointer;user-select:none}
+        .toggle-header:active{background:#f8fafc}
+        .toggle-title{font-size:0.95em;font-weight:600;color:#1e293b;display:flex;align-items:center;gap:8px}
+        .toggle-right{display:flex;align-items:center;gap:10px}
+        .toggle-badge{background:#e2e8f0;color:#64748b;font-size:0.75em;padding:2px 8px;border-radius:10px;font-weight:500}
+        .toggle-arrow{font-size:0.8em;color:#94a3b8;transition:transform 0.2s}
+        .toggle-section.open .toggle-arrow{transform:rotate(180deg)}
+        .toggle-content{display:none;border-top:1px solid #e2e8f0}
+        .toggle-section.open .toggle-content{display:block}
+
+        /* ═══ Forms ═══ */
+        .form-content{padding:15px}
+        .form-group{margin-bottom:12px}
+        .form-group label{display:block;color:#64748b;font-size:0.75em;margin-bottom:4px;font-weight:500}
+        .form-group input,.form-group select,.form-group textarea{width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;color:#1e293b;font-size:16px;font-family:inherit;max-width:100%}
+        .form-group input:focus,.form-group select:focus{outline:none;border-color:#2563eb}
+        .form-group input.error,.form-group select.error{border-color:#dc2626;background:#fef2f2}
+        .form-group small{display:block;color:#94a3b8;font-size:0.7em;margin-top:3px}
+        .form-group small.error-text{color:#dc2626}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        #tipo{font-weight:700}
+        #tipo option[value="compra"]{color:#16a34a;font-weight:700}
+        #tipo option[value="venta"]{color:#dc2626;font-weight:700}
+
+        /* ═══ Buttons ═══ */
+        .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
+        .btn:active{background:#1d4ed8}
+        .btn:disabled{background:#94a3b8;cursor:not-allowed}
+        .btn-delete{background:transparent;color:#ef4444;border:none;cursor:pointer;font-size:1.1em;padding:4px 8px}
+        .btn-cancel{background:#e5e7eb;color:#4b5563}
+        .btn-edit-small{padding:5px 10px;font-size:0.7em;background:#3b82f6;color:white;border:none;border-radius:5px;cursor:pointer}
+        .info-text{color:#64748b;font-size:0.75em;margin-top:10px}
+        .preview-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;color:#1e40af;font-size:0.85em}
+
+        /* ═══ Tables ═══ */
+        .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+        table{width:100%;border-collapse:collapse;min-width:550px}
+        th{background:#f8fafc;color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase}
+        td{padding:10px 8px;color:#1e293b;border-top:1px solid #f1f5f9;font-size:0.8em}
+
+        /* ═══ Badges ═══ */
+        .badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:0.68em;font-weight:700}
+        .badge-compra{background:#dcfce7;color:#16a34a}
+        .badge-venta{background:#fee2e2;color:#dc2626}
+        .badge-ingreso{background:#dcfce7;color:#16a34a}
+        .badge-egreso{background:#fee2e2;color:#dc2626}
+        .text-compra{color:#16a34a;font-weight:700}
+        .text-venta{color:#dc2626;font-weight:700}
+        .fecha-hora{display:flex;flex-direction:column;gap:1px}
+        .fecha-hora .fecha{color:#1e293b;font-weight:500}
+        .fecha-hora .hora{color:#94a3b8;font-size:0.85em}
+
+        /* ═══ Empty & Pagination ═══ */
+        .empty-state{text-align:center;padding:30px;color:#94a3b8}
+        .empty-state-icon{font-size:2em;margin-bottom:8px}
+        .pagination{display:flex;justify-content:center;align-items:center;gap:8px;padding:12px;border-top:1px solid #e2e8f0}
+        .pagination button{background:#f1f5f9;border:none;padding:8px 14px;border-radius:6px;font-size:0.85em;cursor:pointer;color:#475569}
+        .pagination button:disabled{opacity:0.4;cursor:not-allowed}
+        .pagination-info{font-size:0.8em;color:#64748b}
+
+        /* ═══ Modals ═══ */
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:15px}
+        .modal.active{display:flex}
+        .modal-content{background:white;border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto}
+        .modal-header{font-size:1.2em;font-weight:bold;color:#1e293b;margin-bottom:15px}
+        .modal-buttons{display:flex;gap:10px;margin-top:18px}
+        .modal-buttons .btn{flex:1}
+
+        /* ═══ Banco List ═══ */
+        .banco-list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;background:#f8fafc}
+        .banco-list-actions{display:flex;gap:8px;align-items:center}
+        .toggle-switch{position:relative;width:44px;height:24px}
+        .toggle-switch input{opacity:0;width:0;height:0}
+        .toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#cbd5e1;transition:.3s;border-radius:24px}
+        .toggle-slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background-color:white;transition:.3s;border-radius:50%}
+        .toggle-switch input:checked+.toggle-slider{background-color:#16a34a}
+        .toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+
+        /* ═══ Tabs ═══ */
+        .tabs{display:flex;gap:5px;margin-bottom:12px}
+        .tab{padding:10px 14px;border-radius:8px;cursor:pointer;font-size:0.85em;font-weight:600;border:2px solid #e2e8f0;flex:1;text-align:center;transition:all 0.2s}
+        .tab-ingreso{background:#f8fafc;color:#16a34a;border-color:#e2e8f0}
+        .tab-ingreso:hover{background:#f0fdf4;border-color:#86efac}
+        .tab-ingreso.active{background:#16a34a;color:white;border-color:#16a34a}
+        .tab-egreso{background:#f8fafc;color:#dc2626;border-color:#e2e8f0}
+        .tab-egreso:hover{background:#fef2f2;border-color:#fca5a5}
+        .tab-egreso.active{background:#dc2626;color:white;border-color:#dc2626}
+
+        /* ═══ Comisión ═══ */
+        .comision-inline{display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;margin-top:8px}
+        .comision-inline label{color:#64748b;font-size:0.75em;font-weight:500;white-space:nowrap}
+        .comision-inline input{width:60px;background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;color:#1e293b;font-size:16px;text-align:center}
+        .comision-inline input:focus{outline:none;border-color:#2563eb}
+        .comision-inline span{color:#64748b;font-weight:500}
+
+        /* ═══ Overlays ═══ */
+        .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;z-index:2000;flex-direction:column;gap:12px}
+        .loading-overlay.hidden{display:none}
+        .spinner{width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .cooldown-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.8);z-index:1500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+        .cooldown-overlay.hidden{display:none}
+        .cooldown-text{color:#1e293b;font-weight:600;font-size:1.1em}
+
+        /* ═══ Auth ═══ */
+        .auth-container{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+        .auth-box{background:white;border-radius:16px;padding:30px 20px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.1)}
+        .auth-logo{text-align:center;font-size:2.5em;margin-bottom:8px}
+        .auth-title{text-align:center;color:#1e293b;font-size:1.3em;margin-bottom:6px}
+        .auth-subtitle{text-align:center;color:#64748b;font-size:0.85em;margin-bottom:25px}
+        .auth-tabs{display:flex;margin-bottom:20px;border-radius:10px;background:#f1f5f9;padding:4px}
+        .auth-tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-weight:500;color:#64748b;border:none;background:transparent;font-size:0.9em}
+        .auth-tab.active{background:white;color:#1e293b;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+        .auth-error{background:#fee2e2;color:#dc2626;padding:10px;border-radius:8px;margin-bottom:14px;font-size:0.85em;display:none}
+        .auth-error.show{display:block}
+        .app-container{display:none}
+        .app-container.active{display:block}
+        .auth-container.hidden{display:none}
+
+        /* ═══ Calendar ═══ */
+        .calendar-container{background:#1a1a2e;border-radius:12px;padding:15px}
+        .calendar-header{display:flex;justify-content:center;align-items:center;gap:15px;margin-bottom:15px}
+        .calendar-header button{background:none;border:none;color:white;font-size:1.2em;cursor:pointer;padding:5px 10px}
+        .calendar-month{color:white;font-size:1.1em;font-weight:600;min-width:100px;text-align:center}
+        .calendar-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px}
+        .calendar-weekday{color:#64748b;font-size:0.7em;text-align:center;font-weight:600}
+        .calendar-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+        .calendar-day{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.8em;color:white;background:#2d2d44;min-height:42px}
+        .calendar-day.empty{background:transparent}
+        .calendar-day.positive{background:linear-gradient(135deg,#064e3b 0%,#065f46 100%)}
+        .calendar-day.negative{background:linear-gradient(135deg,#7f1d1d 0%,#991b1b 100%)}
+        .calendar-day.today{box-shadow:0 0 0 2px #3b82f6}
+        .calendar-day-number{font-weight:600;font-size:0.95em}
+        .calendar-day-value{font-size:0.6em;margin-top:1px}
+        .calendar-day-value.pos{color:#4ade80}
+        .calendar-day-value.neg{color:#f87171}
+        .calendar-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+        .calendar-stat{background:#2d2d44;border-radius:8px;padding:10px;text-align:center}
+        .calendar-stat.full{grid-column:span 2}
+        .calendar-stat-value{color:white;font-size:1.1em;font-weight:bold}
+        .calendar-stat-label{color:#64748b;font-size:0.65em;margin-top:2px}
+
+        /* ═══ Responsive ═══ */
+        @media(min-width:640px){.cards{grid-template-columns:repeat(3,1fr)}.card.main-card{grid-column:span 1}.bancos-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(min-width:1024px){.cards{grid-template-columns:repeat(6,1fr)}.bancos-grid{grid-template-columns:repeat(6,1fr)}}
+    </style>
+</head>
+<body>
+    <!-- ═══ OVERLAYS ═══ -->
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div style="color:#64748b;font-size:0.9em">Cargando...</div></div>
+    <div class="cooldown-overlay hidden" id="cooldownOverlay"><div class="spinner"></div><div class="cooldown-text">Guardado ✓</div></div>
+
+    <!-- ═══ AUTH ═══ -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-box">
+            <div class="auth-logo">💱</div>
+            <h1 class="auth-title">Registro P2P</h1>
+            <p class="auth-subtitle">Control de operaciones y saldos</p>
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tabLogin">Iniciar Sesión</button>
+                <button class="auth-tab" id="tabRegister">Registrarse</button>
+            </div>
+            <div class="auth-error" id="authError"></div>
+            <form class="auth-form" id="loginForm">
+                <div class="form-group"><label>Usuario</label><input type="text" id="loginUser" placeholder="Tu usuario" required></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="loginPass" placeholder="Tu contraseña" required></div>
+                <button type="submit" class="btn" id="loginBtn">Iniciar Sesión</button>
+            </form>
+            <form class="auth-form" id="registerForm" style="display:none">
+                <div class="form-group"><label>Usuario</label><input type="text" id="regUser" placeholder="Elige un usuario" required><small>Letras, números, guiones. 3-20 caracteres.</small></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="regPass" placeholder="Crea una contraseña" required><small>Mínimo 6 caracteres</small></div>
+                <div class="form-group"><label>Confirmar Contraseña</label><input type="password" id="regPassConfirm" placeholder="Repite la contraseña" required></div>
+                <button type="submit" class="btn" id="registerBtn">Crear Cuenta</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ APP ═══ -->
+    <div class="app-container" id="appContainer">
+        <div class="container">
+            <div class="header">
+                <h1>💱 Registro P2P</h1>
+                <p>Control de operaciones y saldos</p>
+                <div class="sync-status offline" id="syncStatus"><div class="sync-dot"></div><span id="syncText">...</span></div>
+                <div class="menu-container">
+                    <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
+                    <div class="menu-dropdown" id="menuDropdown">
+                        <div class="menu-user"><div class="menu-user-name" id="menuUserName">Usuario</div><div class="menu-user-email" id="menuUserEmail">@p2p</div></div>
+                        <div class="menu-item" data-action="calendario"><span>📅</span><span>Calendario</span></div>
+                        <div class="menu-item" data-action="inventario"><span>📦</span><span>Inventario USDT</span></div>
+                        <div class="menu-item" data-action="movimiento"><span>💸</span><span>Movimiento Externo</span></div>
+                        <div class="menu-item" data-action="bancos"><span>🏦</span><span>Gestionar Bancos</span></div>
+                        <div class="menu-item" data-action="transferencia"><span>↔️</span><span>Transferencia</span></div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item danger" data-action="borrar-todo"><span>🗑️</span><span>Borrar Todo</span></div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item" data-action="cerrar-sesion"><span>🚪</span><span>Cerrar Sesión</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cards">
+                <div class="card main-card" id="cardGananciaHoy"><div class="card-title">📈 Ganancia Hoy</div><div class="card-value positive" id="gananciaHoy">$0</div><div class="card-subtitle" id="fechaHoy">--</div><div class="stats-row"><span class="stat-badge" id="opsHoy">0 ops</span></div></div>
+                <div class="card"><div class="card-title">📦 <b style="color:#1e293b">USDT</b></div><div class="card-value info" id="usdtEnTenencia">0,00</div><div class="card-subtitle">En tenencia</div></div>
+                <div class="card"><div class="card-title">🏦 Bancos</div><div class="card-value positive" id="totalBancos">$0</div><div class="card-subtitle">Saldo UYU</div></div>
+                <div class="card"><div class="card-title">📥 <span class="text-compra">Compras</span> <span id="mesCompras" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromCompra">--</span><span class="stat-badge" id="loteMasBarato">--</span></div></div>
+                <div class="card"><div class="card-title">📤 <span class="text-venta">Ventas</span> <span id="mesVentas" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalRecibido">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromVenta">--</span><span class="stat-badge" id="lotesDisponibles">--</span></div></div>
+                <div class="card"><div class="card-title">📊 Spread</div><div class="card-value info" id="spreadPromedio">$0</div><div class="stats-row"><span class="stat-badge" id="porcentajeSpread">0%</span></div></div>
+            </div>
+
+            <div class="section-title">💼 Mis Saldos</div>
+            <div class="bancos-grid" id="bancosGrid"></div>
+
+            <!-- Nueva Operación -->
+            <div class="toggle-section open" id="seccionNuevaOp">
+                <div class="toggle-header"><span class="toggle-title">➕ Nueva Operación</span><span class="toggle-arrow">▼</span></div>
+                <div class="toggle-content">
+                    <div class="form-content">
+                        <div class="form-group"><label>Tipo de operación</label><select id="tipo"><option value="compra">🛒 Compra USDT</option><option value="venta">💵 Venta USDT</option></select></div>
+                        <div class="form-row">
+                            <div class="form-group"><label id="montoLabel">Monto (UYU)</label><input type="number" step="0.01" id="monto" placeholder="3900"></div>
+                            <div class="form-group"><label>Tasa *</label><input type="text" id="tasa" placeholder="39.50" inputmode="decimal"><small id="tasaHelp">Ej: 39.50</small></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label id="bancoLabel">Banco *</label><select id="banco"><option value="">-- Seleccionar --</option></select><small id="bancoHelp"></small></div>
+                            <div class="form-group" id="comisionBancoGroup"><label>Comisión banco</label><input type="number" step="0.01" id="comisionBanco" value="0" placeholder="0"></div>
+                        </div>
+                        <div class="comision-inline"><label>📊 Comisión Binance:</label><input type="text" id="comisionPlataforma" value="0.14" placeholder="0.14" inputmode="decimal"><span>%</span></div>
+                        <div class="preview-box" id="previewBox" style="display:none"><span id="previewText"></span></div>
+                        <button class="btn" id="btnAgregarOp" style="margin-top:12px">Agregar Operación</button>
+                        <div class="info-text">Comisión <span id="comisionPctLabel">0.14</span>%: <strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operaciones -->
+            <div class="toggle-section open" id="seccionOperaciones">
+                <div class="toggle-header"><span class="toggle-title">📋 Operaciones</span><div class="toggle-right"><span class="toggle-badge" id="totalOperaciones">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-content">
+                    <div class="table-scroll" id="tablaContent"><div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div></div>
+                    <div class="pagination" id="paginationOp" style="display:none"><button id="btnPrevOp">← Ant</button><span class="pagination-info" id="paginaInfoOp">1 / 1</span><button id="btnNextOp">Sig →</button></div>
+                </div>
+            </div>
+
+            <!-- Movimientos -->
+            <div class="toggle-section" id="seccionMovimientos" style="display:none">
+                <div class="toggle-header"><span class="toggle-title">💸 Movimientos</span><div class="toggle-right"><span class="toggle-badge" id="totalMovimientos">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-content">
+                    <div class="table-scroll" id="movimientosContent"></div>
+                    <div class="pagination" id="paginationMov" style="display:none"><button id="btnPrevMov">← Ant</button><span class="pagination-info" id="paginaInfoMov">1 / 1</span><button id="btnNextMov">Sig →</button></div>
+                </div>
+            </div>
+
+            <!-- Transferencias -->
+            <div class="toggle-section" id="seccionTransferencias" style="display:none">
+                <div class="toggle-header"><span class="toggle-title">↔️ Transferencias</span><div class="toggle-right"><span class="toggle-badge" id="totalTransferencias">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-content">
+                    <div class="table-scroll" id="transferenciasContent"></div>
+                    <div class="pagination" id="paginationTrans" style="display:none"><button id="btnPrevTrans">← Ant</button><span class="pagination-info" id="paginaInfoTrans">1 / 1</span><button id="btnNextTrans">Sig →</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ MODALS ═══ -->
+    <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:15px"><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
+    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="number" step="0.01" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
+    <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Gestionar Bancos</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
+    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
+    <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="number" step="1" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
+    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Inventario USDT (FIFO)</div><div id="inventarioContent" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Sistema FIFO: Al vender se consumen primero los lotes más antiguos</div></div><div class="modal-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn btn-cancel" id="btnRecalcular">🔄 Recalcular</button><button class="btn" id="btnCerrarInventario">Cerrar</button></div></div></div>
+    <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="number" step="0.01" id="lotePrecio" placeholder="Ej: 42.50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="number" step="0.01" id="loteDisponible" placeholder="Ej: 100.00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelLote">Cancelar</button><button class="btn" style="background:#dc2626" id="btnEliminarLote">Eliminar</button><button class="btn" id="btnGuardarLote">Guardar</button></div></div></div>
+
+    <!-- ═══ FIREBASE SDK ═══ -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+/* ╔═══════════════════════════════════════════════════════════╗
+   ║  REGISTRO P2P — Código refactorizado                     ║
+   ║  • Estado centralizado (AppState)                        ║
+   ║  • Sin eventos inline (event delegation)                 ║
+   ║  • Funciones de DOM centralizadas                        ║
+   ║  • Paginación genérica reutilizable                      ║
+   ║  • FIFO encapsulado                                      ║
+   ╚═══════════════════════════════════════════════════════════╝ */
+'use strict';
+
+/* ═══════════════════════════════════════
+   §1 — CONFIGURACIÓN
+   ═══════════════════════════════════════ */
+const CONFIG = {
+    firebase: {apiKey:"AIzaSyCL2uxQMNIxC0oo35uN-lYQXaOWLxXNg7k",authDomain:"p2p-tracker-dc9cc.firebaseapp.com",projectId:"p2p-tracker-dc9cc",storageBucket:"p2p-tracker-dc9cc.firebasestorage.app",messagingSenderId:"670856094446",appId:"1:670856094446:web:390946887212a97e36c9ff"},
+    POR_PAGINA: 10,
+    EMAIL_DOMAIN: '@p2p-tracker.app',
+    COOLDOWN_MS: 1000,
+    BANCOS: [
+        {nombre:'Santander',moneda:'UYU'},{nombre:'BBVA',moneda:'UYU'},
+        {nombre:'Itau',moneda:'UYU',especial:'itau'},{nombre:'Scotiabank',moneda:'UYU'},
+        {nombre:'BROU',moneda:'UYU'},{nombre:'Prex',moneda:'UYU'},
+        {nombre:'OCA',moneda:'UYU'},{nombre:'Mercado Pago',moneda:'UYU'},
+        {nombre:'Midinero',moneda:'UYU'},{nombre:'Zelle',moneda:'USD'},
+        {nombre:'Zinli',moneda:'USD'},{nombre:'Skrill',moneda:'USD'}
+    ]
+};
+
+/* ═══════════════════════════════════════
+   §2 — ESTADO CENTRALIZADO
+   ═══════════════════════════════════════ */
+const AppState = {
+    db: null, auth: null, currentUser: null, unsubscribe: null,
+    datos: null,
+    ui: { bancoEditando:null, tipoMovimiento:'ingreso', calendarDate:new Date(),
+          loteEditandoId:null, paginaOp:1, paginaMov:1, paginaTrans:1,
+          guardandoMovimiento:false, enCooldown:false, comisionDebounce:null }
+};
+
+function crearDatosVacios() {
+    return {operaciones:[],movimientos:[],transferencias:[],bancos:{},lotes:[],
+            saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,
+            ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14};
+}
+AppState.datos = crearDatosVacios();
+
+/* ═══════════════════════════════════════
+   §3 — HELPERS DOM
+   ═══════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const setText = (id, t) => { const e=$(id); if(e) e.textContent=t; };
+const setHtml = (id, h) => { const e=$(id); if(e) e.innerHTML=h; };
+
+function abrirModal(id) { $(id)?.classList.add('active'); }
+function cerrarModal(id) { $(id)?.classList.remove('active'); }
+function setSyncStatus(s,t) { $('syncStatus').className='sync-status '+s; setText('syncText',t); }
+function ocultarLoading() { $('loadingOverlay')?.classList.add('hidden'); }
+function activarCooldown() {
+    AppState.ui.enCooldown=true; $('cooldownOverlay')?.classList.remove('hidden');
+    setTimeout(()=>{ AppState.ui.enCooldown=false; $('cooldownOverlay')?.classList.add('hidden'); },CONFIG.COOLDOWN_MS);
+}
+
+/* ═══════════════════════════════════════
+   §4 — UTILIDADES PURAS
+   ═══════════════════════════════════════ */
+function fixNeg(n){return Object.is(n,-0)?0:Math.round(n*100)/100}
+function truncar(n,d=2){return Math.floor(n*Math.pow(10,d))/Math.pow(10,d)}
+function fmtNum(n,d=2){return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function fmtTasa(n,mon){if(mon==='USD'){const s=n.toString(),dec=s.includes('.')?s.split('.')[1].length:0;return dec>2?n.toFixed(3):n.toFixed(2)}return n.toFixed(2)}
+function parsearTasa(v){if(!v)return null;const l=v.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,3})?$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<=0?null:n}
+function parsearComision(v){if(!v&&v!==0)return null;const l=v.toString().replace(',','.').trim();if(!l||l==='.')return null;if(!/^\d*\.?\d*$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<0||n>10?null:n}
+function getUDate(){const n=new Date(),u=n.getTime()+n.getTimezoneOffset()*60000;return new Date(u-3*3600000)}
+function getUDateStr(){const d=getUDate();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function getUTimeStr(){const d=getUDate();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+function fmtFechaCorta(f){if(!f)return'-';const p=f.split('-');return p.length===3?`${p[2]}/${p[1]}`:f}
+function fechaHtml(f,h){return`<div class="fecha-hora"><span class="fecha">${fmtFechaCorta(f)}</span><span class="hora">${h||'--:--'}</span></div>`}
+function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
+function getSym(mon){return mon==='USD'?'US$':'$'}
+function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=fixNeg(AppState.datos.lotes.reduce((s,l)=>s+l.disponible,0))}
+function getLotesActivosFIFO(){return AppState.datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')))}
+
+/* ═══════════════════════════════════════
+   §5 — PAGINACIÓN GENÉRICA
+   ═══════════════════════════════════════ */
+function crearPaginacion(cfg) {
+    const {getTotal,getPag,setPag,porPag,ids,renderFn} = cfg;
+    function totalPags(){return Math.max(1,Math.ceil(getTotal()/porPag))}
+    function render(){
+        const total=getTotal();
+        if(!total){$(ids.pagination).style.display='none';renderFn([],0,0);return}
+        let pag=getPag(),tp=totalPags();
+        if(pag>tp){pag=tp;setPag(pag)}
+        if(pag<1){pag=1;setPag(pag)}
+        const ini=(pag-1)*porPag,fin=ini+porPag;
+        renderFn(ini,fin,total);
+        $(ids.pagination).style.display=tp>1?'flex':'none';
+        setText(ids.info,`${pag} / ${tp}`);
+        $(ids.prev).disabled=pag===1;
+        $(ids.next).disabled=pag===tp;
+    }
+    function cambiar(dir){
+        let pag=getPag()+dir,tp=totalPags();
+        if(pag<1)pag=1;if(pag>tp)pag=tp;setPag(pag);render();
+    }
+    return{render,cambiar};
+}
+
+/* ═══════════════════════════════════════
+   §6 — BANCOS
+   ═══════════════════════════════════════ */
+function inicializarBancos(){
+    CONFIG.BANCOS.forEach(b=>{
+        if(!AppState.datos.bancos[b.nombre])
+            AppState.datos.bancos[b.nombre]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0,ultimoResetLimite:null};
+        else{
+            const bk=AppState.datos.bancos[b.nombre];
+            if(bk.limiteDiarioUSD===undefined)bk.limiteDiarioUSD=bk.limiteDiario||0;
+            if(bk.limiteUsadoUSD===undefined)bk.limiteUsadoUSD=bk.limiteUsado||0;
+            if(bk.ultimoResetLimite===undefined)bk.ultimoResetLimite=null;
+        }
+    });
+}
+
+function verificarResetLimites(){
+    const ah=getUDate(),hr=0.5,ha=ah.getHours()+ah.getMinutes()/60,hoy=getUDateStr();
+    CONFIG.BANCOS.forEach(b=>{
+        const bk=AppState.datos.bancos[b.nombre];if(!bk)return;
+        if(!bk.ultimoResetLimite)bk.ultimoResetLimite=null;
+        const ur=bk.ultimoResetLimite;
+        if(b.especial==='itau'){
+            const ds=ah.getDay();
+            if(ds===2&&ha>=hr){if(ur!==hoy){bk.limiteUsadoUSD=0;bk.ultimoResetLimite=hoy}}
+            else if(ds>2&&ds<6&&ha>=hr){if(ur!==hoy){bk.limiteUsadoUSD=0;bk.ultimoResetLimite=hoy}}
+        }else{if(ha>=hr&&ur!==hoy){bk.limiteUsadoUSD=0;bk.ultimoResetLimite=hoy}}
+    });
+}
+
+function getMonedaBanco(){const b=$('banco')?.value;if(!b)return'UYU';return getBancoInfo(b)?.moneda||'UYU'}
+function getComisionActual(){return getMonedaBanco()==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma}
+function getComisionDec(){return(getComisionActual()||0.14)/100}
+function getBancosActivos(){return CONFIG.BANCOS.filter(b=>AppState.datos.bancos[b.nombre]?.activo)}
+
+function actualizarSelectBancos(){
+    const s=$('banco'),v=s.value;
+    s.innerHTML='<option value="">-- Seleccionar --</option>';
+    getBancosActivos().forEach(b=>{s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`});
+    s.value=v;
+}
+
+function mostrarSaldoBanco(){
+    const b=$('banco').value,i=$('saldoBancoInfo'),h=$('bancoHelp');
+    if(h){h.textContent='';h.className=''}
+    if(b&&AppState.datos.bancos[b]){const bi=getBancoInfo(b);i.textContent=' | '+b+': '+getSym(bi?.moneda)+fmtNum(AppState.datos.bancos[b].saldo)}
+    else i.textContent='';
+}
+
+function actualizarBancosGrid(){
+    const la=AppState.datos.lotes.filter(l=>l.disponible>0).length;
+    let h=`<div class="banco-mini-card usdt-card" data-action="inventario"><div class="banco-nombre">🪙 <b style="color:#1e293b">USDT</b></div><div class="banco-saldo">${fmtNum(Math.max(0,AppState.datos.saldoUsdt),2)}</div><div class="banco-moneda">Tether · ${la} lotes</div></div>`;
+    CONFIG.BANCOS.forEach(b=>{
+        if(!AppState.datos.bancos[b.nombre]?.activo)return;
+        const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
+        let lh='';
+        if(lim>0){const disp=Math.max(0,lim-us),pct=Math.min(100,(us/lim)*100);let fc='';if(pct>=90)fc='danger';else if(pct>=70)fc='warning';
+            lh=`<div class="banco-limite">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div><div class="banco-limite-bar"><div class="banco-limite-fill ${fc}" style="width:${pct}%"></div></div>`}
+        h+=`<div class="banco-mini-card" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s)}</div><div class="banco-moneda">${b.moneda}</div>${lh}</div>`;
+    });
+    setHtml('bancosGrid',h);
+}
+
+function renderizarListaBancos(){
+    let h='';
+    CONFIG.BANCOS.forEach(b=>{
+        const a=AppState.datos.bancos[b.nombre]?.activo||false,s=AppState.datos.bancos[b.nombre]?.saldo||0,lim=AppState.datos.bancos[b.nombre]?.limiteDiarioUSD||0;
+        let li=lim>0?` | Límite: US$${fmtNum(lim,0)}/día`:'';if(b.especial==='itau')li+=' (sáb-lun=1día)';
+        h+=`<div class="banco-list-item"><div><div style="font-weight:600;font-size:0.9em">${b.nombre} <span style="color:#94a3b8">(${b.moneda})</span></div><div style="color:#64748b;font-size:0.8em">${getSym(b.moneda)}${fmtNum(s)}${li}</div></div><div class="banco-list-actions"><button class="btn-edit-small" data-action="editar-saldo" data-banco="${b.nombre}">Editar</button><label class="toggle-switch"><input type="checkbox" ${a?'checked':''} data-action="toggle-banco" data-banco="${b.nombre}"><span class="toggle-slider"></span></label></div></div>`;
+    });
+    setHtml('listaBancos',h);
+}
+
+function mostrarSaldoOrigen(){
+    const b=$('bancoOrigen')?.value;
+    if(b&&AppState.datos.bancos[b]){
+        const bi=getBancoInfo(b),sym=getSym(bi?.moneda);let info='Disponible: '+sym+fmtNum(AppState.datos.bancos[b].saldo);
+        if(AppState.datos.bancos[b].limiteDiarioUSD>0){const u=AppState.datos.bancos[b].limiteUsadoUSD||0,d=Math.max(0,AppState.datos.bancos[b].limiteDiarioUSD-u);info+=` | Límite: US$${fmtNum(d,0)}/${fmtNum(AppState.datos.bancos[b].limiteDiarioUSD,0)}`}
+        $('saldoOrigenInfo').textContent=info;
+    }else $('saldoOrigenInfo').textContent='';
+}
+
+/* ═══════════════════════════════════════
+   §7 — INVENTARIO FIFO
+   ═══════════════════════════════════════ */
+function agregarLote(id,fecha,hora,precio,cant){
+    const ex=AppState.datos.lotes.find(l=>l.precioCompra===precio&&l.disponible>0);
+    if(ex){ex.cantidad+=cant;ex.disponible+=cant}
+    else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant});
+}
+
+function consumirFIFO(cant,precioVenta){
+    let rest=cant,gan=0;const lotes=getLotesActivosFIFO();
+    for(const l of lotes){if(rest<=0)break;const c=Math.min(l.disponible,rest);
+        if(precioVenta!==undefined)gan+=c*(precioVenta-l.precioCompra);
+        l.disponible=fixNeg(l.disponible-c);rest=fixNeg(rest-c)}
+    return gan;
+}
+
+function recalcularLotesYGanancias(){
+    AppState.datos.lotes=[];const ev=[];
+    AppState.datos.operaciones.forEach(op=>{ev.push({tipo:'op',fecha:op.fecha,hora:op.hora||'00:00',data:op})});
+    AppState.datos.movimientos.filter(m=>m.tipoCuenta==='usdt').forEach(m=>{
+        ev.push({tipo:m.tipoMovimiento==='ingreso'?'mi':'me',fecha:m.fecha,hora:m.hora||'00:00',data:m})});
+    ev.sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')));
+    let utcL=AppState.datos.ultimaTasaCompra||0,utcUL=AppState.datos.ultimaTasaCompraUSD||0;
+    ev.forEach(e=>{
+        if(e.tipo==='op'){
+            const op=e.data,cpct=(op.comisionPct||0.14)/100,cp=truncar(op.usdt*cpct,2),isU=op.moneda==='USD';
+            if(op.tipo==='compra'){const un=op.usdt-cp;if(isU)utcUL=op.tasa;else utcL=op.tasa;agregarLote(op.id,op.fecha,op.hora||'00:00',op.tasa,un);op.ganancia=-(op.comisionBanco||0)}
+            else{const av=op.usdt+cp;op.ganancia=consumirFIFO(av,op.tasa);if(isU)AppState.datos.ultimaTasaVentaUSD=op.tasa;else AppState.datos.ultimaTasaVenta=op.tasa}
+        }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,m.monto)}
+        else if(e.tipo==='me'){consumirFIFO(e.data.monto)}
+    });
+    AppState.datos.ultimaTasaCompra=utcL;AppState.datos.ultimaTasaCompraUSD=utcUL;sincronizarSaldoUsdt();
+}
+
+function renderizarInventario(){
+    const la=getLotesActivosFIFO();
+    if(!la.length){setHtml('inventarioContent','<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px">📭</div><div>Sin USDT en inventario</div></div>');return}
+    let tot=0,h='<table style="min-width:auto"><thead><tr><th>#</th><th>Precio</th><th>Disponible</th><th>Valor</th><th></th></tr></thead><tbody>';
+    la.forEach((l,i)=>{tot+=l.disponible;const v=l.disponible*l.precioCompra;
+        h+=`<tr><td style="color:#64748b">${i+1}</td><td><b>$${fmtNum(l.precioCompra)}</b></td><td style="color:#2563eb"><b>${fmtNum(l.disponible,2)}</b></td><td style="color:#64748b">$${fmtNum(v,0)}</td><td><button class="btn-edit-small" data-action="editar-lote" data-lote-id="${l.id}">✏️</button></td></tr>`});
+    h+=`</tbody></table><div style="margin-top:12px;padding:10px;background:#eff6ff;border-radius:8px;display:flex;justify-content:space-between"><span style="color:#64748b">Total en inventario:</span><span style="color:#2563eb;font-weight:bold">${fmtNum(tot,2)} USDT</span></div>`;
+    setHtml('inventarioContent',h);
+}
+
+/* ═══════════════════════════════════════
+   §8 — FIREBASE & AUTH
+   ═══════════════════════════════════════ */
+function userToEmail(u){return u.toLowerCase().trim()+CONFIG.EMAIL_DOMAIN}
+function emailToUser(e){return e.replace(CONFIG.EMAIL_DOMAIN,'')}
+
+async function guardarDatos(){
+    if(!AppState.currentUser)return;setSyncStatus('syncing','...');
+    try{await AppState.db.collection('users').doc(AppState.currentUser.uid).set({...AppState.datos,ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()});setSyncStatus('online','✓')}
+    catch(e){setSyncStatus('offline','✗')}
+}
+
+function cargarDatosUsuario(){
+    if(!AppState.currentUser)return;
+    if(AppState.unsubscribe)AppState.unsubscribe();
+    AppState.unsubscribe=AppState.db.collection('users').doc(AppState.currentUser.uid).onSnapshot(doc=>{
+        const ci=$('comisionPlataforma'),cf=document.activeElement===ci,lcU=AppState.datos.comisionPlataforma,lcD=AppState.datos.comisionUSD;
+        if(doc.exists){const d=doc.data();AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},lotes:d.lotes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14}}
+        else AppState.datos=crearDatosVacios();
+        if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
+        inicializarBancos();verificarResetLimites();
+        if(AppState.datos.operaciones.some(op=>op.ganancia===undefined)){recalcularLotesYGanancias();guardarDatos()}
+        AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;
+        if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=cv.toFixed(2);setText('comisionPctLabel',cv.toFixed(2))}
+        actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();setSyncStatus('online','✓');
+    },()=>{setSyncStatus('offline','✗');ocultarLoading()});
+}
+
+function showApp(u){AppState.currentUser=u;setText('menuUserName',emailToUser(u.email));setText('menuUserEmail',u.email);$('authContainer').classList.add('hidden');$('appContainer').classList.add('active');cargarDatosUsuario()}
+function showAuth(){AppState.currentUser=null;$('authContainer').classList.remove('hidden');$('appContainer').classList.remove('active');['loginBtn','registerBtn'].forEach(id=>{const b=$(id);b.disabled=false;b.textContent=id==='loginBtn'?'Iniciar Sesión':'Crear Cuenta'});['loginUser','loginPass','regUser','regPass','regPassConfirm'].forEach(id=>{const e=$(id);if(e)e.value=''});ocultarLoading()}
+
+function inicializarFirebase(){
+    if(typeof firebase==='undefined'){ocultarLoading();return}
+    firebase.initializeApp(CONFIG.firebase);AppState.auth=firebase.auth();AppState.db=firebase.firestore();
+    AppState.db.enablePersistence().catch(()=>{});
+    AppState.auth.onAuthStateChanged(u=>u?showApp(u):showAuth());
+}
+
+/* ═══════════════════════════════════════
+   §9 — FORMULARIO OPERACIÓN
+   ═══════════════════════════════════════ */
+function actualizarColorSelect(){const s=$('tipo');s.style.color=s.value==='compra'?'#16a34a':'#dc2626'}
+
+function actualizarFormulario(){
+    const t=$('tipo').value,mon=getMonedaBanco(),isU=mon==='USD';
+    setText('montoLabel',t==='compra'?`Pagás (${mon})`:`Recibís (${mon})`);
+    setText('bancoLabel',t==='compra'?'Sale de *':'Entra a *');
+    $('comisionBancoGroup').style.display=t==='compra'?'block':'none';
+    if(t==='venta')$('comisionBanco').value='0';
+    const ti=$('tasa');if(document.activeElement!==ti){const ta=t==='compra'?(isU?AppState.datos.ultimaTasaCompraUSD:AppState.datos.ultimaTasaCompra):(isU?AppState.datos.ultimaTasaVentaUSD:AppState.datos.ultimaTasaVenta);ti.value=ta>0?fmtTasa(ta,mon):''}
+    setText('tasaHelp',isU?'Ej: 1.025':'Ej: 39.50');
+    const ci=$('comisionPlataforma');if(document.activeElement!==ci){const cv=isU?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=cv.toFixed(2);setText('comisionPctLabel',cv.toFixed(2))}
+    calcularPreview();
+}
+
+function calcularPreview(){
+    const t=$('tipo').value,m=parseFloat($('monto').value)||0,ta=parsearTasa($('tasa').value),cp=getComisionDec(),mon=getMonedaBanco(),isU=mon==='USD';
+    $('tasa').classList.remove('error');const th=$('tasaHelp');th.className='';th.textContent=isU?'Ej: 1.025':'Ej: 39.50';
+    if(m>0&&ta){const u=m/ta,c=truncar(u*cp,2);setText('comisionPlataformaInfo',fmtNum(c,2)+' USDT');
+        $('previewText').innerHTML=t==='compra'?`📥 Recibís <b>${fmtNum(u-c,2)} USDT</b>`:`📤 Entregás <b>${fmtNum(u+c,2)} USDT</b>`;$('previewBox').style.display='block'}
+    else{$('previewBox').style.display='none';setText('comisionPlataformaInfo','0 USDT')}
+}
+
+function guardarComisionYCalcular(){
+    const inp=$('comisionPlataforma'),raw=inp.value.replace(',','.').trim();
+    if(raw!==''&&raw!=='.'){const v=parsearComision(raw);if(v!==null){
+        if(getMonedaBanco()==='USD')AppState.datos.comisionUSD=v;else AppState.datos.comisionPlataforma=v;
+        setText('comisionPctLabel',v.toFixed(2));clearTimeout(AppState.ui.comisionDebounce);AppState.ui.comisionDebounce=setTimeout(()=>guardarDatos(),1200)}}
+    calcularPreview();
+}
+
+async function agregarOperacion(){
+    if(AppState.ui.enCooldown)return;const btn=$('btnAgregarOp');if(btn.disabled)return;
+    const t=$('tipo').value,m=parseFloat($('monto').value),ti=$('tasa'),ta=parsearTasa(ti.value),b=$('banco').value,cb=parseFloat($('comisionBanco').value)||0,f=getUDateStr(),h=getUTimeStr(),mon=getMonedaBanco(),isU=mon==='USD',cpv=getComisionActual(),cp=cpv/100;
+    if(!m){alert('Ingresá el monto');return}
+    if(!ta){ti.classList.add('error');$('tasaHelp').textContent='Formato inválido';$('tasaHelp').className='error-text';alert('Tasa inválida (ej: '+(isU?'1.025':'39.50')+')');return}
+    if(!b){$('bancoHelp').textContent='Seleccioná un banco';$('bancoHelp').className='error-text';$('banco').classList.add('error');alert('Seleccioná un banco');return}
+    $('banco').classList.remove('error');
+    const u=m/ta,cpl=truncar(u*cp,2);
+    if(t==='compra'){const bk=AppState.datos.bancos[b];if(bk.limiteDiarioUSD>0){const mU=isU?m:m/ta,dU=bk.limiteDiarioUSD-(bk.limiteUsadoUSD||0);if(mU>dU){alert(`Excede el límite diario. Disponible: US$${fmtNum(dU,0)} (${fmtNum(mU,2)} USD requeridos)`);return}}if(bk.saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return}
+    else{const un=u+cpl;if(AppState.datos.saldoUsdt<un&&!confirm(`Solo tenés ${fmtNum(AppState.datos.saldoUsdt,2)} USDT. ¿Continuar?`))return}
+    btn.disabled=true;btn.textContent='Guardando...';
+    try{
+        const opId=Date.now();let gan=0;
+        if(t==='compra'){const un=u-cpl;agregarLote(opId,f,h,ta,un);if(isU)AppState.datos.ultimaTasaCompraUSD=ta;else AppState.datos.ultimaTasaCompra=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));sincronizarSaldoUsdt();if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:m/ta;AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,(AppState.datos.bancos[b].limiteUsadoUSD||0)+mU)}gan=-cb}
+        else{const av=u+cpl;gan=consumirFIFO(av,ta);if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
+        AppState.datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:gan,timestamp:new Date().toISOString()});
+        $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';AppState.ui.paginaOp=1;
+        await guardarDatos();actualizarVista();activarCooldown();
+    }finally{btn.disabled=false;btn.textContent='Agregar Operación'}
+}
+
+async function eliminarOperacion(id){
+    if(!confirm('¿Eliminar operación? Se recalcularán los lotes y ganancias.'))return;
+    const op=AppState.datos.operaciones.find(o=>o.id===id);
+    if(op){if(op.tipo==='compra'){if(op.banco&&AppState.datos.bancos[op.banco]){AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo+(op.monto+(op.comisionBanco||0)));if(AppState.datos.bancos[op.banco].limiteDiarioUSD>0){const mU=op.monto/op.tasa;AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,(AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU)}}}else{if(op.banco&&AppState.datos.bancos[op.banco])AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo-op.monto)}}
+    AppState.datos.operaciones=AppState.datos.operaciones.filter(o=>o.id!==id);
+    recalcularLotesYGanancias();await guardarDatos();actualizarVista();
+}
+
+/* ═══════════════════════════════════════
+   §10 — MOVIMIENTOS
+   ═══════════════════════════════════════ */
+function abrirModalMovimiento(){
+    AppState.ui.guardandoMovimiento=false;AppState.ui.tipoMovimiento='ingreso';
+    $('tabIngreso').className='tab tab-ingreso active';$('tabEgreso').className='tab tab-egreso';
+    $('movTipoCuenta').value='banco';$('movMonto').value='';$('movTasaRef').value='';$('movDescripcion').value='';$('btnGuardarMov').disabled=false;$('btnGuardarMov').textContent='Guardar';
+    actualizarCuentasMovimiento();abrirModal('modalMovimiento');
+}
+function setTipoMovimiento(t){AppState.ui.tipoMovimiento=t;$('tabIngreso').className='tab tab-ingreso'+(t==='ingreso'?' active':'');$('tabEgreso').className='tab tab-egreso'+(t==='egreso'?' active':'');actualizarCuentasMovimiento()}
+function actualizarCuentasMovimiento(){
+    const tc=$('movTipoCuenta').value;$('movBancoGroup').style.display=tc==='usdt'?'none':'block';setText('movMontoLabel',tc==='usdt'?'Monto (USDT)':'Monto');
+    const st=tc==='usdt';$('movTasaRefGroup').style.display=st?'block':'none';
+    if(st){$('movTasaRef').value=AppState.datos.ultimaTasaCompra||'';setText('movTasaRefLabel',AppState.ui.tipoMovimiento==='ingreso'?'Tasa referencia (precio de compra)':'Tasa referencia (para cálculo UYU)')}
+    if(tc!=='usdt'){const s=$('movBanco');s.innerHTML='<option value="">Seleccionar banco</option>';getBancosActivos().forEach(b=>{s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`})}
+}
+
+async function guardarMovimiento(){
+    if(AppState.ui.guardandoMovimiento||AppState.ui.enCooldown)return;
+    const btn=$('btnGuardarMov'),tc=$('movTipoCuenta').value,b=$('movBanco').value,m=parseFloat($('movMonto').value),desc=$('movDescripcion').value,f=getUDateStr(),tRef=tc==='usdt'?parseFloat($('movTasaRef').value)||0:0;
+    if(!m||m<=0)return alert('Monto inválido');if(tc==='banco'&&!b)return alert('Seleccioná un banco');
+    if(tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'&&(!tRef||tRef<=0))return alert('Ingresá una tasa de referencia válida');
+    AppState.ui.guardandoMovimiento=true;btn.disabled=true;btn.textContent='Guardando...';
+    try{
+        const mId=Date.now();let vUYU=m;if(tc==='usdt')vUYU=m*(tRef||AppState.datos.ultimaTasaCompra||1);
+        const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,valorUYU:AppState.ui.tipoMovimiento==='egreso'?vUYU:0,tasaRef:tc==='usdt'?tRef:0,descripcion:desc,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()};
+        if(tc==='usdt'){if(AppState.ui.tipoMovimiento==='ingreso'){agregarLote(mId,f,getUTimeStr(),tRef,m)}else{if(AppState.datos.saldoUsdt<m&&!confirm(`Solo tenés ${fmtNum(AppState.datos.saldoUsdt,2)} USDT en inventario. ¿Continuar?`)){AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar';return}consumirFIFO(m)}sincronizarSaldoUsdt()}
+        else AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?m:-m));
+        AppState.datos.movimientos.unshift(md);await guardarDatos();actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
+    }finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar'}
+}
+
+async function eliminarMovimiento(id){
+    if(!confirm('¿Eliminar?'))return;const mv=AppState.datos.movimientos.find(m=>m.id===id);
+    if(mv){if(mv.tipoCuenta==='usdt'){AppState.datos.movimientos=AppState.datos.movimientos.filter(m=>m.id!==id);recalcularLotesYGanancias()}else{if(mv.banco&&AppState.datos.bancos[mv.banco])AppState.datos.bancos[mv.banco].saldo=fixNeg(AppState.datos.bancos[mv.banco].saldo+(mv.tipoMovimiento==='ingreso'?-mv.monto:mv.monto));AppState.datos.movimientos=AppState.datos.movimientos.filter(m=>m.id!==id)}}
+    else AppState.datos.movimientos=AppState.datos.movimientos.filter(m=>m.id!==id);
+    await guardarDatos();actualizarVista();
+}
+
+/* ═══════════════════════════════════════
+   §11 — TRANSFERENCIAS
+   ═══════════════════════════════════════ */
+function abrirModalTransferencia(){
+    $('montoTransferencia').value='';$('comisionTransferencia').value='0';
+    const opts='<option value="">Seleccionar</option>'+getBancosActivos().map(b=>`<option value="${b.nombre}">${b.nombre}</option>`).join('');
+    $('bancoOrigen').innerHTML=opts;$('bancoDestino').innerHTML=opts;$('saldoOrigenInfo').textContent='';$('btnTransferir').disabled=false;abrirModal('modalTransferencia');
+}
+
+async function realizarTransferencia(){
+    if(AppState.ui.enCooldown)return;const btn=$('btnTransferir');if(btn.disabled)return;
+    const o=$('bancoOrigen').value,d=$('bancoDestino').value,m=parseFloat($('montoTransferencia').value),c=parseFloat($('comisionTransferencia').value)||0,f=getUDateStr();
+    if(!o||!d||o===d)return alert('Seleccioná bancos diferentes');if(!m||m<=0)return alert('Monto inválido');
+    if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=(m+c)/AppState.datos.ultimaTasaCompra;const dU=AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0);if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}}
+    btn.disabled=true;btn.textContent='Transfiriendo...';
+    try{
+        AppState.datos.transferencias.unshift({id:Date.now(),origen:o,destino:d,monto:m,comision:c,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
+        AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-(m+c));AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+m);
+        if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=(m+c)/AppState.datos.ultimaTasaCompra;if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,(AppState.datos.bancos[o].limiteUsadoUSD||0)+mU)}
+        await guardarDatos();actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
+    }finally{btn.disabled=false;btn.textContent='Transferir'}
+}
+
+async function eliminarTransferencia(id){
+    if(!confirm('¿Eliminar?'))return;const t=AppState.datos.transferencias.find(x=>x.id===id);
+    if(t){AppState.datos.bancos[t.origen].saldo=fixNeg(AppState.datos.bancos[t.origen].saldo+(t.monto+t.comision));AppState.datos.bancos[t.destino].saldo=fixNeg(AppState.datos.bancos[t.destino].saldo-t.monto);
+        if(AppState.datos.bancos[t.origen].limiteDiarioUSD>0){const bi=getBancoInfo(t.origen);let mU=0;if(bi?.moneda==='USD')mU=t.monto+t.comision;else if(AppState.datos.ultimaTasaCompra>0)mU=(t.monto+t.comision)/AppState.datos.ultimaTasaCompra;if(mU>0)AppState.datos.bancos[t.origen].limiteUsadoUSD=Math.max(0,(AppState.datos.bancos[t.origen].limiteUsadoUSD||0)-mU)}}
+    AppState.datos.transferencias=AppState.datos.transferencias.filter(x=>x.id!==id);await guardarDatos();actualizarVista();
+}
+
+/* ═══════════════════════════════════════
+   §12 — CALENDARIO
+   ═══════════════════════════════════════ */
+function calcularGananciaDiaria(){
+    const g={};AppState.datos.operaciones.forEach(op=>{if(!g[op.fecha])g[op.fecha]=0;if(op.ganancia!==undefined)g[op.fecha]+=op.ganancia});
+    AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(!g[mv.fecha])g[mv.fecha]=0;if(mv.tipoCuenta==='usdt'){g[mv.fecha]-=mv.valorUYU||(mv.monto*(AppState.datos.ultimaTasaCompra||1))}else g[mv.fecha]-=mv.monto}});
+    return g;
+}
+function calcularGananciaTotal(){let g=0;AppState.datos.operaciones.forEach(op=>{if(op.ganancia!==undefined)g+=op.ganancia});AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(mv.tipoCuenta==='usdt')g-=mv.valorUYU||(mv.monto*(AppState.datos.ultimaTasaCompra||1));else g-=mv.monto}});return g}
+
+function renderizarCalendario(){
+    const y=AppState.ui.calendarDate.getFullYear(),mo=AppState.ui.calendarDate.getMonth();
+    setText('calendarMonth',`${y}-${String(mo+1).padStart(2,'0')}`);
+    const fd=new Date(y,mo,1).getDay(),dm=new Date(y,mo+1,0).getDate(),hoy=new Date(),g=calcularGananciaDiaria();
+    let h='',tg=0,tp=0;
+    for(let i=0;i<fd;i++)h+='<div class="calendar-day empty"></div>';
+    for(let d=1;d<=dm;d++){const ds=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,val=g[ds]||0,isH=hoy.getFullYear()===y&&hoy.getMonth()===mo&&hoy.getDate()===d;
+        let cls='calendar-day';if(val>0){cls+=' positive';tg+=val}else if(val<0){cls+=' negative';tp+=Math.abs(val)}if(isH)cls+=' today';
+        const vs=val!==0?(val>0?'+':'')+fmtNum(val,0):'0',vc=val>0?'pos':val<0?'neg':'';
+        h+=`<div class="${cls}"><div class="calendar-day-number">${d}</div><div class="calendar-day-value ${vc}">${vs}</div></div>`}
+    setHtml('calendarDays',h);
+    const gt=calcularGananciaTotal(),ge=$('calGananciaTotal');ge.textContent=(gt>=0?'+':'-')+'$'+fmtNum(Math.abs(gt),0);ge.className='calendar-stat-value '+(gt>=0?'positive':'negative');
+    setText('calGanancias','+$'+fmtNum(tg,0));setText('calPerdidas','-$'+fmtNum(tp,0));
+}
+
+/* ═══════════════════════════════════════
+   §13 — PAGINACIONES (instancias)
+   ═══════════════════════════════════════ */
+const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getPag:()=>AppState.ui.paginaOp,setPag:p=>{AppState.ui.paginaOp=p},porPag:CONFIG.POR_PAGINA,
+    ids:{pagination:'paginationOp',info:'paginaInfoOp',prev:'btnPrevOp',next:'btnNextOp'},
+    renderFn:(ini,fin,total)=>{
+        setText('totalOperaciones',total||0);const c=$('tablaContent');
+        if(!total){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>';return}
+        const ops=AppState.datos.operaciones.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>G/P</th><th>Fecha</th><th></th></tr></thead><tbody>';
+        ops.forEach(op=>{const un=op.tipo==='compra'?op.usdt-op.comisionPlataforma:op.usdt+op.comisionPlataforma;const badge=op.tipo==='compra'?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626',gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn)),sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
+            h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td><b>${fmtNum(un,2)}</b></td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">×</button></td></tr>`});
+        c.innerHTML=h+'</tbody></table>';
+    }
+});
+
+const pagMov=crearPaginacion({getTotal:()=>AppState.datos.movimientos.length,getPag:()=>AppState.ui.paginaMov,setPag:p=>{AppState.ui.paginaMov=p},porPag:CONFIG.POR_PAGINA,
+    ids:{pagination:'paginationMov',info:'paginaInfoMov',prev:'btnPrevMov',next:'btnNextMov'},
+    renderFn:(ini,fin,total)=>{
+        setText('totalMovimientos',total||0);const sec=$('seccionMovimientos');if(!total){sec.style.display='none';return}sec.style.display='block';
+        const mvs=AppState.datos.movimientos.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Cuenta</th><th>Monto</th><th>Desc</th><th>Fecha</th><th></th></tr></thead><tbody>';
+        mvs.forEach(m=>{const badge=m.tipoMovimiento==='ingreso'?'<span class="badge badge-ingreso"><b>Ingreso</b></span>':'<span class="badge badge-egreso"><b>Egreso</b></span>';
+            h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':m.banco}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${fmtNum(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td>${fechaHtml(m.fecha,m.hora)}</td><td><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">×</button></td></tr>`});
+        $('movimientosContent').innerHTML=h+'</tbody></table>';
+    }
+});
+
+const pagTrans=crearPaginacion({getTotal:()=>AppState.datos.transferencias.length,getPag:()=>AppState.ui.paginaTrans,setPag:p=>{AppState.ui.paginaTrans=p},porPag:CONFIG.POR_PAGINA,
+    ids:{pagination:'paginationTrans',info:'paginaInfoTrans',prev:'btnPrevTrans',next:'btnNextTrans'},
+    renderFn:(ini,fin,total)=>{
+        setText('totalTransferencias',total||0);const sec=$('seccionTransferencias');if(!total){sec.style.display='none';return}sec.style.display='block';
+        const trs=AppState.datos.transferencias.slice(ini,fin);let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Com</th><th>Fecha</th><th></th></tr></thead><tbody>';
+        trs.forEach(tr=>{const oi=getBancoInfo(tr.origen),sy=getSym(oi?.moneda);
+            h+=`<tr><td style="color:#dc2626">${tr.origen}</td><td style="color:#16a34a">${tr.destino}</td><td><b>${sy}${fmtNum(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?sy+fmtNum(tr.comision):'-'}</td><td>${fechaHtml(tr.fecha,tr.hora)}</td><td><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">×</button></td></tr>`});
+        $('transferenciasContent').innerHTML=h+'</tbody></table>';
+    }
+});
+
+/* ═══════════════════════════════════════
+   §14 — DASHBOARD
+   ═══════════════════════════════════════ */
+function actualizarVista(){
+    const hoy=getUDate(),mesA=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`,ops=AppState.datos.operaciones.filter(op=>op.fecha&&op.fecha.startsWith(mesA));
+    let tp=0,tr=0,stc=0,stv=0,cc=0,cv=0;
+    ops.forEach(op=>{if(op.tipo==='compra'){tp+=op.monto+(op.comisionBanco||0);stc+=op.tasa;cc++}else{tr+=op.monto;stv+=op.tasa;cv++}});
+    const tpc=cc?stc/cc:0,tpv=cv?stv/cv:0,sp=tpv-tpc;
+    let tb=0;CONFIG.BANCOS.forEach(b=>{if(AppState.datos.bancos[b.nombre]?.activo&&b.moneda==='UYU')tb+=AppState.datos.bancos[b.nombre].saldo});
+    const hoyStr=getUDateStr(),opsH=AppState.datos.operaciones.filter(o=>o.fecha===hoyStr).length;
+    const gH=calcularGananciaDiaria()[hoyStr]||0,ghE=$('gananciaHoy'),cH=$('cardGananciaHoy');
+    if(gH>=0){ghE.textContent='+$'+fmtNum(gH);ghE.className='card-value positive';cH.className='card main-card'}
+    else{ghE.textContent='-$'+fmtNum(Math.abs(gH));ghE.className='card-value negative';cH.className='card main-card negative'}
+    const ds=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    setText('fechaHoy',ds[hoy.getDay()]+' '+hoy.getDate()+'/'+(hoy.getMonth()+1));setText('opsHoy',opsH+' ops hoy');
+    setText('usdtEnTenencia',fmtNum(Math.max(0,AppState.datos.saldoUsdt),2));setText('totalBancos','$'+fmtNum(tb,0));
+    setText('totalPagado','$'+fmtNum(tp,0));setText('tasaPromCompra','Prom: $'+fmtNum(tpc));
+    const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],mn=parseInt(mesA.split('-')[1])-1;
+    setText('mesCompras','('+meses[mn]+')');setText('mesVentas','('+meses[mn]+')');
+    const la=AppState.datos.lotes.filter(l=>l.disponible>0);
+    if(la.length>0){const lm=la.reduce((m,l)=>l.precioCompra<m.precioCompra?l:m,la[0]);setText('loteMasBarato','Min: $'+fmtNum(lm.precioCompra));setText('lotesDisponibles',la.length+' lotes')}
+    else{setText('loteMasBarato','Sin stock');setText('lotesDisponibles','0 lotes')}
+    setText('totalRecibido','$'+fmtNum(tr,0));setText('tasaPromVenta','Prom: $'+fmtNum(tpv));
+    setText('spreadPromedio','$'+fmtNum(sp));setText('porcentajeSpread',fmtNum(tpc?(sp/tpc)*100:0,1)+'%');
+    actualizarBancosGrid();actualizarSelectBancos();pagOp.render();pagMov.render();pagTrans.render();
+}
+
+/* ═══════════════════════════════════════
+   §15 — LOTES MODAL
+   ═══════════════════════════════════════ */
+function abrirEditarLote(id){
+    AppState.ui.loteEditandoId=id;const l=id?AppState.datos.lotes.find(x=>x.id===id):null;
+    if(l){setText('editarLoteHeader','✏️ Editar Lote');$('lotePrecio').value=l.precioCompra;$('loteDisponible').value=l.disponible;$('loteFecha').value=l.fecha||'';$('btnEliminarLote').style.display='inline-block'}
+    else{setText('editarLoteHeader','➕ Agregar Lote');$('lotePrecio').value=AppState.datos.ultimaTasaCompra||'';$('loteDisponible').value='';$('loteFecha').value=getUDateStr();$('btnEliminarLote').style.display='none'}
+    abrirModal('modalEditarLote');
+}
+async function guardarLote(){
+    const p=parseFloat($('lotePrecio').value),d=parseFloat($('loteDisponible').value),f=$('loteFecha').value||getUDateStr();
+    if(!p||p<=0){alert('Ingresá un precio válido');return}if(d===undefined||d<0||isNaN(d)){alert('Ingresá una cantidad válida');return}
+    if(AppState.ui.loteEditandoId){const l=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);if(l){l.precioCompra=p;l.disponible=d;l.cantidad=Math.max(l.cantidad,d);l.fecha=f}}
+    else AppState.datos.lotes.push({id:Date.now(),fecha:f,hora:getUTimeStr(),precioCompra:p,cantidad:d,disponible:d});
+    sincronizarSaldoUsdt();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
+}
+async function eliminarLoteActual(){if(!AppState.ui.loteEditandoId)return;if(!confirm('¿Eliminar este lote del inventario?'))return;AppState.datos.lotes=AppState.datos.lotes.filter(l=>l.id!==AppState.ui.loteEditandoId);sincronizarSaldoUsdt();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null}
+async function forzarRecalculo(){if(!confirm('¿Recalcular todos los lotes y ganancias desde las operaciones y movimientos?'))return;recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();alert('✅ Lotes, saldo USDT y ganancias recalculados')}
+
+/* ═══════════════════════════════════════
+   §16 — BORRAR TODO
+   ═══════════════════════════════════════ */
+async function borrarTodo(){
+    if(confirm('⚠️ ¿Borrar TODO?')&&confirm('No se puede deshacer. ¿Continuar?')){
+        AppState.datos=crearDatosVacios();inicializarBancos();AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;
+        $('comisionPlataforma').value='0.14';setText('comisionPctLabel','0.14');
+        await guardarDatos();actualizarVista();
+    }
+}
+
+/* ═══════════════════════════════════════
+   §17 — EVENT LISTENERS (sin inline)
+   ═══════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',()=>{
+    // Auth
+    $('tabLogin').addEventListener('click',()=>{$('tabLogin').classList.add('active');$('tabRegister').classList.remove('active');$('loginForm').style.display='block';$('registerForm').style.display='none';$('authError').classList.remove('show')});
+    $('tabRegister').addEventListener('click',()=>{$('tabRegister').classList.add('active');$('tabLogin').classList.remove('active');$('registerForm').style.display='block';$('loginForm').style.display='none';$('authError').classList.remove('show')});
+    $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('authError').classList.remove('show');const u=$('loginUser').value.trim(),p=$('loginPass').value,b=$('loginBtn');b.disabled=true;b.textContent='Entrando...';try{await AppState.auth.signInWithEmailAndPassword(userToEmail(u),p)}catch(er){$('authError').textContent='Usuario o contraseña incorrectos';$('authError').classList.add('show');b.disabled=false;b.textContent='Iniciar Sesión'}});
+    $('registerForm').addEventListener('submit',async e=>{e.preventDefault();$('authError').classList.remove('show');const u=$('regUser').value.trim(),p=$('regPass').value,p2=$('regPassConfirm').value,ae=$('authError');
+        if(!/^[a-zA-Z0-9_-]{3,20}$/.test(u)){ae.textContent='Usuario inválido';ae.classList.add('show');return}if(p.length<6){ae.textContent='Mínimo 6 caracteres';ae.classList.add('show');return}if(p!==p2){ae.textContent='No coinciden';ae.classList.add('show');return}
+        const b=$('registerBtn');b.disabled=true;b.textContent='Creando...';try{await AppState.auth.createUserWithEmailAndPassword(userToEmail(u),p)}catch(er){ae.textContent=er.code==='auth/email-already-in-use'?'Usuario ya existe':'Error';ae.classList.add('show');b.disabled=false;b.textContent='Crear Cuenta'}});
+
+    // Menu
+    $('menuBtn').addEventListener('click',e=>{e.stopPropagation();$('menuBtn').classList.toggle('active');$('menuDropdown').classList.toggle('active')});
+    document.addEventListener('click',e=>{const m=document.querySelector('.menu-container');if(m&&!m.contains(e.target)){$('menuBtn').classList.remove('active');$('menuDropdown').classList.remove('active')}});
+    $('menuDropdown').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;$('menuBtn').classList.remove('active');$('menuDropdown').classList.remove('active');
+        const a=item.dataset.action;
+        if(a==='calendario'){AppState.ui.calendarDate=new Date();renderizarCalendario();abrirModal('modalCalendario')}
+        else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
+        else if(a==='movimiento')abrirModalMovimiento();
+        else if(a==='bancos'){renderizarListaBancos();abrirModal('modalBancos')}
+        else if(a==='transferencia')abrirModalTransferencia();
+        else if(a==='borrar-todo')borrarTodo();
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe)AppState.unsubscribe();AppState.auth.signOut()}}
+    });
+
+    // Toggle sections
+    document.querySelectorAll('.toggle-header').forEach(h=>h.addEventListener('click',()=>h.closest('.toggle-section')?.classList.toggle('open')));
+
+    // Formulario
+    $('tipo').addEventListener('change',()=>{actualizarFormulario();actualizarColorSelect()});
+    $('monto').addEventListener('input',calcularPreview);
+    $('tasa').addEventListener('input',calcularPreview);
+    $('banco').addEventListener('change',()=>{mostrarSaldoBanco();actualizarFormulario()});
+    $('comisionPlataforma').addEventListener('input',guardarComisionYCalcular);
+    $('btnAgregarOp').addEventListener('click',agregarOperacion);
+
+    // Paginación
+    $('btnPrevOp').addEventListener('click',()=>pagOp.cambiar(-1));
+    $('btnNextOp').addEventListener('click',()=>pagOp.cambiar(1));
+    $('btnPrevMov').addEventListener('click',()=>pagMov.cambiar(-1));
+    $('btnNextMov').addEventListener('click',()=>pagMov.cambiar(1));
+    $('btnPrevTrans').addEventListener('click',()=>pagTrans.cambiar(-1));
+    $('btnNextTrans').addEventListener('click',()=>pagTrans.cambiar(1));
+
+    // Modales con botones fijos
+    $('tabIngreso').addEventListener('click',()=>setTipoMovimiento('ingreso'));
+    $('tabEgreso').addEventListener('click',()=>setTipoMovimiento('egreso'));
+    $('movTipoCuenta').addEventListener('change',actualizarCuentasMovimiento);
+    $('btnGuardarMov').addEventListener('click',guardarMovimiento);
+    $('btnCancelMov').addEventListener('click',()=>cerrarModal('modalMovimiento'));
+    $('btnCerrarBancos').addEventListener('click',()=>{cerrarModal('modalBancos');guardarDatos();actualizarVista()});
+    $('bancoOrigen').addEventListener('change',mostrarSaldoOrigen);
+    $('btnTransferir').addEventListener('click',realizarTransferencia);
+    $('btnCancelTransf').addEventListener('click',()=>cerrarModal('modalTransferencia'));
+    $('btnCancelSaldo').addEventListener('click',()=>{cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
+    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=parseFloat($('nuevoSaldoBanco').value)||0,n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=parseFloat($('limiteDiarioBanco').value)||0}await guardarDatos();actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
+    $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
+    $('btnRecalcular').addEventListener('click',()=>forzarRecalculo().then(()=>actualizarVista()));
+    $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));
+    $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
+    $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
+    $('btnGuardarLote').addEventListener('click',guardarLote);
+    $('btnCalPrev').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()-1);renderizarCalendario()});
+    $('btnCalNext').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()+1);renderizarCalendario()});
+    $('btnCerrarCalendario').addEventListener('click',()=>cerrarModal('modalCalendario'));
+
+    // Delegación de eventos para contenido dinámico
+    document.addEventListener('click',e=>{
+        const t=e.target.closest('[data-action]');if(!t)return;
+        const a=t.dataset.action,id=parseInt(t.dataset.id),banco=t.dataset.banco,loteId=parseInt(t.dataset.loteId);
+        if(a==='eliminar-op')eliminarOperacion(id);
+        else if(a==='eliminar-mov')eliminarMovimiento(id);
+        else if(a==='eliminar-trans')eliminarTransferencia(id);
+        else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}else{AppState.ui.bancoEditando=banco;setText('editarSaldoHeader','Editar '+banco);$('nuevoSaldoBanco').value=AppState.datos.bancos[banco]?.saldo||0;$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=AppState.datos.bancos[banco]?.limiteDiarioUSD||0;abrirModal('modalEditarSaldo')}}
+        else if(a==='toggle-banco'){const n=t.dataset.banco;if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;guardarDatos();renderizarListaBancos()}
+        else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
+        else if(a==='editar-lote')abrirEditarLote(loteId);
+    });
+
+    // Escape cierra modales
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.modal.active').forEach(m=>m.classList.remove('active'));$('menuBtn')?.classList.remove('active');$('menuDropdown')?.classList.remove('active')}});
+
+    // Init
+    actualizarFormulario();actualizarColorSelect();inicializarFirebase();
+    setInterval(()=>{verificarResetLimites();actualizarVista()},60000);
+});
+    </script>
+</body>
+</html>
