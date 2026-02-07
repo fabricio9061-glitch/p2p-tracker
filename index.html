@@ -275,6 +275,7 @@
 
             <div class="cards">
                 <div class="card main-card" id="cardGananciaHoy"><div class="card-title">📈 Ganancia Hoy</div><div class="card-value positive" id="gananciaHoy">$0</div><div class="card-subtitle" id="fechaHoy">--</div><div class="stats-row"><span class="stat-badge" id="opsHoy">0 ops</span></div></div>
+                <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia Hoy USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops USD</div></div>
                 <div class="card"><div class="card-title">📦 <b style="color:#1e293b">USDT</b></div><div class="card-value info" id="usdtEnTenencia">0,00</div><div class="card-subtitle">En tenencia</div></div>
                 <div class="card"><div class="card-title">🏦 Bancos</div><div class="card-value positive" id="totalBancos">$0</div><div class="card-subtitle">Saldo UYU</div></div>
                 <div class="card"><div class="card-title">📥 <span class="text-compra">Compras</span> <span id="mesCompras" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromCompra">--</span><span class="stat-badge" id="loteMasBarato">--</span></div></div>
@@ -333,14 +334,23 @@
                     <div class="pagination" id="paginationTrans" style="display:none"><button id="btnPrevTrans">← Ant</button><span class="pagination-info" id="paginaInfoTrans">1 / 1</span><button id="btnNextTrans">Sig →</button></div>
                 </div>
             </div>
+
+            <!-- Conversiones -->
+            <div class="toggle-section" id="seccionConversiones" style="display:none">
+                <div class="toggle-header"><span class="toggle-title">💱 Conversiones</span><div class="toggle-right"><span class="toggle-badge" id="totalConversiones">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-content">
+                    <div class="table-scroll" id="conversionesContent"></div>
+                    <div class="pagination" id="paginationConv" style="display:none"><button id="btnPrevConv">← Ant</button><span class="pagination-info" id="paginaInfoConv">1 / 1</span><button id="btnNextConv">Sig →</button></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- ═══ MODALS ═══ -->
-    <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:15px"><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
-    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="number" step="0.01" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
+    <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:15px"><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label">💵 Ganancia Total (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
+    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="number" step="0.01" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Gestionar Bancos</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
-    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
+    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="number" step="0.01" id="transfTasa" placeholder="Ej: 42.50"></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="number" step="1" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Inventario USDT (FIFO)</div><div id="inventarioContent" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Sistema FIFO: Al vender se consumen primero los lotes más antiguos</div></div><div class="modal-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn btn-cancel" id="btnRecalcular">🔄 Recalcular</button><button class="btn" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="number" step="0.01" id="lotePrecio" placeholder="Ej: 42.50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="number" step="0.01" id="loteDisponible" placeholder="Ej: 100.00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelLote">Cancelar</button><button class="btn" style="background:#dc2626" id="btnEliminarLote">Eliminar</button><button class="btn" id="btnGuardarLote">Guardar</button></div></div></div>
@@ -386,12 +396,12 @@ const AppState = {
     db: null, auth: null, currentUser: null, unsubscribe: null,
     datos: null,
     ui: { bancoEditando:null, tipoMovimiento:'ingreso', calendarDate:new Date(),
-          loteEditandoId:null, paginaOp:1, paginaMov:1, paginaTrans:1,
+          loteEditandoId:null, paginaOp:1, paginaMov:1, paginaTrans:1, paginaConv:1,
           guardandoMovimiento:false, enCooldown:false, comisionDebounce:null }
 };
 
 function crearDatosVacios() {
-    return {operaciones:[],movimientos:[],transferencias:[],bancos:{},lotes:[],
+    return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],
             saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,
             ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14};
 }
@@ -550,11 +560,18 @@ function agregarLote(id,fecha,hora,precio,cant){
 }
 
 function consumirFIFO(cant,precioVenta){
-    let rest=cant,gan=0;const lotes=getLotesActivosFIFO();
+    let rest=cant,gan=0,costo=0;const lotes=getLotesActivosFIFO();
     for(const l of lotes){if(rest<=0)break;const c=Math.min(l.disponible,rest);
+        costo+=c*l.precioCompra;
         if(precioVenta!==undefined)gan+=c*(precioVenta-l.precioCompra);
         l.disponible=fixNeg(l.disponible-c);rest=fixNeg(rest-c)}
-    return gan;
+    return{ganancia:gan,costo};
+}
+function previewFIFO(cant){
+    let rest=cant;const lotes=getLotesActivosFIFO(),res=[];
+    for(const l of lotes){if(rest<=0)break;const c=Math.min(l.disponible,rest);
+        res.push({precio:l.precioCompra,cantidad:c,subtotal:c*l.precioCompra});rest=fixNeg(rest-c)}
+    return res;
 }
 
 function recalcularLotesYGanancias(){
@@ -568,9 +585,9 @@ function recalcularLotesYGanancias(){
         if(e.tipo==='op'){
             const op=e.data,cpct=(op.comisionPct||0.14)/100,cp=truncar(op.usdt*cpct,2),isU=op.moneda==='USD';
             if(op.tipo==='compra'){const un=op.usdt-cp;if(isU)utcUL=op.tasa;else utcL=op.tasa;agregarLote(op.id,op.fecha,op.hora||'00:00',op.tasa,un);op.ganancia=-(op.comisionBanco||0)}
-            else{const av=op.usdt+cp;op.ganancia=consumirFIFO(av,op.tasa);if(isU)AppState.datos.ultimaTasaVentaUSD=op.tasa;else AppState.datos.ultimaTasaVenta=op.tasa}
+            else{const av=op.usdt+cp;op.ganancia=consumirFIFO(av,op.tasa).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=op.tasa;else AppState.datos.ultimaTasaVenta=op.tasa}
         }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,m.monto)}
-        else if(e.tipo==='me'){consumirFIFO(e.data.monto)}
+        else if(e.tipo==='me'){const r=consumirFIFO(e.data.monto);e.data.valorUYU=r.costo}
     });
     AppState.datos.ultimaTasaCompra=utcL;AppState.datos.ultimaTasaCompraUSD=utcUL;sincronizarSaldoUsdt();
 }
@@ -602,12 +619,12 @@ function cargarDatosUsuario(){
     if(AppState.unsubscribe)AppState.unsubscribe();
     AppState.unsubscribe=AppState.db.collection('users').doc(AppState.currentUser.uid).onSnapshot(doc=>{
         const ci=$('comisionPlataforma'),cf=document.activeElement===ci,lcU=AppState.datos.comisionPlataforma,lcD=AppState.datos.comisionUSD;
-        if(doc.exists){const d=doc.data();AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],bancos:d.bancos||{},lotes:d.lotes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14}}
+        if(doc.exists){const d=doc.data();AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14}}
         else AppState.datos=crearDatosVacios();
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
         if(AppState.datos.operaciones.some(op=>op.ganancia===undefined)){recalcularLotesYGanancias();guardarDatos()}
-        AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;
+        AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
         if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=cv.toFixed(2);setText('comisionPctLabel',cv.toFixed(2))}
         actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();setSyncStatus('online','✓');
     },()=>{setSyncStatus('offline','✗');ocultarLoading()});
@@ -670,7 +687,7 @@ async function agregarOperacion(){
     try{
         const opId=Date.now();let gan=0;
         if(t==='compra'){const un=u-cpl;agregarLote(opId,f,h,ta,un);if(isU)AppState.datos.ultimaTasaCompraUSD=ta;else AppState.datos.ultimaTasaCompra=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));sincronizarSaldoUsdt();if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:m/ta;AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,(AppState.datos.bancos[b].limiteUsadoUSD||0)+mU)}gan=-cb}
-        else{const av=u+cpl;gan=consumirFIFO(av,ta);if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
+        else{const av=u+cpl;gan=consumirFIFO(av,ta).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
         AppState.datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:gan,timestamp:new Date().toISOString()});
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';AppState.ui.paginaOp=1;
         await guardarDatos();actualizarVista();activarCooldown();
@@ -697,22 +714,46 @@ function abrirModalMovimiento(){
 function setTipoMovimiento(t){AppState.ui.tipoMovimiento=t;$('tabIngreso').className='tab tab-ingreso'+(t==='ingreso'?' active':'');$('tabEgreso').className='tab tab-egreso'+(t==='egreso'?' active':'');actualizarCuentasMovimiento()}
 function actualizarCuentasMovimiento(){
     const tc=$('movTipoCuenta').value;$('movBancoGroup').style.display=tc==='usdt'?'none':'block';setText('movMontoLabel',tc==='usdt'?'Monto (USDT)':'Monto');
-    const st=tc==='usdt';$('movTasaRefGroup').style.display=st?'block':'none';
-    if(st){$('movTasaRef').value=AppState.datos.ultimaTasaCompra||'';setText('movTasaRefLabel',AppState.ui.tipoMovimiento==='ingreso'?'Tasa referencia (precio de compra)':'Tasa referencia (para cálculo UYU)')}
+    const esUsdtIngreso=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso';
+    $('movTasaRefGroup').style.display=esUsdtIngreso?'block':'none';
+    if(esUsdtIngreso){$('movTasaRef').value=AppState.datos.ultimaTasaCompra||'';setText('movTasaRefLabel','Tasa referencia (precio de compra)')}
+    const fp=$('movFifoPreview');if(fp)fp.style.display=tc==='usdt'&&AppState.ui.tipoMovimiento==='egreso'?'block':'none';
     if(tc!=='usdt'){const s=$('movBanco');s.innerHTML='<option value="">Seleccionar banco</option>';getBancosActivos().forEach(b=>{s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`})}
+    actualizarFifoPreview();
+}
+function actualizarFifoPreview(){
+    const fp=$('movFifoPreview');if(!fp)return;
+    const tc=$('movTipoCuenta').value,m=parseFloat($('movMonto').value)||0;
+    if(tc!=='usdt'||AppState.ui.tipoMovimiento!=='egreso'||m<=0){fp.innerHTML='<div style="color:#94a3b8;font-size:0.8em">Ingresá un monto para ver los lotes que se consumirán</div>';return}
+    const lots=previewFIFO(m);
+    if(!lots.length){fp.innerHTML='<div style="color:#dc2626;font-size:0.8em">⚠️ Sin lotes disponibles</div>';return}
+    let tot=0,h='<div style="font-size:0.75em;color:#64748b;margin-bottom:4px"><b>Lotes FIFO a consumir:</b></div>';
+    lots.forEach(l=>{tot+=l.subtotal;h+=`<div style="font-size:0.8em;padding:3px 0;display:flex;justify-content:space-between"><span>${fmtNum(l.cantidad,2)} USDT × $${fmtNum(l.precio)}</span><span style="color:#64748b">= $${fmtNum(l.subtotal)}</span></div>`});
+    h+=`<div style="font-size:0.8em;padding:5px 0 0;border-top:1px solid #e2e8f0;margin-top:4px;display:flex;justify-content:space-between;font-weight:600"><span>Costo real total:</span><span style="color:#2563eb">$${fmtNum(tot)}</span></div>`;
+    fp.innerHTML=h;
 }
 
 async function guardarMovimiento(){
     if(AppState.ui.guardandoMovimiento||AppState.ui.enCooldown)return;
-    const btn=$('btnGuardarMov'),tc=$('movTipoCuenta').value,b=$('movBanco').value,m=parseFloat($('movMonto').value),desc=$('movDescripcion').value,f=getUDateStr(),tRef=tc==='usdt'?parseFloat($('movTasaRef').value)||0:0;
+    const btn=$('btnGuardarMov'),tc=$('movTipoCuenta').value,b=$('movBanco').value,m=parseFloat($('movMonto').value),desc=$('movDescripcion').value,f=getUDateStr(),tRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?parseFloat($('movTasaRef').value)||0:0;
     if(!m||m<=0)return alert('Monto inválido');if(tc==='banco'&&!b)return alert('Seleccioná un banco');
     if(tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'&&(!tRef||tRef<=0))return alert('Ingresá una tasa de referencia válida');
     AppState.ui.guardandoMovimiento=true;btn.disabled=true;btn.textContent='Guardando...';
     try{
-        const mId=Date.now();let vUYU=m;if(tc==='usdt')vUYU=m*(tRef||AppState.datos.ultimaTasaCompra||1);
-        const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,valorUYU:AppState.ui.tipoMovimiento==='egreso'?vUYU:0,tasaRef:tc==='usdt'?tRef:0,descripcion:desc,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()};
-        if(tc==='usdt'){if(AppState.ui.tipoMovimiento==='ingreso'){agregarLote(mId,f,getUTimeStr(),tRef,m)}else{if(AppState.datos.saldoUsdt<m&&!confirm(`Solo tenés ${fmtNum(AppState.datos.saldoUsdt,2)} USDT en inventario. ¿Continuar?`)){AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar';return}consumirFIFO(m)}sincronizarSaldoUsdt()}
-        else AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?m:-m));
+        const mId=Date.now();let vUYU=0;
+        if(tc==='usdt'){
+            if(AppState.ui.tipoMovimiento==='ingreso'){
+                vUYU=0;agregarLote(mId,f,getUTimeStr(),tRef,m);
+            }else{
+                if(AppState.datos.saldoUsdt<m&&!confirm(`Solo tenés ${fmtNum(AppState.datos.saldoUsdt,2)} USDT en inventario. ¿Continuar?`)){AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar';return}
+                const r=consumirFIFO(m);vUYU=r.costo;
+            }
+            sincronizarSaldoUsdt();
+        }else{
+            if(AppState.ui.tipoMovimiento==='egreso')vUYU=m;
+            AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?m:-m));
+        }
+        const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,valorUYU:AppState.ui.tipoMovimiento==='egreso'?vUYU:0,tasaRef:tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0,descripcion:desc,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()};
         AppState.datos.movimientos.unshift(md);await guardarDatos();actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
     }finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar'}
 }
@@ -725,26 +766,73 @@ async function eliminarMovimiento(id){
 }
 
 /* ═══════════════════════════════════════
-   §11 — TRANSFERENCIAS
+   §11 — TRANSFERENCIAS (+ CONVERSIÓN INTEGRADA)
    ═══════════════════════════════════════ */
+function hayBancosUSD(){return CONFIG.BANCOS.some(b=>AppState.datos.bancos[b.nombre]?.activo&&b.moneda==='USD')}
+
+function esCrossMoneda(){
+    const o=$('bancoOrigen')?.value,d=$('bancoDestino')?.value;
+    if(!o||!d)return false;
+    const oi=getBancoInfo(o),di=getBancoInfo(d);
+    return oi&&di&&oi.moneda!==di.moneda;
+}
+
+function actualizarTransfUI(){
+    const cross=esCrossMoneda(),tg=$('transfTasaGroup'),pv=$('transfConvPreview'),hd=$('transfHeader');
+    tg.style.display=cross?'block':'none';
+    if(cross){hd.textContent='💱 Conversión entre monedas';$('btnTransferir').textContent='Convertir';$('btnTransferir').style.background='#7c3aed'}
+    else{hd.textContent='↔️ Transferencia entre Bancos';$('btnTransferir').textContent='Transferir';$('btnTransferir').style.background='#2563eb';pv.style.display='none'}
+    actualizarTransfPreview();
+}
+
+function actualizarTransfPreview(){
+    const pv=$('transfConvPreview');if(!esCrossMoneda()){pv.style.display='none';return}
+    const o=$('bancoOrigen').value,d=$('bancoDestino').value,m=parseFloat($('montoTransferencia').value)||0,t=parseFloat($('transfTasa').value)||0;
+    if(!m||!t){pv.style.display='none';return}
+    const oi=getBancoInfo(o),di=getBancoInfo(d);
+    let recibe;
+    if(oi.moneda==='UYU'&&di.moneda==='USD')recibe='US$'+fmtNum(m/t,2);
+    else recibe='$'+fmtNum(m*t,2);
+    pv.style.display='block';
+    pv.innerHTML=`💱 Debita <b>${getSym(oi.moneda)}${fmtNum(m)}</b> de ${o} → Recibe <b>${recibe}</b> en ${d}<div style="margin-top:4px;font-size:0.8em;color:#64748b">Solo mueve saldos · No afecta ganancia</div>`;
+}
+
 function abrirModalTransferencia(){
-    $('montoTransferencia').value='';$('comisionTransferencia').value='0';
-    const opts='<option value="">Seleccionar</option>'+getBancosActivos().map(b=>`<option value="${b.nombre}">${b.nombre}</option>`).join('');
-    $('bancoOrigen').innerHTML=opts;$('bancoDestino').innerHTML=opts;$('saldoOrigenInfo').textContent='';$('btnTransferir').disabled=false;abrirModal('modalTransferencia');
+    $('montoTransferencia').value='';$('comisionTransferencia').value='0';$('transfTasa').value='';$('transfConvPreview').style.display='none';
+    const opts='<option value="">Seleccionar</option>'+getBancosActivos().map(b=>`<option value="${b.nombre}">${b.nombre} (${b.moneda})</option>`).join('');
+    $('bancoOrigen').innerHTML=opts;$('bancoDestino').innerHTML=opts;$('saldoOrigenInfo').textContent='';$('btnTransferir').disabled=false;
+    actualizarTransfUI();abrirModal('modalTransferencia');
 }
 
 async function realizarTransferencia(){
     if(AppState.ui.enCooldown)return;const btn=$('btnTransferir');if(btn.disabled)return;
     const o=$('bancoOrigen').value,d=$('bancoDestino').value,m=parseFloat($('montoTransferencia').value),c=parseFloat($('comisionTransferencia').value)||0,f=getUDateStr();
     if(!o||!d||o===d)return alert('Seleccioná bancos diferentes');if(!m||m<=0)return alert('Monto inválido');
-    if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=(m+c)/AppState.datos.ultimaTasaCompra;const dU=AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0);if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}}
-    btn.disabled=true;btn.textContent='Transfiriendo...';
-    try{
-        AppState.datos.transferencias.unshift({id:Date.now(),origen:o,destino:d,monto:m,comision:c,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
-        AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-(m+c));AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+m);
-        if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=(m+c)/AppState.datos.ultimaTasaCompra;if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,(AppState.datos.bancos[o].limiteUsadoUSD||0)+mU)}
-        await guardarDatos();actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
-    }finally{btn.disabled=false;btn.textContent='Transferir'}
+    const cross=esCrossMoneda();
+    if(cross){
+        const t=parseFloat($('transfTasa').value);
+        if(!t||t<=0)return alert('Ingresá una tasa de conversión válida');
+        const oi=getBancoInfo(o),di=getBancoInfo(d);
+        let montoRecibido;
+        if(oi.moneda==='UYU'&&di.moneda==='USD')montoRecibido=fixNeg(m/t);
+        else montoRecibido=fixNeg(m*t);
+        btn.disabled=true;btn.textContent='Convirtiendo...';
+        try{
+            AppState.datos.conversiones.unshift({id:Date.now(),origen:o,destino:d,montoOrigen:m,montoDestino:montoRecibido,tasa:t,monedaOrigen:oi.moneda,monedaDestino:di.moneda,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
+            AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-m);
+            AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+montoRecibido);
+            await guardarDatos();actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
+        }finally{btn.disabled=false;btn.textContent='Convertir'}
+    }else{
+        if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=(m+c)/AppState.datos.ultimaTasaCompra;const dU=AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0);if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}}
+        btn.disabled=true;btn.textContent='Transfiriendo...';
+        try{
+            AppState.datos.transferencias.unshift({id:Date.now(),origen:o,destino:d,monto:m,comision:c,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
+            AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-(m+c));AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+m);
+            if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=(m+c)/AppState.datos.ultimaTasaCompra;if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,(AppState.datos.bancos[o].limiteUsadoUSD||0)+mU)}
+            await guardarDatos();actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
+        }finally{btn.disabled=false;btn.textContent='Transferir'}
+    }
 }
 
 async function eliminarTransferencia(id){
@@ -754,15 +842,36 @@ async function eliminarTransferencia(id){
     AppState.datos.transferencias=AppState.datos.transferencias.filter(x=>x.id!==id);await guardarDatos();actualizarVista();
 }
 
+async function eliminarConversion(id){
+    if(!confirm('¿Eliminar conversión?'))return;
+    const c=AppState.datos.conversiones.find(x=>x.id===id);
+    if(c){AppState.datos.bancos[c.origen].saldo=fixNeg(AppState.datos.bancos[c.origen].saldo+c.montoOrigen);AppState.datos.bancos[c.destino].saldo=fixNeg(AppState.datos.bancos[c.destino].saldo-c.montoDestino)}
+    AppState.datos.conversiones=AppState.datos.conversiones.filter(x=>x.id!==id);await guardarDatos();actualizarVista();
+}
+
 /* ═══════════════════════════════════════
    §12 — CALENDARIO
    ═══════════════════════════════════════ */
-function calcularGananciaDiaria(){
-    const g={};AppState.datos.operaciones.forEach(op=>{if(!g[op.fecha])g[op.fecha]=0;if(op.ganancia!==undefined)g[op.fecha]+=op.ganancia});
-    AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(!g[mv.fecha])g[mv.fecha]=0;if(mv.tipoCuenta==='usdt'){g[mv.fecha]-=mv.valorUYU||(mv.monto*(AppState.datos.ultimaTasaCompra||1))}else g[mv.fecha]-=mv.monto}});
+function calcularGananciaDiaria(monedaFiltro){
+    const g={};AppState.datos.operaciones.forEach(op=>{
+        if(monedaFiltro&&op.moneda!==monedaFiltro)return;
+        if(!monedaFiltro&&op.moneda==='USD')return;
+        if(!g[op.fecha])g[op.fecha]=0;if(op.ganancia!==undefined)g[op.fecha]+=op.ganancia});
+    if(!monedaFiltro||monedaFiltro==='UYU'){
+        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(!g[mv.fecha])g[mv.fecha]=0;if(mv.tipoCuenta==='usdt'){g[mv.fecha]-=mv.valorUYU||(mv.monto*(AppState.datos.ultimaTasaCompra||1))}else g[mv.fecha]-=mv.monto}});
+    }
     return g;
 }
-function calcularGananciaTotal(){let g=0;AppState.datos.operaciones.forEach(op=>{if(op.ganancia!==undefined)g+=op.ganancia});AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(mv.tipoCuenta==='usdt')g-=mv.valorUYU||(mv.monto*(AppState.datos.ultimaTasaCompra||1));else g-=mv.monto}});return g}
+function calcularGananciaTotal(monedaFiltro){
+    let g=0;AppState.datos.operaciones.forEach(op=>{
+        if(monedaFiltro&&op.moneda!==monedaFiltro)return;
+        if(!monedaFiltro&&op.moneda==='USD')return;
+        if(op.ganancia!==undefined)g+=op.ganancia});
+    if(!monedaFiltro||monedaFiltro==='UYU'){
+        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(mv.tipoCuenta==='usdt')g-=mv.valorUYU||(mv.monto*(AppState.datos.ultimaTasaCompra||1));else g-=mv.monto}});
+    }
+    return g;
+}
 
 function renderizarCalendario(){
     const y=AppState.ui.calendarDate.getFullYear(),mo=AppState.ui.calendarDate.getMonth();
@@ -777,6 +886,9 @@ function renderizarCalendario(){
     setHtml('calendarDays',h);
     const gt=calcularGananciaTotal(),ge=$('calGananciaTotal');ge.textContent=(gt>=0?'+':'-')+'$'+fmtNum(Math.abs(gt),0);ge.className='calendar-stat-value '+(gt>=0?'positive':'negative');
     setText('calGanancias','+$'+fmtNum(tg,0));setText('calPerdidas','-$'+fmtNum(tp,0));
+    // USD total
+    const calUSDBox=$('calGananciaUSDBox'),calUSD=$('calGananciaUSD');
+    if(calUSD&&calUSDBox){if(hayBancosUSD()){const gtU=calcularGananciaTotal('USD');calUSDBox.style.display='';calUSD.textContent=(gtU>=0?'+':'-')+'US$'+fmtNum(Math.abs(gtU),0);calUSD.className='calendar-stat-value '+(gtU>=0?'positive':'negative')}else calUSDBox.style.display='none'}
 }
 
 /* ═══════════════════════════════════════
@@ -816,6 +928,17 @@ const pagTrans=crearPaginacion({getTotal:()=>AppState.datos.transferencias.lengt
     }
 });
 
+const pagConv=crearPaginacion({getTotal:()=>(AppState.datos.conversiones||[]).length,getPag:()=>AppState.ui.paginaConv||1,setPag:p=>{AppState.ui.paginaConv=p},porPag:CONFIG.POR_PAGINA,
+    ids:{pagination:'paginationConv',info:'paginaInfoConv',prev:'btnPrevConv',next:'btnNextConv'},
+    renderFn:(ini,fin,total)=>{
+        setText('totalConversiones',total||0);const sec=$('seccionConversiones');if(!total){sec.style.display='none';return}sec.style.display='block';
+        const cvs=(AppState.datos.conversiones||[]).slice(ini,fin);let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Debita</th><th>Recibe</th><th>Tasa</th><th>Fecha</th><th></th></tr></thead><tbody>';
+        cvs.forEach(c=>{const syO=c.monedaOrigen==='USD'?'US$':'$',syD=c.monedaDestino==='USD'?'US$':'$';
+            h+=`<tr><td style="color:#dc2626">${c.origen}</td><td style="color:#16a34a">${c.destino}</td><td><b>${syO}${fmtNum(c.montoOrigen)}</b></td><td><b>${syD}${fmtNum(c.montoDestino)}</b></td><td>${fmtNum(c.tasa)}</td><td>${fechaHtml(c.fecha,c.hora)}</td><td><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">×</button></td></tr>`});
+        $('conversionesContent').innerHTML=h+'</tbody></table>';
+    }
+});
+
 /* ═══════════════════════════════════════
    §14 — DASHBOARD
    ═══════════════════════════════════════ */
@@ -831,6 +954,17 @@ function actualizarVista(){
     else{ghE.textContent='-$'+fmtNum(Math.abs(gH));ghE.className='card-value negative';cH.className='card main-card negative'}
     const ds=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     setText('fechaHoy',ds[hoy.getDay()]+' '+hoy.getDate()+'/'+(hoy.getMonth()+1));setText('opsHoy',opsH+' ops hoy');
+    // — Ganancia Hoy USD —
+    const tieneUSD=hayBancosUSD(),cardUSD=$('cardGananciaUSD');
+    if(tieneUSD){
+        cardUSD.style.display='block';
+        const opsUSDHoy=AppState.datos.operaciones.filter(o=>o.fecha===hoyStr&&o.moneda==='USD');
+        let gUSD=0;opsUSDHoy.forEach(o=>{if(o.ganancia!==undefined)gUSD+=o.ganancia});
+        const nUSD=opsUSDHoy.length,geU=$('gananciaHoyUSD');
+        if(gUSD>=0){geU.textContent='+US$'+fmtNum(gUSD);geU.className='card-value positive'}
+        else{geU.textContent='-US$'+fmtNum(Math.abs(gUSD));geU.className='card-value negative'}
+        setText('opsHoyUSD',nUSD+' ops USD hoy');
+    }else cardUSD.style.display='none';
     setText('usdtEnTenencia',fmtNum(Math.max(0,AppState.datos.saldoUsdt),2));setText('totalBancos','$'+fmtNum(tb,0));
     setText('totalPagado','$'+fmtNum(tp,0));setText('tasaPromCompra','Prom: $'+fmtNum(tpc));
     const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],mn=parseInt(mesA.split('-')[1])-1;
@@ -840,7 +974,7 @@ function actualizarVista(){
     else{setText('loteMasBarato','Sin stock');setText('lotesDisponibles','0 lotes')}
     setText('totalRecibido','$'+fmtNum(tr,0));setText('tasaPromVenta','Prom: $'+fmtNum(tpv));
     setText('spreadPromedio','$'+fmtNum(sp));setText('porcentajeSpread',fmtNum(tpc?(sp/tpc)*100:0,1)+'%');
-    actualizarBancosGrid();actualizarSelectBancos();pagOp.render();pagMov.render();pagTrans.render();
+    actualizarBancosGrid();actualizarSelectBancos();pagOp.render();pagMov.render();pagTrans.render();pagConv.render();
 }
 
 /* ═══════════════════════════════════════
@@ -867,7 +1001,7 @@ async function forzarRecalculo(){if(!confirm('¿Recalcular todos los lotes y gan
    ═══════════════════════════════════════ */
 async function borrarTodo(){
     if(confirm('⚠️ ¿Borrar TODO?')&&confirm('No se puede deshacer. ¿Continuar?')){
-        AppState.datos=crearDatosVacios();inicializarBancos();AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;
+        AppState.datos=crearDatosVacios();inicializarBancos();AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
         $('comisionPlataforma').value='0.14';setText('comisionPctLabel','0.14');
         await guardarDatos();actualizarVista();
     }
@@ -917,6 +1051,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnNextMov').addEventListener('click',()=>pagMov.cambiar(1));
     $('btnPrevTrans').addEventListener('click',()=>pagTrans.cambiar(-1));
     $('btnNextTrans').addEventListener('click',()=>pagTrans.cambiar(1));
+    $('btnPrevConv').addEventListener('click',()=>pagConv.cambiar(-1));
+    $('btnNextConv').addEventListener('click',()=>pagConv.cambiar(1));
 
     // Modales con botones fijos
     $('tabIngreso').addEventListener('click',()=>setTipoMovimiento('ingreso'));
@@ -925,9 +1061,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnGuardarMov').addEventListener('click',guardarMovimiento);
     $('btnCancelMov').addEventListener('click',()=>cerrarModal('modalMovimiento'));
     $('btnCerrarBancos').addEventListener('click',()=>{cerrarModal('modalBancos');guardarDatos();actualizarVista()});
-    $('bancoOrigen').addEventListener('change',mostrarSaldoOrigen);
+    $('bancoOrigen').addEventListener('change',()=>{mostrarSaldoOrigen();actualizarTransfUI()});
+    $('bancoDestino').addEventListener('change',actualizarTransfUI);
+    $('montoTransferencia').addEventListener('input',actualizarTransfPreview);
+    $('transfTasa').addEventListener('input',actualizarTransfPreview);
     $('btnTransferir').addEventListener('click',realizarTransferencia);
     $('btnCancelTransf').addEventListener('click',()=>cerrarModal('modalTransferencia'));
+    $('movMonto').addEventListener('input',actualizarFifoPreview);
     $('btnCancelSaldo').addEventListener('click',()=>{cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
     $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=parseFloat($('nuevoSaldoBanco').value)||0,n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=parseFloat($('limiteDiarioBanco').value)||0}await guardarDatos();actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
@@ -947,6 +1087,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         if(a==='eliminar-op')eliminarOperacion(id);
         else if(a==='eliminar-mov')eliminarMovimiento(id);
         else if(a==='eliminar-trans')eliminarTransferencia(id);
+        else if(a==='eliminar-conv')eliminarConversion(id);
         else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}else{AppState.ui.bancoEditando=banco;setText('editarSaldoHeader','Editar '+banco);$('nuevoSaldoBanco').value=AppState.datos.bancos[banco]?.saldo||0;$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=AppState.datos.bancos[banco]?.limiteDiarioUSD||0;abrirModal('modalEditarSaldo')}}
         else if(a==='toggle-banco'){const n=t.dataset.banco;if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;guardarDatos();renderizarListaBancos()}
         else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
