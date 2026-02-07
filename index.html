@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Registro P2P</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💱</text></svg>">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Overlays -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div style="color:#64748b;font-size:0.9em">Cargando...</div>
+    </div>
+    <div class="cooldown-overlay hidden" id="cooldownOverlay">
+        <div class="spinner"></div>
+        <div class="cooldown-text">Guardado ✓</div>
+    </div>
+
+    <!-- ═══ AUTH ═══ -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-box">
+            <div class="auth-logo">💱</div>
+            <h1 class="auth-title">Registro P2P</h1>
+            <p class="auth-subtitle">Control de operaciones y saldos</p>
+
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tabLogin">Iniciar Sesión</button>
+                <button class="auth-tab" id="tabRegister">Registrarse</button>
+            </div>
+
+            <div class="auth-error" id="authError"></div>
+
+            <form class="auth-form" id="loginForm">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="loginUser" placeholder="Tu usuario" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="loginPass" placeholder="Tu contraseña" required>
+                </div>
+                <button type="submit" class="btn" id="loginBtn">Iniciar Sesión</button>
+            </form>
+
+            <form class="auth-form" id="registerForm" style="display:none">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="regUser" placeholder="Elige un usuario" required>
+                    <small>Letras, números, guiones. 3-20 caracteres.</small>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="regPass" placeholder="Crea una contraseña" required>
+                    <small>Mínimo 6 caracteres</small>
+                </div>
+                <div class="form-group">
+                    <label>Confirmar Contraseña</label>
+                    <input type="password" id="regPassConfirm" placeholder="Repite la contraseña" required>
+                </div>
+                <button type="submit" class="btn" id="registerBtn">Crear Cuenta</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ APP ═══ -->
+    <div class="app-container" id="appContainer">
+        <div class="container">
+
+            <!-- Header -->
+            <div class="header">
+                <h1>💱 Registro P2P</h1>
+                <p>Control de operaciones y saldos</p>
+                <div class="sync-status offline" id="syncStatus">
+                    <div class="sync-dot"></div>
+                    <span id="syncText">...</span>
+                </div>
+                <div class="menu-container">
+                    <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
+                    <div class="menu-dropdown" id="menuDropdown">
+                        <div class="menu-user">
+                            <div class="menu-user-name" id="menuUserName">Usuario</div>
+                            <div class="menu-user-email" id="menuUserEmail">@p2p</div>
+                        </div>
+                        <div class="menu-item"><span>📅</span><span>Calendario</span></div>
+                        <div class="menu-item"><span>📦</span><span>Inventario USDT</span></div>
+                        <div class="menu-item"><span>💸</span><span>Movimiento Externo</span></div>
+                        <div class="menu-item"><span>🏦</span><span>Gestionar Bancos</span></div>
+                        <div class="menu-item"><span>↔️</span><span>Transferencia</span></div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item danger"><span>🗑️</span><span>Borrar Todo</span></div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item"><span>🚪</span><span>Cerrar Sesión</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Cards -->
+            <div class="cards">
+                <div class="card main-card" id="cardGananciaHoy">
+                    <div class="card-title">📈 Ganancia Hoy</div>
+                    <div class="card-value positive" id="gananciaHoy">$0</div>
+                    <div class="card-subtitle" id="fechaHoy">--</div>
+                    <div class="stats-row"><span class="stat-badge" id="opsHoy">0 ops</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📦 <b style="color:#1e293b">USDT</b></div>
+                    <div class="card-value info" id="usdtEnTenencia">0,00</div>
+                    <div class="card-subtitle">En tenencia</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">🏦 Bancos</div>
+                    <div class="card-value positive" id="totalBancos">$0</div>
+                    <div class="card-subtitle">Saldo UYU</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📥 <span class="text-compra">Compras</span> <span id="mesCompras" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
+                    <div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div>
+                    <div class="stats-row">
+                        <span class="stat-badge" id="tasaPromCompra">--</span>
+                        <span class="stat-badge" id="loteMasBarato">--</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📤 <span class="text-venta">Ventas</span> <span id="mesVentas" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
+                    <div class="card-value" style="font-size:1.2em" id="totalRecibido">$0</div>
+                    <div class="stats-row">
+                        <span class="stat-badge" id="tasaPromVenta">--</span>
+                        <span class="stat-badge" id="lotesDisponibles">--</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📊 Spread</div>
+                    <div class="card-value info" id="spreadPromedio">$0</div>
+                    <div class="stats-row"><span class="stat-badge" id="porcentajeSpread">0%</span></div>
+                </div>
+            </div>
+
+            <!-- Bancos Grid -->
+            <div class="section-title">💼 Mis Saldos</div>
+            <div class="bancos-grid" id="bancosGrid"></div>
+
+            <!-- Nueva Operación -->
+            <div class="toggle-section open" id="seccionNuevaOp">
+                <div class="toggle-header">
+                    <span class="toggle-title">➕ Nueva Operación</span>
+                    <span class="toggle-arrow">▼</span>
+                </div>
+                <div class="toggle-content">
+                    <div class="form-content">
+                        <div class="form-group">
+                            <label>Tipo de operación</label>
+                            <select id="tipo">
+                                <option value="compra">🛒 Compra USDT</option>
+                                <option value="venta">💵 Venta USDT</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label id="montoLabel">Monto (UYU)</label>
+                                <input type="number" step="0.01" id="monto" placeholder="3900">
+                            </div>
+                            <div class="form-group">
+                                <label>Tasa *</label>
+                                <input type="text" id="tasa" placeholder="39.50" inputmode="decimal">
+                                <small id="tasaHelp">Ej: 39.50</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label id="bancoLabel">Banco *</label>
+                                <select id="banco">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                                <small id="bancoHelp"></small>
+                            </div>
+                            <div class="form-group" id="comisionBancoGroup">
+                                <label>Comisión banco</label>
+                                <input type="number" step="0.01" id="comisionBanco" value="0" placeholder="0">
+                            </div>
+                        </div>
+                        <div class="comision-inline">
+                            <label>📊 Comisión Binance:</label>
+                            <input type="text" id="comisionPlataforma" value="0.14" placeholder="0.14" inputmode="decimal">
+                            <span>%</span>
+                        </div>
+                        <div class="preview-box" id="previewBox" style="display:none">
+                            <span id="previewText"></span>
+                        </div>
+                        <button class="btn" id="btnAgregarOp" style="margin-top:12px">Agregar Operación</button>
+                        <div class="info-text">
+                            Comisión <span id="comisionPctLabel">0.14</span>%:
+                            <strong id="comisionPlataformaInfo">0 USDT</strong>
+                            <span id="saldoBancoInfo"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operaciones -->
+            <div class="toggle-section open" id="seccionOperaciones">
+                <div class="toggle-header">
+                    <span class="toggle-title">📋 Operaciones</span>
+                    <div class="toggle-right">
+                        <span class="toggle-badge" id="totalOperaciones">0</span>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                </div>
+                <div class="toggle-content">
+                    <div class="table-scroll" id="tablaContent">
+                        <div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>
+                    </div>
+                    <div class="pagination" id="paginationOp" style="display:none">
+                        <button id="btnPrevOp">← Ant</button>
+                        <span class="pagination-info" id="paginaInfoOp">1 / 1</span>
+                        <button id="btnNextOp">Sig →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Movimientos -->
+            <div class="toggle-section" id="seccionMovimientos" style="display:none">
+                <div class="toggle-header">
+                    <span class="toggle-title">💸 Movimientos</span>
+                    <div class="toggle-right">
+                        <span class="toggle-badge" id="totalMovimientos">0</span>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                </div>
+                <div class="toggle-content">
+                    <div class="table-scroll" id="movimientosContent"></div>
+                    <div class="pagination" id="paginationMov" style="display:none">
+                        <button id="btnPrevMov">← Ant</button>
+                        <span class="pagination-info" id="paginaInfoMov">1 / 1</span>
+                        <button id="btnNextMov">Sig →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transferencias -->
+            <div class="toggle-section" id="seccionTransferencias" style="display:none">
+                <div class="toggle-header">
+                    <span class="toggle-title">↔️ Transferencias</span>
+                    <div class="toggle-right">
+                        <span class="toggle-badge" id="totalTransferencias">0</span>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                </div>
+                <div class="toggle-content">
+                    <div class="table-scroll" id="transferenciasContent"></div>
+                    <div class="pagination" id="paginationTrans" style="display:none">
+                        <button id="btnPrevTrans">← Ant</button>
+                        <span class="pagination-info" id="paginaInfoTrans">1 / 1</span>
+                        <button id="btnNextTrans">Sig →</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══ MODALES ═══ -->
+
+    <!-- Calendario -->
+    <div id="modalCalendario" class="modal">
+        <div class="modal-content" style="max-width:420px;padding:15px">
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button>◀</button>
+                    <div class="calendar-month" id="calendarMonth">2025-01</div>
+                    <button>▶</button>
+                </div>
+                <div class="calendar-weekdays">
+                    <div class="calendar-weekday">D</div>
+                    <div class="calendar-weekday">L</div>
+                    <div class="calendar-weekday">M</div>
+                    <div class="calendar-weekday">M</div>
+                    <div class="calendar-weekday">J</div>
+                    <div class="calendar-weekday">V</div>
+                    <div class="calendar-weekday">S</div>
+                </div>
+                <div class="calendar-days" id="calendarDays"></div>
+                <div class="calendar-summary">
+                    <div class="calendar-stat full" id="calGananciaTotalBox">
+                        <div class="calendar-stat-value positive" id="calGananciaTotal">$0</div>
+                        <div class="calendar-stat-label">💰 Ganancia Total</div>
+                    </div>
+                    <div class="calendar-stat">
+                        <div class="calendar-stat-value positive" id="calGanancias">$0</div>
+                        <div class="calendar-stat-label">Mes +</div>
+                    </div>
+                    <div class="calendar-stat">
+                        <div class="calendar-stat-value negative" id="calPerdidas">$0</div>
+                        <div class="calendar-stat-label">Mes -</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movimiento Externo -->
+    <div id="modalMovimiento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">💸 Movimiento Externo</div>
+            <div class="tabs">
+                <button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button>
+                <button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button>
+            </div>
+            <div class="form-group">
+                <label>Tipo de cuenta</label>
+                <select id="movTipoCuenta">
+                    <option value="banco">🏦 Banco</option>
+                    <option value="usdt">🪙 USDT</option>
+                </select>
+            </div>
+            <div class="form-group" id="movBancoGroup">
+                <label>Banco</label>
+                <select id="movBanco"></select>
+            </div>
+            <div class="form-group" id="movTasaRefGroup" style="display:none">
+                <label id="movTasaRefLabel">Tasa referencia ($/USDT)</label>
+                <input type="number" step="0.01" id="movTasaRef">
+                <small>Precio al que se registra en el inventario FIFO</small>
+            </div>
+            <div class="form-group">
+                <label id="movMontoLabel">Monto</label>
+                <input type="number" step="0.01" id="movMonto">
+            </div>
+            <div class="form-group">
+                <label>Descripción (opcional)</label>
+                <textarea id="movDescripcion" rows="2"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel">Cancelar</button>
+                <button class="btn" id="btnGuardarMov">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gestionar Bancos -->
+    <div id="modalBancos" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">🏦 Gestionar Bancos</div>
+            <div id="listaBancos"></div>
+            <div class="modal-buttons">
+                <button class="btn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transferencia -->
+    <div id="modalTransferencia" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">↔️ Transferencia entre Bancos</div>
+            <div class="form-group">
+                <label>Banco origen</label>
+                <select id="bancoOrigen"></select>
+                <small id="saldoOrigenInfo"></small>
+            </div>
+            <div class="form-group">
+                <label>Banco destino</label>
+                <select id="bancoDestino"></select>
+            </div>
+            <div class="form-group">
+                <label>Monto</label>
+                <input type="number" step="0.01" id="montoTransferencia">
+            </div>
+            <div class="form-group">
+                <label>Comisión (opcional)</label>
+                <input type="number" step="0.01" id="comisionTransferencia" value="0">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel">Cancelar</button>
+                <button class="btn" id="btnTransferir">Transferir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editar Saldo -->
+    <div id="modalEditarSaldo" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="editarSaldoHeader">Editar Saldo</div>
+            <div class="form-group">
+                <label>Nuevo saldo</label>
+                <input type="number" step="0.01" id="nuevoSaldoBanco">
+            </div>
+            <div class="form-group" id="limiteDiarioGroup">
+                <label>Límite diario (USD)</label>
+                <input type="number" step="1" id="limiteDiarioBanco" placeholder="0 = sin límite">
+                <small>Se descuenta automáticamente con cada compra</small>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel">Cancelar</button>
+                <button class="btn">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventario USDT -->
+    <div id="modalInventario" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">📦 Inventario USDT (FIFO)</div>
+            <div id="inventarioContent" style="max-height:50vh;overflow-y:auto"></div>
+            <div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px">
+                <div style="font-size:0.75em;color:#64748b">Sistema FIFO: Al vender se consumen primero los lotes más antiguos</div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn" style="background:#16a34a">+ Agregar</button>
+                <button class="btn btn-cancel">🔄 Recalcular</button>
+                <button class="btn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editar Lote -->
+    <div id="modalEditarLote" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="editarLoteHeader">Editar Lote</div>
+            <div class="form-group">
+                <label>Precio de compra (tasa)</label>
+                <input type="number" step="0.01" id="lotePrecio" placeholder="Ej: 42.50">
+            </div>
+            <div class="form-group">
+                <label>Cantidad disponible (USDT)</label>
+                <input type="number" step="0.01" id="loteDisponible" placeholder="Ej: 100.00">
+            </div>
+            <div class="form-group">
+                <label>Fecha (opcional)</label>
+                <input type="date" id="loteFecha">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel">Cancelar</button>
+                <button class="btn" style="background:#dc2626" id="btnEliminarLote">Eliminar</button>
+                <button class="btn">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- App (ES Modules) -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
