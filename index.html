@@ -553,17 +553,18 @@ function mostrarSaldoOrigen(){
 /* ═══════════════════════════════════════
    §7 — INVENTARIO FIFO
    ═══════════════════════════════════════ */
-function agregarLote(id,fecha,hora,precio,cant){
-    const ex=AppState.datos.lotes.find(l=>l.precioCompra===precio&&l.disponible>0);
+function agregarLote(id,fecha,hora,precio,cant,moneda){
+    moneda=moneda||'UYU';
+    const ex=AppState.datos.lotes.find(l=>l.precioCompra===precio&&l.disponible>0&&(l.moneda||'UYU')===moneda);
     if(ex){ex.cantidad+=cant;ex.disponible+=cant}
-    else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant});
+    else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant,moneda});
 }
 
-function consumirFIFO(cant,precioVenta){
+function consumirFIFO(cant,precioVenta,monedaVenta){
     let rest=cant,gan=0,costo=0;const lotes=getLotesActivosFIFO();
     for(const l of lotes){if(rest<=0)break;const c=Math.min(l.disponible,rest);
         costo+=c*l.precioCompra;
-        if(precioVenta!==undefined)gan+=c*(precioVenta-l.precioCompra);
+        if(precioVenta!==undefined&&(l.moneda||'UYU')===(monedaVenta||'UYU'))gan+=c*(precioVenta-l.precioCompra);
         l.disponible=fixNeg(l.disponible-c);rest=fixNeg(rest-c)}
     return{ganancia:gan,costo};
 }
@@ -584,9 +585,9 @@ function recalcularLotesYGanancias(){
     ev.forEach(e=>{
         if(e.tipo==='op'){
             const op=e.data,cpct=(op.comisionPct||0.14)/100,cp=truncar(op.usdt*cpct,2),isU=op.moneda==='USD';
-            if(op.tipo==='compra'){const un=op.usdt-cp;if(isU)utcUL=op.tasa;else utcL=op.tasa;agregarLote(op.id,op.fecha,op.hora||'00:00',op.tasa,un);op.ganancia=-(op.comisionBanco||0)}
-            else{const av=op.usdt+cp;op.ganancia=consumirFIFO(av,op.tasa).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=op.tasa;else AppState.datos.ultimaTasaVenta=op.tasa}
-        }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,m.monto)}
+            if(op.tipo==='compra'){const un=op.usdt-cp;if(isU)utcUL=op.tasa;else utcL=op.tasa;agregarLote(op.id,op.fecha,op.hora||'00:00',op.tasa,un,op.moneda||'UYU');op.ganancia=-(op.comisionBanco||0)}
+            else{const av=op.usdt+cp;op.ganancia=consumirFIFO(av,op.tasa,op.moneda||'UYU').ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=op.tasa;else AppState.datos.ultimaTasaVenta=op.tasa}
+        }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,m.monto,'UYU')}
         else if(e.tipo==='me'){const r=consumirFIFO(e.data.monto);e.data.valorUYU=r.costo}
     });
     AppState.datos.ultimaTasaCompra=utcL;AppState.datos.ultimaTasaCompraUSD=utcUL;sincronizarSaldoUsdt();
@@ -596,8 +597,8 @@ function renderizarInventario(){
     const la=getLotesActivosFIFO();
     if(!la.length){setHtml('inventarioContent','<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px">📭</div><div>Sin USDT en inventario</div></div>');return}
     let tot=0,h='<table style="min-width:auto"><thead><tr><th>#</th><th>Precio</th><th>Disponible</th><th>Valor</th><th></th></tr></thead><tbody>';
-    la.forEach((l,i)=>{tot+=l.disponible;const v=l.disponible*l.precioCompra;
-        h+=`<tr><td style="color:#64748b">${i+1}</td><td><b>$${fmtNum(l.precioCompra)}</b></td><td style="color:#2563eb"><b>${fmtNum(l.disponible,2)}</b></td><td style="color:#64748b">$${fmtNum(v,0)}</td><td><button class="btn-edit-small" data-action="editar-lote" data-lote-id="${l.id}">✏️</button></td></tr>`});
+    la.forEach((l,i)=>{tot+=l.disponible;const mon=l.moneda||'UYU',sy=mon==='USD'?'US$':'$',v=l.disponible*l.precioCompra;
+        h+=`<tr><td style="color:#64748b">${i+1}</td><td><b>${sy}${fmtNum(l.precioCompra,mon==='USD'?3:2)}</b></td><td style="color:#2563eb"><b>${fmtNum(l.disponible,2)}</b></td><td style="color:#64748b">${sy}${fmtNum(v,mon==='USD'?2:0)}</td><td><button class="btn-edit-small" data-action="editar-lote" data-lote-id="${l.id}">✏️</button></td></tr>`});
     h+=`</tbody></table><div style="margin-top:12px;padding:10px;background:#eff6ff;border-radius:8px;display:flex;justify-content:space-between"><span style="color:#64748b">Total en inventario:</span><span style="color:#2563eb;font-weight:bold">${fmtNum(tot,2)} USDT</span></div>`;
     setHtml('inventarioContent',h);
 }
@@ -623,7 +624,8 @@ function cargarDatosUsuario(){
         else AppState.datos=crearDatosVacios();
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
-        if(AppState.datos.operaciones.some(op=>op.ganancia===undefined)){recalcularLotesYGanancias();guardarDatos()}
+        const needsMigration=AppState.datos.lotes.some(l=>!l.moneda)||AppState.datos.operaciones.some(op=>op.ganancia===undefined);
+        if(needsMigration){recalcularLotesYGanancias();guardarDatos()}
         AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
         if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=cv.toFixed(2);setText('comisionPctLabel',cv.toFixed(2))}
         actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();setSyncStatus('online','✓');
@@ -686,8 +688,8 @@ async function agregarOperacion(){
     btn.disabled=true;btn.textContent='Guardando...';
     try{
         const opId=Date.now();let gan=0;
-        if(t==='compra'){const un=u-cpl;agregarLote(opId,f,h,ta,un);if(isU)AppState.datos.ultimaTasaCompraUSD=ta;else AppState.datos.ultimaTasaCompra=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));sincronizarSaldoUsdt();if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:m/ta;AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,(AppState.datos.bancos[b].limiteUsadoUSD||0)+mU)}gan=-cb}
-        else{const av=u+cpl;gan=consumirFIFO(av,ta).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
+        if(t==='compra'){const un=u-cpl;agregarLote(opId,f,h,ta,un,mon);if(isU)AppState.datos.ultimaTasaCompraUSD=ta;else AppState.datos.ultimaTasaCompra=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));sincronizarSaldoUsdt();if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:m/ta;AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,(AppState.datos.bancos[b].limiteUsadoUSD||0)+mU)}gan=-cb}
+        else{const av=u+cpl;gan=consumirFIFO(av,ta,mon).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
         AppState.datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:gan,timestamp:new Date().toISOString()});
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';AppState.ui.paginaOp=1;
         await guardarDatos();actualizarVista();activarCooldown();
@@ -743,7 +745,7 @@ async function guardarMovimiento(){
         const mId=Date.now();let vUYU=0;
         if(tc==='usdt'){
             if(AppState.ui.tipoMovimiento==='ingreso'){
-                vUYU=0;agregarLote(mId,f,getUTimeStr(),tRef,m);
+                vUYU=0;agregarLote(mId,f,getUTimeStr(),tRef,m,'UYU');
             }else{
                 if(AppState.datos.saldoUsdt<m&&!confirm(`Solo tenés ${fmtNum(AppState.datos.saldoUsdt,2)} USDT en inventario. ¿Continuar?`)){AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar';return}
                 const r=consumirFIFO(m);vUYU=r.costo;
@@ -990,7 +992,7 @@ async function guardarLote(){
     const p=parseFloat($('lotePrecio').value),d=parseFloat($('loteDisponible').value),f=$('loteFecha').value||getUDateStr();
     if(!p||p<=0){alert('Ingresá un precio válido');return}if(d===undefined||d<0||isNaN(d)){alert('Ingresá una cantidad válida');return}
     if(AppState.ui.loteEditandoId){const l=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);if(l){l.precioCompra=p;l.disponible=d;l.cantidad=Math.max(l.cantidad,d);l.fecha=f}}
-    else AppState.datos.lotes.push({id:Date.now(),fecha:f,hora:getUTimeStr(),precioCompra:p,cantidad:d,disponible:d});
+    else AppState.datos.lotes.push({id:Date.now(),fecha:f,hora:getUTimeStr(),precioCompra:p,cantidad:d,disponible:d,moneda:'UYU'});
     sincronizarSaldoUsdt();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
 }
 async function eliminarLoteActual(){if(!AppState.ui.loteEditandoId)return;if(!confirm('¿Eliminar este lote del inventario?'))return;AppState.datos.lotes=AppState.datos.lotes.filter(l=>l.id!==AppState.ui.loteEditandoId);sincronizarSaldoUsdt();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null}
