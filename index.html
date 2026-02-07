@@ -581,12 +581,23 @@ function recalcularLotesYGanancias(){
     AppState.datos.movimientos.filter(m=>m.tipoCuenta==='usdt').forEach(m=>{
         ev.push({tipo:m.tipoMovimiento==='ingreso'?'mi':'me',fecha:m.fecha,hora:m.hora||'00:00',data:m})});
     ev.sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')));
-    let utcL=AppState.datos.ultimaTasaCompra||0,utcUL=AppState.datos.ultimaTasaCompraUSD||0;
+    let utcL=AppState.datos.ultimaTasaCompra||0,utcUL=AppState.datos.ultimaTasaCompraUSD||0,utvU=0;
     ev.forEach(e=>{
         if(e.tipo==='op'){
             const op=e.data,cpct=(op.comisionPct||0.14)/100,cp=truncar(op.usdt*cpct,2),isU=op.moneda==='USD';
-            if(op.tipo==='compra'){const un=op.usdt-cp;if(isU)utcUL=op.tasa;else utcL=op.tasa;agregarLote(op.id,op.fecha,op.hora||'00:00',op.tasa,un,op.moneda||'UYU');op.ganancia=-(op.comisionBanco||0)}
-            else{const av=op.usdt+cp;op.ganancia=consumirFIFO(av,op.tasa,op.moneda||'UYU').ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=op.tasa;else AppState.datos.ultimaTasaVenta=op.tasa}
+            if(op.tipo==='compra'){
+                const un=op.usdt-cp;
+                if(isU){
+                    op.ganancia=(utvU>0?un*(utvU-op.tasa):0)-(op.comisionBanco||0);
+                    utcUL=op.tasa;
+                }else{utcL=op.tasa;op.ganancia=-(op.comisionBanco||0)}
+                agregarLote(op.id,op.fecha,op.hora||'00:00',op.tasa,un,op.moneda||'UYU');
+            }else{
+                const av=op.usdt+cp;
+                const fifoGan=consumirFIFO(av,op.tasa,op.moneda||'UYU').ganancia;
+                if(isU){utvU=op.tasa;AppState.datos.ultimaTasaVentaUSD=op.tasa;op.ganancia=fifoGan}
+                else{AppState.datos.ultimaTasaVenta=op.tasa;op.ganancia=fifoGan}
+            }
         }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,m.monto,'UYU')}
         else if(e.tipo==='me'){const r=consumirFIFO(e.data.monto);e.data.valorUYU=r.costo}
     });
@@ -688,7 +699,18 @@ async function agregarOperacion(){
     btn.disabled=true;btn.textContent='Guardando...';
     try{
         const opId=Date.now();let gan=0;
-        if(t==='compra'){const un=u-cpl;agregarLote(opId,f,h,ta,un,mon);if(isU)AppState.datos.ultimaTasaCompraUSD=ta;else AppState.datos.ultimaTasaCompra=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));sincronizarSaldoUsdt();if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:m/ta;AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,(AppState.datos.bancos[b].limiteUsadoUSD||0)+mU)}gan=-cb}
+        if(t==='compra'){
+            const un=u-cpl;
+            if(isU){
+                /* USD compra cierra ciclo: ganancia = spread vs última venta USD */
+                gan=AppState.datos.ultimaTasaVentaUSD>0?un*(AppState.datos.ultimaTasaVentaUSD-ta):0;
+                gan-=cb;
+                AppState.datos.ultimaTasaCompraUSD=ta;
+            }else{AppState.datos.ultimaTasaCompra=ta;gan=-cb}
+            agregarLote(opId,f,h,ta,un,mon);
+            AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));sincronizarSaldoUsdt();
+            if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:m/ta;AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,(AppState.datos.bancos[b].limiteUsadoUSD||0)+mU)}
+        }
         else{const av=u+cpl;gan=consumirFIFO(av,ta,mon).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
         AppState.datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:gan,timestamp:new Date().toISOString()});
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';AppState.ui.paginaOp=1;
