@@ -397,7 +397,8 @@ const AppState = {
     datos: null,
     ui: { bancoEditando:null, tipoMovimiento:'ingreso', calendarDate:new Date(),
           loteEditandoId:null, paginaOp:1, paginaMov:1, paginaTrans:1, paginaConv:1,
-          guardandoMovimiento:false, enCooldown:false, comisionDebounce:null }
+          guardandoMovimiento:false, guardandoLote:false, guardandoOperacion:false, guardandoTransferencia:false,
+          enCooldown:false, comisionDebounce:null, tasaManual:false, ultimoMonedaBanco:null }
 };
 
 function crearDatosVacios() {
@@ -426,8 +427,9 @@ function activarCooldown() {
 /* ═══════════════════════════════════════
    §4 — UTILIDADES PURAS
    ═══════════════════════════════════════ */
-function fixNeg(n){return Object.is(n,-0)?0:Math.round(n*100)/100}
-function truncar(n,d=2){return Math.floor(n*Math.pow(10,d))/Math.pow(10,d)}
+function fixNeg(n){if(Object.is(n,-0))return 0;const r=Number(Math.round(parseFloat(n+'e2'))+'e-2');return isNaN(r)?0:r}
+function truncar(n,d=2){if(isNaN(n))return 0;const f=Number(n+'e'+d);return Number(Math.floor(f)+'e-'+d)}
+function roundMoney(n,d=2){if(isNaN(n))return 0;const r=Number(Math.round(parseFloat(n+'e'+d))+'e-'+d);return Object.is(r,-0)?0:r}
 function fmtNum(n,d=2){return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function fmtTasa(n,mon){if(mon==='USD'){const s=n.toString(),dec=s.includes('.')?s.split('.')[1].length:0;return dec>2?n.toFixed(3):n.toFixed(2)}return n.toFixed(2)}
 function parsearTasa(v){if(!v)return null;const l=v.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,3})?$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<=0?null:n}
@@ -439,7 +441,7 @@ function fmtFechaCorta(f){if(!f)return'-';const p=f.split('-');return p.length==
 function fechaHtml(f,h){return`<div class="fecha-hora"><span class="fecha">${fmtFechaCorta(f)}</span><span class="hora">${h||'--:--'}</span></div>`}
 function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
 function getSym(mon){return mon==='USD'?'US$':'$'}
-function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=fixNeg(AppState.datos.lotes.reduce((s,l)=>s+l.disponible,0))}
+function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=roundMoney(AppState.datos.lotes.reduce((s,l)=>s+l.disponible,0))}
 function getLotesActivosFIFO(){return AppState.datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')))}
 
 /* ═══════════════════════════════════════
@@ -554,24 +556,24 @@ function mostrarSaldoOrigen(){
    §7 — INVENTARIO FIFO
    ═══════════════════════════════════════ */
 function agregarLote(id,fecha,hora,precio,cant,moneda){
-    moneda=moneda||'UYU';
+    moneda=moneda||'UYU';cant=roundMoney(cant);
     const ex=AppState.datos.lotes.find(l=>l.precioCompra===precio&&l.disponible>0&&(l.moneda||'UYU')===moneda);
-    if(ex){ex.cantidad+=cant;ex.disponible+=cant}
+    if(ex){ex.cantidad=roundMoney(ex.cantidad+cant);ex.disponible=roundMoney(ex.disponible+cant)}
     else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant,moneda});
 }
 
 function consumirFIFO(cant,precioVenta,monedaVenta){
-    let rest=cant,gan=0,costo=0;const lotes=getLotesActivosFIFO();
-    for(const l of lotes){if(rest<=0)break;const c=Math.min(l.disponible,rest);
-        costo+=c*l.precioCompra;
-        if(precioVenta!==undefined&&(l.moneda||'UYU')===(monedaVenta||'UYU'))gan+=c*(precioVenta-l.precioCompra);
-        l.disponible=fixNeg(l.disponible-c);rest=fixNeg(rest-c)}
+    let rest=roundMoney(cant),gan=0,costo=0;const lotes=getLotesActivosFIFO();
+    for(const l of lotes){if(rest<=0)break;const c=roundMoney(Math.min(l.disponible,rest));
+        costo=roundMoney(costo+roundMoney(c*l.precioCompra));
+        if(precioVenta!==undefined&&(l.moneda||'UYU')===(monedaVenta||'UYU'))gan=roundMoney(gan+roundMoney(c*(precioVenta-l.precioCompra)));
+        l.disponible=roundMoney(l.disponible-c);if(l.disponible<0.001)l.disponible=0;rest=roundMoney(rest-c);if(rest<0.001)rest=0}
     return{ganancia:gan,costo};
 }
 function previewFIFO(cant){
-    let rest=cant;const lotes=getLotesActivosFIFO(),res=[];
-    for(const l of lotes){if(rest<=0)break;const c=Math.min(l.disponible,rest);
-        res.push({precio:l.precioCompra,cantidad:c,subtotal:c*l.precioCompra});rest=fixNeg(rest-c)}
+    let rest=roundMoney(cant);const lotes=getLotesActivosFIFO(),res=[];
+    for(const l of lotes){if(rest<=0)break;const c=roundMoney(Math.min(l.disponible,rest));
+        res.push({precio:l.precioCompra,cantidad:c,subtotal:roundMoney(c*l.precioCompra)});rest=roundMoney(rest-c);if(rest<0.001)rest=0}
     return res;
 }
 
@@ -586,20 +588,20 @@ function recalcularLotesYGanancias(){
         if(e.tipo==='op'){
             const op=e.data,cpct=(op.comisionPct||0.14)/100,cp=truncar(op.usdt*cpct,2),isU=op.moneda==='USD';
             if(op.tipo==='compra'){
-                const un=op.usdt-cp;
+                const un=roundMoney(op.usdt-cp);
                 if(isU){
-                    op.ganancia=(utvU>0?un*(utvU-op.tasa):0)-(op.comisionBanco||0);
+                    op.ganancia=roundMoney((utvU>0?roundMoney(un*(utvU-op.tasa)):0)-(op.comisionBanco||0));
                     utcUL=op.tasa;
-                }else{utcL=op.tasa;op.ganancia=-(op.comisionBanco||0)}
+                }else{utcL=op.tasa;op.ganancia=roundMoney(-(op.comisionBanco||0))}
                 agregarLote(op.id,op.fecha,op.hora||'00:00',op.tasa,un,op.moneda||'UYU');
             }else{
-                const av=op.usdt+cp;
+                const av=roundMoney(op.usdt+cp);
                 const fifoGan=consumirFIFO(av,op.tasa,op.moneda||'UYU').ganancia;
-                if(isU){utvU=op.tasa;AppState.datos.ultimaTasaVentaUSD=op.tasa;op.ganancia=fifoGan}
-                else{AppState.datos.ultimaTasaVenta=op.tasa;op.ganancia=fifoGan}
+                if(isU){utvU=op.tasa;AppState.datos.ultimaTasaVentaUSD=op.tasa;op.ganancia=roundMoney(fifoGan)}
+                else{AppState.datos.ultimaTasaVenta=op.tasa;op.ganancia=roundMoney(fifoGan)}
             }
-        }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,m.monto,'UYU')}
-        else if(e.tipo==='me'){const r=consumirFIFO(e.data.monto);e.data.valorUYU=r.costo}
+        }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,roundMoney(m.monto),'UYU')}
+        else if(e.tipo==='me'){const r=consumirFIFO(roundMoney(e.data.monto));e.data.valorUYU=r.costo}
     });
     AppState.datos.ultimaTasaCompra=utcL;AppState.datos.ultimaTasaCompraUSD=utcUL;sincronizarSaldoUsdt();
 }
@@ -660,11 +662,19 @@ function actualizarColorSelect(){const s=$('tipo');s.style.color=s.value==='comp
 
 function actualizarFormulario(){
     const t=$('tipo').value,mon=getMonedaBanco(),isU=mon==='USD';
+    const prevMon=AppState.ui.ultimoMonedaBanco;
+    const monedaCambiada=prevMon!==null&&prevMon!==mon;
+    AppState.ui.ultimoMonedaBanco=mon;
     setText('montoLabel',t==='compra'?`Pagás (${mon})`:`Recibís (${mon})`);
     setText('bancoLabel',t==='compra'?'Sale de *':'Entra a *');
     $('comisionBancoGroup').style.display=t==='compra'?'block':'none';
     if(t==='venta')$('comisionBanco').value='0';
-    const ti=$('tasa');if(document.activeElement!==ti){const ta=t==='compra'?(isU?AppState.datos.ultimaTasaCompraUSD:AppState.datos.ultimaTasaCompra):(isU?AppState.datos.ultimaTasaVentaUSD:AppState.datos.ultimaTasaVenta);ti.value=ta>0?fmtTasa(ta,mon):''}
+    const ti=$('tasa');
+    if(document.activeElement!==ti&&(!AppState.ui.tasaManual||monedaCambiada)){
+        const ta=t==='compra'?(isU?AppState.datos.ultimaTasaCompraUSD:AppState.datos.ultimaTasaCompra):(isU?AppState.datos.ultimaTasaVentaUSD:AppState.datos.ultimaTasaVenta);
+        ti.value=ta>0?fmtTasa(ta,mon):'';
+        if(monedaCambiada)AppState.ui.tasaManual=false;
+    }
     setText('tasaHelp',isU?'Ej: 1.025':'Ej: 39.50');
     const ci=$('comisionPlataforma');if(document.activeElement!==ci){const cv=isU?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=cv.toFixed(2);setText('comisionPctLabel',cv.toFixed(2))}
     calcularPreview();
@@ -673,8 +683,8 @@ function actualizarFormulario(){
 function calcularPreview(){
     const t=$('tipo').value,m=parseFloat($('monto').value)||0,ta=parsearTasa($('tasa').value),cp=getComisionDec(),mon=getMonedaBanco(),isU=mon==='USD';
     $('tasa').classList.remove('error');const th=$('tasaHelp');th.className='';th.textContent=isU?'Ej: 1.025':'Ej: 39.50';
-    if(m>0&&ta){const u=m/ta,c=truncar(u*cp,2);setText('comisionPlataformaInfo',fmtNum(c,2)+' USDT');
-        $('previewText').innerHTML=t==='compra'?`📥 Recibís <b>${fmtNum(u-c,2)} USDT</b>`:`📤 Entregás <b>${fmtNum(u+c,2)} USDT</b>`;$('previewBox').style.display='block'}
+    if(m>0&&ta){const u=roundMoney(m/ta,6),c=truncar(u*cp,2);setText('comisionPlataformaInfo',fmtNum(c,2)+' USDT');
+        $('previewText').innerHTML=t==='compra'?`📥 Recibís <b>${fmtNum(roundMoney(u-c),2)} USDT</b>`:`📤 Entregás <b>${fmtNum(roundMoney(u+c),2)} USDT</b>`;$('previewBox').style.display='block'}
     else{$('previewBox').style.display='none';setText('comisionPlataformaInfo','0 USDT')}
 }
 
@@ -687,41 +697,40 @@ function guardarComisionYCalcular(){
 }
 
 async function agregarOperacion(){
-    if(AppState.ui.enCooldown)return;const btn=$('btnAgregarOp');if(btn.disabled)return;
-    const t=$('tipo').value,m=parseFloat($('monto').value),ti=$('tasa'),ta=parsearTasa(ti.value),b=$('banco').value,cb=parseFloat($('comisionBanco').value)||0,f=getUDateStr(),h=getUTimeStr(),mon=getMonedaBanco(),isU=mon==='USD',cpv=getComisionActual(),cp=cpv/100;
+    if(AppState.ui.enCooldown||AppState.ui.guardandoOperacion)return;const btn=$('btnAgregarOp');if(btn.disabled)return;
+    const t=$('tipo').value,m=parseFloat($('monto').value),ti=$('tasa'),ta=parsearTasa(ti.value),b=$('banco').value,cb=roundMoney(parseFloat($('comisionBanco').value)||0),f=getUDateStr(),h=getUTimeStr(),mon=getMonedaBanco(),isU=mon==='USD',cpv=getComisionActual(),cp=cpv/100;
     if(!m){alert('Ingresá el monto');return}
     if(!ta){ti.classList.add('error');$('tasaHelp').textContent='Formato inválido';$('tasaHelp').className='error-text';alert('Tasa inválida (ej: '+(isU?'1.025':'39.50')+')');return}
     if(!b){$('bancoHelp').textContent='Seleccioná un banco';$('bancoHelp').className='error-text';$('banco').classList.add('error');alert('Seleccioná un banco');return}
     $('banco').classList.remove('error');
-    const u=m/ta,cpl=truncar(u*cp,2);
-    if(t==='compra'){const bk=AppState.datos.bancos[b];if(bk.limiteDiarioUSD>0){const mU=isU?m:m/ta,dU=bk.limiteDiarioUSD-(bk.limiteUsadoUSD||0);if(mU>dU){alert(`Excede el límite diario. Disponible: US$${fmtNum(dU,0)} (${fmtNum(mU,2)} USD requeridos)`);return}}if(bk.saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return}
-    else{const un=u+cpl;if(AppState.datos.saldoUsdt<un&&!confirm(`Solo tenés ${fmtNum(AppState.datos.saldoUsdt,2)} USDT. ¿Continuar?`))return}
-    btn.disabled=true;btn.textContent='Guardando...';
+    const u=roundMoney(m/ta,6),cpl=truncar(u*cp,2);
+    if(t==='compra'){const bk=AppState.datos.bancos[b];if(bk.limiteDiarioUSD>0){const mU=isU?m:roundMoney(m/ta),dU=roundMoney(bk.limiteDiarioUSD-(bk.limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario. Disponible: US$${fmtNum(dU,0)} (${fmtNum(mU,2)} USD requeridos)`);return}}if(bk.saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return}
+    else{const un=roundMoney(u+cpl);if(AppState.datos.saldoUsdt<un&&!confirm(`Solo tenés ${fmtNum(AppState.datos.saldoUsdt,2)} USDT. ¿Continuar?`))return}
+    AppState.ui.guardandoOperacion=true;btn.disabled=true;btn.textContent='Guardando...';
     try{
         const opId=Date.now();let gan=0;
         if(t==='compra'){
-            const un=u-cpl;
+            const un=roundMoney(u-cpl);
             if(isU){
-                /* USD compra cierra ciclo: ganancia = spread vs última venta USD */
-                gan=AppState.datos.ultimaTasaVentaUSD>0?un*(AppState.datos.ultimaTasaVentaUSD-ta):0;
-                gan-=cb;
+                gan=AppState.datos.ultimaTasaVentaUSD>0?roundMoney(un*(AppState.datos.ultimaTasaVentaUSD-ta)):0;
+                gan=roundMoney(gan-cb);
                 AppState.datos.ultimaTasaCompraUSD=ta;
-            }else{AppState.datos.ultimaTasaCompra=ta;gan=-cb}
+            }else{AppState.datos.ultimaTasaCompra=ta;gan=roundMoney(-cb)}
             agregarLote(opId,f,h,ta,un,mon);
             AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));sincronizarSaldoUsdt();
-            if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:m/ta;AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,(AppState.datos.bancos[b].limiteUsadoUSD||0)+mU)}
+            if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:roundMoney(m/ta);AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,roundMoney((AppState.datos.bancos[b].limiteUsadoUSD||0)+mU))}
         }
-        else{const av=u+cpl;gan=consumirFIFO(av,ta,mon).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
-        AppState.datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:gan,timestamp:new Date().toISOString()});
-        $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';AppState.ui.paginaOp=1;
+        else{const av=roundMoney(u+cpl);gan=consumirFIFO(av,ta,mon).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
+        AppState.datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:roundMoney(u,6),banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:roundMoney(gan),timestamp:new Date().toISOString()});
+        $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
         await guardarDatos();actualizarVista();activarCooldown();
-    }finally{btn.disabled=false;btn.textContent='Agregar Operación'}
+    }finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;btn.textContent='Agregar Operación'}
 }
 
 async function eliminarOperacion(id){
     if(!confirm('¿Eliminar operación? Se recalcularán los lotes y ganancias.'))return;
     const op=AppState.datos.operaciones.find(o=>o.id===id);
-    if(op){if(op.tipo==='compra'){if(op.banco&&AppState.datos.bancos[op.banco]){AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo+(op.monto+(op.comisionBanco||0)));if(AppState.datos.bancos[op.banco].limiteDiarioUSD>0){const mU=op.monto/op.tasa;AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,(AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU)}}}else{if(op.banco&&AppState.datos.bancos[op.banco])AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo-op.monto)}}
+    if(op){if(op.tipo==='compra'){if(op.banco&&AppState.datos.bancos[op.banco]){AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo+roundMoney(op.monto+(op.comisionBanco||0)));if(AppState.datos.bancos[op.banco].limiteDiarioUSD>0){const mU=roundMoney(op.monto/op.tasa);AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU))}}}else{if(op.banco&&AppState.datos.bancos[op.banco])AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo-op.monto)}}
     AppState.datos.operaciones=AppState.datos.operaciones.filter(o=>o.id!==id);
     recalcularLotesYGanancias();await guardarDatos();actualizarVista();
 }
@@ -759,25 +768,26 @@ function actualizarFifoPreview(){
 
 async function guardarMovimiento(){
     if(AppState.ui.guardandoMovimiento||AppState.ui.enCooldown)return;
-    const btn=$('btnGuardarMov'),tc=$('movTipoCuenta').value,b=$('movBanco').value,m=parseFloat($('movMonto').value),desc=$('movDescripcion').value,f=getUDateStr(),tRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?parseFloat($('movTasaRef').value)||0:0;
+    const btn=$('btnGuardarMov');if(btn.disabled)return;
+    const tc=$('movTipoCuenta').value,b=$('movBanco').value,m=parseFloat($('movMonto').value),desc=$('movDescripcion').value,f=getUDateStr(),tRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?parseFloat($('movTasaRef').value)||0:0;
     if(!m||m<=0)return alert('Monto inválido');if(tc==='banco'&&!b)return alert('Seleccioná un banco');
     if(tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'&&(!tRef||tRef<=0))return alert('Ingresá una tasa de referencia válida');
     AppState.ui.guardandoMovimiento=true;btn.disabled=true;btn.textContent='Guardando...';
     try{
-        const mId=Date.now();let vUYU=0;
+        const mId=Date.now(),mR=roundMoney(m);let vUYU=0;
         if(tc==='usdt'){
             if(AppState.ui.tipoMovimiento==='ingreso'){
-                vUYU=0;agregarLote(mId,f,getUTimeStr(),tRef,m,'UYU');
+                vUYU=0;agregarLote(mId,f,getUTimeStr(),tRef,mR,'UYU');
             }else{
-                if(AppState.datos.saldoUsdt<m&&!confirm(`Solo tenés ${fmtNum(AppState.datos.saldoUsdt,2)} USDT en inventario. ¿Continuar?`)){AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar';return}
-                const r=consumirFIFO(m);vUYU=r.costo;
+                if(AppState.datos.saldoUsdt<mR&&!confirm(`Solo tenés ${fmtNum(AppState.datos.saldoUsdt,2)} USDT en inventario. ¿Continuar?`)){AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar';return}
+                const r=consumirFIFO(mR);vUYU=r.costo;
             }
             sincronizarSaldoUsdt();
         }else{
-            if(AppState.ui.tipoMovimiento==='egreso')vUYU=m;
-            AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?m:-m));
+            if(AppState.ui.tipoMovimiento==='egreso')vUYU=mR;
+            AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?mR:-mR));
         }
-        const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:m,valorUYU:AppState.ui.tipoMovimiento==='egreso'?vUYU:0,tasaRef:tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0,descripcion:desc,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()};
+        const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:mR,valorUYU:AppState.ui.tipoMovimiento==='egreso'?roundMoney(vUYU):0,tasaRef:tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0,descripcion:desc,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()};
         AppState.datos.movimientos.unshift(md);await guardarDatos();actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
     }finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar'}
 }
@@ -829,8 +839,8 @@ function abrirModalTransferencia(){
 }
 
 async function realizarTransferencia(){
-    if(AppState.ui.enCooldown)return;const btn=$('btnTransferir');if(btn.disabled)return;
-    const o=$('bancoOrigen').value,d=$('bancoDestino').value,m=parseFloat($('montoTransferencia').value),c=parseFloat($('comisionTransferencia').value)||0,f=getUDateStr();
+    if(AppState.ui.enCooldown||AppState.ui.guardandoTransferencia)return;const btn=$('btnTransferir');if(btn.disabled)return;
+    const o=$('bancoOrigen').value,d=$('bancoDestino').value,m=parseFloat($('montoTransferencia').value),c=roundMoney(parseFloat($('comisionTransferencia').value)||0),f=getUDateStr();
     if(!o||!d||o===d)return alert('Seleccioná bancos diferentes');if(!m||m<=0)return alert('Monto inválido');
     const cross=esCrossMoneda();
     if(cross){
@@ -838,31 +848,31 @@ async function realizarTransferencia(){
         if(!t||t<=0)return alert('Ingresá una tasa de conversión válida');
         const oi=getBancoInfo(o),di=getBancoInfo(d);
         let montoRecibido;
-        if(oi.moneda==='UYU'&&di.moneda==='USD')montoRecibido=fixNeg(m/t);
-        else montoRecibido=fixNeg(m*t);
-        btn.disabled=true;btn.textContent='Convirtiendo...';
+        if(oi.moneda==='UYU'&&di.moneda==='USD')montoRecibido=roundMoney(m/t);
+        else montoRecibido=roundMoney(m*t);
+        btn.disabled=true;btn.textContent='Convirtiendo...';AppState.ui.guardandoTransferencia=true;
         try{
             AppState.datos.conversiones.unshift({id:Date.now(),origen:o,destino:d,montoOrigen:m,montoDestino:montoRecibido,tasa:t,monedaOrigen:oi.moneda,monedaDestino:di.moneda,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
             AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-m);
             AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+montoRecibido);
             await guardarDatos();actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
-        }finally{btn.disabled=false;btn.textContent='Convertir'}
+        }finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Convertir'}
     }else{
-        if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=(m+c)/AppState.datos.ultimaTasaCompra;const dU=AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0);if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}}
-        btn.disabled=true;btn.textContent='Transfiriendo...';
+        if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);const dU=roundMoney(AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}}
+        btn.disabled=true;btn.textContent='Transfiriendo...';AppState.ui.guardandoTransferencia=true;
         try{
             AppState.datos.transferencias.unshift({id:Date.now(),origen:o,destino:d,monto:m,comision:c,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
             AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-(m+c));AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+m);
-            if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=(m+c)/AppState.datos.ultimaTasaCompra;if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,(AppState.datos.bancos[o].limiteUsadoUSD||0)+mU)}
+            if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,roundMoney((AppState.datos.bancos[o].limiteUsadoUSD||0)+mU))}
             await guardarDatos();actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
-        }finally{btn.disabled=false;btn.textContent='Transferir'}
+        }finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Transferir'}
     }
 }
 
 async function eliminarTransferencia(id){
     if(!confirm('¿Eliminar?'))return;const t=AppState.datos.transferencias.find(x=>x.id===id);
     if(t){AppState.datos.bancos[t.origen].saldo=fixNeg(AppState.datos.bancos[t.origen].saldo+(t.monto+t.comision));AppState.datos.bancos[t.destino].saldo=fixNeg(AppState.datos.bancos[t.destino].saldo-t.monto);
-        if(AppState.datos.bancos[t.origen].limiteDiarioUSD>0){const bi=getBancoInfo(t.origen);let mU=0;if(bi?.moneda==='USD')mU=t.monto+t.comision;else if(AppState.datos.ultimaTasaCompra>0)mU=(t.monto+t.comision)/AppState.datos.ultimaTasaCompra;if(mU>0)AppState.datos.bancos[t.origen].limiteUsadoUSD=Math.max(0,(AppState.datos.bancos[t.origen].limiteUsadoUSD||0)-mU)}}
+        if(AppState.datos.bancos[t.origen].limiteDiarioUSD>0){const bi=getBancoInfo(t.origen);let mU=0;if(bi?.moneda==='USD')mU=t.monto+t.comision;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((t.monto+t.comision)/AppState.datos.ultimaTasaCompra);if(mU>0)AppState.datos.bancos[t.origen].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[t.origen].limiteUsadoUSD||0)-mU))}}
     AppState.datos.transferencias=AppState.datos.transferencias.filter(x=>x.id!==id);await guardarDatos();actualizarVista();
 }
 
@@ -880,9 +890,9 @@ function calcularGananciaDiaria(monedaFiltro){
     const g={};AppState.datos.operaciones.forEach(op=>{
         if(monedaFiltro&&op.moneda!==monedaFiltro)return;
         if(!monedaFiltro&&op.moneda==='USD')return;
-        if(!g[op.fecha])g[op.fecha]=0;if(op.ganancia!==undefined)g[op.fecha]+=op.ganancia});
+        if(!g[op.fecha])g[op.fecha]=0;if(op.ganancia!==undefined)g[op.fecha]=roundMoney(g[op.fecha]+op.ganancia)});
     if(!monedaFiltro||monedaFiltro==='UYU'){
-        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(!g[mv.fecha])g[mv.fecha]=0;if(mv.tipoCuenta==='usdt'){g[mv.fecha]-=mv.valorUYU||(mv.monto*(AppState.datos.ultimaTasaCompra||1))}else g[mv.fecha]-=mv.monto}});
+        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(!g[mv.fecha])g[mv.fecha]=0;if(mv.tipoCuenta==='usdt'){g[mv.fecha]=roundMoney(g[mv.fecha]-(mv.valorUYU||roundMoney(mv.monto*(AppState.datos.ultimaTasaCompra||1))))}else g[mv.fecha]=roundMoney(g[mv.fecha]-mv.monto)}});
     }
     return g;
 }
@@ -890,9 +900,9 @@ function calcularGananciaTotal(monedaFiltro){
     let g=0;AppState.datos.operaciones.forEach(op=>{
         if(monedaFiltro&&op.moneda!==monedaFiltro)return;
         if(!monedaFiltro&&op.moneda==='USD')return;
-        if(op.ganancia!==undefined)g+=op.ganancia});
+        if(op.ganancia!==undefined)g=roundMoney(g+op.ganancia)});
     if(!monedaFiltro||monedaFiltro==='UYU'){
-        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(mv.tipoCuenta==='usdt')g-=mv.valorUYU||(mv.monto*(AppState.datos.ultimaTasaCompra||1));else g-=mv.monto}});
+        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(mv.tipoCuenta==='usdt')g=roundMoney(g-(mv.valorUYU||roundMoney(mv.monto*(AppState.datos.ultimaTasaCompra||1))));else g=roundMoney(g-mv.monto)}});
     }
     return g;
 }
@@ -969,8 +979,8 @@ const pagConv=crearPaginacion({getTotal:()=>(AppState.datos.conversiones||[]).le
 function actualizarVista(){
     const hoy=getUDate(),mesA=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`,ops=AppState.datos.operaciones.filter(op=>op.fecha&&op.fecha.startsWith(mesA));
     let tp=0,tr=0,stc=0,stv=0,cc=0,cv=0;
-    ops.forEach(op=>{if(op.tipo==='compra'){tp+=op.monto+(op.comisionBanco||0);stc+=op.tasa;cc++}else{tr+=op.monto;stv+=op.tasa;cv++}});
-    const tpc=cc?stc/cc:0,tpv=cv?stv/cv:0,sp=tpv-tpc;
+    ops.forEach(op=>{if(op.tipo==='compra'){tp=roundMoney(tp+op.monto+(op.comisionBanco||0));stc=roundMoney(stc+op.tasa);cc++}else{tr=roundMoney(tr+op.monto);stv=roundMoney(stv+op.tasa);cv++}});
+    const tpc=cc?roundMoney(stc/cc):0,tpv=cv?roundMoney(stv/cv):0,sp=roundMoney(tpv-tpc);
     let tb=0;CONFIG.BANCOS.forEach(b=>{if(AppState.datos.bancos[b.nombre]?.activo&&b.moneda==='UYU')tb+=AppState.datos.bancos[b.nombre].saldo});
     const hoyStr=getUDateStr(),opsH=AppState.datos.operaciones.filter(o=>o.fecha===hoyStr).length;
     const gH=calcularGananciaDiaria()[hoyStr]||0,ghE=$('gananciaHoy'),cH=$('cardGananciaHoy');
@@ -983,7 +993,7 @@ function actualizarVista(){
     if(tieneUSD){
         cardUSD.style.display='block';
         const opsUSDHoy=AppState.datos.operaciones.filter(o=>o.fecha===hoyStr&&o.moneda==='USD');
-        let gUSD=0;opsUSDHoy.forEach(o=>{if(o.ganancia!==undefined)gUSD+=o.ganancia});
+        let gUSD=0;opsUSDHoy.forEach(o=>{if(o.ganancia!==undefined)gUSD=roundMoney(gUSD+o.ganancia)});
         const nUSD=opsUSDHoy.length,geU=$('gananciaHoyUSD');
         if(gUSD>=0){geU.textContent='+US$'+fmtNum(gUSD);geU.className='card-value positive'}
         else{geU.textContent='-US$'+fmtNum(Math.abs(gUSD));geU.className='card-value negative'}
@@ -1011,13 +1021,18 @@ function abrirEditarLote(id){
     abrirModal('modalEditarLote');
 }
 async function guardarLote(){
+    if(AppState.ui.guardandoLote)return;
+    const btn=$('btnGuardarLote');if(btn.disabled)return;
     const p=parseFloat($('lotePrecio').value),d=parseFloat($('loteDisponible').value),f=$('loteFecha').value||getUDateStr();
     if(!p||p<=0){alert('Ingresá un precio válido');return}if(d===undefined||d<0||isNaN(d)){alert('Ingresá una cantidad válida');return}
-    if(AppState.ui.loteEditandoId){const l=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);if(l){l.precioCompra=p;l.disponible=d;l.cantidad=Math.max(l.cantidad,d);l.fecha=f}}
-    else AppState.datos.lotes.push({id:Date.now(),fecha:f,hora:getUTimeStr(),precioCompra:p,cantidad:d,disponible:d,moneda:'UYU'});
-    sincronizarSaldoUsdt();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
+    AppState.ui.guardandoLote=true;btn.disabled=true;btn.textContent='Guardando...';
+    try{
+        if(AppState.ui.loteEditandoId){const l=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);if(l){l.precioCompra=roundMoney(p,3);l.disponible=roundMoney(d);l.cantidad=Math.max(l.cantidad,roundMoney(d));l.fecha=f}}
+        else AppState.datos.lotes.push({id:Date.now(),fecha:f,hora:getUTimeStr(),precioCompra:roundMoney(p,3),cantidad:roundMoney(d),disponible:roundMoney(d),moneda:'UYU'});
+        sincronizarSaldoUsdt();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
+    }finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Guardar'}
 }
-async function eliminarLoteActual(){if(!AppState.ui.loteEditandoId)return;if(!confirm('¿Eliminar este lote del inventario?'))return;AppState.datos.lotes=AppState.datos.lotes.filter(l=>l.id!==AppState.ui.loteEditandoId);sincronizarSaldoUsdt();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null}
+async function eliminarLoteActual(){if(!AppState.ui.loteEditandoId||AppState.ui.guardandoLote)return;if(!confirm('¿Eliminar este lote del inventario?'))return;AppState.ui.guardandoLote=true;const btn=$('btnEliminarLote');btn.disabled=true;btn.textContent='Eliminando...';try{AppState.datos.lotes=AppState.datos.lotes.filter(l=>l.id!==AppState.ui.loteEditandoId);sincronizarSaldoUsdt();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Eliminar'}}
 async function forzarRecalculo(){if(!confirm('¿Recalcular todos los lotes y ganancias desde las operaciones y movimientos?'))return;recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();alert('✅ Lotes, saldo USDT y ganancias recalculados')}
 
 /* ═══════════════════════════════════════
@@ -1061,9 +1076,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.querySelectorAll('.toggle-header').forEach(h=>h.addEventListener('click',()=>h.closest('.toggle-section')?.classList.toggle('open')));
 
     // Formulario
-    $('tipo').addEventListener('change',()=>{actualizarFormulario();actualizarColorSelect()});
+    $('tipo').addEventListener('change',()=>{AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;actualizarFormulario();actualizarColorSelect()});
     $('monto').addEventListener('input',calcularPreview);
-    $('tasa').addEventListener('input',calcularPreview);
+    $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview()});
     $('banco').addEventListener('change',()=>{mostrarSaldoBanco();actualizarFormulario()});
     $('comisionPlataforma').addEventListener('input',guardarComisionYCalcular);
     $('btnAgregarOp').addEventListener('click',agregarOperacion);
@@ -1093,7 +1108,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnCancelTransf').addEventListener('click',()=>cerrarModal('modalTransferencia'));
     $('movMonto').addEventListener('input',actualizarFifoPreview);
     $('btnCancelSaldo').addEventListener('click',()=>{cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
-    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=parseFloat($('nuevoSaldoBanco').value)||0,n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=parseFloat($('limiteDiarioBanco').value)||0}await guardarDatos();actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
+    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(parseFloat($('nuevoSaldoBanco').value)||0),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(parseFloat($('limiteDiarioBanco').value)||0)}await guardarDatos();actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
     $('btnRecalcular').addEventListener('click',()=>forzarRecalculo().then(()=>actualizarVista()));
     $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));
