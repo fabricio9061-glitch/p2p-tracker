@@ -95,6 +95,7 @@
         #tipo{font-weight:700}
         #tipo option[value="compra"]{color:#16a34a;font-weight:700}
         #tipo option[value="venta"]{color:#dc2626;font-weight:700}
+        #banco{font-weight:600}
 
         /* ═══ Buttons ═══ */
         .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
@@ -108,7 +109,7 @@
 
         /* ═══ Tables ═══ */
         .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-        table{width:100%;border-collapse:collapse;min-width:550px}
+        table{width:100%;border-collapse:collapse;min-width:620px}
         th{background:#f8fafc;color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase}
         td{padding:10px 8px;color:#1e293b;border-top:1px solid #f1f5f9;font-size:0.8em}
 
@@ -217,6 +218,24 @@
         /* ═══ Responsive ═══ */
         @media(min-width:640px){.cards{grid-template-columns:repeat(3,1fr)}.card.main-card{grid-column:span 1}.bancos-grid{grid-template-columns:repeat(3,1fr)}}
         @media(min-width:1024px){.cards{grid-template-columns:repeat(6,1fr)}.bancos-grid{grid-template-columns:repeat(6,1fr)}}
+
+        /* ═══ Tags ═══ */
+        .tags-container{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:0}
+        .tags-container:empty{display:none}
+        .tag-chip,.tag-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:14px;font-size:0.76em;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;cursor:pointer;transition:all 0.15s;user-select:none;white-space:nowrap}
+        .tag-chip:hover,.tag-pill:hover{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
+        .tag-chip:active,.tag-pill:active{background:#bfdbfe}
+        .tag-sugerencias{margin-top:6px}
+        .tag-sugerencias-label{font-size:0.7em;color:#94a3b8;margin-bottom:4px;font-weight:500}
+        .tag-manage-item{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;background:#f8fafc;gap:8px}
+        .tag-name{font-size:0.88em;color:#1e293b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .tag-count{font-size:0.7em;color:#94a3b8;margin-right:4px}
+        .tag-actions{display:flex;gap:6px;flex-shrink:0}
+        .tag-edit-btn,.tag-delete-btn{padding:4px 8px;font-size:0.8em;background:transparent;border:none;cursor:pointer;border-radius:4px}
+        .tag-edit-btn:hover{background:#dbeafe}
+        .tag-delete-btn:hover{background:#fee2e2}
+        .tag-search{width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;color:#1e293b;font-size:0.88em;margin-bottom:10px;font-family:inherit}
+        .tag-search:focus{outline:none;border-color:#2563eb}
     </style>
 </head>
 <body>
@@ -265,6 +284,7 @@
                         <div class="menu-item" data-action="movimiento"><span>💸</span><span>Movimiento Externo</span></div>
                         <div class="menu-item" data-action="bancos"><span>🏦</span><span>Gestionar Bancos</span></div>
                         <div class="menu-item" data-action="transferencia"><span>↔️</span><span>Transferencia</span></div>
+                        <div class="menu-item" data-action="gestion-tags"><span>🏷️</span><span>Gestión de Tags</span></div>
                         <div class="menu-divider"></div>
                         <div class="menu-item danger" data-action="borrar-todo"><span>🗑️</span><span>Borrar Todo</span></div>
                         <div class="menu-divider"></div>
@@ -348,12 +368,13 @@
 
     <!-- ═══ MODALS ═══ -->
     <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:15px"><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label">💵 Ganancia Total (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
-    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="number" step="0.01" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
+    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="number" step="0.01" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea><div id="tagSugerenciasMov"></div></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Gestionar Bancos</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="number" step="0.01" id="transfTasa" placeholder="Ej: 42.50"></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="number" step="1" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Inventario USDT (FIFO)</div><div id="inventarioContent" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Sistema FIFO: Al vender se consumen primero los lotes más antiguos</div></div><div class="modal-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn btn-cancel" id="btnRecalcular">🔄 Recalcular</button><button class="btn" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="number" step="0.01" id="lotePrecio" placeholder="Ej: 42.50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="number" step="0.01" id="loteDisponible" placeholder="Ej: 100.00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelLote">Cancelar</button><button class="btn" style="background:#dc2626" id="btnEliminarLote">Eliminar</button><button class="btn" id="btnGuardarLote">Guardar</button></div></div></div>
+    <div id="modalGestionTags" class="modal"><div class="modal-content"><div class="modal-header">🏷️ Gestión de Tags</div><input class="tag-search" type="text" id="tagSearch" placeholder="🔍 Buscar etiqueta..."><div id="tagsList" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Las etiquetas se crean automáticamente al guardar movimientos con descripción</div></div><div class="modal-buttons"><button class="btn" id="btnCerrarTags">Cerrar</button></div></div></div>
 
     <!-- ═══ FIREBASE SDK ═══ -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -380,12 +401,18 @@ const CONFIG = {
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 1000,
     BANCOS: [
-        {nombre:'Santander',moneda:'UYU'},{nombre:'BBVA',moneda:'UYU'},
-        {nombre:'Itau',moneda:'UYU',especial:'itau'},{nombre:'Scotiabank',moneda:'UYU'},
-        {nombre:'BROU',moneda:'UYU'},{nombre:'Prex',moneda:'UYU'},
-        {nombre:'OCA',moneda:'UYU'},{nombre:'Mercado Pago',moneda:'UYU'},
-        {nombre:'Midinero',moneda:'UYU'},{nombre:'Zelle',moneda:'USD'},
-        {nombre:'Zinli',moneda:'USD'},{nombre:'Skrill',moneda:'USD'}
+        {nombre:'Santander',moneda:'UYU',color:'#ec0000'},
+        {nombre:'BBVA',moneda:'UYU',color:'#004481'},
+        {nombre:'Itau',moneda:'UYU',especial:'itau',color:'#ef6c00'},
+        {nombre:'Scotiabank',moneda:'UYU',color:'#ec111a'},
+        {nombre:'BROU',moneda:'UYU',color:'#003087'},
+        {nombre:'Prex',moneda:'UYU',color:'#6d28d9'},
+        {nombre:'OCA',moneda:'UYU',color:'#005baa'},
+        {nombre:'Mercado Pago',moneda:'UYU',color:'#009ee3'},
+        {nombre:'Midinero',moneda:'UYU',color:'#00b460'},
+        {nombre:'Zelle',moneda:'USD',color:'#6c1cd3'},
+        {nombre:'Zinli',moneda:'USD',color:'#00c28e'},
+        {nombre:'Skrill',moneda:'USD',color:'#862165'}
     ]
 };
 
@@ -402,7 +429,7 @@ const AppState = {
 };
 
 function crearDatosVacios() {
-    return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],
+    return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],tags:[],
             saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,
             ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14};
 }
@@ -444,8 +471,49 @@ function getUTimeStr(){const d=getUDate();return`${String(d.getHours()).padStart
 function fmtFechaCorta(f){if(!f)return'-';const p=f.split('-');return p.length===3?`${p[2]}/${p[1]}`:f}
 function fechaHtml(f,h){return`<div class="fecha-hora"><span class="fecha">${fmtFechaCorta(f)}</span><span class="hora">${h||'--:--'}</span></div>`}
 function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
+function getBancoColor(n){const b=getBancoInfo(n);return b?.color||'#1e293b'}
+function colorBanco(n){return`<span style="color:${getBancoColor(n)};font-weight:600">${n}</span>`}
 function getSym(mon){return mon==='USD'?'US$':'$'}
 function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=truncUsdt(AppState.datos.lotes.reduce((s,l)=>s+l.disponible,0))}
+
+/* ═══ Tags ═══ */
+function normalizarTag(t){return(t||'').trim().replace(/\s+/g,' ')}
+function agregarTag(texto){
+    const t=normalizarTag(texto);if(!t||t.length<2)return;
+    const existe=AppState.datos.tags.find(x=>x.toLowerCase()===t.toLowerCase());
+    if(!existe){AppState.datos.tags.push(t);AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'))}
+}
+function eliminarTag(texto){AppState.datos.tags=AppState.datos.tags.filter(t=>t.toLowerCase()!==texto.toLowerCase())}
+function editarTag(viejo,nuevo){
+    const nv=normalizarTag(nuevo);if(!nv||nv.length<2)return false;
+    const dup=AppState.datos.tags.find(t=>t.toLowerCase()===nv.toLowerCase()&&t.toLowerCase()!==viejo.toLowerCase());
+    if(dup)return false;
+    const idx=AppState.datos.tags.findIndex(t=>t.toLowerCase()===viejo.toLowerCase());
+    if(idx>=0){AppState.datos.tags[idx]=nv;AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'))}
+    return true;
+}
+function renderizarTagsSugerencias(inputId,containerId){
+    const input=$(inputId),cont=$(containerId);if(!cont||!input)return;
+    const val=input.value.toLowerCase().trim(),tags=AppState.datos.tags||[];
+    if(!tags.length){cont.innerHTML='';return}
+    const filtrados=val?tags.filter(t=>t.toLowerCase().includes(val)):tags.slice(0,15);
+    if(!filtrados.length){cont.innerHTML='';return}
+    let h='<div class="tag-sugerencias"><div class="tag-sugerencias-label">🏷️ Etiquetas:</div><div class="tags-container">';
+    filtrados.forEach(t=>{h+=`<span class="tag-pill" data-action="usar-tag" data-tag="${t.replace(/"/g,'&quot;')}" data-target="${inputId}">${t}</span>`});
+    h+='</div></div>';cont.innerHTML=h;
+}
+function renderizarGestionTags(){
+    const tags=AppState.datos.tags||[],search=($('tagSearch')?.value||'').toLowerCase();
+    const cont=$('tagsList');if(!cont)return;
+    const filtrados=search?tags.filter(t=>t.toLowerCase().includes(search)):tags;
+    if(!filtrados.length){cont.innerHTML=`<div style="text-align:center;padding:20px;color:#94a3b8"><div style="font-size:1.8em;margin-bottom:6px">🏷️</div><div>${search?'Sin resultados':'Sin etiquetas aún'}</div><div style="font-size:0.8em;margin-top:4px">${search?'':'Las etiquetas se crean automáticamente al escribir descripciones'}</div></div>`;return}
+    let h='';
+    filtrados.forEach(t=>{
+        const usos=AppState.datos.movimientos.filter(m=>(m.descripcion||'').toLowerCase()===t.toLowerCase()).length;
+        h+=`<div class="tag-manage-item"><span class="tag-name">${t}</span><span class="tag-count">${usos} uso${usos!==1?'s':''}</span><div class="tag-actions"><button class="tag-edit-btn" data-action="editar-tag" data-tag="${t.replace(/"/g,'&quot;')}">✏️</button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${t.replace(/"/g,'&quot;')}">🗑️</button></div></div>`;
+    });
+    cont.innerHTML=h;
+}
 function getLotesActivosFIFO(){return AppState.datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')))}
 
 /* ═══════════════════════════════════════
@@ -512,14 +580,14 @@ function getBancosActivos(){return CONFIG.BANCOS.filter(b=>AppState.datos.bancos
 function actualizarSelectBancos(){
     const s=$('banco'),v=s.value;
     s.innerHTML='<option value="">-- Seleccionar --</option>';
-    getBancosActivos().forEach(b=>{s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`});
-    s.value=v;
+    getBancosActivos().forEach(b=>{s.innerHTML+=`<option value="${b.nombre}" style="color:${b.color||'#1e293b'};font-weight:600">${b.nombre}</option>`});
+    s.value=v;actualizarColorBancoSelect();
 }
 
 function mostrarSaldoBanco(){
     const b=$('banco').value,i=$('saldoBancoInfo'),h=$('bancoHelp');
     if(h){h.textContent='';h.className=''}
-    if(b&&AppState.datos.bancos[b]){const bi=getBancoInfo(b);i.textContent=' | '+b+': '+getSym(bi?.moneda)+fmtNum(AppState.datos.bancos[b].saldo)}
+    if(b&&AppState.datos.bancos[b]){const bi=getBancoInfo(b);i.innerHTML=' | <span style="color:'+getBancoColor(b)+';font-weight:600">'+b+'</span>: '+getSym(bi?.moneda)+fmtNum(AppState.datos.bancos[b].saldo)}
     else i.textContent='';
 }
 
@@ -532,7 +600,7 @@ function actualizarBancosGrid(){
         let lh='';
         if(lim>0){const disp=Math.max(0,lim-us),pct=Math.min(100,(us/lim)*100);let fc='';if(pct>=90)fc='danger';else if(pct>=70)fc='warning';
             lh=`<div class="banco-limite">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div><div class="banco-limite-bar"><div class="banco-limite-fill ${fc}" style="width:${pct}%"></div></div>`}
-        h+=`<div class="banco-mini-card" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s)}</div><div class="banco-moneda">${b.moneda}</div>${lh}</div>`;
+        h+=`<div class="banco-mini-card" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s)}</div><div class="banco-moneda">${b.moneda}</div>${lh}</div>`;
     });
     setHtml('bancosGrid',h);
 }
@@ -542,7 +610,7 @@ function renderizarListaBancos(){
     CONFIG.BANCOS.forEach(b=>{
         const a=AppState.datos.bancos[b.nombre]?.activo||false,s=AppState.datos.bancos[b.nombre]?.saldo||0,lim=AppState.datos.bancos[b.nombre]?.limiteDiarioUSD||0;
         let li=lim>0?` | Límite: US$${fmtNum(lim,0)}/día`:'';if(b.especial==='itau')li+=' (sáb-lun=1día)';
-        h+=`<div class="banco-list-item"><div><div style="font-weight:600;font-size:0.9em">${b.nombre} <span style="color:#94a3b8">(${b.moneda})</span></div><div style="color:#64748b;font-size:0.8em">${getSym(b.moneda)}${fmtNum(s)}${li}</div></div><div class="banco-list-actions"><button class="btn-edit-small" data-action="editar-saldo" data-banco="${b.nombre}">Editar</button><label class="toggle-switch"><input type="checkbox" ${a?'checked':''} data-action="toggle-banco" data-banco="${b.nombre}"><span class="toggle-slider"></span></label></div></div>`;
+        h+=`<div class="banco-list-item"><div><div style="font-weight:600;font-size:0.9em"><span style="color:${b.color||'#1e293b'}">${b.nombre}</span> <span style="color:#94a3b8">(${b.moneda})</span></div><div style="color:#64748b;font-size:0.8em">${getSym(b.moneda)}${fmtNum(s)}${li}</div></div><div class="banco-list-actions"><button class="btn-edit-small" data-action="editar-saldo" data-banco="${b.nombre}">Editar</button><label class="toggle-switch"><input type="checkbox" ${a?'checked':''} data-action="toggle-banco" data-banco="${b.nombre}"><span class="toggle-slider"></span></label></div></div>`;
     });
     setHtml('listaBancos',h);
 }
@@ -550,9 +618,9 @@ function renderizarListaBancos(){
 function mostrarSaldoOrigen(){
     const b=$('bancoOrigen')?.value;
     if(b&&AppState.datos.bancos[b]){
-        const bi=getBancoInfo(b),sym=getSym(bi?.moneda);let info='Disponible: '+sym+fmtNum(AppState.datos.bancos[b].saldo);
+        const bi=getBancoInfo(b),sym=getSym(bi?.moneda);let info=colorBanco(b)+': '+sym+fmtNum(AppState.datos.bancos[b].saldo);
         if(AppState.datos.bancos[b].limiteDiarioUSD>0){const u=AppState.datos.bancos[b].limiteUsadoUSD||0,d=Math.max(0,AppState.datos.bancos[b].limiteDiarioUSD-u);info+=` | Límite: US$${fmtNum(d,0)}/${fmtNum(AppState.datos.bancos[b].limiteDiarioUSD,0)}`}
-        $('saldoOrigenInfo').textContent=info;
+        $('saldoOrigenInfo').innerHTML=info;
     }else $('saldoOrigenInfo').textContent='';
 }
 
@@ -642,7 +710,7 @@ function cargarDatosUsuario(){
     if(AppState.unsubscribe)AppState.unsubscribe();
     AppState.unsubscribe=AppState.db.collection('users').doc(AppState.currentUser.uid).onSnapshot(doc=>{
         const ci=$('comisionPlataforma'),cf=document.activeElement===ci,lcU=AppState.datos.comisionPlataforma,lcD=AppState.datos.comisionUSD;
-        if(doc.exists){const d=doc.data();AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14}}
+        if(doc.exists){const d=doc.data();AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14}}
         else AppState.datos=crearDatosVacios();
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
@@ -678,6 +746,7 @@ function inicializarFirebase(){
    §9 — FORMULARIO OPERACIÓN
    ═══════════════════════════════════════ */
 function actualizarColorSelect(){const s=$('tipo');s.style.color=s.value==='compra'?'#16a34a':'#dc2626'}
+function actualizarColorBancoSelect(){const s=$('banco'),v=s.value;s.style.color=v?getBancoColor(v):'#1e293b';s.style.fontWeight=v?'600':'400'}
 
 function actualizarFormulario(){
     const t=$('tipo').value,mon=getMonedaBanco(),isU=mon==='USD';
@@ -770,7 +839,7 @@ function abrirModalMovimiento(){
     AppState.ui.guardandoMovimiento=false;AppState.ui.tipoMovimiento='ingreso';
     $('tabIngreso').className='tab tab-ingreso active';$('tabEgreso').className='tab tab-egreso';
     $('movTipoCuenta').value='banco';$('movMonto').value='';$('movTasaRef').value='';$('movDescripcion').value='';$('btnGuardarMov').disabled=false;$('btnGuardarMov').textContent='Guardar';
-    actualizarCuentasMovimiento();abrirModal('modalMovimiento');
+    actualizarCuentasMovimiento();renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov');abrirModal('modalMovimiento');
 }
 function setTipoMovimiento(t){AppState.ui.tipoMovimiento=t;$('tabIngreso').className='tab tab-ingreso'+(t==='ingreso'?' active':'');$('tabEgreso').className='tab tab-egreso'+(t==='egreso'?' active':'');actualizarCuentasMovimiento()}
 function actualizarCuentasMovimiento(){
@@ -779,7 +848,7 @@ function actualizarCuentasMovimiento(){
     $('movTasaRefGroup').style.display=esUsdtIngreso?'block':'none';
     if(esUsdtIngreso){$('movTasaRef').value=AppState.datos.ultimaTasaCompra||'';setText('movTasaRefLabel','Tasa referencia (precio de compra)')}
     const fp=$('movFifoPreview');if(fp)fp.style.display=tc==='usdt'&&AppState.ui.tipoMovimiento==='egreso'?'block':'none';
-    if(tc!=='usdt'){const s=$('movBanco');s.innerHTML='<option value="">Seleccionar banco</option>';getBancosActivos().forEach(b=>{s.innerHTML+=`<option value="${b.nombre}">${b.nombre}</option>`})}
+    if(tc!=='usdt'){const s=$('movBanco');s.innerHTML='<option value="">Seleccionar banco</option>';getBancosActivos().forEach(b=>{s.innerHTML+=`<option value="${b.nombre}" style="color:${b.color||'#1e293b'};font-weight:600">${b.nombre}</option>`})}
     actualizarFifoPreview();
 }
 function actualizarFifoPreview(){
@@ -816,6 +885,7 @@ async function guardarMovimiento(){
             AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?mR:-mR));
         }
         const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:mR,valorUYU:AppState.ui.tipoMovimiento==='egreso'?roundMoney(vUYU):0,tasaRef:tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0,descripcion:desc,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()};
+        if(desc)agregarTag(desc);
         AppState.datos.movimientos.unshift(md);await guardarDatos();actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
     }finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar'}
 }
@@ -856,12 +926,12 @@ function actualizarTransfPreview(){
     if(oi.moneda==='UYU'&&di.moneda==='USD')recibe='US$'+fmtNum(m/t,2);
     else recibe='$'+fmtNum(m*t,2);
     pv.style.display='block';
-    pv.innerHTML=`💱 Debita <b>${getSym(oi.moneda)}${fmtNum(m)}</b> de ${o} → Recibe <b>${recibe}</b> en ${d}<div style="margin-top:4px;font-size:0.8em;color:#64748b">Solo mueve saldos · No afecta ganancia</div>`;
+    pv.innerHTML=`💱 Debita <b>${getSym(oi.moneda)}${fmtNum(m)}</b> de ${colorBanco(o)} → Recibe <b>${recibe}</b> en ${colorBanco(d)}<div style="margin-top:4px;font-size:0.8em;color:#64748b">Solo mueve saldos · No afecta ganancia</div>`;
 }
 
 function abrirModalTransferencia(){
     $('montoTransferencia').value='';$('comisionTransferencia').value='0';$('transfTasa').value='';$('transfConvPreview').style.display='none';
-    const opts='<option value="">Seleccionar</option>'+getBancosActivos().map(b=>`<option value="${b.nombre}">${b.nombre} (${b.moneda})</option>`).join('');
+    const opts='<option value="">Seleccionar</option>'+getBancosActivos().map(b=>`<option value="${b.nombre}" style="color:${b.color||'#1e293b'};font-weight:600">${b.nombre} (${b.moneda})</option>`).join('');
     $('bancoOrigen').innerHTML=opts;$('bancoDestino').innerHTML=opts;$('saldoOrigenInfo').textContent='';$('btnTransferir').disabled=false;
     actualizarTransfUI();abrirModal('modalTransferencia');
 }
@@ -961,9 +1031,9 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
     renderFn:(ini,fin,total)=>{
         setText('totalOperaciones',total||0);const c=$('tablaContent');
         if(!total){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>';return}
-        const ops=AppState.datos.operaciones.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>G/P</th><th>Fecha</th><th></th></tr></thead><tbody>';
+        const ops=AppState.datos.operaciones.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>Banco</th><th>G/P</th><th>Fecha</th><th></th></tr></thead><tbody>';
         ops.forEach(op=>{const un=op.tipo==='compra'?truncUsdt(op.usdt-op.comisionPlataforma):truncUsdt(op.usdt+op.comisionPlataforma);const badge=op.tipo==='compra'?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626',gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn)),sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
-            h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td><b>${fmtTrunc(un,2)}</b></td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">×</button></td></tr>`});
+            h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td><b>${fmtTrunc(un,2)}</b></td><td style="color:${getBancoColor(op.banco)};font-weight:600;font-size:0.75em">${op.banco||'-'}</td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">×</button></td></tr>`});
         c.innerHTML=h+'</tbody></table>';
     }
 });
@@ -974,7 +1044,7 @@ const pagMov=crearPaginacion({getTotal:()=>AppState.datos.movimientos.length,get
         setText('totalMovimientos',total||0);const sec=$('seccionMovimientos');if(!total){sec.style.display='none';return}sec.style.display='block';
         const mvs=AppState.datos.movimientos.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Cuenta</th><th>Monto</th><th>Desc</th><th>Fecha</th><th></th></tr></thead><tbody>';
         mvs.forEach(m=>{const badge=m.tipoMovimiento==='ingreso'?'<span class="badge badge-ingreso"><b>Ingreso</b></span>':'<span class="badge badge-egreso"><b>Egreso</b></span>';
-            h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':m.banco}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${fmtNum(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td>${fechaHtml(m.fecha,m.hora)}</td><td><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">×</button></td></tr>`});
+            h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':colorBanco(m.banco)}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${fmtNum(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td>${fechaHtml(m.fecha,m.hora)}</td><td><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">×</button></td></tr>`});
         $('movimientosContent').innerHTML=h+'</tbody></table>';
     }
 });
@@ -985,7 +1055,7 @@ const pagTrans=crearPaginacion({getTotal:()=>AppState.datos.transferencias.lengt
         setText('totalTransferencias',total||0);const sec=$('seccionTransferencias');if(!total){sec.style.display='none';return}sec.style.display='block';
         const trs=AppState.datos.transferencias.slice(ini,fin);let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Com</th><th>Fecha</th><th></th></tr></thead><tbody>';
         trs.forEach(tr=>{const oi=getBancoInfo(tr.origen),sy=getSym(oi?.moneda);
-            h+=`<tr><td style="color:#dc2626">${tr.origen}</td><td style="color:#16a34a">${tr.destino}</td><td><b>${sy}${fmtNum(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?sy+fmtNum(tr.comision):'-'}</td><td>${fechaHtml(tr.fecha,tr.hora)}</td><td><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">×</button></td></tr>`});
+            h+=`<tr><td>${colorBanco(tr.origen)}</td><td>${colorBanco(tr.destino)}</td><td><b>${sy}${fmtNum(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?sy+fmtNum(tr.comision):'-'}</td><td>${fechaHtml(tr.fecha,tr.hora)}</td><td><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">×</button></td></tr>`});
         $('transferenciasContent').innerHTML=h+'</tbody></table>';
     }
 });
@@ -996,7 +1066,7 @@ const pagConv=crearPaginacion({getTotal:()=>(AppState.datos.conversiones||[]).le
         setText('totalConversiones',total||0);const sec=$('seccionConversiones');if(!total){sec.style.display='none';return}sec.style.display='block';
         const cvs=(AppState.datos.conversiones||[]).slice(ini,fin);let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Debita</th><th>Recibe</th><th>Tasa</th><th>Fecha</th><th></th></tr></thead><tbody>';
         cvs.forEach(c=>{const syO=c.monedaOrigen==='USD'?'US$':'$',syD=c.monedaDestino==='USD'?'US$':'$';
-            h+=`<tr><td style="color:#dc2626">${c.origen}</td><td style="color:#16a34a">${c.destino}</td><td><b>${syO}${fmtNum(c.montoOrigen)}</b></td><td><b>${syD}${fmtNum(c.montoDestino)}</b></td><td>${fmtNum(c.tasa)}</td><td>${fechaHtml(c.fecha,c.hora)}</td><td><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">×</button></td></tr>`});
+            h+=`<tr><td>${colorBanco(c.origen)}</td><td>${colorBanco(c.destino)}</td><td><b>${syO}${fmtNum(c.montoOrigen)}</b></td><td><b>${syD}${fmtNum(c.montoDestino)}</b></td><td>${fmtNum(c.tasa)}</td><td>${fechaHtml(c.fecha,c.hora)}</td><td><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">×</button></td></tr>`});
         $('conversionesContent').innerHTML=h+'</tbody></table>';
     }
 });
@@ -1096,6 +1166,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='movimiento')abrirModalMovimiento();
         else if(a==='bancos'){renderizarListaBancos();abrirModal('modalBancos')}
         else if(a==='transferencia')abrirModalTransferencia();
+        else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
         else if(a==='borrar-todo')borrarTodo();
         else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe)AppState.unsubscribe();AppState.auth.signOut()}}
     });
@@ -1107,7 +1178,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('tipo').addEventListener('change',()=>{AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;actualizarFormulario();actualizarColorSelect()});
     $('monto').addEventListener('input',calcularPreview);
     $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview()});
-    $('banco').addEventListener('change',()=>{mostrarSaldoBanco();actualizarFormulario()});
+    $('banco').addEventListener('change',()=>{mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect()});
     $('comisionPlataforma').addEventListener('input',guardarComisionYCalcular);
     $('btnAgregarOp').addEventListener('click',agregarOperacion);
 
@@ -1125,11 +1196,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('tabIngreso').addEventListener('click',()=>setTipoMovimiento('ingreso'));
     $('tabEgreso').addEventListener('click',()=>setTipoMovimiento('egreso'));
     $('movTipoCuenta').addEventListener('change',actualizarCuentasMovimiento);
+    $('movBanco').addEventListener('change',()=>{const v=$('movBanco').value;$('movBanco').style.color=v?getBancoColor(v):'#1e293b';$('movBanco').style.fontWeight=v?'600':'400'});
     $('btnGuardarMov').addEventListener('click',guardarMovimiento);
     $('btnCancelMov').addEventListener('click',()=>cerrarModal('modalMovimiento'));
     $('btnCerrarBancos').addEventListener('click',()=>{cerrarModal('modalBancos');guardarDatos();actualizarVista()});
-    $('bancoOrigen').addEventListener('change',()=>{mostrarSaldoOrigen();actualizarTransfUI()});
-    $('bancoDestino').addEventListener('change',actualizarTransfUI);
+    $('bancoOrigen').addEventListener('change',()=>{const v=$('bancoOrigen').value;$('bancoOrigen').style.color=v?getBancoColor(v):'#1e293b';mostrarSaldoOrigen();actualizarTransfUI()});
+    $('bancoDestino').addEventListener('change',()=>{const v=$('bancoDestino').value;$('bancoDestino').style.color=v?getBancoColor(v):'#1e293b';actualizarTransfUI()});
     $('montoTransferencia').addEventListener('input',actualizarTransfPreview);
     $('transfTasa').addEventListener('input',actualizarTransfPreview);
     $('btnTransferir').addEventListener('click',realizarTransferencia);
@@ -1143,6 +1215,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
     $('btnGuardarLote').addEventListener('click',guardarLote);
+    $('btnCerrarTags').addEventListener('click',()=>cerrarModal('modalGestionTags'));
+    $('tagSearch').addEventListener('input',renderizarGestionTags);
+    $('movDescripcion').addEventListener('input',()=>renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov'));
     $('btnCalPrev').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()-1);renderizarCalendario()});
     $('btnCalNext').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()+1);renderizarCalendario()});
     $('btnCerrarCalendario').addEventListener('click',()=>cerrarModal('modalCalendario'));
@@ -1155,10 +1230,23 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='eliminar-mov')eliminarMovimiento(id);
         else if(a==='eliminar-trans')eliminarTransferencia(id);
         else if(a==='eliminar-conv')eliminarConversion(id);
-        else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}else{AppState.ui.bancoEditando=banco;setText('editarSaldoHeader','Editar '+banco);$('nuevoSaldoBanco').value=AppState.datos.bancos[banco]?.saldo||0;$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=AppState.datos.bancos[banco]?.limiteDiarioUSD||0;abrirModal('modalEditarSaldo')}}
+        else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}else{AppState.ui.bancoEditando=banco;$('editarSaldoHeader').innerHTML='Editar '+colorBanco(banco);$('nuevoSaldoBanco').value=AppState.datos.bancos[banco]?.saldo||0;$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=AppState.datos.bancos[banco]?.limiteDiarioUSD||0;abrirModal('modalEditarSaldo')}}
         else if(a==='toggle-banco'){const n=t.dataset.banco;if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;guardarDatos();renderizarListaBancos()}
         else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
         else if(a==='editar-lote')abrirEditarLote(loteId);
+        else if(a==='usar-tag'){
+            const tag=t.dataset.tag,target=t.dataset.target;
+            if(tag&&target){const inp=$(target);if(inp){inp.value=tag;inp.focus();renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'')}}
+        }
+        else if(a==='editar-tag'){
+            const oldTag=t.dataset.tag;if(!oldTag)return;
+            const nuevoNombre=prompt('Editar etiqueta:',oldTag);
+            if(nuevoNombre!==null){if(editarTag(oldTag,nuevoNombre)){guardarDatos();renderizarGestionTags()}else{alert('Nombre inválido o ya existe')}}
+        }
+        else if(a==='eliminar-tag'){
+            const tag=t.dataset.tag;if(!tag)return;
+            if(confirm(`¿Eliminar la etiqueta "${tag}"?`)){eliminarTag(tag);guardarDatos();renderizarGestionTags()}
+        }
     });
 
     // Escape cierra modales
