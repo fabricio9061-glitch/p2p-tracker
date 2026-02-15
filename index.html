@@ -457,11 +457,11 @@ function activarCooldown() {
 function fixNeg(n){if(Object.is(n,-0))return 0;const r=Number(Math.round(parseFloat(n+'e2'))+'e-2');return isNaN(r)?0:r}
 function truncar(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const f=Number(n+'e'+d);return Number(Math.floor(f)+'e-'+d)}
 function roundMoney(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const r=Number(Math.round(parseFloat(n+'e'+d))+'e-'+d);return Object.is(r,-0)?0:r}
-/* Binance-matching: truncar USDT a 2dp siempre */
-function truncUsdt(n){return truncar(n,2)}
+/* Binance-matching: redondear USDT a 2dp (Binance usa round, no floor) */
+function truncUsdt(n){return roundMoney(n,2)}
 function fmtNum(n,d=2){return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
-/* Formatear con truncado (no redondeo) — para mostrar USDT igual que Binance */
-function fmtTrunc(n,d=2){const t=truncar(n,d);return t.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
+/* Formatear con redondeo (Binance-matching) — para mostrar USDT igual que Binance */
+function fmtTrunc(n,d=2){const t=roundMoney(n,d);return t.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function fmtTasa(n,mon){if(mon==='USD'){const s=n.toString(),dec=s.includes('.')?s.split('.')[1].length:0;return dec>2?n.toFixed(3):n.toFixed(2)}return n.toFixed(2)}
 function parsearTasa(v){if(!v)return null;const l=v.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,3})?$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<=0?null:n}
 function parsearComision(v){if(!v&&v!==0)return null;const l=v.toString().replace(',','.').trim();if(!l||l==='.')return null;if(!/^\d*\.?\d*$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<0||n>10?null:n}
@@ -714,13 +714,14 @@ function cargarDatosUsuario(){
         else AppState.datos=crearDatosVacios();
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
-        /* Migración: normalizar datos legacy + recalcular con truncado Binance-matching */
-        const needsMigration=AppState.datos.lotes.some(l=>!l.moneda)||AppState.datos.operaciones.some(op=>op.ganancia===undefined)||AppState.datos.operaciones.some(op=>op.usdt!==truncUsdt(op.usdt));
+        /* Migración: normalizar datos legacy + recalcular con redondeo Binance-matching */
+        const needsMigration=AppState.datos.lotes.some(l=>!l.moneda)||AppState.datos.operaciones.some(op=>op.ganancia===undefined)||AppState.datos.operaciones.some(op=>{const exp=truncUsdt(op.monto/op.tasa);return Math.abs(op.usdt-exp)>0.001});
         if(needsMigration){
-            /* Normalizar op.usdt a 2dp truncado antes de recalcular */
+            /* Normalizar op.usdt a 2dp redondeado (Binance-matching) antes de recalcular */
             AppState.datos.operaciones.forEach(op=>{
-                if(op.usdt!==truncUsdt(op.usdt)){
-                    op.usdt=truncUsdt(op.monto/op.tasa);
+                const exp=truncUsdt(op.monto/op.tasa);
+                if(Math.abs(op.usdt-exp)>0.001){
+                    op.usdt=exp;
                     op.comisionPlataforma=truncar(op.usdt*((op.comisionPct||0.14)/100),2);
                 }
             });
