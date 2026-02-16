@@ -457,11 +457,14 @@ function activarCooldown() {
 function fixNeg(n){if(Object.is(n,-0))return 0;const r=Number(Math.round(parseFloat(n+'e2'))+'e-2');return isNaN(r)?0:r}
 function truncar(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const f=Number(n+'e'+d);return Number(Math.floor(f)+'e-'+d)}
 function roundMoney(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const r=Number(Math.round(parseFloat(n+'e'+d))+'e-'+d);return Object.is(r,-0)?0:r}
-/* Binance-matching: redondear USDT a 2dp (Binance usa round, no floor) */
-function truncUsdt(n){return roundMoney(n,2)}
+/* truncUsdt: truncar a 2dp — uso conservador para FIFO, lotes, saldos internos */
+function truncUsdt(n){return truncar(n,2)}
+/* Binance-matching: compra=round, venta=truncar para la base USDT (monto/tasa) */
+function usdtBase(n,tipo){return tipo==='compra'?roundMoney(n,2):truncar(n,2)}
+function usdtNeto(base,com,tipo){return tipo==='compra'?roundMoney(base-com,2):truncar(base+com,2)}
 function fmtNum(n,d=2){return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
-/* Formatear con redondeo (Binance-matching) — para mostrar USDT igual que Binance */
-function fmtTrunc(n,d=2){const t=roundMoney(n,d);return t.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
+/* Formatear con truncado (conservador) — para mostrar USDT de inventario/lotes */
+function fmtTrunc(n,d=2){const t=truncar(n,d);return t.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function fmtTasa(n,mon){if(mon==='USD'){const s=n.toString(),dec=s.includes('.')?s.split('.')[1].length:0;return dec>2?n.toFixed(3):n.toFixed(2)}return n.toFixed(2)}
 function parsearTasa(v){if(!v)return null;const l=v.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,3})?$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<=0?null:n}
 function parsearComision(v){if(!v&&v!==0)return null;const l=v.toString().replace(',','.').trim();if(!l||l==='.')return null;if(!/^\d*\.?\d*$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<0||n>10?null:n}
@@ -659,24 +662,23 @@ function recalcularLotesYGanancias(){
     ev.forEach(e=>{
         if(e.tipo==='op'){
             const op=e.data,cpct=(op.comisionPct||0.14)/100;
-            /* op.usdt ya viene truncado a 2dp si fue creado con código nuevo.
-               Para datos legacy (pre-fix), re-truncamos por seguridad. */
-            const uTrunc=truncUsdt(op.usdt),cp=truncar(uTrunc*cpct,2),isU=op.moneda==='USD';
+            /* Binance-matching: compra=round, venta=truncar la base USDT */
+            const uBase=usdtBase(op.monto/op.tasa,op.tipo),cp=truncar(uBase*cpct,2),isU=op.moneda==='USD';
             if(op.tipo==='compra'){
-                const un=truncUsdt(uTrunc-cp);
+                const un=usdtNeto(uBase,cp,op.tipo);
                 if(isU){
                     op.ganancia=roundMoney((utvU>0?roundMoney(un*(utvU-op.tasa)):0)-(op.comisionBanco||0));
                     utcUL=op.tasa;
                 }else{utcL=op.tasa;op.ganancia=roundMoney(-(op.comisionBanco||0))}
                 agregarLote(op.id,op.fecha,op.hora||'00:00',op.tasa,un,op.moneda||'UYU');
             }else{
-                const av=truncUsdt(uTrunc+cp);
+                const av=usdtNeto(uBase,cp,op.tipo);
                 const fifoGan=consumirFIFO(av,op.tasa,op.moneda||'UYU').ganancia;
                 if(isU){utvU=op.tasa;AppState.datos.ultimaTasaVentaUSD=op.tasa;op.ganancia=roundMoney(fifoGan)}
                 else{AppState.datos.ultimaTasaVenta=op.tasa;op.ganancia=roundMoney(fifoGan)}
             }
-            /* Normalizar op.usdt y comisionPlataforma con valores truncados */
-            op.usdt=uTrunc;op.comisionPlataforma=cp;
+            /* Normalizar op.usdt y comisionPlataforma con valores Binance-matching */
+            op.usdt=uBase;op.comisionPlataforma=cp;
         }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,roundMoney(m.monto),'UYU')}
         else if(e.tipo==='me'){const r=consumirFIFO(roundMoney(e.data.monto));e.data.valorUYU=r.costo}
     });
@@ -714,12 +716,12 @@ function cargarDatosUsuario(){
         else AppState.datos=crearDatosVacios();
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
-        /* Migración: normalizar datos legacy + recalcular con redondeo Binance-matching */
-        const needsMigration=AppState.datos.lotes.some(l=>!l.moneda)||AppState.datos.operaciones.some(op=>op.ganancia===undefined)||AppState.datos.operaciones.some(op=>{const exp=truncUsdt(op.monto/op.tasa);return Math.abs(op.usdt-exp)>0.001});
+        /* Migración: normalizar datos legacy + recalcular con Binance-matching (compra=round, venta=truncar) */
+        const needsMigration=AppState.datos.lotes.some(l=>!l.moneda)||AppState.datos.operaciones.some(op=>op.ganancia===undefined)||AppState.datos.operaciones.some(op=>{const exp=usdtBase(op.monto/op.tasa,op.tipo);return Math.abs(op.usdt-exp)>0.001});
         if(needsMigration){
-            /* Normalizar op.usdt a 2dp redondeado (Binance-matching) antes de recalcular */
+            /* Normalizar op.usdt con Binance-matching (tipo-dependiente) antes de recalcular */
             AppState.datos.operaciones.forEach(op=>{
-                const exp=truncUsdt(op.monto/op.tasa);
+                const exp=usdtBase(op.monto/op.tasa,op.tipo);
                 if(Math.abs(op.usdt-exp)>0.001){
                     op.usdt=exp;
                     op.comisionPlataforma=truncar(op.usdt*((op.comisionPct||0.14)/100),2);
@@ -773,13 +775,13 @@ function calcularPreview(){
     const t=$('tipo').value,m=parseFloat($('monto').value)||0,ta=parsearTasa($('tasa').value),cp=getComisionDec(),mon=getMonedaBanco(),isU=mon==='USD';
     $('tasa').classList.remove('error');const th=$('tasaHelp');th.className='';th.textContent=isU?'Ej: 1.025':'Ej: 39.50';
     if(m>0&&ta){
-        /* Binance-matching: truncar USDT total a 2dp ANTES de calcular comisión */
-        const u=truncUsdt(m/ta),c=truncar(u*cp,2);
+        /* Binance-matching: compra=round, venta=truncar la base USDT */
+        const u=usdtBase(m/ta,t),c=truncar(u*cp,2);
         setText('comisionPlataformaInfo',fmtTrunc(c,2)+' USDT');
-        const neto=t==='compra'?truncUsdt(u-c):truncUsdt(u+c);
+        const neto=usdtNeto(u,c,t);
         $('previewText').innerHTML=t==='compra'
-            ?`📥 Recibís <b>${fmtTrunc(neto,2)} USDT</b> <span style="color:#64748b;font-size:0.85em">(total: ${fmtTrunc(u,2)})</span>`
-            :`📤 Entregás <b>${fmtTrunc(neto,2)} USDT</b>`;
+            ?`📥 Recibís <b>${fmtNum(neto,2)} USDT</b> <span style="color:#64748b;font-size:0.85em">(total: ${fmtNum(u,2)})</span>`
+            :`📤 Entregás <b>${fmtNum(neto,2)} USDT</b>`;
         $('previewBox').style.display='block'}
     else{$('previewBox').style.display='none';setText('comisionPlataformaInfo','0 USDT')}
 }
@@ -799,15 +801,15 @@ async function agregarOperacion(){
     if(!ta){ti.classList.add('error');$('tasaHelp').textContent='Formato inválido';$('tasaHelp').className='error-text';alert('Tasa inválida (ej: '+(isU?'1.025':'39.50')+')');return}
     if(!b){$('bancoHelp').textContent='Seleccioná un banco';$('bancoHelp').className='error-text';$('banco').classList.add('error');alert('Seleccioná un banco');return}
     $('banco').classList.remove('error');
-    /* ═══ Binance-matching: truncar USDT total a 2dp ANTES de comisión ═══ */
-    const u=truncUsdt(m/ta), cpl=truncar(u*cp,2);
-    if(t==='compra'){const bk=AppState.datos.bancos[b];if(bk.limiteDiarioUSD>0){const mU=isU?m:truncUsdt(m/ta),dU=roundMoney(bk.limiteDiarioUSD-(bk.limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario. Disponible: US$${fmtNum(dU,0)} (${fmtNum(mU,2)} USD requeridos)`);return}}if(bk.saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return}
-    else{const un=truncUsdt(u+cpl);if(AppState.datos.saldoUsdt<un&&!confirm(`Solo tenés ${fmtTrunc(AppState.datos.saldoUsdt,2)} USDT. ¿Continuar?`))return}
+    /* ═══ Binance-matching: compra=round, venta=truncar la base USDT ═══ */
+    const u=usdtBase(m/ta,t), cpl=truncar(u*cp,2);
+    if(t==='compra'){const bk=AppState.datos.bancos[b];if(bk.limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta),dU=roundMoney(bk.limiteDiarioUSD-(bk.limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario. Disponible: US$${fmtNum(dU,0)} (${fmtNum(mU,2)} USD requeridos)`);return}}if(bk.saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return}
+    else{const un=usdtNeto(u,cpl,t);if(AppState.datos.saldoUsdt<un&&!confirm(`Solo tenés ${fmtTrunc(AppState.datos.saldoUsdt,2)} USDT. ¿Continuar?`))return}
     AppState.ui.guardandoOperacion=true;btn.disabled=true;btn.textContent='Guardando...';
     try{
         const opId=Date.now();let gan=0;
         if(t==='compra'){
-            const un=truncUsdt(u-cpl);
+            const un=usdtNeto(u,cpl,t);
             if(isU){
                 gan=AppState.datos.ultimaTasaVentaUSD>0?roundMoney(un*(AppState.datos.ultimaTasaVentaUSD-ta)):0;
                 gan=roundMoney(gan-cb);
@@ -815,10 +817,10 @@ async function agregarOperacion(){
             }else{AppState.datos.ultimaTasaCompra=ta;gan=roundMoney(-cb)}
             agregarLote(opId,f,h,ta,un,mon);
             AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));sincronizarSaldoUsdt();
-            if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:truncUsdt(m/ta);AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,roundMoney((AppState.datos.bancos[b].limiteUsadoUSD||0)+mU))}
+            if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta);AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,roundMoney((AppState.datos.bancos[b].limiteUsadoUSD||0)+mU))}
         }
-        else{const av=truncUsdt(u+cpl);gan=consumirFIFO(av,ta,mon).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
-        /* u almacenado ya es truncado a 2dp (= "Cantidad total" de Binance) */
+        else{const av=usdtNeto(u,cpl,t);gan=consumirFIFO(av,ta,mon).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
+        /* u almacenado = base USDT Binance-matching (compra=round, venta=truncar) */
         AppState.datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:roundMoney(gan),timestamp:new Date().toISOString()});
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
         await guardarDatos();actualizarVista();activarCooldown();
@@ -1033,7 +1035,7 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
         setText('totalOperaciones',total||0);const c=$('tablaContent');
         if(!total){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>';return}
         const ops=AppState.datos.operaciones.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>Banco</th><th>G/P</th><th>Fecha</th><th></th></tr></thead><tbody>';
-        ops.forEach(op=>{const un=op.tipo==='compra'?truncUsdt(op.usdt-op.comisionPlataforma):truncUsdt(op.usdt+op.comisionPlataforma);const badge=op.tipo==='compra'?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626',gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn)),sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
+        ops.forEach(op=>{const un=usdtNeto(op.usdt,op.comisionPlataforma,op.tipo);const badge=op.tipo==='compra'?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626',gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn)),sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
             h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td><b>${fmtTrunc(un,2)}</b></td><td style="color:${getBancoColor(op.banco)};font-weight:600;font-size:0.75em">${op.banco||'-'}</td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">×</button></td></tr>`});
         c.innerHTML=h+'</tbody></table>';
     }
