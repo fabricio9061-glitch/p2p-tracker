@@ -314,7 +314,7 @@
                         <div class="form-group"><label>Tipo de operación</label><select id="tipo"><option value="compra">🛒 Compra USDT</option><option value="venta">💵 Venta USDT</option></select></div>
                         <div class="form-row">
                             <div class="form-group"><label id="montoLabel">Monto (UYU)</label><input type="number" step="0.01" id="monto" placeholder="3900"></div>
-                            <div class="form-group"><label>Tasa *</label><input type="text" id="tasa" placeholder="39.50" inputmode="decimal"><small id="tasaHelp">Ej: 39.50</small></div>
+                            <div class="form-group"><label>Tasa *</label><input type="text" id="tasa" placeholder="39.50" inputmode="decimal"><small id="tasaHelp">Ej: 39.50</small><div id="tasaTagsContainer" style="margin-top:4px"></div></div>
                         </div>
                         <div class="form-row">
                             <div class="form-group"><label id="bancoLabel">Banco *</label><select id="banco"><option value="">-- Seleccionar --</option></select><small id="bancoHelp"></small></div>
@@ -429,7 +429,7 @@ const AppState = {
 };
 
 function crearDatosVacios() {
-    return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],tags:[],
+    return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],tags:[],tasasRecientes:[],
             saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,
             ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14};
 }
@@ -517,6 +517,23 @@ function renderizarGestionTags(){
     });
     cont.innerHTML=h;
 }
+function agregarTasaReciente(valor,tipo,moneda){
+    const arr=AppState.datos.tasasRecientes;
+    /* Eliminar duplicado exacto (mismo valor+tipo+moneda) */
+    const idx=arr.findIndex(t=>t.valor===valor&&t.tipo===tipo&&t.moneda===moneda);
+    if(idx!==-1)arr.splice(idx,1);
+    arr.unshift({valor,tipo,moneda});
+    /* Mantener máx 3 por combo tipo+moneda, máx 20 total */
+    const count={};AppState.datos.tasasRecientes=arr.filter(t=>{const k=t.tipo+'_'+t.moneda;count[k]=(count[k]||0)+1;return count[k]<=3}).slice(0,20);
+}
+function renderizarTasasRecientes(){
+    const cont=$('tasaTagsContainer');if(!cont)return;
+    const tipo=$('tipo').value,mon=getMonedaBanco();
+    const recientes=(AppState.datos.tasasRecientes||[]).filter(t=>t.tipo===tipo&&t.moneda===mon).slice(0,3);
+    if(!recientes.length){cont.innerHTML='';return}
+    cont.innerHTML=recientes.map(t=>`<span class="tag-pill" data-action="usar-tasa" data-valor="${t.valor}" style="font-size:0.72em;padding:3px 9px">${fmtTasa(t.valor,mon)}</span>`).join(' ');
+}
+
 function getLotesActivosFIFO(){return AppState.datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')))}
 
 /* ═══════════════════════════════════════
@@ -712,7 +729,7 @@ function cargarDatosUsuario(){
     if(AppState.unsubscribe)AppState.unsubscribe();
     AppState.unsubscribe=AppState.db.collection('users').doc(AppState.currentUser.uid).onSnapshot(doc=>{
         const ci=$('comisionPlataforma'),cf=document.activeElement===ci,lcU=AppState.datos.comisionPlataforma,lcD=AppState.datos.comisionUSD;
-        if(doc.exists){const d=doc.data();AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14}}
+        if(doc.exists){const d=doc.data();AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14}}
         else AppState.datos=crearDatosVacios();
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
@@ -768,7 +785,7 @@ function actualizarFormulario(){
     }
     setText('tasaHelp',isU?'Ej: 1.025':'Ej: 39.50');
     const ci=$('comisionPlataforma');if(document.activeElement!==ci){const cv=isU?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=cv.toFixed(2);setText('comisionPctLabel',cv.toFixed(2))}
-    calcularPreview();
+    calcularPreview();renderizarTasasRecientes();
 }
 
 function calcularPreview(){
@@ -822,6 +839,7 @@ async function agregarOperacion(){
         else{const av=usdtNeto(u,cpl,t);gan=consumirFIFO(av,ta,mon).ganancia;if(isU)AppState.datos.ultimaTasaVentaUSD=ta;else AppState.datos.ultimaTasaVenta=ta;AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);sincronizarSaldoUsdt()}
         /* u almacenado = base USDT Binance-matching (compra=round, venta=truncar) */
         AppState.datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:roundMoney(gan),timestamp:new Date().toISOString()});
+        agregarTasaReciente(ta,t,mon);
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
         await guardarDatos();actualizarVista();activarCooldown();
     }finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;btn.textContent='Agregar Operación'}
@@ -1240,6 +1258,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='usar-tag'){
             const tag=t.dataset.tag,target=t.dataset.target;
             if(tag&&target){const inp=$(target);if(inp){inp.value=tag;inp.focus();renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'')}}
+        }
+        else if(a==='usar-tasa'){
+            const v=t.dataset.valor;if(v){$('tasa').value=v;AppState.ui.tasaManual=true;calcularPreview()}
         }
         else if(a==='editar-tag'){
             const oldTag=t.dataset.tag;if(!oldTag)return;
