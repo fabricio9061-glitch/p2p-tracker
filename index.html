@@ -18,11 +18,14 @@
         .header p{color:#64748b;font-size:0.9em}
 
         /* ═══ Sync ═══ */
-        .sync-status{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;font-size:0.75em;margin-top:8px}
+        .sync-status{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:0.75em;margin-top:8px;cursor:pointer;user-select:none;transition:all 0.2s}
+        .sync-status:active{transform:scale(0.95)}
         .sync-status.online{background:#dcfce7;color:#16a34a}
         .sync-status.offline{background:#fee2e2;color:#dc2626}
         .sync-status.syncing{background:#fef3c7;color:#d97706}
+        .sync-status.reconnecting{background:#e0e7ff;color:#4338ca;animation:pulse-sync 1.5s infinite}
         .sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+        @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:0.4}}
 
         /* ═══ Menu ═══ */
         .menu-container{position:absolute;top:10px;right:0}
@@ -274,7 +277,7 @@
             <div class="header">
                 <h1>💱 Registro P2P</h1>
                 <p>Control de operaciones y saldos</p>
-                <div class="sync-status offline" id="syncStatus"><div class="sync-dot"></div><span id="syncText">...</span></div>
+                <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span></div>
                 <div class="menu-container">
                     <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
                     <div class="menu-dropdown" id="menuDropdown">
@@ -425,13 +428,13 @@ const AppState = {
     ui: { bancoEditando:null, tipoMovimiento:'ingreso', calendarDate:new Date(),
           loteEditandoId:null, paginaOp:1, paginaMov:1, paginaTrans:1, paginaConv:1,
           guardandoMovimiento:false, guardandoLote:false, guardandoOperacion:false, guardandoTransferencia:false,
-          enCooldown:false, comisionDebounce:null, tasaManual:false, ultimoMonedaBanco:null }
+          enCooldown:false, comisionDebounce:null, tasaManual:false, ultimoMonedaBanco:null, syncState:'offline' }
 };
 
 function crearDatosVacios() {
     return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],tags:[],tasasRecientes:[],
             saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,
-            ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14};
+            ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14,ultimoMesProcesado:''};
 }
 AppState.datos = crearDatosVacios();
 
@@ -444,7 +447,88 @@ const setHtml = (id, h) => { const e=$(id); if(e) e.innerHTML=h; };
 
 function abrirModal(id) { $(id)?.classList.add('active'); }
 function cerrarModal(id) { $(id)?.classList.remove('active'); }
-function setSyncStatus(s,t) { $('syncStatus').className='sync-status '+s; setText('syncText',t); }
+function setSyncStatus(s,t) {
+    const el=$('syncStatus'),labels={online:'En línea',offline:'Desconectado',syncing:'Sincronizando...',reconnecting:'Reconectando...'};
+    el.className='sync-status '+s;
+    setText('syncText',t||labels[s]||s);
+    AppState.ui.syncState=s;
+}
+
+/* ═══ Reconnect Firebase sin recargar ═══ */
+async function reconnectFirebase(){
+    if(AppState.ui.syncState==='reconnecting')return;
+    setSyncStatus('reconnecting');
+    try{
+        /* Desuscribir listener viejo */
+        if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}
+        /* Rehabilitar red de Firestore */
+        if(AppState.db){try{await AppState.db.enableNetwork()}catch(e){}}
+        /* Revalidar auth */
+        const user=AppState.auth?.currentUser;
+        if(user){
+            try{await user.reload()}catch(e){}
+            showApp(user);
+        }else{
+            /* Si no hay user activo, intentar obtener el actual */
+            await new Promise((res,rej)=>{const unsub=AppState.auth.onAuthStateChanged(u=>{unsub();u?showApp(u):rej(new Error('no-auth'))},rej)});
+        }
+    }catch(e){setSyncStatus('offline','Error al reconectar')}
+}
+
+/* ═══ Detectar conectividad ═══ */
+function inicializarConectividad(){
+    window.addEventListener('online',()=>{if(AppState.currentUser&&AppState.ui.syncState==='offline')reconnectFirebase()});
+    window.addEventListener('offline',()=>setSyncStatus('offline'));
+}
+
+/* ═══ Monthly Summary — Snapshot automático al cambio de mes ═══ */
+async function verificarCambioMes(){
+    if(!AppState.currentUser||!AppState.datos)return;
+    const hoy=getUDate(),mesActual=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+    const ultimoMes=AppState.datos.ultimoMesProcesado||'';
+    if(!ultimoMes){
+        /* Primera vez: solo registrar el mes actual sin snapshot */
+        AppState.datos.ultimoMesProcesado=mesActual;
+        await guardarDatos();return;
+    }
+    if(ultimoMes>=mesActual)return; /* Mismo mes o futuro */
+    /* Mes cambió: guardar snapshot del mes anterior */
+    try{
+        const ops=AppState.datos.operaciones.filter(op=>op.fecha?.startsWith(ultimoMes));
+        let compras=0,ventas=0,montoCompras=0,montoVentas=0,gananciaTotal=0,comisionesTotal=0;
+        ops.forEach(op=>{
+            if(op.tipo==='compra'){compras++;montoCompras=roundMoney(montoCompras+op.monto)}
+            else{ventas++;montoVentas=roundMoney(montoVentas+op.monto)}
+            gananciaTotal=roundMoney(gananciaTotal+(op.ganancia||0));
+            comisionesTotal=roundMoney(comisionesTotal+(op.comisionPlataforma||0));
+        });
+        const movs=AppState.datos.movimientos.filter(m=>m.fecha?.startsWith(ultimoMes));
+        const transf=AppState.datos.transferencias.filter(t=>t.fecha?.startsWith(ultimoMes));
+        const snapshot={
+            mes:ultimoMes,
+            creadoEn:firebase.firestore.FieldValue.serverTimestamp(),
+            operaciones:{total:ops.length,compras,ventas,montoCompras,montoVentas},
+            gananciaTotal,comisionesTotal,
+            movimientos:movs.length,
+            transferencias:transf.length,
+            saldoUsdt:AppState.datos.saldoUsdt,
+            bancosSnapshot:{}
+        };
+        CONFIG.BANCOS.forEach(b=>{
+            if(AppState.datos.bancos[b.nombre]?.activo){
+                snapshot.bancosSnapshot[b.nombre]={saldo:AppState.datos.bancos[b.nombre].saldo,moneda:b.moneda}
+            }
+        });
+        /* Guardar en subcolección monthly_summaries */
+        await AppState.db.collection('users').doc(AppState.currentUser.uid)
+            .collection('monthly_summaries').doc(ultimoMes).set(snapshot);
+        /* Resetear límites diarios */
+        CONFIG.BANCOS.forEach(b=>{if(AppState.datos.bancos[b.nombre])AppState.datos.bancos[b.nombre].limiteUsadoUSD=0});
+        AppState.datos.ultimoMesProcesado=mesActual;
+        await guardarDatos();
+        console.log('[P2P] Resumen mensual guardado:',ultimoMes);
+    }catch(e){console.error('[P2P] Error guardando resumen mensual:',e)}
+}
 function ocultarLoading() { $('loadingOverlay')?.classList.add('hidden'); }
 function activarCooldown() {
     AppState.ui.enCooldown=true; $('cooldownOverlay')?.classList.remove('hidden');
@@ -719,24 +803,33 @@ function userToEmail(u){return u.toLowerCase().trim()+CONFIG.EMAIL_DOMAIN}
 function emailToUser(e){return e.replace(CONFIG.EMAIL_DOMAIN,'')}
 
 async function guardarDatos(){
-    if(!AppState.currentUser)return;setSyncStatus('syncing','...');
-    try{await AppState.db.collection('users').doc(AppState.currentUser.uid).set({...AppState.datos,ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()});setSyncStatus('online','✓')}
-    catch(e){setSyncStatus('offline','✗')}
+    if(!AppState.currentUser)return;setSyncStatus('syncing');
+    try{
+        await AppState.db.collection('users').doc(AppState.currentUser.uid).set({
+            ...AppState.datos,
+            ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
+        });
+        setSyncStatus('online');
+    }catch(e){
+        console.error('[P2P] Error guardando:',e.code||e.message);
+        if(e.code==='unavailable'||e.code==='failed-precondition'||!navigator.onLine){
+            setSyncStatus('offline');
+        }else{setSyncStatus('offline','Error: '+(e.code||'desconocido'))}
+    }
 }
 
 function cargarDatosUsuario(){
     if(!AppState.currentUser)return;
-    if(AppState.unsubscribe)AppState.unsubscribe();
+    if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}
     AppState.unsubscribe=AppState.db.collection('users').doc(AppState.currentUser.uid).onSnapshot(doc=>{
         const ci=$('comisionPlataforma'),cf=document.activeElement===ci,lcU=AppState.datos.comisionPlataforma,lcD=AppState.datos.comisionUSD;
-        if(doc.exists){const d=doc.data();AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14}}
+        if(doc.exists){const d=doc.data();AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||''}}
         else AppState.datos=crearDatosVacios();
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
         /* Migración: normalizar datos legacy + recalcular con Binance-matching (compra=round, venta=truncar) */
         const needsMigration=AppState.datos.lotes.some(l=>!l.moneda)||AppState.datos.operaciones.some(op=>op.ganancia===undefined)||AppState.datos.operaciones.some(op=>{const exp=usdtBase(op.monto/op.tasa,op.tipo);return Math.abs(op.usdt-exp)>0.001});
         if(needsMigration){
-            /* Normalizar op.usdt con Binance-matching (tipo-dependiente) antes de recalcular */
             AppState.datos.operaciones.forEach(op=>{
                 const exp=usdtBase(op.monto/op.tasa,op.tipo);
                 if(Math.abs(op.usdt-exp)>0.001){
@@ -748,8 +841,13 @@ function cargarDatosUsuario(){
         }
         AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
         if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=cv.toFixed(2);setText('comisionPctLabel',cv.toFixed(2))}
-        actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();setSyncStatus('online','✓');
-    },()=>{setSyncStatus('offline','✗');ocultarLoading()});
+        actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();setSyncStatus('online');
+        /* Verificar cambio de mes para snapshot automático */
+        verificarCambioMes();
+    },err=>{
+        console.error('[P2P] Snapshot error:',err.code||err.message);
+        setSyncStatus('offline');ocultarLoading();
+    });
 }
 
 function showApp(u){AppState.currentUser=u;setText('menuUserName',emailToUser(u.email));setText('menuUserEmail',u.email);$('authContainer').classList.add('hidden');$('appContainer').classList.add('active');cargarDatosUsuario()}
@@ -757,9 +855,12 @@ function showAuth(){AppState.currentUser=null;$('authContainer').classList.remov
 
 function inicializarFirebase(){
     if(typeof firebase==='undefined'){ocultarLoading();return}
-    firebase.initializeApp(CONFIG.firebase);AppState.auth=firebase.auth();AppState.db=firebase.firestore();
-    AppState.db.enablePersistence().catch(()=>{});
-    AppState.auth.onAuthStateChanged(u=>u?showApp(u):showAuth());
+    try{
+        firebase.initializeApp(CONFIG.firebase);AppState.auth=firebase.auth();AppState.db=firebase.firestore();
+        AppState.db.enablePersistence().catch(()=>{});
+        inicializarConectividad();
+        AppState.auth.onAuthStateChanged(u=>u?showApp(u):showAuth());
+    }catch(e){console.error('[P2P] Firebase init error:',e);setSyncStatus('offline','Error init');ocultarLoading()}
 }
 
 /* ═══════════════════════════════════════
@@ -1271,6 +1372,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             const tag=t.dataset.tag;if(!tag)return;
             if(confirm(`¿Eliminar la etiqueta "${tag}"?`)){eliminarTag(tag);guardarDatos();renderizarGestionTags()}
         }
+        else if(a==='reconnect')reconnectFirebase();
     });
 
     // Escape cierra modales
@@ -1278,7 +1380,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     // Init
     actualizarFormulario();actualizarColorSelect();inicializarFirebase();
-    setInterval(()=>{verificarResetLimites();actualizarVista()},60000);
+    setInterval(()=>{verificarResetLimites();actualizarVista();verificarCambioMes()},60000);
 });
     </script>
 </body>
