@@ -289,6 +289,7 @@
                         <div class="menu-item" data-action="bancos"><span>🏦</span><span>Gestionar Bancos</span></div>
                         <div class="menu-item" data-action="transferencia"><span>↔️</span><span>Transferencia</span></div>
                         <div class="menu-item" data-action="gestion-tags"><span>🏷️</span><span>Gestión de Tags</span></div>
+                        <div class="menu-item" data-action="historial-mensual"><span>📊</span><span>Historial Mensual</span></div>
                         <div class="menu-divider"></div>
                         <div class="menu-item danger" data-action="borrar-todo"><span>🗑️</span><span>Borrar Todo</span></div>
                         <div class="menu-divider"></div>
@@ -317,13 +318,13 @@
                         <div class="form-group"><label>Tipo de operación</label><select id="tipo"><option value="compra">🛒 Compra USDT</option><option value="venta">💵 Venta USDT</option></select></div>
                         <div class="form-row">
                             <div class="form-group"><label id="montoLabel">Monto (UYU)</label><input type="number" step="0.01" id="monto" placeholder="3900"></div>
-                            <div class="form-group"><label>Tasa *</label><input type="text" id="tasa" placeholder="39.50" inputmode="decimal"><small id="tasaHelp" style="display:none"></small><div id="tasaTagsContainer" style="margin-top:4px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto"></div></div>
+                            <div class="form-group"><label>Tasa *</label><input type="text" id="tasa" placeholder="39,50" inputmode="decimal"><small id="tasaHelp" style="display:none"></small><div id="tasaTagsContainer" style="margin-top:4px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto"></div></div>
                         </div>
                         <div class="form-row">
                             <div class="form-group"><label id="bancoLabel">Banco *</label><select id="banco"><option value="">-- Seleccionar --</option></select><small id="bancoHelp"></small></div>
                             <div class="form-group" id="comisionBancoGroup"><label>Comisión banco</label><input type="number" step="0.01" id="comisionBanco" value="0" placeholder="0"></div>
                         </div>
-                        <div class="comision-inline"><label>📊 Comisión Binance:</label><input type="text" id="comisionPlataforma" value="0.14" placeholder="0.14" inputmode="decimal"><span>%</span></div>
+                        <div class="comision-inline"><label>📊 Comisión Binance:</label><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal"><span>%</span></div>
                         <div class="preview-box" id="previewBox" style="display:none"><span id="previewText"></span></div>
                         <button class="btn" id="btnAgregarOp" style="margin-top:12px">Agregar Operación</button>
                         <div class="info-text">Comisión <span id="comisionPctLabel">0.14</span>%: <strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></div>
@@ -373,11 +374,12 @@
     <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:14px"><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label">💵 Ganancia Total (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
     <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="number" step="0.01" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="number" step="0.01" id="movMonto"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea><div id="tagSugerenciasMov"></div></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Gestionar Bancos</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
-    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="number" step="0.01" id="transfTasa" placeholder="Ej: 42.50"></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
+    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="number" step="0.01" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="number" step="0.01" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="number" step="0.01" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="number" step="0.01" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="number" step="1" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Inventario USDT (FIFO)</div><div id="inventarioContent" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Sistema FIFO: Al vender se consumen primero los lotes más antiguos</div></div><div class="modal-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn btn-cancel" id="btnRecalcular">🔄 Recalcular</button><button class="btn" id="btnCerrarInventario">Cerrar</button></div></div></div>
-    <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="number" step="0.01" id="lotePrecio" placeholder="Ej: 42.50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="number" step="0.01" id="loteDisponible" placeholder="Ej: 100.00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelLote">Cancelar</button><button class="btn" style="background:#dc2626" id="btnEliminarLote">Eliminar</button><button class="btn" id="btnGuardarLote">Guardar</button></div></div></div>
+    <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="number" step="0.01" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="number" step="0.01" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelLote">Cancelar</button><button class="btn" style="background:#dc2626" id="btnEliminarLote">Eliminar</button><button class="btn" id="btnGuardarLote">Guardar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content"><div class="modal-header">🏷️ Gestión de Tags</div><input class="tag-search" type="text" id="tagSearch" placeholder="🔍 Buscar etiqueta..."><div id="tagsList" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Las etiquetas se crean automáticamente al guardar movimientos con descripción</div></div><div class="modal-buttons"><button class="btn" id="btnCerrarTags">Cerrar</button></div></div></div>
+    <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px"><div class="modal-header">📊 Historial Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div class="modal-buttons"><button class="btn" id="btnCerrarHistorial">Cerrar</button></div></div></div>
 
     <!-- ═══ FIREBASE SDK ═══ -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -458,21 +460,27 @@ function setSyncStatus(s,t) {
 async function reconnectFirebase(){
     if(AppState.ui.syncState==='reconnecting')return;
     setSyncStatus('reconnecting');
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000));
     try{
-        /* Desuscribir listener viejo */
-        if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}
-        /* Rehabilitar red de Firestore */
-        if(AppState.db){try{await AppState.db.enableNetwork()}catch(e){}}
-        /* Revalidar auth */
-        const user=AppState.auth?.currentUser;
-        if(user){
-            try{await user.reload()}catch(e){}
-            showApp(user);
-        }else{
-            /* Si no hay user activo, intentar obtener el actual */
-            await new Promise((res,rej)=>{const unsub=AppState.auth.onAuthStateChanged(u=>{unsub();u?showApp(u):rej(new Error('no-auth'))},rej)});
-        }
-    }catch(e){setSyncStatus('offline','Error al reconectar')}
+        await Promise.race([timeout,(async()=>{
+            /* 1. Desuscribir listener viejo */
+            if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}
+            /* 2. Rehabilitar red de Firestore */
+            if(AppState.db){try{await AppState.db.enableNetwork()}catch(e){}}
+            /* 3. Revalidar auth */
+            const user=AppState.auth?.currentUser;
+            if(user){
+                try{await user.getIdToken(true)}catch(e){}
+                /* 4. Reconectar datos — showApp lanza cargarDatosUsuario con nuevo onSnapshot */
+                showApp(user);
+            }else{
+                await new Promise((res,rej)=>{const unsub=AppState.auth.onAuthStateChanged(u=>{unsub();u?res(showApp(u)):rej(new Error('no-auth'))},rej)});
+            }
+        })()]);
+    }catch(e){
+        const msg=e.message==='timeout'?'Tiempo agotado':'Error al reconectar';
+        setSyncStatus('offline',msg);
+    }
 }
 
 /* ═══ Detectar conectividad ═══ */
@@ -487,12 +495,10 @@ async function verificarCambioMes(){
     const hoy=getUDate(),mesActual=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
     const ultimoMes=AppState.datos.ultimoMesProcesado||'';
     if(!ultimoMes){
-        /* Primera vez: solo registrar el mes actual sin snapshot */
         AppState.datos.ultimoMesProcesado=mesActual;
         await guardarDatos();return;
     }
-    if(ultimoMes>=mesActual)return; /* Mismo mes o futuro */
-    /* Mes cambió: guardar snapshot del mes anterior */
+    if(ultimoMes>=mesActual)return;
     try{
         const ops=AppState.datos.operaciones.filter(op=>op.fecha?.startsWith(ultimoMes));
         let compras=0,ventas=0,montoCompras=0,montoVentas=0,gananciaTotal=0,comisionesTotal=0;
@@ -509,25 +515,64 @@ async function verificarCambioMes(){
             creadoEn:firebase.firestore.FieldValue.serverTimestamp(),
             operaciones:{total:ops.length,compras,ventas,montoCompras,montoVentas},
             gananciaTotal,comisionesTotal,
-            movimientos:movs.length,
-            transferencias:transf.length,
+            movimientos:movs.length,transferencias:transf.length,
             saldoUsdt:AppState.datos.saldoUsdt,
             bancosSnapshot:{}
         };
         CONFIG.BANCOS.forEach(b=>{
-            if(AppState.datos.bancos[b.nombre]?.activo){
+            if(AppState.datos.bancos[b.nombre]?.activo)
                 snapshot.bancosSnapshot[b.nombre]={saldo:AppState.datos.bancos[b.nombre].saldo,moneda:b.moneda}
-            }
         });
-        /* Guardar en subcolección monthly_summaries */
-        await AppState.db.collection('users').doc(AppState.currentUser.uid)
-            .collection('monthly_summaries').doc(ultimoMes).set(snapshot);
-        /* Resetear límites diarios */
+        /* Batch write atómico: snapshot + actualizar mes procesado */
+        const batch=AppState.db.batch();
+        const userRef=AppState.db.collection('users').doc(AppState.currentUser.uid);
+        batch.set(userRef.collection('monthly_summaries').doc(ultimoMes),snapshot);
+        batch.update(userRef,{ultimoMesProcesado:mesActual});
+        await batch.commit();
         CONFIG.BANCOS.forEach(b=>{if(AppState.datos.bancos[b.nombre])AppState.datos.bancos[b.nombre].limiteUsadoUSD=0});
         AppState.datos.ultimoMesProcesado=mesActual;
-        await guardarDatos();
         console.log('[P2P] Resumen mensual guardado:',ultimoMes);
     }catch(e){console.error('[P2P] Error guardando resumen mensual:',e)}
+}
+
+/* ═══ Historial Mensual — Cargar y renderizar ═══ */
+async function cargarHistorialMensual(){
+    const cont=$('historialContent');
+    cont.innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div>';
+    abrirModal('modalHistorial');
+    try{
+        const snap=await AppState.db.collection('users').doc(AppState.currentUser.uid)
+            .collection('monthly_summaries').orderBy('mes','desc').limit(12).get();
+        if(snap.empty){
+            cont.innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px">📭</div><div>Sin datos históricos</div><div style="font-size:0.8em;margin-top:4px">El primer cierre se genera al cambiar de mes</div></div>';
+            return;
+        }
+        const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        let h='';
+        snap.forEach(doc=>{
+            const d=doc.data(),p=d.mes.split('-'),yr=p[0],mn=parseInt(p[1])-1;
+            const g=d.gananciaTotal||0,gc=g>=0?'#16a34a':'#dc2626',gs=g>=0?'+':'';
+            const op=d.operaciones||{};
+            h+=`<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <span style="font-weight:700;color:#1e293b;font-size:0.95em">${meses[mn]} ${yr}</span>
+                    <span style="font-weight:700;color:${gc};font-size:1.05em">${gs}$${fmtNum(Math.abs(g),0)}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.75em">
+                    <div style="color:#64748b">📥 Compras: <b style="color:#1e293b">${op.compras||0}</b> ($${fmtNum(op.montoCompras||0,0)})</div>
+                    <div style="color:#64748b">📤 Ventas: <b style="color:#1e293b">${op.ventas||0}</b> ($${fmtNum(op.montoVentas||0,0)})</div>
+                    <div style="color:#64748b">💸 Movimientos: <b style="color:#1e293b">${d.movimientos||0}</b></div>
+                    <div style="color:#64748b">↔️ Transferencias: <b style="color:#1e293b">${d.transferencias||0}</b></div>
+                    <div style="color:#64748b">💰 Comisiones: <b style="color:#1e293b">${fmtNum(d.comisionesTotal||0)} USDT</b></div>
+                    <div style="color:#64748b">📦 USDT cierre: <b style="color:#1e293b">${fmtTrunc(d.saldoUsdt||0,2)}</b></div>
+                </div>
+            </div>`;
+        });
+        cont.innerHTML=h;
+    }catch(e){
+        console.error('[P2P] Error cargando historial:',e);
+        cont.innerHTML='<div style="text-align:center;padding:30px;color:#dc2626"><div style="font-size:2em;margin-bottom:8px">⚠️</div><div>Error al cargar historial</div></div>';
+    }
 }
 function ocultarLoading() { $('loadingOverlay')?.classList.add('hidden'); }
 function activarCooldown() {
@@ -549,7 +594,7 @@ function usdtNeto(base,com,tipo){return tipo==='compra'?roundMoney(base-com,2):t
 function fmtNum(n,d=2){return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
 /* Formatear con truncado (conservador) — para mostrar USDT de inventario/lotes */
 function fmtTrunc(n,d=2){const t=truncar(n,d);return t.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
-function fmtTasa(n,mon){if(mon==='USD'){const s=n.toString(),dec=s.includes('.')?s.split('.')[1].length:0;return dec>2?n.toFixed(3):n.toFixed(2)}return n.toFixed(2)}
+function fmtTasa(n,mon){if(mon==='USD'){const s=n.toString(),dec=s.includes('.')?s.split('.')[1].length:0;const d=dec>2?3:2;return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}return n.toLocaleString('es-UY',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function parsearTasa(v){if(!v)return null;const l=v.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,3})?$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<=0?null:n}
 function parsearComision(v){if(!v&&v!==0)return null;const l=v.toString().replace(',','.').trim();if(!l||l==='.')return null;if(!/^\d*\.?\d*$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<0||n>10?null:n}
 function getUDate(){const n=new Date(),u=n.getTime()+n.getTimezoneOffset()*60000;return new Date(u-3*3600000)}
@@ -802,8 +847,11 @@ function renderizarInventario(){
 function userToEmail(u){return u.toLowerCase().trim()+CONFIG.EMAIL_DOMAIN}
 function emailToUser(e){return e.replace(CONFIG.EMAIL_DOMAIN,'')}
 
+let _guardando=false,_guardarPendiente=false;
 async function guardarDatos(){
-    if(!AppState.currentUser)return;setSyncStatus('syncing');
+    if(!AppState.currentUser)return;
+    if(_guardando){_guardarPendiente=true;return}
+    _guardando=true;setSyncStatus('syncing');
     try{
         await AppState.db.collection('users').doc(AppState.currentUser.uid).set({
             ...AppState.datos,
@@ -815,6 +863,9 @@ async function guardarDatos(){
         if(e.code==='unavailable'||e.code==='failed-precondition'||!navigator.onLine){
             setSyncStatus('offline');
         }else{setSyncStatus('offline','Error: '+(e.code||'desconocido'))}
+    }finally{
+        _guardando=false;
+        if(_guardarPendiente){_guardarPendiente=false;guardarDatos()}
     }
 }
 
@@ -840,7 +891,7 @@ function cargarDatosUsuario(){
             recalcularLotesYGanancias();guardarDatos()
         }
         AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
-        if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=cv.toFixed(2);setText('comisionPctLabel',cv.toFixed(2))}
+        if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=fmtNum(cv);setText('comisionPctLabel',fmtNum(cv))}
         actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();setSyncStatus('online');
         /* Verificar cambio de mes para snapshot automático */
         verificarCambioMes();
@@ -885,7 +936,7 @@ function actualizarFormulario(){
         if(monedaCambiada)AppState.ui.tasaManual=false;
     }
     setText('tasaHelp','');$('tasaHelp').style.display='none';
-    const ci=$('comisionPlataforma');if(document.activeElement!==ci){const cv=isU?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=cv.toFixed(2);setText('comisionPctLabel',cv.toFixed(2))}
+    const ci=$('comisionPlataforma');if(document.activeElement!==ci){const cv=isU?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=fmtNum(cv);setText('comisionPctLabel',fmtNum(cv))}
     calcularPreview();renderizarTasasRecientes();
 }
 
@@ -908,7 +959,7 @@ function guardarComisionYCalcular(){
     const inp=$('comisionPlataforma'),raw=inp.value.replace(',','.').trim();
     if(raw!==''&&raw!=='.'){const v=parsearComision(raw);if(v!==null){
         if(getMonedaBanco()==='USD')AppState.datos.comisionUSD=v;else AppState.datos.comisionPlataforma=v;
-        setText('comisionPctLabel',v.toFixed(2));clearTimeout(AppState.ui.comisionDebounce);AppState.ui.comisionDebounce=setTimeout(()=>guardarDatos(),1200)}}
+        setText('comisionPctLabel',fmtNum(v));clearTimeout(AppState.ui.comisionDebounce);AppState.ui.comisionDebounce=setTimeout(()=>guardarDatos(),1200)}}
     calcularPreview();
 }
 
@@ -916,7 +967,7 @@ async function agregarOperacion(){
     if(AppState.ui.enCooldown||AppState.ui.guardandoOperacion)return;const btn=$('btnAgregarOp');if(btn.disabled)return;
     const t=$('tipo').value,m=parseFloat($('monto').value),ti=$('tasa'),ta=parsearTasa(ti.value),b=$('banco').value,cb=roundMoney(parseFloat($('comisionBanco').value)||0),f=getUDateStr(),h=getUTimeStr(),mon=getMonedaBanco(),isU=mon==='USD',cpv=getComisionActual(),cp=cpv/100;
     if(!m){alert('Ingresá el monto');return}
-    if(!ta){ti.classList.add('error');$('tasaHelp').textContent='Formato inválido';$('tasaHelp').className='error-text';$('tasaHelp').style.display='block';alert('Tasa inválida (ej: '+(isU?'1.025':'39.50')+')');return}
+    if(!ta){ti.classList.add('error');$('tasaHelp').textContent='Formato inválido';$('tasaHelp').className='error-text';$('tasaHelp').style.display='block';alert('Tasa inválida (ej: '+(isU?'1,025':'39,50')+')');return}
     if(!b){$('bancoHelp').textContent='Seleccioná un banco';$('bancoHelp').className='error-text';$('banco').classList.add('error');alert('Seleccioná un banco');return}
     $('banco').classList.remove('error');
     /* ═══ Binance-matching: compra=round, venta=truncar la base USDT ═══ */
@@ -1289,6 +1340,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='bancos'){renderizarListaBancos();abrirModal('modalBancos')}
         else if(a==='transferencia')abrirModalTransferencia();
         else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
+        else if(a==='historial-mensual')cargarHistorialMensual();
         else if(a==='borrar-todo')borrarTodo();
         else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe)AppState.unsubscribe();AppState.auth.signOut()}}
     });
@@ -1338,6 +1390,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
     $('btnGuardarLote').addEventListener('click',guardarLote);
     $('btnCerrarTags').addEventListener('click',()=>cerrarModal('modalGestionTags'));
+    $('btnCerrarHistorial').addEventListener('click',()=>cerrarModal('modalHistorial'));
     $('tagSearch').addEventListener('input',renderizarGestionTags);
     $('movDescripcion').addEventListener('input',()=>renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov'));
     $('btnCalPrev').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()-1);renderizarCalendario()});
@@ -1361,7 +1414,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             if(tag&&target){const inp=$(target);if(inp){inp.value=tag;inp.focus();renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'')}}
         }
         else if(a==='usar-tasa'){
-            const v=t.dataset.valor;if(v){$('tasa').value=v;AppState.ui.tasaManual=true;calcularPreview()}
+            const v=t.dataset.valor;if(v){$('tasa').value=fmtTasa(parseFloat(v),getMonedaBanco());AppState.ui.tasaManual=true;calcularPreview()}
         }
         else if(a==='editar-tag'){
             const oldTag=t.dataset.tag;if(!oldTag)return;
