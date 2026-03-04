@@ -850,7 +850,9 @@ function recalcularLotesYGanancias(){
         else if(e.tipo==='me'){const r=consumirFIFO(roundMoney(e.data.monto));e.data.valorUYU=r.costo}
         else if(e.tipo==='lm'){
             const l=e.data;
-            AppState.datos.lotes.push({id:l.id,fecha:l.fecha,hora:l.hora,precioCompra:l.precioCompra,cantidad:l.cantidad,disponible:l.disponible,moneda:l.moneda||'UYU',manual:true});
+            /* CRÍTICO: disponible se resetea a cantidad original — el replay FIFO 
+               consumirá lo que corresponda según las operaciones activas */
+            AppState.datos.lotes.push({id:l.id,fecha:l.fecha,hora:l.hora,precioCompra:l.precioCompra,cantidad:l.cantidad,disponible:l.cantidad,moneda:l.moneda||'UYU',manual:true});
         }
     });
     AppState.datos.ultimaTasaCompra=utcL;AppState.datos.ultimaTasaCompraUSD=utcUL;
