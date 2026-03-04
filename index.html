@@ -427,6 +427,9 @@ const CONFIG = {
 const AppState = {
     db: null, auth: null, currentUser: null, unsubscribe: null,
     datos: null,
+    _localVersion: 0,   /* Versión local sincronizada con server */
+    _datosStale: false,  /* true = datos en memoria pueden estar desactualizados, bloquea escrituras */
+    _writeQueue: null,   /* Promise de escritura pendiente para coalescencia */
     ui: { bancoEditando:null, tipoMovimiento:'ingreso', calendarDate:new Date(),
           loteEditandoId:null, paginaOp:1, paginaMov:1, paginaTrans:1, paginaConv:1,
           guardandoMovimiento:false, guardandoLote:false, guardandoOperacion:false, guardandoTransferencia:false,
@@ -436,7 +439,7 @@ const AppState = {
 function crearDatosVacios() {
     return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],tags:[],tasasRecientes:[],
             saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,
-            ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14,ultimoMesProcesado:''};
+            ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14,ultimoMesProcesado:'',_version:0};
 }
 AppState.datos = crearDatosVacios();
 
@@ -460,26 +463,36 @@ function setSyncStatus(s,t) {
 async function reconnectFirebase(){
     if(AppState.ui.syncState==='reconnecting')return;
     setSyncStatus('reconnecting');
+    /* Marcar datos como stale ANTES de reconectar — bloquea escrituras hasta recibir datos frescos */
+    AppState._datosStale=true;
     const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000));
     try{
         await Promise.race([timeout,(async()=>{
-            /* 1. Desuscribir listener viejo */
             if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}
-            /* 2. Rehabilitar red de Firestore */
             if(AppState.db){try{await AppState.db.enableNetwork()}catch(e){}}
-            /* 3. Revalidar auth */
             const user=AppState.auth?.currentUser;
             if(user){
                 try{await user.getIdToken(true)}catch(e){}
-                /* 4. Reconectar datos — showApp lanza cargarDatosUsuario con nuevo onSnapshot */
                 showApp(user);
             }else{
                 await new Promise((res,rej)=>{const unsub=AppState.auth.onAuthStateChanged(u=>{unsub();u?res(showApp(u)):rej(new Error('no-auth'))},rej)});
             }
+            /* Esperar a que el snapshot entregue datos frescos del server (no cache) */
+            await new Promise((res,rej)=>{
+                const t=setTimeout(()=>{rej(new Error('sync-timeout'))},8000);
+                const check=setInterval(()=>{
+                    if(!AppState._datosStale){clearInterval(check);clearTimeout(t);res()}
+                },200);
+            });
         })()]);
     }catch(e){
-        const msg=e.message==='timeout'?'Tiempo agotado':'Error al reconectar';
-        setSyncStatus('offline',msg);
+        const msg=e.message==='timeout'||e.message==='sync-timeout'?'Tiempo agotado':'Error al reconectar';
+        if(e.message==='sync-timeout'){
+            /* Si el timeout es de sync pero la conexión se restableció, desbloquear de todas formas */
+            AppState._datosStale=false;
+            console.warn('[P2P] Sync timeout, desbloqueando escrituras con datos disponibles');
+        }
+        setSyncStatus(navigator.onLine?'online':'offline',msg);
     }
 }
 
@@ -863,21 +876,58 @@ function userToEmail(u){return u.toLowerCase().trim()+CONFIG.EMAIL_DOMAIN}
 function emailToUser(e){return e.replace(CONFIG.EMAIL_DOMAIN,'')}
 
 let _guardando=false,_guardarPendiente=false;
-async function guardarDatos(){
+async function guardarDatos(forzar){
     if(!AppState.currentUser)return;
+    /* Bloquear escrituras si datos están marcados como stale (esperando refresh del server) */
+    if(AppState._datosStale&&!forzar){
+        console.warn('[P2P] Escritura bloqueada: datos stale, esperando sync del servidor');
+        setSyncStatus('syncing','Sincronizando...');return;
+    }
     if(_guardando){_guardarPendiente=true;return}
     _guardando=true;setSyncStatus('syncing');
+    const ref=AppState.db.collection('users').doc(AppState.currentUser.uid);
     try{
-        await AppState.db.collection('users').doc(AppState.currentUser.uid).set({
-            ...AppState.datos,
-            ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
-        });
+        if(navigator.onLine){
+            /* ONLINE: Transacción con version guard — impide sobrescribir datos más recientes */
+            await AppState.db.runTransaction(async tx=>{
+                const doc=await tx.get(ref);
+                const serverVersion=doc.exists?(doc.data()._version||0):0;
+                /* Si el server tiene una versión más nueva que la local, abortar */
+                if(serverVersion>AppState._localVersion){
+                    throw{code:'stale-version',serverV:serverVersion,localV:AppState._localVersion};
+                }
+                const newVersion=serverVersion+1;
+                tx.set(ref,{
+                    ...AppState.datos,
+                    _version:newVersion,
+                    ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
+                });
+                AppState._localVersion=newVersion;
+                AppState.datos._version=newVersion;
+            });
+        }else{
+            /* OFFLINE: Escritura directa (Firestore la encola para sync posterior).
+               Incrementa version local; al reconectar el snapshot reconcilia. */
+            const nv=(AppState.datos._version||0)+1;
+            AppState.datos._version=nv;AppState._localVersion=nv;
+            await ref.set({
+                ...AppState.datos,
+                ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
         setSyncStatus('online');
     }catch(e){
-        console.error('[P2P] Error guardando:',e.code||e.message);
-        if(e.code==='unavailable'||e.code==='failed-precondition'||!navigator.onLine){
-            setSyncStatus('offline');
-        }else{setSyncStatus('offline','Error: '+(e.code||'desconocido'))}
+        if(e.code==='stale-version'){
+            console.warn(`[P2P] Version conflict: server=${e.serverV} local=${e.localV}. Esperando snapshot fresco.`);
+            AppState._datosStale=true;
+            setSyncStatus('syncing','Sincronizando...');
+            /* El onSnapshot traerá los datos frescos y desbloqueará */
+        }else{
+            console.error('[P2P] Error guardando:',e.code||e.message);
+            if(e.code==='unavailable'||e.code==='failed-precondition'||!navigator.onLine){
+                setSyncStatus('offline');
+            }else{setSyncStatus('offline','Error: '+(e.code||'desconocido'))}
+        }
     }finally{
         _guardando=false;
         if(_guardarPendiente){_guardarPendiente=false;guardarDatos()}
@@ -887,10 +937,34 @@ async function guardarDatos(){
 function cargarDatosUsuario(){
     if(!AppState.currentUser)return;
     if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}
-    AppState.unsubscribe=AppState.db.collection('users').doc(AppState.currentUser.uid).onSnapshot(doc=>{
+    AppState.unsubscribe=AppState.db.collection('users').doc(AppState.currentUser.uid)
+    .onSnapshot({includeMetadataChanges:true},doc=>{
+        const fromCache=doc.metadata.fromCache;
+        const hasPending=doc.metadata.hasPendingWrites;
+
+        /* Si es una confirmación de nuestra propia escritura pendiente, ignorar re-render */
+        if(hasPending)return;
+
         const ci=$('comisionPlataforma'),cf=document.activeElement===ci,lcU=AppState.datos.comisionPlataforma,lcD=AppState.datos.comisionUSD;
-        if(doc.exists){const d=doc.data();AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||''}}
-        else AppState.datos=crearDatosVacios();
+        if(doc.exists){
+            const d=doc.data();
+            const serverVersion=d._version||0;
+
+            /* Si datos vienen del server (no cache) Y la versión es >= local, actualizar estado */
+            /* Si vienen de cache, aceptar solo si no tenemos datos más nuevos locales */
+            if(!fromCache||serverVersion>=AppState._localVersion){
+                AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion};
+                AppState._localVersion=serverVersion;
+            }
+
+            /* Desbloquear escrituras cuando llegan datos frescos del server */
+            if(!fromCache&&AppState._datosStale){
+                AppState._datosStale=false;
+                console.log('[P2P] Datos frescos del server recibidos (v'+serverVersion+'), escrituras desbloqueadas');
+            }
+        }else{
+            AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
+        }
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
         /* Migración: normalizar datos legacy + recalcular con Binance-matching (compra=round, venta=truncar) */
@@ -907,9 +981,10 @@ function cargarDatosUsuario(){
         }
         AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
         if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=fmtNum(cv);setText('comisionPctLabel',fmtNum(cv))}
-        actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();setSyncStatus('online');
+        actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();
+        setSyncStatus(fromCache?'syncing':'online',fromCache?'Caché local':undefined);
         /* Verificar cambio de mes para snapshot automático */
-        verificarCambioMes();
+        if(!fromCache)verificarCambioMes();
     },err=>{
         console.error('[P2P] Snapshot error:',err.code||err.message);
         setSyncStatus('offline');ocultarLoading();
@@ -923,7 +998,9 @@ function inicializarFirebase(){
     if(typeof firebase==='undefined'){ocultarLoading();return}
     try{
         firebase.initializeApp(CONFIG.firebase);AppState.auth=firebase.auth();AppState.db=firebase.firestore();
-        AppState.db.enablePersistence().catch(()=>{});
+        AppState.db.enablePersistence({synchronizeTabs:true}).catch(e=>{
+            if(e.code==='unimplemented')console.warn('[P2P] Persistence no soportada en este navegador');
+        });
         inicializarConectividad();
         AppState.auth.onAuthStateChanged(u=>u?showApp(u):showAuth());
     }catch(e){console.error('[P2P] Firebase init error:',e);setSyncStatus('offline','Error init');ocultarLoading()}
