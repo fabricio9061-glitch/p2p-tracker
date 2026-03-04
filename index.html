@@ -778,7 +778,8 @@ function mostrarSaldoOrigen(){
    ═══════════════════════════════════════ */
 function agregarLote(id,fecha,hora,precio,cant,moneda){
     moneda=moneda||'UYU';cant=truncUsdt(cant);
-    const ex=AppState.datos.lotes.find(l=>l.precioCompra===precio&&l.disponible>0&&(l.moneda||'UYU')===moneda);
+    /* Solo mergear con lotes automáticos (no manuales) del mismo precio y moneda */
+    const ex=AppState.datos.lotes.find(l=>!l.manual&&l.precioCompra===precio&&l.disponible>0&&(l.moneda||'UYU')===moneda);
     if(ex){ex.cantidad=truncUsdt(ex.cantidad+cant);ex.disponible=truncUsdt(ex.disponible+cant)}
     else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant,moneda});
 }
@@ -799,10 +800,14 @@ function previewFIFO(cant){
 }
 
 function recalcularLotesYGanancias(){
+    /* Preservar lotes manuales — nunca se eliminan por recálculo */
+    const lotesManual=AppState.datos.lotes.filter(l=>l.manual).map(l=>({...l}));
     AppState.datos.lotes=[];const ev=[];
     AppState.datos.operaciones.forEach(op=>{ev.push({tipo:'op',fecha:op.fecha,hora:op.hora||'00:00',data:op})});
     AppState.datos.movimientos.filter(m=>m.tipoCuenta==='usdt').forEach(m=>{
         ev.push({tipo:m.tipoMovimiento==='ingreso'?'mi':'me',fecha:m.fecha,hora:m.hora||'00:00',data:m})});
+    /* Insertar lotes manuales como eventos para que participen en FIFO cronológicamente */
+    lotesManual.forEach(l=>{ev.push({tipo:'lm',fecha:l.fecha||'2000-01-01',hora:l.hora||'00:00',data:l})});
     ev.sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')));
     let utcL=AppState.datos.ultimaTasaCompra||0,utcUL=AppState.datos.ultimaTasaCompraUSD||0,utvU=0;
     ev.forEach(e=>{
@@ -827,6 +832,11 @@ function recalcularLotesYGanancias(){
             op.usdt=uBase;op.comisionPlataforma=cp;
         }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,roundMoney(m.monto),'UYU')}
         else if(e.tipo==='me'){const r=consumirFIFO(roundMoney(e.data.monto));e.data.valorUYU=r.costo}
+        else if(e.tipo==='lm'){
+            /* Re-insertar lote manual con su disponible original */
+            const l=e.data;
+            AppState.datos.lotes.push({id:l.id,fecha:l.fecha,hora:l.hora,precioCompra:l.precioCompra,cantidad:l.cantidad,disponible:l.disponible,moneda:l.moneda||'UYU',manual:true});
+        }
     });
     AppState.datos.ultimaTasaCompra=utcL;AppState.datos.ultimaTasaCompraUSD=utcUL;sincronizarSaldoUsdt();
 }
@@ -836,7 +846,8 @@ function renderizarInventario(){
     if(!la.length){setHtml('inventarioContent','<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px">📭</div><div>Sin USDT en inventario</div></div>');return}
     let tot=0,h='<table style="min-width:auto"><thead><tr><th>#</th><th>Precio</th><th>Disponible</th><th>Valor</th><th></th></tr></thead><tbody>';
     la.forEach((l,i)=>{tot+=l.disponible;const mon=l.moneda||'UYU',sy=mon==='USD'?'US$':'$',v=truncar(l.disponible*l.precioCompra,2);
-        h+=`<tr><td style="color:#64748b">${i+1}</td><td><b>${sy}${fmtNum(l.precioCompra,mon==='USD'?3:2)}</b></td><td style="color:#2563eb"><b>${fmtTrunc(l.disponible,2)}</b></td><td style="color:#64748b">${sy}${fmtNum(v,mon==='USD'?2:0)}</td><td><button class="btn-edit-small" data-action="editar-lote" data-lote-id="${l.id}">✏️</button></td></tr>`});
+        const tag=l.manual?'<span style="font-size:0.6em;background:#e0e7ff;color:#4338ca;padding:1px 4px;border-radius:3px;margin-left:3px;vertical-align:middle">manual</span>':'';
+        h+=`<tr><td style="color:#64748b">${i+1}${tag}</td><td><b>${sy}${fmtNum(l.precioCompra,mon==='USD'?3:2)}</b></td><td style="color:#2563eb"><b>${fmtTrunc(l.disponible,2)}</b></td><td style="color:#64748b">${sy}${fmtNum(v,mon==='USD'?2:0)}</td><td><button class="btn-edit-small" data-action="editar-lote" data-lote-id="${l.id}">✏️</button></td></tr>`});
     h+=`</tbody></table><div style="margin-top:12px;padding:10px;background:#eff6ff;border-radius:8px;display:flex;justify-content:space-between"><span style="color:#64748b">Total en inventario:</span><span style="color:#2563eb;font-weight:bold">${fmtTrunc(tot,2)} USDT</span></div>`;
     setHtml('inventarioContent',h);
 }
@@ -1299,12 +1310,12 @@ async function guardarLote(){
     AppState.ui.guardandoLote=true;btn.disabled=true;btn.textContent='Guardando...';
     try{
         if(AppState.ui.loteEditandoId){const l=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);if(l){l.precioCompra=roundMoney(p,3);l.disponible=truncUsdt(d);l.cantidad=Math.max(l.cantidad,truncUsdt(d));l.fecha=f}}
-        else AppState.datos.lotes.push({id:Date.now(),fecha:f,hora:getUTimeStr(),precioCompra:roundMoney(p,3),cantidad:truncUsdt(d),disponible:truncUsdt(d),moneda:'UYU'});
+        else AppState.datos.lotes.push({id:Date.now(),fecha:f,hora:getUTimeStr(),precioCompra:roundMoney(p,3),cantidad:truncUsdt(d),disponible:truncUsdt(d),moneda:'UYU',manual:true});
         sincronizarSaldoUsdt();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
     }finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Guardar'}
 }
 async function eliminarLoteActual(){if(!AppState.ui.loteEditandoId||AppState.ui.guardandoLote)return;if(!confirm('¿Eliminar este lote del inventario?'))return;AppState.ui.guardandoLote=true;const btn=$('btnEliminarLote');btn.disabled=true;btn.textContent='Eliminando...';try{AppState.datos.lotes=AppState.datos.lotes.filter(l=>l.id!==AppState.ui.loteEditandoId);sincronizarSaldoUsdt();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Eliminar'}}
-async function forzarRecalculo(){if(!confirm('¿Recalcular todos los lotes y ganancias desde las operaciones y movimientos?'))return;recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();alert('✅ Lotes, saldo USDT y ganancias recalculados')}
+async function forzarRecalculo(){if(!confirm('¿Recalcular todos los lotes y ganancias?\nLos lotes manuales se preservan.'))return;recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();alert('✅ Recálculo completado. Lotes manuales preservados.')}
 
 /* ═══════════════════════════════════════
    §16 — BORRAR TODO
