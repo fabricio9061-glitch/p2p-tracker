@@ -802,12 +802,13 @@ function agregarLote(id,fecha,hora,precio,cant,moneda){
 }
 
 function consumirFIFO(cant,precioVenta,monedaVenta){
-    let rest=truncUsdt(cant),gan=0,costo=0;const lotes=getLotesActivosFIFO();
+    let rest=truncUsdt(cant),gan=0,costo=0;const lotes=getLotesActivosFIFO(),consumed=[];
     for(const l of lotes){if(rest<=0)break;const c=truncUsdt(Math.min(l.disponible,rest));
         costo=roundMoney(costo+roundMoney(c*l.precioCompra));
         if(precioVenta!==undefined&&(l.moneda||'UYU')===(monedaVenta||'UYU'))gan=roundMoney(gan+roundMoney(c*(precioVenta-l.precioCompra)));
+        consumed.push({lotId:l.id,amount:c,precio:l.precioCompra});
         l.disponible=truncUsdt(l.disponible-c);if(l.disponible<0.005)l.disponible=0;rest=truncUsdt(rest-c);if(rest<0.005)rest=0}
-    return{ganancia:gan,costo};
+    return{ganancia:gan,costo,consumed};
 }
 function previewFIFO(cant){
     let rest=truncUsdt(cant);const lotes=getLotesActivosFIFO(),res=[];
@@ -841,13 +842,14 @@ function recalcularLotesYGanancias(){
                 agregarLote(op.id,op.fecha,op.hora||'00:00',op.tasa,un,op.moneda||'UYU');
             }else{
                 const av=usdtNeto(uBase,cp,op.tipo);
-                const fifoGan=consumirFIFO(av,op.tasa,op.moneda||'UYU').ganancia;
-                if(isU){utvU=op.tasa;op.ganancia=roundMoney(fifoGan)}
-                else{utvL=op.tasa;op.ganancia=roundMoney(fifoGan)}
+                const fifo=consumirFIFO(av,op.tasa,op.moneda||'UYU');
+                op.consumedLots=fifo.consumed;
+                if(isU){utvU=op.tasa;op.ganancia=roundMoney(fifo.ganancia)}
+                else{utvL=op.tasa;op.ganancia=roundMoney(fifo.ganancia)}
             }
             op.usdt=uBase;op.comisionPlataforma=cp;
         }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,roundMoney(m.monto),'UYU')}
-        else if(e.tipo==='me'){const r=consumirFIFO(roundMoney(e.data.monto));e.data.valorUYU=r.costo}
+        else if(e.tipo==='me'){const r=consumirFIFO(roundMoney(e.data.monto));e.data.valorUYU=r.costo;e.data.consumedLots=r.consumed}
         else if(e.tipo==='lm'){
             const l=e.data;
             /* CRÍTICO: disponible se resetea a cantidad original — el replay FIFO 
@@ -1310,7 +1312,9 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
         if(!total){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>';return}
         const ops=AppState.datos.operaciones.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>Banco</th><th>G/P</th><th>Fecha</th><th></th></tr></thead><tbody>';
         ops.forEach(op=>{const un=usdtNeto(op.usdt,op.comisionPlataforma,op.tipo);const badge=op.tipo==='compra'?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626',gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn)),sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
-            h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td><b>${fmtTrunc(un,2)}</b></td><td style="color:${getBancoColor(op.banco)};font-weight:600;font-size:0.75em">${op.banco||'-'}</td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">×</button></td></tr>`});
+            const cl=op.consumedLots&&op.consumedLots.length?op.consumedLots.map(c=>fmtTrunc(c.amount,2)+'@$'+fmtNum(c.precio)).join(', '):'';
+            const usdtHtml=op.tipo==='venta'&&cl?`<b title="FIFO: ${cl}" style="cursor:help;text-decoration:underline dotted #94a3b8">${fmtTrunc(un,2)}</b>`:`<b>${fmtTrunc(un,2)}</b>`;
+            h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td>${usdtHtml}</td><td style="color:${getBancoColor(op.banco)};font-weight:600;font-size:0.75em">${op.banco||'-'}</td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">×</button></td></tr>`});
         c.innerHTML=h+'</tbody></table>';
     }
 });
@@ -1402,7 +1406,7 @@ async function guardarLote(){
     if(!p||p<=0||isNaN(p)){alert('Ingresá un precio válido');return}if(d===undefined||d<0||isNaN(d)){alert('Ingresá una cantidad válida');return}
     AppState.ui.guardandoLote=true;btn.disabled=true;btn.textContent='Guardando...';
     try{
-        if(AppState.ui.loteEditandoId){const l=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);if(l){l.precioCompra=roundMoney(p,3);l.disponible=truncUsdt(d);l.cantidad=Math.max(l.cantidad,truncUsdt(d));l.fecha=f}}
+        if(AppState.ui.loteEditandoId){const l=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);if(l){l.precioCompra=roundMoney(p,3);l.disponible=truncUsdt(d);l.cantidad=truncUsdt(d);l.fecha=f}}
         else AppState.datos.lotes.push({id:Date.now(),fecha:f,hora:getUTimeStr(),precioCompra:roundMoney(p,3),cantidad:truncUsdt(d),disponible:truncUsdt(d),moneda:'UYU',manual:true});
         recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
     }finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Guardar'}
