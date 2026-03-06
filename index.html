@@ -610,10 +610,21 @@ function fmtTrunc(n,d=2){const t=truncar(n,d);return t.toLocaleString('es-UY',{m
 function fmtTasa(n,mon){if(mon==='USD'){const s=n.toString(),dec=s.includes('.')?s.split('.')[1].length:0;const d=dec>2?3:2;return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}return n.toLocaleString('es-UY',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function parsearTasa(v){if(!v)return null;const l=v.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,3})?$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<=0?null:n}
 function parsearComision(v){if(!v&&v!==0)return null;const l=v.toString().replace(',','.').trim();if(!l||l==='.')return null;if(!/^\d*\.?\d*$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<0||n>10?null:n}
-/* Leer valor numérico de cualquier input.
-   Si tiene coma → es-UY: puntos=miles, coma=decimal.
-   Si no tiene coma → puntos=decimal (input directo). */
-function pv(id){const v=$(id).value.toString().trim();if(v.includes(','))return parseFloat(v.replace(/\./g,'').replace(',','.'))||0;return parseFloat(v)||0}
+/* Leer valor numérico de cualquier input (formato es-UY).
+   Reglas: coma presente → dots=miles, comma=decimal.
+   Sin coma: dot+3dígitos al final (50.000) → miles; dot+1-2dígitos (42.50) → decimal. */
+function pv(id){
+    const v=$(id).value.toString().trim();if(!v)return 0;
+    /* Con coma: formato es-UY explícito (15.000,50 → 15000.5) */
+    if(v.includes(','))return parseFloat(v.replace(/\./g,'').replace(',','.'))||0;
+    /* Sin coma: detectar si los puntos son miles o decimal */
+    if(v.includes('.')){
+        /* Si TODOS los puntos están seguidos de exactamente 3 dígitos → son miles (50.000, 1.250.000) */
+        if(/^[\d.]+$/.test(v)&&v.split('.').slice(1).every(g=>g.length===3))
+            return parseFloat(v.replace(/\./g,''))||0;
+    }
+    return parseFloat(v)||0;
+}
 function getUDate(){const n=new Date(),u=n.getTime()+n.getTimezoneOffset()*60000;return new Date(u-3*3600000)}
 function getUDateStr(){const d=getUDate();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function getUTimeStr(){const d=getUDate();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
