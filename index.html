@@ -13,11 +13,11 @@
         .container{max-width:1400px;margin:0 auto;padding:15px;padding-bottom:30px}
 
         /* ═══ Header ═══ */
-        .header{text-align:center;margin-bottom:16px;padding-top:10px;position:relative}
-        .header h1{color:#1e293b;font-size:1.6em;margin-bottom:2px}
+        .header{text-align:center;margin-bottom:12px;padding-top:8px;position:relative}
+        .header h1{color:#1e293b;font-size:1.35em;margin-bottom:0}
 
         /* ═══ Sync ═══ */
-        .sync-status{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:0.75em;margin-top:8px;cursor:pointer;user-select:none;transition:all 0.2s}
+        .sync-status{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;font-size:0.7em;margin-top:5px;cursor:pointer;user-select:none;transition:all 0.2s}
         .sync-status:active{transform:scale(0.95)}
         .sync-status.online{background:#dcfce7;color:#16a34a}
         .sync-status.offline{background:#fee2e2;color:#dc2626}
@@ -300,14 +300,19 @@
                 <div class="card main-card" id="cardGananciaHoy">
                     <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title">📈 Ganancia Hoy</div><span style="font-size:0.65em;color:#64748b" id="fechaHoy">--</span></div>
                     <div class="card-value positive" id="gananciaHoy">$0</div>
-                    <div style="margin-top:6px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span>Spread <b style="color:#0284c7" id="spreadPromedio">$0</b></span></div>
+                    <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span>Spread <b style="color:#0284c7" id="spreadPromedio">$0</b></span></div>
                 </div>
                 <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
-                <div class="card"><div class="card-title">🏦 Bancos</div><div class="card-value positive" id="totalBancos">$0</div></div>
-                <div class="card"><div class="card-title">📊 Volumen <span id="mesVolumen" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
-                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px"><span style="font-size:0.7em;color:#64748b">📥 Compras</span><span style="font-size:1.05em;font-weight:700;color:#1e293b" id="totalPagado">$0</span></div>
-                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:3px"><span style="font-size:0.7em;color:#64748b">📤 Ventas</span><span style="font-size:1.05em;font-weight:700;color:#1e293b" id="totalRecibido">$0</span></div>
-                    <div style="margin-top:6px;padding-top:5px;border-top:1px solid #f1f5f9;font-size:0.6em;color:#94a3b8" id="statsVolumen">--</div>
+                <div class="card">
+                    <div class="card-title">🏦 Bancos</div>
+                    <div class="card-value positive" style="font-size:1.25em" id="totalBancos">$0</div>
+                    <div class="card-subtitle">Saldo total</div>
+                </div>
+                <div class="card" style="padding:12px 14px">
+                    <div class="card-title" style="margin-bottom:8px">📊 Volumen <span id="mesVolumen" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f1f5f9"><span style="font-size:0.75em;color:#16a34a;font-weight:500">📥 Compras</span><span style="font-size:1em;font-weight:700;color:#1e293b" id="totalPagado">$0</span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0"><span style="font-size:0.75em;color:#dc2626;font-weight:500">📤 Ventas</span><span style="font-size:1em;font-weight:700;color:#1e293b" id="totalRecibido">$0</span></div>
+                    <div style="margin-top:6px;padding-top:5px;border-top:1px solid #e2e8f0;font-size:0.6em;color:#94a3b8;line-height:1.6" id="statsVolumen">--</div>
                 </div>
             </div>
 
@@ -1477,11 +1482,10 @@ function actualizarVista(){
     setText('mesVolumen','('+meses[mn]+')');
     const la=AppState.datos.lotes.filter(l=>l.disponible>0);
     const minTxt=la.length>0?'Min $'+fmtNum(la.reduce((m,l)=>l.precioCompra<m.precioCompra?l:m,la[0]).precioCompra):'Sin stock';
-    const parts=[];
-    if(cc)parts.push('Prom $'+fmtNum(tpc)+' · '+minTxt);
-    if(cv)parts.push(la.length+' lotes');
-    if(sp)parts.push('Spread $'+fmtNum(sp));
-    setText('statsVolumen',parts.length?parts.join(' · '):'--');
+    const line1=cc?'Prom $'+fmtNum(tpc)+' · '+minTxt:'';
+    const line2=[];if(la.length)line2.push(la.length+' lotes');if(sp)line2.push('Spread $'+fmtNum(sp));
+    const stats=[line1,line2.join(' · ')].filter(Boolean).join('<br>');
+    setHtml('statsVolumen',stats||'--');
     setText('spreadPromedio','$'+fmtNum(sp));
     actualizarBancosGrid();actualizarSelectBancos();pagOp.render();pagMov.render();pagTrans.render();pagConv.render();
 }
