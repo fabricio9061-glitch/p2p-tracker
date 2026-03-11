@@ -380,6 +380,7 @@
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelLote">Cancelar</button><button class="btn" style="background:#dc2626" id="btnEliminarLote">Eliminar</button><button class="btn" id="btnGuardarLote">Guardar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content"><div class="modal-header">🏷️ Gestión de Tags</div><input class="tag-search" type="text" id="tagSearch" placeholder="🔍 Buscar etiqueta..."><div id="tagsList" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Las etiquetas se crean automáticamente al guardar movimientos con descripción</div></div><div class="modal-buttons"><button class="btn" id="btnCerrarTags">Cerrar</button></div></div></div>
     <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px"><div class="modal-header">📊 Historial Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div class="modal-buttons"><button class="btn" id="btnCerrarHistorial">Cerrar</button></div></div></div>
+    <div id="modalEditarOp" class="modal"><div class="modal-content"><div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div><div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div><div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div><div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div><div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div><div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div></div></div>
 
     <!-- ═══ FIREBASE SDK ═══ -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -433,7 +434,7 @@ const AppState = {
     ui: { bancoEditando:null, tipoMovimiento:'ingreso', calendarDate:new Date(),
           loteEditandoId:null, paginaOp:1, paginaMov:1, paginaTrans:1, paginaConv:1,
           guardandoMovimiento:false, guardandoLote:false, guardandoOperacion:false, guardandoTransferencia:false,
-          enCooldown:false, comisionDebounce:null, tasaManual:false, ultimoMonedaBanco:null, syncState:'offline' }
+          enCooldown:false, comisionDebounce:null, tasaManual:false, ultimoMonedaBanco:null, syncState:'offline', opEditandoId:null }
 };
 
 function crearDatosVacios() {
@@ -1115,6 +1116,82 @@ async function eliminarOperacion(id){
     recalcularLotesYGanancias();await guardarDatos();actualizarVista();
 }
 
+function abrirEditarOperacion(id){
+    const op=AppState.datos.operaciones.find(o=>o.id===id);if(!op)return;
+    AppState.ui.opEditandoId=id;
+    const sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
+    const badge=op.tipo==='compra'?'📥 Compra':'📤 Venta';
+    setText('editarOpHeader','✏️ Editar '+badge);
+    setText('editOpMontoLabel',op.tipo==='compra'?`Monto pagado (${op.moneda||'UYU'})`:`Monto recibido (${op.moneda||'UYU'})`);
+    $('editOpMonto').value=fmtNum(op.monto);
+    $('editOpTasa').value=fmtTasa(op.tasa,op.moneda||'UYU');
+    /* Poblar select de bancos */
+    const sel=$('editOpBanco');sel.innerHTML='';
+    getBancosActivos().forEach(b=>{sel.innerHTML+=`<option value="${b.nombre}" style="color:${b.color||'#1e293b'};font-weight:600"${b.nombre===op.banco?' selected':''}>${b.nombre}</option>`});
+    sel.style.color=getBancoColor(op.banco);sel.style.fontWeight='600';
+    /* Info y preview */
+    $('editarOpInfo').innerHTML=`${fmtFechaCorta(op.fecha)} ${op.hora||''} · ${sy}${fmtNum(op.tasa,td)} · ${fmtTrunc(op.usdt,2)} USDT`;
+    calcularEditOpPreview();
+    abrirModal('modalEditarOp');
+}
+
+function calcularEditOpPreview(){
+    const op=AppState.datos.operaciones.find(o=>o.id===AppState.ui.opEditandoId);if(!op)return;
+    const m=pv('editOpMonto'),ta=parsearTasa($('editOpTasa').value),pbox=$('editOpPreview');
+    if(m>0&&ta){
+        const cpct=(op.comisionPct||0.14)/100;
+        const u=usdtBase(m/ta,op.tipo),c=truncar(u*cpct,2),neto=usdtNeto(u,c,op.tipo);
+        pbox.innerHTML=op.tipo==='compra'
+            ?`📥 Recibís <b>${fmtNum(neto,2)} USDT</b> <span style="color:#64748b;font-size:0.85em">(base: ${fmtNum(u,2)})</span>`
+            :`📤 Entregás <b>${fmtNum(neto,2)} USDT</b>`;
+        pbox.style.display='block';
+    }else pbox.style.display='none';
+}
+
+async function guardarEditarOperacion(){
+    const op=AppState.datos.operaciones.find(o=>o.id===AppState.ui.opEditandoId);if(!op)return;
+    const btn=$('btnGuardarEditOp');if(btn.disabled)return;
+    const newM=pv('editOpMonto'),newTa=parsearTasa($('editOpTasa').value),newB=$('editOpBanco').value;
+    if(!newM||newM<=0){alert('Monto inválido');return}
+    if(!newTa){alert('Tasa inválida');return}
+    if(!newB){alert('Seleccioná un banco');return}
+    btn.disabled=true;btn.textContent='Guardando...';
+    try{
+        /* 1. Revertir impacto bancario de la operación original */
+        const oldB=op.banco,oldM=op.monto,oldCb=op.comisionBanco||0;
+        if(oldB&&AppState.datos.bancos[oldB]){
+            if(op.tipo==='compra'){
+                AppState.datos.bancos[oldB].saldo=fixNeg(AppState.datos.bancos[oldB].saldo+roundMoney(oldM+oldCb));
+                if(AppState.datos.bancos[oldB].limiteDiarioUSD>0){
+                    const mU=roundMoney(oldM/op.tasa);
+                    AppState.datos.bancos[oldB].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[oldB].limiteUsadoUSD||0)-mU));
+                }
+            }else{
+                AppState.datos.bancos[oldB].saldo=fixNeg(AppState.datos.bancos[oldB].saldo-oldM);
+            }
+        }
+        /* 2. Aplicar nuevos valores */
+        op.monto=roundMoney(newM);op.tasa=newTa;op.banco=newB;
+        op.updatedAt=new Date().toISOString();
+        /* 3. Aplicar nuevo impacto bancario */
+        if(newB&&AppState.datos.bancos[newB]){
+            if(op.tipo==='compra'){
+                AppState.datos.bancos[newB].saldo=fixNeg(AppState.datos.bancos[newB].saldo-roundMoney(newM+oldCb));
+                if(AppState.datos.bancos[newB].limiteDiarioUSD>0){
+                    const mU=op.moneda==='USD'?newM:truncar(newM/newTa);
+                    AppState.datos.bancos[newB].limiteUsadoUSD=Math.min(AppState.datos.bancos[newB].limiteDiarioUSD,roundMoney((AppState.datos.bancos[newB].limiteUsadoUSD||0)+mU));
+                }
+            }else{
+                AppState.datos.bancos[newB].saldo=fixNeg(AppState.datos.bancos[newB].saldo+newM);
+            }
+        }
+        /* 4. Recalcular FIFO determinístico + guardar */
+        recalcularLotesYGanancias();
+        await guardarDatos();actualizarVista();
+        cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null;
+    }finally{btn.disabled=false;btn.textContent='Guardar'}
+}
+
 /* ═══════════════════════════════════════
    §10 — MOVIMIENTOS
    ═══════════════════════════════════════ */
@@ -1325,7 +1402,7 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
         ops.forEach(op=>{const un=usdtNeto(op.usdt,op.comisionPlataforma,op.tipo);const badge=op.tipo==='compra'?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626',gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn)),sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
             const cl=op.consumedLots&&op.consumedLots.length?op.consumedLots.map(c=>fmtTrunc(c.amount,2)+'@$'+fmtNum(c.precio)).join(', '):'';
             const usdtHtml=op.tipo==='venta'&&cl?`<b title="FIFO: ${cl}" style="cursor:help;text-decoration:underline dotted #94a3b8">${fmtTrunc(un,2)}</b>`:`<b>${fmtTrunc(un,2)}</b>`;
-            h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td>${usdtHtml}</td><td style="color:${getBancoColor(op.banco)};font-weight:600;font-size:0.75em">${op.banco||'-'}</td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">×</button></td></tr>`});
+            h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td>${usdtHtml}</td><td style="color:${getBancoColor(op.banco)};font-weight:600;font-size:0.75em">${op.banco||'-'}</td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td style="white-space:nowrap"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">×</button></td></tr>`});
         c.innerHTML=h+'</tbody></table>';
     }
 });
@@ -1519,6 +1596,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnGuardarLote').addEventListener('click',guardarLote);
     $('btnCerrarTags').addEventListener('click',()=>cerrarModal('modalGestionTags'));
     $('btnCerrarHistorial').addEventListener('click',()=>cerrarModal('modalHistorial'));
+    $('btnCancelEditOp').addEventListener('click',()=>{cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null});
+    $('btnGuardarEditOp').addEventListener('click',guardarEditarOperacion);
+    $('editOpMonto').addEventListener('input',calcularEditOpPreview);
+    $('editOpTasa').addEventListener('input',calcularEditOpPreview);
+    $('editOpBanco').addEventListener('change',()=>{const v=$('editOpBanco').value;$('editOpBanco').style.color=v?getBancoColor(v):'#1e293b';$('editOpBanco').style.fontWeight=v?'600':'400'});
     $('tagSearch').addEventListener('input',renderizarGestionTags);
     $('movDescripcion').addEventListener('input',()=>renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov'));
     $('btnCalPrev').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()-1);renderizarCalendario()});
@@ -1530,6 +1612,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const t=e.target.closest('[data-action]');if(!t)return;
         const a=t.dataset.action,id=parseInt(t.dataset.id),banco=t.dataset.banco,loteId=parseInt(t.dataset.loteId);
         if(a==='eliminar-op')eliminarOperacion(id);
+        else if(a==='editar-op')abrirEditarOperacion(id);
         else if(a==='eliminar-mov')eliminarMovimiento(id);
         else if(a==='eliminar-trans')eliminarTransferencia(id);
         else if(a==='eliminar-conv')eliminarConversion(id);
