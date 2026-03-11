@@ -13,9 +13,8 @@
         .container{max-width:1400px;margin:0 auto;padding:15px;padding-bottom:30px}
 
         /* ═══ Header ═══ */
-        .header{text-align:center;margin-bottom:20px;padding-top:10px;position:relative}
-        .header h1{color:#1e293b;font-size:1.8em;margin-bottom:5px}
-        .header p{color:#64748b;font-size:0.9em}
+        .header{text-align:center;margin-bottom:16px;padding-top:10px;position:relative}
+        .header h1{color:#1e293b;font-size:1.6em;margin-bottom:2px}
 
         /* ═══ Sync ═══ */
         .sync-status{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:0.75em;margin-top:8px;cursor:pointer;user-select:none;transition:all 0.2s}
@@ -277,7 +276,6 @@
         <div class="container">
             <div class="header">
                 <h1>💱 Registro P2P</h1>
-                <p>Control de operaciones y saldos</p>
                 <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span></div>
                 <div class="menu-container">
                     <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
@@ -299,11 +297,18 @@
             </div>
 
             <div class="cards">
-                <div class="card main-card" id="cardGananciaHoy"><div class="card-title">📈 Ganancia Hoy</div><div class="card-value positive" id="gananciaHoy">$0</div><div class="card-subtitle" id="fechaHoy">--</div><div class="stats-row"><span class="stat-badge" id="opsHoy">0 ops</span></div><div style="margin-top:8px;padding-top:7px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:space-between"><span style="font-size:0.65em;color:#64748b;font-weight:500">📊 Spread</span><span style="font-size:0.75em;font-weight:600;color:#0284c7" id="spreadPromedio">$0</span><span class="stat-badge" id="porcentajeSpread" style="margin:0">0%</span></div></div>
-                <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia Hoy USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops USD</div></div>
-                <div class="card"><div class="card-title">🏦 Bancos</div><div class="card-value positive" id="totalBancos">$0</div><div class="card-subtitle">Saldo UYU</div></div>
-                <div class="card"><div class="card-title">📥 <span class="text-compra">Compras</span> <span id="mesCompras" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div><div class="stats-row"><span class="stat-badge" id="statsCompra">--</span></div></div>
-                <div class="card"><div class="card-title">📤 <span class="text-venta">Ventas</span> <span id="mesVentas" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalRecibido">$0</div><div class="stats-row"><span class="stat-badge" id="statsVenta">--</span></div></div>
+                <div class="card main-card" id="cardGananciaHoy">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title">📈 Ganancia Hoy</div><span style="font-size:0.65em;color:#64748b" id="fechaHoy">--</span></div>
+                    <div class="card-value positive" id="gananciaHoy">$0</div>
+                    <div style="margin-top:6px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span>Spread <b style="color:#0284c7" id="spreadPromedio">$0</b></span></div>
+                </div>
+                <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
+                <div class="card"><div class="card-title">🏦 Bancos</div><div class="card-value positive" id="totalBancos">$0</div></div>
+                <div class="card"><div class="card-title">📊 Volumen <span id="mesVolumen" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px"><span style="font-size:0.7em;color:#64748b">📥 Compras</span><span style="font-size:1.05em;font-weight:700;color:#1e293b" id="totalPagado">$0</span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:3px"><span style="font-size:0.7em;color:#64748b">📤 Ventas</span><span style="font-size:1.05em;font-weight:700;color:#1e293b" id="totalRecibido">$0</span></div>
+                    <div style="margin-top:6px;padding-top:5px;border-top:1px solid #f1f5f9;font-size:0.6em;color:#94a3b8" id="statsVolumen">--</div>
+                </div>
             </div>
 
             <div class="section-title">💼 Mis Saldos</div>
@@ -770,7 +775,7 @@ function mostrarSaldoBanco(){
 
 function actualizarBancosGrid(){
     const la=AppState.datos.lotes.filter(l=>l.disponible>0).length;
-    let h=`<div class="banco-mini-card usdt-card" data-action="inventario"><div class="banco-nombre">🪙 <b style="color:#1e293b">USDT</b></div><div class="banco-saldo">${fmtTrunc(Math.max(0,AppState.datos.saldoUsdt),2)}</div><div class="banco-moneda">Tether · ${la} lotes</div></div>`;
+    let h=`<div class="banco-mini-card usdt-card" data-action="inventario"><div class="banco-nombre">🪙 <b style="color:#1e293b">USDT</b></div><div class="banco-saldo">${fmtTrunc(Math.max(0,AppState.datos.saldoUsdt),2)}</div><div class="banco-moneda">${la} lotes</div></div>`;
     CONFIG.BANCOS.forEach(b=>{
         if(!AppState.datos.bancos[b.nombre]?.activo)return;
         const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
@@ -1467,14 +1472,17 @@ function actualizarVista(){
     }else cardUSD.style.display='none';
     setText('totalBancos','$'+fmtNum(tb,0));
     setText('totalPagado','$'+fmtNum(tp,0));
-    const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],mn=parseInt(mesA.split('-')[1])-1;
-    setText('mesCompras','('+meses[mn]+')');setText('mesVentas','('+meses[mn]+')');
-    const la=AppState.datos.lotes.filter(l=>l.disponible>0);
-    const minTxt=la.length>0?'Min: $'+fmtNum(la.reduce((m,l)=>l.precioCompra<m.precioCompra?l:m,la[0]).precioCompra):'Sin stock';
-    setText('statsCompra',cc?'Prom: $'+fmtNum(tpc)+' · '+minTxt:'--');
     setText('totalRecibido','$'+fmtNum(tr,0));
-    setText('statsVenta',cv?'Prom: $'+fmtNum(tpv)+' · '+la.length+' lotes':'--');
-    setText('spreadPromedio','$'+fmtNum(sp));setText('porcentajeSpread',fmtNum(tpc?(sp/tpc)*100:0,1)+'%');
+    const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],mn=parseInt(mesA.split('-')[1])-1;
+    setText('mesVolumen','('+meses[mn]+')');
+    const la=AppState.datos.lotes.filter(l=>l.disponible>0);
+    const minTxt=la.length>0?'Min $'+fmtNum(la.reduce((m,l)=>l.precioCompra<m.precioCompra?l:m,la[0]).precioCompra):'Sin stock';
+    const parts=[];
+    if(cc)parts.push('Prom $'+fmtNum(tpc)+' · '+minTxt);
+    if(cv)parts.push(la.length+' lotes');
+    if(sp)parts.push('Spread $'+fmtNum(sp));
+    setText('statsVolumen',parts.length?parts.join(' · '):'--');
+    setText('spreadPromedio','$'+fmtNum(sp));
     actualizarBancosGrid();actualizarSelectBancos();pagOp.render();pagMov.render();pagTrans.render();pagConv.render();
 }
 
