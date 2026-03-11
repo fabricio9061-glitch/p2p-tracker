@@ -301,10 +301,9 @@
             <div class="cards">
                 <div class="card main-card" id="cardGananciaHoy"><div class="card-title">📈 Ganancia Hoy</div><div class="card-value positive" id="gananciaHoy">$0</div><div class="card-subtitle" id="fechaHoy">--</div><div class="stats-row"><span class="stat-badge" id="opsHoy">0 ops</span></div><div style="margin-top:8px;padding-top:7px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:space-between"><span style="font-size:0.65em;color:#64748b;font-weight:500">📊 Spread</span><span style="font-size:0.75em;font-weight:600;color:#0284c7" id="spreadPromedio">$0</span><span class="stat-badge" id="porcentajeSpread" style="margin:0">0%</span></div></div>
                 <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia Hoy USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops USD</div></div>
-                <div class="card"><div class="card-title">📦 <b style="color:#1e293b">USDT</b></div><div class="card-value info" id="usdtEnTenencia">0,00</div><div class="card-subtitle">En tenencia</div></div>
                 <div class="card"><div class="card-title">🏦 Bancos</div><div class="card-value positive" id="totalBancos">$0</div><div class="card-subtitle">Saldo UYU</div></div>
-                <div class="card"><div class="card-title">📥 <span class="text-compra">Compras</span> <span id="mesCompras" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromCompra">--</span><span class="stat-badge" id="loteMasBarato">--</span></div></div>
-                <div class="card"><div class="card-title">📤 <span class="text-venta">Ventas</span> <span id="mesVentas" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalRecibido">$0</div><div class="stats-row"><span class="stat-badge" id="tasaPromVenta">--</span><span class="stat-badge" id="lotesDisponibles">--</span></div></div>
+                <div class="card"><div class="card-title">📥 <span class="text-compra">Compras</span> <span id="mesCompras" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalPagado">$0</div><div class="stats-row"><span class="stat-badge" id="statsCompra">--</span></div></div>
+                <div class="card"><div class="card-title">📤 <span class="text-venta">Ventas</span> <span id="mesVentas" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div><div class="card-value" style="font-size:1.2em" id="totalRecibido">$0</div><div class="stats-row"><span class="stat-badge" id="statsVenta">--</span></div></div>
             </div>
 
             <div class="section-title">💼 Mis Saldos</div>
@@ -1466,14 +1465,15 @@ function actualizarVista(){
         else{geU.textContent='-US$'+fmtNum(Math.abs(gUSD));geU.className='card-value negative'}
         setText('opsHoyUSD',nUSD+' ops USD hoy');
     }else cardUSD.style.display='none';
-    setText('usdtEnTenencia',fmtTrunc(Math.max(0,AppState.datos.saldoUsdt),2));setText('totalBancos','$'+fmtNum(tb,0));
-    setText('totalPagado','$'+fmtNum(tp,0));setText('tasaPromCompra','Prom: $'+fmtNum(tpc));
+    setText('totalBancos','$'+fmtNum(tb,0));
+    setText('totalPagado','$'+fmtNum(tp,0));
     const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],mn=parseInt(mesA.split('-')[1])-1;
     setText('mesCompras','('+meses[mn]+')');setText('mesVentas','('+meses[mn]+')');
     const la=AppState.datos.lotes.filter(l=>l.disponible>0);
-    if(la.length>0){const lm=la.reduce((m,l)=>l.precioCompra<m.precioCompra?l:m,la[0]);setText('loteMasBarato','Min: $'+fmtNum(lm.precioCompra));setText('lotesDisponibles',la.length+' lotes')}
-    else{setText('loteMasBarato','Sin stock');setText('lotesDisponibles','0 lotes')}
-    setText('totalRecibido','$'+fmtNum(tr,0));setText('tasaPromVenta','Prom: $'+fmtNum(tpv));
+    const minTxt=la.length>0?'Min: $'+fmtNum(la.reduce((m,l)=>l.precioCompra<m.precioCompra?l:m,la[0]).precioCompra):'Sin stock';
+    setText('statsCompra',cc?'Prom: $'+fmtNum(tpc)+' · '+minTxt:'--');
+    setText('totalRecibido','$'+fmtNum(tr,0));
+    setText('statsVenta',cv?'Prom: $'+fmtNum(tpv)+' · '+la.length+' lotes':'--');
     setText('spreadPromedio','$'+fmtNum(sp));setText('porcentajeSpread',fmtNum(tpc?(sp/tpc)*100:0,1)+'%');
     actualizarBancosGrid();actualizarSelectBancos();pagOp.render();pagMov.render();pagTrans.render();pagConv.render();
 }
