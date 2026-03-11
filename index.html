@@ -303,16 +303,19 @@
                     <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span>Spread <b style="color:#0284c7" id="spreadPromedio">$0</b></span></div>
                 </div>
                 <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
-                <div class="card">
-                    <div class="card-title">🏦 Bancos</div>
-                    <div class="card-value positive" style="font-size:1.25em" id="totalBancos">$0</div>
-                    <div class="card-subtitle">Saldo total</div>
+                <div class="card" style="grid-column:span 2;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-size:0.75em;color:#64748b;font-weight:600">🏦 Bancos</span>
+                    <span style="font-size:1.1em;font-weight:700;color:#16a34a" id="totalBancos">$0</span>
                 </div>
-                <div class="card" style="padding:12px 14px">
-                    <div class="card-title" style="margin-bottom:8px">📊 Volumen <span id="mesVolumen" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f1f5f9"><span style="font-size:0.75em;color:#16a34a;font-weight:500">📥 Compras</span><span style="font-size:1em;font-weight:700;color:#1e293b" id="totalPagado">$0</span></div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0"><span style="font-size:0.75em;color:#dc2626;font-weight:500">📤 Ventas</span><span style="font-size:1em;font-weight:700;color:#1e293b" id="totalRecibido">$0</span></div>
-                    <div style="margin-top:6px;padding-top:5px;border-top:1px solid #e2e8f0;font-size:0.6em;color:#94a3b8;line-height:1.6" id="statsVolumen">--</div>
+                <div class="card">
+                    <div class="card-title">📥 Compras <span id="mesCompras" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
+                    <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalPagado">$0</div>
+                    <div style="font-size:0.6em;color:#94a3b8" id="statsCompra">--</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📤 Ventas <span id="mesVentas" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
+                    <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalRecibido">$0</div>
+                    <div style="font-size:0.6em;color:#94a3b8" id="statsVenta">--</div>
                 </div>
             </div>
 
@@ -1479,13 +1482,11 @@ function actualizarVista(){
     setText('totalPagado','$'+fmtNum(tp,0));
     setText('totalRecibido','$'+fmtNum(tr,0));
     const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],mn=parseInt(mesA.split('-')[1])-1;
-    setText('mesVolumen','('+meses[mn]+')');
+    setText('mesCompras','('+meses[mn]+')');setText('mesVentas','('+meses[mn]+')');
     const la=AppState.datos.lotes.filter(l=>l.disponible>0);
     const minTxt=la.length>0?'Min $'+fmtNum(la.reduce((m,l)=>l.precioCompra<m.precioCompra?l:m,la[0]).precioCompra):'Sin stock';
-    const line1=cc?'Prom $'+fmtNum(tpc)+' · '+minTxt:'';
-    const line2=[];if(la.length)line2.push(la.length+' lotes');if(sp)line2.push('Spread $'+fmtNum(sp));
-    const stats=[line1,line2.join(' · ')].filter(Boolean).join('<br>');
-    setHtml('statsVolumen',stats||'--');
+    setText('statsCompra',cc?'Prom $'+fmtNum(tpc)+' · '+minTxt:'--');
+    setText('statsVenta',cv?la.length+' lotes · Spread $'+fmtNum(sp):'--');
     setText('spreadPromedio','$'+fmtNum(sp));
     actualizarBancosGrid();actualizarSelectBancos();pagOp.render();pagMov.render();pagTrans.render();pagConv.render();
 }
