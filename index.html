@@ -722,12 +722,10 @@ function renderizarTagsSugerencias(inputId,containerId){
 }
 function renderizarGestionTags(){
     const periodo=AppState.ui.tagPeriodo||'total';
-    /* Period filter buttons */
     const pf=$('tagPeriodFilter');
     if(pf){const periodos=[['hoy','Hoy'],['semana','Semana'],['mes','Mes'],['total','Total']];
         pf.innerHTML=periodos.map(([k,l])=>`<button style="padding:4px 10px;font-size:0.7em;border-radius:12px;border:1px solid ${periodo===k?'#2563eb':'#e2e8f0'};background:${periodo===k?'#2563eb':'white'};color:${periodo===k?'white':'#64748b'};cursor:pointer;font-weight:500" data-action="tag-periodo" data-periodo="${k}">${l}</button>`).join('');
     }
-    /* Filter movimientos by period */
     const hoy=getUDateStr(),hoyD=getUDate();
     const semanaStart=new Date(hoyD);semanaStart.setDate(semanaStart.getDate()-semanaStart.getDay());
     const semanaStr=`${semanaStart.getFullYear()}-${String(semanaStart.getMonth()+1).padStart(2,'0')}-${String(semanaStart.getDate()).padStart(2,'0')}`;
@@ -737,72 +735,91 @@ function renderizarGestionTags(){
     else if(periodo==='semana')movsFiltrados=movsFiltrados.filter(m=>m.fecha>=semanaStr);
     else if(periodo==='mes')movsFiltrados=movsFiltrados.filter(m=>m.fecha?.startsWith(mesStr));
 
+    /* Solo egresos para la gráfica */
+    const egresos=movsFiltrados.filter(m=>m.tipoMovimiento==='egreso');
+    const tasaFallback=AppState.datos.ultimaTasaCompra||1;
+
+    /* Convertir cada egreso a UYU */
+    function egresoUYU(m){
+        if(m.tipoCuenta==='usdt'){
+            /* valorUYU = costo FIFO real; si no existe, estimar */
+            if(m.valorUYU>0)return m.valorUYU;
+            return roundMoney(m.monto*(m.tasaRef||tasaFallback));
+        }
+        /* Banco: verificar moneda */
+        const bi=m.banco?getBancoInfo(m.banco):null;
+        if(bi&&bi.moneda==='USD')return roundMoney(m.monto*tasaFallback);
+        return m.monto; /* UYU directo */
+    }
+
     const tags=AppState.datos.tags||[],search=($('tagSearch')?.value||'').toLowerCase();
-    /* Build tag stats */
     const tagStats=tags.map(t=>{
-        const movs=movsFiltrados.filter(m=>(m.descripcion||'').toLowerCase()===t.toLowerCase());
-        const usos=movs.length;
-        const volumen=movs.reduce((s,m)=>roundMoney(s+m.monto),0);
-        const ingresos=movs.filter(m=>m.tipoMovimiento==='ingreso').reduce((s,m)=>roundMoney(s+m.monto),0);
-        const egresos=movs.filter(m=>m.tipoMovimiento==='egreso').reduce((s,m)=>roundMoney(s+m.monto),0);
-        return{tag:t,usos,volumen,ingresos,egresos};
-    }).sort((a,b)=>b.usos-a.usos);
+        const movs=egresos.filter(m=>(m.descripcion||'').toLowerCase()===t.toLowerCase());
+        const ops=movs.length;
+        const montoOriginal=movs.reduce((s,m)=>roundMoney(s+m.monto),0);
+        const egresoTotal=movs.reduce((s,m)=>roundMoney(s+egresoUYU(m)),0);
+        const tieneConversion=movs.some(m=>m.tipoCuenta==='usdt'||(m.banco&&getBancoInfo(m.banco)?.moneda==='USD'));
+        return{tag:t,ops,montoOriginal,egresoTotal,tieneConversion};
+    }).sort((a,b)=>b.egresoTotal-a.egresoTotal);
 
-    const totalUsos=tagStats.reduce((s,t)=>s+t.usos,0);
-    const sinTag=movsFiltrados.filter(m=>!m.descripcion||!tags.some(t=>t.toLowerCase()===m.descripcion.toLowerCase())).length;
+    const totalEgreso=tagStats.reduce((s,t)=>s+t.egresoTotal,0);
+    const sinTagMovs=egresos.filter(m=>!m.descripcion||!tags.some(t=>t.toLowerCase()===m.descripcion.toLowerCase()));
+    const sinTagUYU=sinTagMovs.reduce((s,m)=>roundMoney(s+egresoUYU(m)),0);
+    const grandTotal=roundMoney(totalEgreso+sinTagUYU);
 
-    /* Render donut chart + insights */
     const ac=$('tagAnalytics');
     if(ac){
         const COLORS=['#3b82f6','#16a34a','#f59e0b','#dc2626','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
-        const top=tagStats.filter(t=>t.usos>0).slice(0,8);
-        const totalForChart=totalUsos+sinTag;
-        if(totalForChart>0&&top.length>0){
-            /* SVG donut */
+        const top=tagStats.filter(t=>t.egresoTotal>0).slice(0,8);
+        if(grandTotal>0&&top.length>0){
             let svg='',cum=0;const r=50,cx=60,cy=60,stroke=18,circ=2*Math.PI*r;
             top.forEach((t,i)=>{
-                const pct=t.usos/totalForChart;const dash=pct*circ;const gap=circ-dash;const offset=-cum*circ+circ*0.25;
+                const pct=t.egresoTotal/grandTotal;const dash=pct*circ;const gap=circ-dash;const offset=-cum*circ+circ*0.25;
                 svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${COLORS[i%COLORS.length]}" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}" />`;
                 cum+=pct;
             });
-            if(sinTag>0){const pct=sinTag/totalForChart;const dash=pct*circ;const gap=circ-dash;const offset=-cum*circ+circ*0.25;
+            if(sinTagUYU>0){const pct=sinTagUYU/grandTotal;const dash=pct*circ;const gap=circ-dash;const offset=-cum*circ+circ*0.25;
                 svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}" />`;}
-            svg=`<svg viewBox="0 0 120 120" style="width:110px;height:110px"><text x="${cx}" y="${cy-4}" text-anchor="middle" fill="#1e293b" font-size="14" font-weight="700">${totalForChart}</text><text x="${cx}" y="${cy+10}" text-anchor="middle" fill="#94a3b8" font-size="7">movimientos</text>${svg}</svg>`;
+            svg=`<svg viewBox="0 0 120 120" style="width:110px;height:110px"><text x="${cx}" y="${cy-4}" text-anchor="middle" fill="#1e293b" font-size="11" font-weight="700">$${fmtNum(grandTotal,0)}</text><text x="${cx}" y="${cy+10}" text-anchor="middle" fill="#94a3b8" font-size="7">egresos UYU</text>${svg}</svg>`;
 
-            /* Legend */
-            let legend=top.map((t,i)=>`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:${COLORS[i%COLORS.length]};flex-shrink:0"></span><span style="color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.tag}</span><span style="color:#64748b">${totalForChart?Math.round(t.usos/totalForChart*100):0}%</span></div>`).join('');
-            if(sinTag>0)legend+=`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;flex-shrink:0"></span><span style="color:#94a3b8;flex:1">Sin tag</span><span style="color:#64748b">${Math.round(sinTag/totalForChart*100)}%</span></div>`;
+            let legend=top.map((t,i)=>{
+                const pct=grandTotal?Math.round(t.egresoTotal/grandTotal*100):0;
+                return`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:${COLORS[i%COLORS.length]};flex-shrink:0"></span><span style="color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.tag}</span><span style="color:#64748b;white-space:nowrap">$${fmtNum(t.egresoTotal,0)} · ${pct}%</span></div>`;
+            }).join('');
+            if(sinTagUYU>0)legend+=`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;flex-shrink:0"></span><span style="color:#94a3b8;flex:1">Sin tag</span><span style="color:#64748b">$${fmtNum(sinTagUYU,0)} · ${Math.round(sinTagUYU/grandTotal*100)}%</span></div>`;
 
-            /* Insights */
-            const topTag=top[0];
-            const topVol=tagStats.filter(t=>t.volumen>0).sort((a,b)=>b.volumen-a.volumen)[0];
-            let insights='';
-            if(topTag)insights+=`<span>🏆 Más usado: <b>${topTag.tag}</b> (${topTag.usos})</span>`;
-            if(topVol&&topVol.tag!==topTag?.tag)insights+=`<span style="margin-left:8px">💰 Mayor volumen: <b>${topVol.tag}</b> ($${fmtNum(topVol.volumen,0)})</span>`;
+            const topEg=top[0];
+            const topOps=tagStats.filter(t=>t.ops>0).sort((a,b)=>b.ops-a.ops)[0];
+            let insights=`<span>💸 Mayor gasto: <b>${topEg.tag}</b> ($${fmtNum(topEg.egresoTotal,0)})</span>`;
+            if(topOps&&topOps.tag!==topEg.tag)insights+=`<span style="margin-left:8px">🔄 Más frecuente: <b>${topOps.tag}</b> (${topOps.ops})</span>`;
+            const hayConv=top.some(t=>t.tieneConversion);
 
             ac.innerHTML=`<div style="display:flex;gap:14px;align-items:center;padding:10px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">
                 <div style="flex-shrink:0">${svg}</div>
                 <div style="flex:1;display:flex;flex-direction:column;gap:3px">${legend}</div>
-            </div>${insights?`<div style="margin-top:8px;font-size:0.68em;color:#64748b;display:flex;flex-wrap:wrap;gap:4px">${insights}</div>`:''}`;
+            </div>
+            <div style="margin-top:8px;font-size:0.68em;color:#64748b;display:flex;flex-wrap:wrap;gap:4px">${insights}</div>
+            ${hayConv?'<div style="margin-top:4px;font-size:0.6em;color:#94a3b8;font-style:italic">* Valores USDT/USD convertidos a UYU con precio FIFO</div>':''}`;
         }else{
-            ac.innerHTML='<div style="text-align:center;padding:12px;color:#94a3b8;font-size:0.8em">Sin datos para este período</div>';
+            ac.innerHTML='<div style="text-align:center;padding:12px;color:#94a3b8;font-size:0.8em">Sin egresos en este período</div>';
         }
     }
 
-    /* Tag list */
     const cont=$('tagsList');if(!cont)return;
     const filtrados=search?tagStats.filter(t=>t.tag.toLowerCase().includes(search)):tagStats;
     if(!filtrados.length){cont.innerHTML=`<div style="text-align:center;padding:20px;color:#94a3b8"><div style="font-size:1.8em;margin-bottom:6px">🏷️</div><div>${search?'Sin resultados':'Sin etiquetas aún'}</div></div>`;return}
     let h='';
     filtrados.forEach(t=>{
-        const pct=totalUsos?Math.round(t.usos/totalUsos*100):0;
-        const volTxt=t.volumen>0?`$${fmtNum(t.volumen,0)}`:'';
-        const ticketTxt=t.usos>0?`Ticket: $${fmtNum(roundMoney(t.volumen/t.usos),0)}`:'';
-        const metaTxt=[t.usos+' uso'+(t.usos!==1?'s':''),volTxt,ticketTxt].filter(Boolean).join(' · ');
+        const pct=grandTotal?Math.round(t.egresoTotal/grandTotal*100):0;
+        const ticketTxt=t.ops>0?`Ticket: $${fmtNum(roundMoney(t.egresoTotal/t.ops),0)}`:'';
+        const convMark=t.tieneConversion?' *':'';
+        const metaParts=[t.ops+' egreso'+(t.ops!==1?'s':'')];
+        if(t.egresoTotal>0)metaParts.push('$'+fmtNum(t.egresoTotal,0)+' UYU'+convMark);
+        if(ticketTxt)metaParts.push(ticketTxt);
         h+=`<div class="tag-manage-item">
             <div style="flex:1;min-width:0">
-                <div style="display:flex;align-items:center;gap:6px"><span class="tag-name">${t.tag}</span>${pct>0?`<span style="font-size:0.6em;background:#eff6ff;color:#2563eb;padding:1px 5px;border-radius:8px">${pct}%</span>`:''}</div>
-                <div style="font-size:0.65em;color:#94a3b8;margin-top:2px">${metaTxt}</div>
+                <div style="display:flex;align-items:center;gap:6px"><span class="tag-name">${t.tag}</span>${pct>0?`<span style="font-size:0.6em;background:#fef2f2;color:#dc2626;padding:1px 5px;border-radius:8px">${pct}%</span>`:''}</div>
+                <div style="font-size:0.65em;color:#94a3b8;margin-top:2px">${metaParts.join(' · ')}</div>
             </div>
             <div class="tag-actions"><button class="tag-edit-btn" data-action="editar-tag" data-tag="${t.tag.replace(/"/g,'&quot;')}">✏️</button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${t.tag.replace(/"/g,'&quot;')}">🗑️</button></div>
         </div>`;
