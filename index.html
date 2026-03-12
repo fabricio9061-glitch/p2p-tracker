@@ -111,17 +111,21 @@
         .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
         .btn:active{background:#1d4ed8}
         .btn:disabled{background:#94a3b8;cursor:not-allowed}
-        .btn-delete{background:transparent;color:#ef4444;border:none;cursor:pointer;font-size:1.1em;padding:4px 8px}
+        .btn-delete{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;cursor:pointer;font-size:0.7em;padding:6px 10px;border-radius:6px;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
+        .btn-delete:active{background:#fee2e2}
         .btn-cancel{background:#e5e7eb;color:#4b5563}
-        .btn-edit-small{padding:5px 10px;font-size:0.7em;background:#3b82f6;color:white;border:none;border-radius:5px;cursor:pointer}
+        .btn-edit-small{padding:6px 10px;font-size:0.7em;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
+        .btn-edit-small:active{background:#e2e8f0}
+        .action-cell{display:flex;gap:4px;justify-content:flex-end}
         .info-text{color:#64748b;font-size:0.75em;margin-top:10px}
         .preview-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;color:#1e40af;font-size:0.85em}
 
         /* ═══ Tables ═══ */
         .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
         table{width:100%;border-collapse:collapse;min-width:620px}
-        th{background:#f8fafc;color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase}
-        td{padding:10px 8px;color:#1e293b;border-top:1px solid #f1f5f9;font-size:0.8em}
+        th{background:#f8fafc;color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase;border-bottom:2px solid #e2e8f0}
+        td{padding:10px 8px;color:#1e293b;border-top:1px solid #e2e8f0;font-size:0.8em}
+        tr:hover td{background:#f8fafc}
 
         /* ═══ Badges ═══ */
         .badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:0.68em;font-weight:700}
@@ -336,12 +340,12 @@
                     <span style="font-size:1.1em;font-weight:700;color:#16a34a" id="totalBancos">$0</span>
                 </div>
                 <div class="card card-compra">
-                    <div class="card-title">📥 Compras <span id="mesCompras" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
+                    <div class="card-title" style="color:#16a34a">📥 Compras <span id="mesCompras" style="color:#86efac;font-weight:400;text-transform:none"></span></div>
                     <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalPagado">$0</div>
                     <div style="font-size:0.6em;color:#94a3b8" id="statsCompra">--</div>
                 </div>
                 <div class="card card-venta">
-                    <div class="card-title">📤 Ventas <span id="mesVentas" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
+                    <div class="card-title" style="color:#dc2626">📤 Ventas <span id="mesVentas" style="color:#fca5a5;font-weight:400;text-transform:none"></span></div>
                     <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalRecibido">$0</div>
                     <div style="font-size:0.6em;color:#94a3b8" id="statsVenta">--</div>
                 </div>
@@ -1448,7 +1452,7 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
         ops.forEach(op=>{const un=usdtNeto(op.usdt,op.comisionPlataforma,op.tipo);const badge=op.tipo==='compra'?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626',gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn)),sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
             const cl=op.consumedLots&&op.consumedLots.length?op.consumedLots.map(c=>fmtTrunc(c.amount,2)+'@$'+fmtNum(c.precio)).join(', '):'';
             const usdtHtml=op.tipo==='venta'&&cl?`<b title="FIFO: ${cl}" style="cursor:help;text-decoration:underline dotted #94a3b8">${fmtTrunc(un,2)}</b>`:`<b>${fmtTrunc(un,2)}</b>`;
-            h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td>${usdtHtml}</td><td style="color:${getBancoColor(op.banco)};font-weight:600;font-size:0.75em">${op.banco||'-'}</td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td style="white-space:nowrap"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">×</button></td></tr>`});
+            h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td>${usdtHtml}</td><td style="color:${getBancoColor(op.banco)};font-weight:600;font-size:0.75em">${op.banco||'-'}</td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td><div class="action-cell"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️ Editar</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️ Eliminar</button></div></td></tr>`});
         c.innerHTML=h+'</tbody></table>';
     }
 });
@@ -1459,7 +1463,7 @@ const pagMov=crearPaginacion({getTotal:()=>AppState.datos.movimientos.length,get
         setText('totalMovimientos',total||0);const sec=$('seccionMovimientos');if(!total){sec.style.display='none';return}sec.style.display='block';
         const mvs=AppState.datos.movimientos.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Cuenta</th><th>Monto</th><th>Desc</th><th>Fecha</th><th></th></tr></thead><tbody>';
         mvs.forEach(m=>{const badge=m.tipoMovimiento==='ingreso'?'<span class="badge badge-ingreso"><b>Ingreso</b></span>':'<span class="badge badge-egreso"><b>Egreso</b></span>';
-            h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':colorBanco(m.banco)}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${fmtNum(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td>${fechaHtml(m.fecha,m.hora)}</td><td><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">×</button></td></tr>`});
+            h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':colorBanco(m.banco)}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${fmtNum(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td>${fechaHtml(m.fecha,m.hora)}</td><td><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></td></tr>`});
         $('movimientosContent').innerHTML=h+'</tbody></table>';
     }
 });
@@ -1470,7 +1474,7 @@ const pagTrans=crearPaginacion({getTotal:()=>AppState.datos.transferencias.lengt
         setText('totalTransferencias',total||0);const sec=$('seccionTransferencias');if(!total){sec.style.display='none';return}sec.style.display='block';
         const trs=AppState.datos.transferencias.slice(ini,fin);let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Com</th><th>Fecha</th><th></th></tr></thead><tbody>';
         trs.forEach(tr=>{const oi=getBancoInfo(tr.origen),sy=getSym(oi?.moneda);
-            h+=`<tr><td>${colorBanco(tr.origen)}</td><td>${colorBanco(tr.destino)}</td><td><b>${sy}${fmtNum(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?sy+fmtNum(tr.comision):'-'}</td><td>${fechaHtml(tr.fecha,tr.hora)}</td><td><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">×</button></td></tr>`});
+            h+=`<tr><td>${colorBanco(tr.origen)}</td><td>${colorBanco(tr.destino)}</td><td><b>${sy}${fmtNum(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?sy+fmtNum(tr.comision):'-'}</td><td>${fechaHtml(tr.fecha,tr.hora)}</td><td><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">🗑️</button></td></tr>`});
         $('transferenciasContent').innerHTML=h+'</tbody></table>';
     }
 });
@@ -1481,7 +1485,7 @@ const pagConv=crearPaginacion({getTotal:()=>(AppState.datos.conversiones||[]).le
         setText('totalConversiones',total||0);const sec=$('seccionConversiones');if(!total){sec.style.display='none';return}sec.style.display='block';
         const cvs=(AppState.datos.conversiones||[]).slice(ini,fin);let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Debita</th><th>Recibe</th><th>Tasa</th><th>Fecha</th><th></th></tr></thead><tbody>';
         cvs.forEach(c=>{const syO=c.monedaOrigen==='USD'?'US$':'$',syD=c.monedaDestino==='USD'?'US$':'$';
-            h+=`<tr><td>${colorBanco(c.origen)}</td><td>${colorBanco(c.destino)}</td><td><b>${syO}${fmtNum(c.montoOrigen)}</b></td><td><b>${syD}${fmtNum(c.montoDestino)}</b></td><td>${fmtNum(c.tasa)}</td><td>${fechaHtml(c.fecha,c.hora)}</td><td><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">×</button></td></tr>`});
+            h+=`<tr><td>${colorBanco(c.origen)}</td><td>${colorBanco(c.destino)}</td><td><b>${syO}${fmtNum(c.montoOrigen)}</b></td><td><b>${syD}${fmtNum(c.montoDestino)}</b></td><td>${fmtNum(c.tasa)}</td><td>${fechaHtml(c.fecha,c.hora)}</td><td><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">🗑️</button></td></tr>`});
         $('conversionesContent').innerHTML=h+'</tbody></table>';
     }
 });
