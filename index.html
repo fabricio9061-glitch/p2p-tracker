@@ -54,6 +54,13 @@
         .positive{color:#16a34a}.negative{color:#dc2626}.info{color:#0284c7}
         .stats-row{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
         .stat-badge{font-size:0.6em;background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#64748b}
+        .card-compra{border-left:3px solid #16a34a}
+        .card-venta{border-left:3px solid #dc2626}
+        .card-bancos{grid-column:span 2}
+
+        /* ═══ Desktop Columns ═══ */
+        .desktop-columns{}
+        .col-left,.col-right{}
 
         /* ═══ Section ═══ */
         .section-title{color:#1e293b;font-size:1em;font-weight:600;margin-bottom:12px}
@@ -239,6 +246,27 @@
         .tag-delete-btn:hover{background:#fee2e2}
         .tag-search{width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;color:#1e293b;font-size:0.88em;margin-bottom:10px;font-family:inherit}
         .tag-search:focus{outline:none;border-color:#2563eb}
+
+        /* ═══ Desktop Responsive (≥768px) ═══ */
+        @media(min-width:768px){
+            .container{padding:20px 30px}
+            .header{text-align:left;display:flex;align-items:center;gap:12px;margin-bottom:16px}
+            .header h1{font-size:1.4em;margin-bottom:0}
+            .sync-status{margin-top:0}
+            .menu-container{top:50%;transform:translateY(-50%)}
+            .cards{grid-template-columns:repeat(4,1fr);gap:12px}
+            .card.main-card{grid-column:span 1}
+            .card.main-card .card-value{font-size:1.2em}
+            .card-bancos{grid-column:span 1}
+            .bancos-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+            .desktop-columns{display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start}
+            .col-left{position:sticky;top:20px}
+        }
+        @media(min-width:1100px){
+            .cards{grid-template-columns:repeat(4,1fr)}
+            .bancos-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+            .desktop-columns{grid-template-columns:420px 1fr}
+        }
     </style>
 </head>
 <body>
@@ -303,16 +331,16 @@
                     <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span>Spread <b style="color:#0284c7" id="spreadPromedio">$0</b></span></div>
                 </div>
                 <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
-                <div class="card" style="grid-column:span 2;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+                <div class="card card-bancos" style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
                     <span style="font-size:0.75em;color:#64748b;font-weight:600">🏦 Bancos</span>
                     <span style="font-size:1.1em;font-weight:700;color:#16a34a" id="totalBancos">$0</span>
                 </div>
-                <div class="card">
+                <div class="card card-compra">
                     <div class="card-title">📥 Compras <span id="mesCompras" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
                     <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalPagado">$0</div>
                     <div style="font-size:0.6em;color:#94a3b8" id="statsCompra">--</div>
                 </div>
-                <div class="card">
+                <div class="card card-venta">
                     <div class="card-title">📤 Ventas <span id="mesVentas" style="color:#94a3b8;font-weight:400;text-transform:none"></span></div>
                     <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalRecibido">$0</div>
                     <div style="font-size:0.6em;color:#94a3b8" id="statsVenta">--</div>
@@ -322,6 +350,8 @@
             <div class="section-title">💼 Mis Saldos</div>
             <div class="bancos-grid" id="bancosGrid"></div>
 
+            <div class="desktop-columns">
+            <div class="col-left">
             <!-- Nueva Operación -->
             <div class="toggle-section open" id="seccionNuevaOp">
                 <div class="toggle-header"><span class="toggle-title">➕ Nueva Operación</span><span class="toggle-arrow">▼</span></div>
@@ -344,6 +374,8 @@
                 </div>
             </div>
 
+            </div><!-- /col-left -->
+            <div class="col-right">
             <!-- Operaciones -->
             <div class="toggle-section open" id="seccionOperaciones">
                 <div class="toggle-header"><span class="toggle-title">📋 Operaciones</span><div class="toggle-right"><span class="toggle-badge" id="totalOperaciones">0</span><span class="toggle-arrow">▼</span></div></div>
@@ -379,6 +411,8 @@
                     <div class="pagination" id="paginationConv" style="display:none"><button id="btnPrevConv">← Ant</button><span class="pagination-info" id="paginaInfoConv">1 / 1</span><button id="btnNextConv">Sig →</button></div>
                 </div>
             </div>
+            </div><!-- /col-right -->
+            </div><!-- /desktop-columns -->
         </div>
     </div>
 
