@@ -428,7 +428,14 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Inventario USDT (FIFO)</div><div id="inventarioContent" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Sistema FIFO: Al vender se consumen primero los lotes más antiguos</div></div><div class="modal-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn btn-cancel" id="btnRecalcular">🔄 Recalcular</button><button class="btn" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelLote">Cancelar</button><button class="btn" style="background:#dc2626" id="btnEliminarLote">Eliminar</button><button class="btn" id="btnGuardarLote">Guardar</button></div></div></div>
-    <div id="modalGestionTags" class="modal"><div class="modal-content"><div class="modal-header">🏷️ Gestión de Tags</div><input class="tag-search" type="text" id="tagSearch" placeholder="🔍 Buscar etiqueta..."><div id="tagsList" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Las etiquetas se crean automáticamente al guardar movimientos con descripción</div></div><div class="modal-buttons"><button class="btn" id="btnCerrarTags">Cerrar</button></div></div></div>
+    <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">🏷️ Gestión de Tags</div>
+        <div id="tagAnalytics" style="margin-bottom:14px"></div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="tagPeriodFilter"></div>
+        <input class="tag-search" type="text" id="tagSearch" placeholder="🔍 Buscar etiqueta...">
+        <div id="tagsList" style="max-height:40vh;overflow-y:auto"></div>
+        <div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Las etiquetas se crean automáticamente al guardar movimientos con descripción</div></div>
+        <div class="modal-buttons"><button class="btn" id="btnCerrarTags">Cerrar</button></div>
+    </div></div>
     <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px"><div class="modal-header">📊 Historial Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div class="modal-buttons"><button class="btn" id="btnCerrarHistorial">Cerrar</button></div></div></div>
     <div id="modalEditarOp" class="modal"><div class="modal-content"><div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div><div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div><div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div><div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div><div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div><div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div></div></div>
 
@@ -484,7 +491,7 @@ const AppState = {
     ui: { bancoEditando:null, tipoMovimiento:'ingreso', calendarDate:new Date(),
           loteEditandoId:null, paginaOp:1, paginaMov:1, paginaTrans:1, paginaConv:1,
           guardandoMovimiento:false, guardandoLote:false, guardandoOperacion:false, guardandoTransferencia:false,
-          enCooldown:false, comisionDebounce:null, tasaManual:false, ultimoMonedaBanco:null, syncState:'offline', opEditandoId:null }
+          enCooldown:false, comisionDebounce:null, tasaManual:false, ultimoMonedaBanco:null, syncState:'offline', opEditandoId:null, tagPeriodo:'total' }
 };
 
 function crearDatosVacios() {
@@ -714,14 +721,91 @@ function renderizarTagsSugerencias(inputId,containerId){
     h+='</div></div>';cont.innerHTML=h;
 }
 function renderizarGestionTags(){
+    const periodo=AppState.ui.tagPeriodo||'total';
+    /* Period filter buttons */
+    const pf=$('tagPeriodFilter');
+    if(pf){const periodos=[['hoy','Hoy'],['semana','Semana'],['mes','Mes'],['total','Total']];
+        pf.innerHTML=periodos.map(([k,l])=>`<button style="padding:4px 10px;font-size:0.7em;border-radius:12px;border:1px solid ${periodo===k?'#2563eb':'#e2e8f0'};background:${periodo===k?'#2563eb':'white'};color:${periodo===k?'white':'#64748b'};cursor:pointer;font-weight:500" data-action="tag-periodo" data-periodo="${k}">${l}</button>`).join('');
+    }
+    /* Filter movimientos by period */
+    const hoy=getUDateStr(),hoyD=getUDate();
+    const semanaStart=new Date(hoyD);semanaStart.setDate(semanaStart.getDate()-semanaStart.getDay());
+    const semanaStr=`${semanaStart.getFullYear()}-${String(semanaStart.getMonth()+1).padStart(2,'0')}-${String(semanaStart.getDate()).padStart(2,'0')}`;
+    const mesStr=hoy.substring(0,7);
+    let movsFiltrados=AppState.datos.movimientos;
+    if(periodo==='hoy')movsFiltrados=movsFiltrados.filter(m=>m.fecha===hoy);
+    else if(periodo==='semana')movsFiltrados=movsFiltrados.filter(m=>m.fecha>=semanaStr);
+    else if(periodo==='mes')movsFiltrados=movsFiltrados.filter(m=>m.fecha?.startsWith(mesStr));
+
     const tags=AppState.datos.tags||[],search=($('tagSearch')?.value||'').toLowerCase();
+    /* Build tag stats */
+    const tagStats=tags.map(t=>{
+        const movs=movsFiltrados.filter(m=>(m.descripcion||'').toLowerCase()===t.toLowerCase());
+        const usos=movs.length;
+        const volumen=movs.reduce((s,m)=>roundMoney(s+m.monto),0);
+        const ingresos=movs.filter(m=>m.tipoMovimiento==='ingreso').reduce((s,m)=>roundMoney(s+m.monto),0);
+        const egresos=movs.filter(m=>m.tipoMovimiento==='egreso').reduce((s,m)=>roundMoney(s+m.monto),0);
+        return{tag:t,usos,volumen,ingresos,egresos};
+    }).sort((a,b)=>b.usos-a.usos);
+
+    const totalUsos=tagStats.reduce((s,t)=>s+t.usos,0);
+    const sinTag=movsFiltrados.filter(m=>!m.descripcion||!tags.some(t=>t.toLowerCase()===m.descripcion.toLowerCase())).length;
+
+    /* Render donut chart + insights */
+    const ac=$('tagAnalytics');
+    if(ac){
+        const COLORS=['#3b82f6','#16a34a','#f59e0b','#dc2626','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
+        const top=tagStats.filter(t=>t.usos>0).slice(0,8);
+        const totalForChart=totalUsos+sinTag;
+        if(totalForChart>0&&top.length>0){
+            /* SVG donut */
+            let svg='',cum=0;const r=50,cx=60,cy=60,stroke=18,circ=2*Math.PI*r;
+            top.forEach((t,i)=>{
+                const pct=t.usos/totalForChart;const dash=pct*circ;const gap=circ-dash;const offset=-cum*circ+circ*0.25;
+                svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${COLORS[i%COLORS.length]}" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}" />`;
+                cum+=pct;
+            });
+            if(sinTag>0){const pct=sinTag/totalForChart;const dash=pct*circ;const gap=circ-dash;const offset=-cum*circ+circ*0.25;
+                svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}" />`;}
+            svg=`<svg viewBox="0 0 120 120" style="width:110px;height:110px"><text x="${cx}" y="${cy-4}" text-anchor="middle" fill="#1e293b" font-size="14" font-weight="700">${totalForChart}</text><text x="${cx}" y="${cy+10}" text-anchor="middle" fill="#94a3b8" font-size="7">movimientos</text>${svg}</svg>`;
+
+            /* Legend */
+            let legend=top.map((t,i)=>`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:${COLORS[i%COLORS.length]};flex-shrink:0"></span><span style="color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.tag}</span><span style="color:#64748b">${totalForChart?Math.round(t.usos/totalForChart*100):0}%</span></div>`).join('');
+            if(sinTag>0)legend+=`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;flex-shrink:0"></span><span style="color:#94a3b8;flex:1">Sin tag</span><span style="color:#64748b">${Math.round(sinTag/totalForChart*100)}%</span></div>`;
+
+            /* Insights */
+            const topTag=top[0];
+            const topVol=tagStats.filter(t=>t.volumen>0).sort((a,b)=>b.volumen-a.volumen)[0];
+            let insights='';
+            if(topTag)insights+=`<span>🏆 Más usado: <b>${topTag.tag}</b> (${topTag.usos})</span>`;
+            if(topVol&&topVol.tag!==topTag?.tag)insights+=`<span style="margin-left:8px">💰 Mayor volumen: <b>${topVol.tag}</b> ($${fmtNum(topVol.volumen,0)})</span>`;
+
+            ac.innerHTML=`<div style="display:flex;gap:14px;align-items:center;padding:10px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">
+                <div style="flex-shrink:0">${svg}</div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px">${legend}</div>
+            </div>${insights?`<div style="margin-top:8px;font-size:0.68em;color:#64748b;display:flex;flex-wrap:wrap;gap:4px">${insights}</div>`:''}`;
+        }else{
+            ac.innerHTML='<div style="text-align:center;padding:12px;color:#94a3b8;font-size:0.8em">Sin datos para este período</div>';
+        }
+    }
+
+    /* Tag list */
     const cont=$('tagsList');if(!cont)return;
-    const filtrados=search?tags.filter(t=>t.toLowerCase().includes(search)):tags;
-    if(!filtrados.length){cont.innerHTML=`<div style="text-align:center;padding:20px;color:#94a3b8"><div style="font-size:1.8em;margin-bottom:6px">🏷️</div><div>${search?'Sin resultados':'Sin etiquetas aún'}</div><div style="font-size:0.8em;margin-top:4px">${search?'':'Las etiquetas se crean automáticamente al escribir descripciones'}</div></div>`;return}
+    const filtrados=search?tagStats.filter(t=>t.tag.toLowerCase().includes(search)):tagStats;
+    if(!filtrados.length){cont.innerHTML=`<div style="text-align:center;padding:20px;color:#94a3b8"><div style="font-size:1.8em;margin-bottom:6px">🏷️</div><div>${search?'Sin resultados':'Sin etiquetas aún'}</div></div>`;return}
     let h='';
     filtrados.forEach(t=>{
-        const usos=AppState.datos.movimientos.filter(m=>(m.descripcion||'').toLowerCase()===t.toLowerCase()).length;
-        h+=`<div class="tag-manage-item"><span class="tag-name">${t}</span><span class="tag-count">${usos} uso${usos!==1?'s':''}</span><div class="tag-actions"><button class="tag-edit-btn" data-action="editar-tag" data-tag="${t.replace(/"/g,'&quot;')}">✏️</button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${t.replace(/"/g,'&quot;')}">🗑️</button></div></div>`;
+        const pct=totalUsos?Math.round(t.usos/totalUsos*100):0;
+        const volTxt=t.volumen>0?`$${fmtNum(t.volumen,0)}`:'';
+        const ticketTxt=t.usos>0?`Ticket: $${fmtNum(roundMoney(t.volumen/t.usos),0)}`:'';
+        const metaTxt=[t.usos+' uso'+(t.usos!==1?'s':''),volTxt,ticketTxt].filter(Boolean).join(' · ');
+        h+=`<div class="tag-manage-item">
+            <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:6px"><span class="tag-name">${t.tag}</span>${pct>0?`<span style="font-size:0.6em;background:#eff6ff;color:#2563eb;padding:1px 5px;border-radius:8px">${pct}%</span>`:''}</div>
+                <div style="font-size:0.65em;color:#94a3b8;margin-top:2px">${metaTxt}</div>
+            </div>
+            <div class="tag-actions"><button class="tag-edit-btn" data-action="editar-tag" data-tag="${t.tag.replace(/"/g,'&quot;')}">✏️</button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${t.tag.replace(/"/g,'&quot;')}">🗑️</button></div>
+        </div>`;
     });
     cont.innerHTML=h;
 }
@@ -1686,6 +1770,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='eliminar-tag'){
             const tag=t.dataset.tag;if(!tag)return;
             if(confirm(`¿Eliminar la etiqueta "${tag}"?`)){eliminarTag(tag);guardarDatos();renderizarGestionTags()}
+        }
+        else if(a==='tag-periodo'){
+            AppState.ui.tagPeriodo=t.dataset.periodo||'total';renderizarGestionTags();
         }
         else if(a==='reconnect')reconnectFirebase();
     });
