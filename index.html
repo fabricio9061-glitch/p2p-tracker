@@ -711,7 +711,13 @@ function editarTag(viejo,nuevo){
     const dup=AppState.datos.tags.find(t=>t.toLowerCase()===nv.toLowerCase()&&t.toLowerCase()!==viejo.toLowerCase());
     if(dup)return false;
     const idx=AppState.datos.tags.findIndex(t=>t.toLowerCase()===viejo.toLowerCase());
-    if(idx>=0){AppState.datos.tags[idx]=nv;AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'))}
+    if(idx>=0){
+        AppState.datos.tags[idx]=nv;AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'));
+        /* Cascadear rename a todos los movimientos que usen el nombre viejo */
+        AppState.datos.movimientos.forEach(m=>{
+            if(m.descripcion&&m.descripcion.toLowerCase()===viejo.toLowerCase())m.descripcion=nv;
+        });
+    }
     return true;
 }
 function renderizarTagsSugerencias(inputId,containerId){
