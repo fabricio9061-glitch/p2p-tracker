@@ -689,6 +689,7 @@ function fmtFechaCorta(f){if(!f)return'-';const p=f.split('-');return p.length==
 function fechaHtml(f,h){return`<div class="fecha-hora"><span class="fecha">${fmtFechaCorta(f)}</span><span class="hora">${h||'--:--'}</span></div>`}
 function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
 function getBancoColor(n){const b=getBancoInfo(n);return b?.color||'#1e293b'}
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function colorBanco(n){return`<span style="color:${getBancoColor(n)};font-weight:600">${n}</span>`}
 function getSym(mon){return mon==='USD'?'US$':'$'}
 function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=truncUsdt(AppState.datos.lotes.reduce((s,l)=>s+l.disponible,0))}
@@ -722,7 +723,7 @@ function renderizarTagsSugerencias(inputId,containerId){
     const filtrados=val?tags.filter(t=>t.toLowerCase().includes(val)):tags.slice(0,15);
     if(!filtrados.length){cont.innerHTML='';return}
     let h='<div class="tag-sugerencias"><div class="tag-sugerencias-label">🏷️ Categorías:</div><div class="tags-container">';
-    filtrados.forEach(t=>{h+=`<span class="tag-pill" data-action="usar-tag" data-tag="${t.replace(/"/g,'&quot;')}" data-target="${inputId}">${t}</span>`});
+    filtrados.forEach(t=>{h+=`<span class="tag-pill" data-action="usar-tag" data-tag="${escHtml(t)}" data-target="${inputId}">${escHtml(t)}</span>`});
     h+='</div></div>';cont.innerHTML=h;
 }
 function renderizarGestionTags(){
@@ -789,14 +790,14 @@ function renderizarGestionTags(){
 
             let legend=top.map((t,i)=>{
                 const pct=grandTotal?Math.round(t.egresoTotal/grandTotal*100):0;
-                return`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:${COLORS[i%COLORS.length]};flex-shrink:0"></span><span style="color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.tag}</span><span style="color:#64748b;white-space:nowrap">$${fmtNum(t.egresoTotal,0)} · ${pct}%</span></div>`;
+                return`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:${COLORS[i%COLORS.length]};flex-shrink:0"></span><span style="color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(t.tag)}</span><span style="color:#64748b;white-space:nowrap">$${fmtNum(t.egresoTotal,0)} · ${pct}%</span></div>`;
             }).join('');
             if(sinTagUYU>0)legend+=`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;flex-shrink:0"></span><span style="color:#94a3b8;flex:1">Sin tag</span><span style="color:#64748b">$${fmtNum(sinTagUYU,0)} · ${Math.round(sinTagUYU/grandTotal*100)}%</span></div>`;
 
             const topEg=top[0];
             const topOps=tagStats.filter(t=>t.ops>0).sort((a,b)=>b.ops-a.ops)[0];
-            let insights=`<span>💸 Mayor gasto: <b>${topEg.tag}</b> ($${fmtNum(topEg.egresoTotal,0)})</span>`;
-            if(topOps&&topOps.tag!==topEg.tag)insights+=`<span style="margin-left:8px">🔄 Más frecuente: <b>${topOps.tag}</b> (${topOps.ops})</span>`;
+            let insights=`<span>💸 Mayor gasto: <b>${escHtml(topEg.tag)}</b> ($${fmtNum(topEg.egresoTotal,0)})</span>`;
+            if(topOps&&topOps.tag!==topEg.tag)insights+=`<span style="margin-left:8px">🔄 Más frecuente: <b>${escHtml(topOps.tag)}</b> (${topOps.ops})</span>`;
             const hayConv=top.some(t=>t.tieneConversion);
 
             ac.innerHTML=`<div style="display:flex;gap:14px;align-items:center;padding:10px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">
@@ -823,10 +824,10 @@ function renderizarGestionTags(){
         if(ticketTxt)metaParts.push(ticketTxt);
         h+=`<div class="tag-manage-item">
             <div style="flex:1;min-width:0">
-                <div style="display:flex;align-items:center;gap:6px"><span class="tag-name">${t.tag}</span>${pct>0?`<span style="font-size:0.6em;background:#fef2f2;color:#dc2626;padding:1px 5px;border-radius:8px">${pct}%</span>`:''}</div>
+                <div style="display:flex;align-items:center;gap:6px"><span class="tag-name">${escHtml(t.tag)}</span>${pct>0?`<span style="font-size:0.6em;background:#fef2f2;color:#dc2626;padding:1px 5px;border-radius:8px">${pct}%</span>`:''}</div>
                 <div style="font-size:0.65em;color:#94a3b8;margin-top:2px">${metaParts.join(' · ')}</div>
             </div>
-            <div class="tag-actions"><button class="tag-edit-btn" data-action="editar-tag" data-tag="${t.tag.replace(/"/g,'&quot;')}">✏️</button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${t.tag.replace(/"/g,'&quot;')}">🗑️</button></div>
+            <div class="tag-actions"><button class="tag-edit-btn" data-action="editar-tag" data-tag="${escHtml(t.tag)}">✏️</button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${escHtml(t.tag)}">🗑️</button></div>
         </div>`;
     });
     cont.innerHTML=h;
@@ -896,8 +897,7 @@ function verificarResetLimites(){
     const ah=getUDate(),hr=0.5,ha=ah.getHours()+ah.getMinutes()/60,hoy=getUDateStr();
     CONFIG.BANCOS.forEach(b=>{
         const bk=AppState.datos.bancos[b.nombre];if(!bk)return;
-        if(!bk.ultimoResetLimite)bk.ultimoResetLimite=null;
-        const ur=bk.ultimoResetLimite;
+        const ur=bk.ultimoResetLimite||null;
         if(b.especial==='itau'){
             const ds=ah.getDay();
             if(ds===2&&ha>=hr){if(ur!==hoy){bk.limiteUsadoUSD=0;bk.ultimoResetLimite=hoy}}
@@ -1167,7 +1167,7 @@ function cargarDatosUsuario(){
 }
 
 function showApp(u){AppState.currentUser=u;setText('menuUserName',emailToUser(u.email));setText('menuUserEmail',u.email);$('authContainer').classList.add('hidden');$('appContainer').classList.add('active');cargarDatosUsuario()}
-function showAuth(){AppState.currentUser=null;$('authContainer').classList.remove('hidden');$('appContainer').classList.remove('active');['loginBtn','registerBtn'].forEach(id=>{const b=$(id);b.disabled=false;b.textContent=id==='loginBtn'?'Iniciar Sesión':'Crear Cuenta'});['loginUser','loginPass','regUser','regPass','regPassConfirm'].forEach(id=>{const e=$(id);if(e)e.value=''});ocultarLoading()}
+function showAuth(){AppState.currentUser=null;$('authContainer')?.classList.remove('hidden');$('appContainer')?.classList.remove('active');['loginBtn','registerBtn'].forEach(id=>{const b=$(id);if(b){b.disabled=false;b.textContent=id==='loginBtn'?'Iniciar Sesión':'Crear Cuenta'}});['loginUser','loginPass','regUser','regPass','regPassConfirm'].forEach(id=>{const e=$(id);if(e)e.value=''});ocultarLoading()}
 
 function inicializarFirebase(){
     if(typeof firebase==='undefined'){ocultarLoading();return}
@@ -1583,7 +1583,7 @@ const pagMov=crearPaginacion({getTotal:()=>AppState.datos.movimientos.length,get
         setText('totalMovimientos',total||0);const sec=$('seccionMovimientos');if(!total){sec.style.display='none';return}sec.style.display='block';
         const mvs=AppState.datos.movimientos.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Cuenta</th><th>Monto</th><th>Desc</th><th>Fecha</th><th></th></tr></thead><tbody>';
         mvs.forEach(m=>{const badge=m.tipoMovimiento==='ingreso'?'<span class="badge badge-ingreso"><b>Ingreso</b></span>':'<span class="badge badge-egreso"><b>Egreso</b></span>';
-            h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':colorBanco(m.banco)}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${fmtNum(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descripcion||'-'}</td><td>${fechaHtml(m.fecha,m.hora)}</td><td><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></td></tr>`});
+            h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':colorBanco(m.banco)}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${fmtNum(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(m.descripcion||'-')}</td><td>${fechaHtml(m.fecha,m.hora)}</td><td><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></td></tr>`});
         $('movimientosContent').innerHTML=h+'</tbody></table>';
     }
 });
@@ -1819,7 +1819,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     // Init
     actualizarFormulario();actualizarColorSelect();inicializarFirebase();
-    setInterval(()=>{verificarResetLimites();actualizarVista();verificarCambioMes()},60000);
+    setInterval(()=>{if(!AppState.currentUser)return;verificarResetLimites();actualizarVista();verificarCambioMes()},60000);
 });
     </script>
 </body>
