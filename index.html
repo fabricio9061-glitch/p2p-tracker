@@ -310,19 +310,20 @@
                     <div class="menu-dropdown" id="menuDropdown">
                         <div class="menu-user"><div class="menu-user-name" id="menuUserName">Usuario</div><div class="menu-user-email" id="menuUserEmail">@p2p</div></div>
                         <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Operaciones</div>
-                        <div class="menu-item" data-action="movimiento"><span>💸</span><span>Registrar Movimiento</span></div>
-                        <div class="menu-item" data-action="transferencia"><span>↔️</span><span>Transferir entre Bancos</span></div>
+                        <div class="menu-item" data-action="movimiento"><span>💸</span><span>Movimiento Externo</span></div>
+                        <div class="menu-item" data-action="transferencia"><span>↔️</span><span>Transferencia entre Bancos</span></div>
                         <div class="menu-divider"></div>
                         <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Administración</div>
-                        <div class="menu-item" data-action="bancos"><span>🏦</span><span>Bancos</span></div>
-                        <div class="menu-item" data-action="inventario"><span>📦</span><span>Inventario USDT</span></div>
-                        <div class="menu-item" data-action="gestion-tags"><span>🏷️</span><span>Categorías</span></div>
+                        <div class="menu-item" data-action="bancos"><span>🏦</span><span>Cuentas Bancarias</span></div>
+                        <div class="menu-item" data-action="inventario"><span>📦</span><span>Lotes de USDT</span></div>
+                        <div class="menu-item" data-action="gestion-tags"><span>📊</span><span>Análisis de Gastos</span></div>
                         <div class="menu-divider"></div>
                         <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Reportes</div>
                         <div class="menu-item" data-action="calendario"><span>📅</span><span>Calendario</span></div>
-                        <div class="menu-item" data-action="historial-mensual"><span>📊</span><span>Resumen Mensual</span></div>
+                        <div class="menu-item" data-action="historial-mensual"><span>🗓️</span><span>Resumen Mensual</span></div>
                         <div class="menu-divider"></div>
-                        <div class="menu-item danger" data-action="borrar-todo"><span>🗑️</span><span>Borrar Todo</span></div>
+                        <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Sistema</div>
+                        <div class="menu-item danger" data-action="borrar-todo"><span>🔄</span><span>Reiniciar Datos</span></div>
                         <div class="menu-item" data-action="cerrar-sesion"><span>🚪</span><span>Cerrar Sesión</span></div>
                     </div>
                 </div>
@@ -336,7 +337,7 @@
                 </div>
                 <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
                 <div class="card card-bancos" style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
-                    <span style="font-size:0.75em;color:#64748b;font-weight:600">🏦 Bancos</span>
+                    <span style="font-size:0.75em;color:#64748b;font-weight:600">🏦 Cuentas Bancarias</span>
                     <span style="font-size:1.1em;font-weight:700;color:#16a34a" id="totalBancos">$0</span>
                 </div>
                 <div class="card card-compra">
@@ -422,13 +423,13 @@
 
     <!-- ═══ MODALS ═══ -->
     <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:14px"><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label">💵 Ganancia Total (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
-    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Registrar Movimiento</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="text" inputmode="decimal" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="text" inputmode="decimal" id="movMonto"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea><div id="tagSugerenciasMov"></div></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
-    <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Bancos</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
-    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferir entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
+    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">💸 Movimiento Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="text" inputmode="decimal" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="text" inputmode="decimal" id="movMonto"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea><div id="tagSugerenciasMov"></div></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
+    <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Cuentas Bancarias</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
+    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
-    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Inventario USDT (FIFO)</div><div id="inventarioContent" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Sistema FIFO: Al vender se consumen primero los lotes más antiguos</div></div><div class="modal-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn btn-cancel" id="btnRecalcular">🔄 Recalcular</button><button class="btn" id="btnCerrarInventario">Cerrar</button></div></div></div>
+    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" style="max-height:50vh;overflow-y:auto"></div><div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Sistema FIFO: Al vender se consumen primero los lotes más antiguos</div></div><div class="modal-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn btn-cancel" id="btnRecalcular">🔄 Recalcular</button><button class="btn" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelLote">Cancelar</button><button class="btn" style="background:#dc2626" id="btnEliminarLote">Eliminar</button><button class="btn" id="btnGuardarLote">Guardar</button></div></div></div>
-    <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">🏷️ Categorías</div>
+    <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="tagPeriodFilter"></div>
         <input class="tag-search" type="text" id="tagSearch" placeholder="🔍 Buscar categoría...">
@@ -587,12 +588,29 @@ async function verificarCambioMes(){
             gananciaTotal,comisionesTotal,
             movimientos:movs.length,transferencias:transf.length,
             saldoUsdt:AppState.datos.saldoUsdt,
-            bancosSnapshot:{}
+            bancosSnapshot:{},
+            gastosTag:{}
         };
         CONFIG.BANCOS.forEach(b=>{
             if(AppState.datos.bancos[b.nombre]?.activo)
                 snapshot.bancosSnapshot[b.nombre]={saldo:AppState.datos.bancos[b.nombre].saldo,moneda:b.moneda}
         });
+        /* Análisis de gastos por tag para el mes que cierra */
+        const tasaFb=AppState.datos.ultimaTasaCompra||1;
+        const egresosMes=movs.filter(m=>m.tipoMovimiento==='egreso');
+        let totalEgresoUYU=0;
+        const tags=AppState.datos.tags||[];
+        tags.forEach(tag=>{
+            const tagMovs=egresosMes.filter(m=>(m.descripcion||'').toLowerCase()===tag.toLowerCase());
+            if(!tagMovs.length)return;
+            let uyu=0;tagMovs.forEach(m=>{
+                if(m.tipoCuenta==='usdt')uyu=roundMoney(uyu+(m.valorUYU>0?m.valorUYU:roundMoney(m.monto*(m.tasaRef||tasaFb))));
+                else{const bi=m.banco?getBancoInfo(m.banco):null;uyu=roundMoney(uyu+(bi&&bi.moneda==='USD'?roundMoney(m.monto*tasaFb):m.monto))}
+            });
+            totalEgresoUYU=roundMoney(totalEgresoUYU+uyu);
+            snapshot.gastosTag[tag]={ops:tagMovs.length,totalUYU:uyu};
+        });
+        snapshot.totalEgresoUYU=totalEgresoUYU;
         /* Batch write atómico: snapshot + actualizar mes procesado */
         const batch=AppState.db.batch();
         const userRef=AppState.db.collection('users').doc(AppState.currentUser.uid);
@@ -605,7 +623,7 @@ async function verificarCambioMes(){
     }catch(e){console.error('[P2P] Error guardando resumen mensual:',e)}
 }
 
-/* ═══ Historial Mensual — Cargar y renderizar ═══ */
+/* ═══ Resumen Mensual — Cargar y renderizar ═══ */
 async function cargarHistorialMensual(){
     const cont=$('historialContent');
     cont.innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div>';
@@ -623,6 +641,18 @@ async function cargarHistorialMensual(){
             const d=doc.data(),p=d.mes.split('-'),yr=p[0],mn=parseInt(p[1])-1;
             const g=d.gananciaTotal||0,gc=g>=0?'#16a34a':'#dc2626',gs=g>=0?'+':'';
             const op=d.operaciones||{};
+            /* Gastos por tag */
+            const gt=d.gastosTag||{};const gtKeys=Object.keys(gt).sort((a,b)=>(gt[b].totalUYU||0)-(gt[a].totalUYU||0));
+            let gastosHtml='';
+            if(gtKeys.length){
+                const teUYU=d.totalEgresoUYU||gtKeys.reduce((s,k)=>s+(gt[k].totalUYU||0),0);
+                gastosHtml='<div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:0.7em;color:#64748b"><div style="font-weight:600;margin-bottom:4px">📊 Gastos: $'+fmtNum(teUYU,0)+'</div>';
+                gtKeys.slice(0,5).forEach(k=>{
+                    const pct=teUYU?Math.round((gt[k].totalUYU||0)/teUYU*100):0;
+                    gastosHtml+=`<div style="display:flex;justify-content:space-between;padding:1px 0"><span>${escHtml(k)}</span><span>$${fmtNum(gt[k].totalUYU||0,0)} (${pct}%)</span></div>`;
+                });
+                gastosHtml+='</div>';
+            }
             h+=`<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                     <span style="font-weight:700;color:#1e293b;font-size:0.95em">${meses[mn]} ${yr}</span>
@@ -636,6 +666,7 @@ async function cargarHistorialMensual(){
                     <div style="color:#64748b">💰 Comisiones: <b style="color:#1e293b">${fmtNum(d.comisionesTotal||0)} USDT</b></div>
                     <div style="color:#64748b">📦 USDT cierre: <b style="color:#1e293b">${fmtTrunc(d.saldoUsdt||0,2)}</b></div>
                 </div>
+                ${gastosHtml}
             </div>`;
         });
         cont.innerHTML=h;
@@ -722,7 +753,7 @@ function renderizarTagsSugerencias(inputId,containerId){
     if(!tags.length){cont.innerHTML='';return}
     const filtrados=val?tags.filter(t=>t.toLowerCase().includes(val)):tags.slice(0,15);
     if(!filtrados.length){cont.innerHTML='';return}
-    let h='<div class="tag-sugerencias"><div class="tag-sugerencias-label">🏷️ Categorías:</div><div class="tags-container">';
+    let h='<div class="tag-sugerencias"><div class="tag-sugerencias-label">📊 Análisis de Gastos:</div><div class="tags-container">';
     filtrados.forEach(t=>{h+=`<span class="tag-pill" data-action="usar-tag" data-tag="${escHtml(t)}" data-target="${inputId}">${escHtml(t)}</span>`});
     h+='</div></div>';cont.innerHTML=h;
 }
@@ -1441,7 +1472,7 @@ function actualizarTransfUI(){
     const cross=esCrossMoneda(),tg=$('transfTasaGroup'),pvEl=$('transfConvPreview'),hd=$('transfHeader');
     tg.style.display=cross?'block':'none';
     if(cross){hd.textContent='💱 Conversión entre monedas';$('btnTransferir').textContent='Convertir';$('btnTransferir').style.background='#7c3aed'}
-    else{hd.textContent='↔️ Transferir entre Bancos';$('btnTransferir').textContent='Transferir';$('btnTransferir').style.background='#2563eb';pvEl.style.display='none'}
+    else{hd.textContent='↔️ Transferencia entre Bancos';$('btnTransferir').textContent='Transferir';$('btnTransferir').style.background='#2563eb';pvEl.style.display='none'}
     actualizarTransfPreview();
 }
 
@@ -1683,10 +1714,10 @@ async function eliminarLoteActual(){
 async function forzarRecalculo(){if(!confirm('¿Recalcular todos los lotes y ganancias?\nLos lotes manuales se preservan.'))return;recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();alert('✅ Recálculo completado. Lotes manuales preservados.')}
 
 /* ═══════════════════════════════════════
-   §16 — BORRAR TODO
+   §16 — REINICIAR DATOS
    ═══════════════════════════════════════ */
 async function borrarTodo(){
-    if(confirm('⚠️ ¿Borrar TODO?')&&confirm('No se puede deshacer. ¿Continuar?')){
+    if(confirm('⚠️ ¿Reiniciar todos los datos?')&&confirm('Esta acción no se puede deshacer. ¿Continuar?')){
         AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
         inicializarBancos();AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
         $('comisionPlataforma').value='0,14';setText('comisionPctLabel','0,14');
