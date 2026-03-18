@@ -144,7 +144,6 @@
         .btn-cancel{background:#e5e7eb;color:#4b5563}
         .btn-edit-small{padding:6px 10px;font-size:0.7em;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
         .btn-edit-small:active{background:#e2e8f0}
-        .preview-box{display:none}
 
         /* ═══ Operation Cards ═══ */
         .op-cards{display:flex;flex-direction:column;gap:4px;padding:6px;max-width:540px;margin:0 auto;width:94%}
@@ -297,7 +296,6 @@
         .tag-sugerencias-label{font-size:0.7em;color:#94a3b8;margin-bottom:4px;font-weight:500}
         .tag-manage-item{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;background:#f8fafc;gap:8px}
         .tag-name{font-size:0.88em;color:#1e293b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .tag-count{font-size:0.7em;color:#94a3b8;margin-right:4px}
         .tag-actions{display:flex;gap:6px;flex-shrink:0}
         .tag-edit-btn,.tag-delete-btn{padding:4px 8px;font-size:0.8em;background:transparent;border:none;cursor:pointer;border-radius:4px}
         .tag-edit-btn:hover{background:#dbeafe}
@@ -1394,6 +1392,7 @@ function actualizarFormulario(){
     setText('montoLabel',t==='compra'?`Comprás por (${sy})`:`Vendés por (${sy})`);
     setText('bancoLabel',t==='compra'?'Sale de':'Entra a');
     $('comisionBancoGroup').style.display=t==='compra'?'block':'none';
+    $('comisionBancoGroup').parentElement.style.gridTemplateColumns=t==='compra'?'1fr 1fr':'1fr';
     if(t==='venta')$('comisionBanco').value='0';
     const ti=$('tasa');
     if(document.activeElement!==ti&&(!AppState.ui.tasaManual||monedaCambiada)){
@@ -2045,17 +2044,19 @@ async function eliminarLoteActual(){
         cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
     }finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Eliminar'}
 }
-async function forzarRecalculo(){if(!confirm('¿Recalcular todos los lotes y ganancias?\nLos lotes manuales se preservan.'))return;recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();alert('✅ Recálculo completado. Lotes manuales preservados.')}
+async function forzarRecalculo(){if(!confirm('¿Recalcular todos los lotes y ganancias?\nLos lotes manuales se preservan.'))return;try{recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();alert('✅ Recálculo completado.')}catch(e){console.error('[P2P] Error en recálculo:',e)}}
 
 /* ═══════════════════════════════════════
    §16 — REINICIAR DATOS
    ═══════════════════════════════════════ */
 async function borrarTodo(){
     if(confirm('⚠️ ¿Reiniciar todos los datos?')&&confirm('Esta acción no se puede deshacer. ¿Continuar?')){
-        AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
-        inicializarBancos();AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
-        $('comisionPlataforma').value='0,14';setText('comisionPctLabel','0,14');
-        await guardarDatos();actualizarVista();
+        try{
+            AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
+            inicializarBancos();AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
+            $('comisionPlataforma').value='0,14';setText('comisionPctLabel','0,14');
+            await guardarDatos();actualizarVista();
+        }catch(e){console.error('[P2P] Error reiniciando datos:',e)}
     }
 }
 
