@@ -426,7 +426,7 @@
                             <div class="op-toggle-btn" id="opToggleVenta">📤 Vender USDT</div>
                         </div>
 
-                        <div class="form-group"><label id="montoLabel">Pagás (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3.900"></div>
+                        <div class="form-group"><label id="montoLabel">Comprás (USDT)</label><input type="text" inputmode="decimal" id="monto" placeholder="100"></div>
 
                         <div class="tasa-block">
                             <label>Tasa por USDT</label>
@@ -440,30 +440,33 @@
                             <div class="form-group" id="comisionBancoGroup"><label>Com. banco</label><input type="text" inputmode="decimal" id="comisionBanco" value="0" placeholder="0"></div>
                         </div>
 
-                        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:2px">
-                            <div class="com-pill"><span>Binance</span><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal"><span>%</span></div>
-                        </div>
-
                         <div class="op-summary modo-compra" id="opSummary" style="display:none">
                             <div class="op-summary-row main">
-                                <span class="op-summary-label" id="opSumMainLabel">Recibís</span>
-                                <span class="op-summary-value" id="opSumMainValue" style="font-size:1.05em">0 USDT</span>
+                                <span class="op-summary-label" id="opSumMainLabel">Pagás</span>
+                                <span class="op-summary-value" id="opSumMainValue" style="font-size:1.05em">$0</span>
                             </div>
                             <div class="op-summary-divider"></div>
+                            <div class="op-summary-row">
+                                <span class="op-summary-label">USDT neto</span>
+                                <span class="op-summary-value" id="opSumUsdt">0</span>
+                            </div>
                             <div class="op-summary-row">
                                 <span class="op-summary-label">Comisión <span id="comisionPctLabel">0,14</span>%</span>
                                 <span class="op-summary-value" id="opSumComision">0 USDT</span>
                             </div>
                             <div class="op-summary-row">
-                                <span class="op-summary-label" id="opSumBancoLabel">Saldo después</span>
+                                <span class="op-summary-label" id="opSumBancoLabel">Saldo</span>
                                 <span class="op-summary-value" id="opSumBancoValue">--</span>
                             </div>
                         </div>
                         <div id="previewBox" style="display:none"><span id="previewText"></span></div>
 
                         <div class="op-btn-wrap">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                                <div class="com-pill"><span>Binance</span><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal"><span>%</span></div>
+                                <span class="op-meta" style="margin:0"><strong id="comisionPlataformaInfo">0 USDT</strong> com. <span id="saldoBancoInfo"></span></span>
+                            </div>
                             <button class="btn op-btn-compra" id="btnAgregarOp">📥 Comprar USDT</button>
-                            <div class="op-meta"><strong id="comisionPlataformaInfo">0 USDT</strong> comisión <span id="saldoBancoInfo"></span></div>
                         </div>
                     </div>
                 </div>
@@ -1391,8 +1394,8 @@ function actualizarFormulario(){
     const prevMon=AppState.ui.ultimoMonedaBanco;
     const monedaCambiada=prevMon!==null&&prevMon!==mon;
     AppState.ui.ultimoMonedaBanco=mon;
-    setText('montoLabel',t==='compra'?`Pagás (${mon})`:`Recibís (${mon})`);
-    setText('bancoLabel',t==='compra'?'Sale de *':'Entra a *');
+    setText('montoLabel',t==='compra'?'Comprás (USDT)':'Vendés (USDT)');
+    setText('bancoLabel',t==='compra'?'Sale de':'Entra a');
     $('comisionBancoGroup').style.display=t==='compra'?'block':'none';
     if(t==='venta')$('comisionBanco').value='0';
     const ti=$('tasa');
@@ -1407,35 +1410,44 @@ function actualizarFormulario(){
 }
 
 function calcularPreview(){
-    const t=$('tipo').value,m=pv('monto'),ta=parsearTasa($('tasa').value),cp=getComisionDec(),mon=getMonedaBanco(),isU=mon==='USD';
+    const t=$('tipo').value,usdtIn=pv('monto'),ta=parsearTasa($('tasa').value),cp=getComisionDec(),mon=getMonedaBanco(),isU=mon==='USD';
     $('tasa').classList.remove('error');const th=$('tasaHelp');th.className='';th.textContent='';th.style.display='none';
-    const sum=$('opSummary');
-    if(m>0&&ta){
-        const u=usdtBase(m/ta,t),c=truncar(u*cp,2);
-        setText('comisionPlataformaInfo',fmtTrunc(c,2)+' USDT');
+    const sum=$('opSummary'),btn=$('btnAgregarOp');
+    const isC=t==='compra',sy=isU?'US$':'$';
+
+    if(usdtIn>0&&ta){
+        /* USDT-centric: user enters USDT, we compute UYU = USDT * tasa */
+        const montoUYU=roundMoney(usdtIn*ta);
+        /* Standard Binance calc from UYU (same as data model) */
+        const u=usdtBase(montoUYU/ta,t),c=truncar(u*cp,2);
         const neto=usdtNeto(u,c,t);
-        const isC=t==='compra';
 
         sum.style.display='block';
         sum.className='op-summary '+(isC?'modo-compra':'modo-venta');
 
-        setText('opSumMainLabel',isC?'Recibís':'Entregás');
-        $('opSumMainValue').innerHTML=`<span style="color:${isC?'#16a34a':'#dc2626'}">${fmtNum(neto,2)} USDT</span>`;
+        setText('opSumMainLabel',isC?'Pagás':'Recibís');
+        $('opSumMainValue').innerHTML=`<span style="color:${isC?'#dc2626':'#16a34a'}">${sy}${fmtNum(montoUYU)}</span>`;
+        setText('opSumUsdt',fmtNum(neto,2)+' USDT');
+        setText('comisionPlataformaInfo',fmtTrunc(c,2)+' USDT');
         setText('opSumComision',fmtTrunc(c,2)+' USDT');
 
         const b=$('banco').value,cb=roundMoney(pv('comisionBanco'));
         if(b&&AppState.datos.bancos[b]){
-            const sActual=AppState.datos.bancos[b].saldo,sy=getSym(getBancoInfo(b)?.moneda);
-            const sDesp=isC?fixNeg(sActual-(m+cb)):fixNeg(sActual+m);
+            const sActual=AppState.datos.bancos[b].saldo,bsy=getSym(getBancoInfo(b)?.moneda);
+            const sDesp=isC?fixNeg(sActual-(montoUYU+cb)):fixNeg(sActual+montoUYU);
             setText('opSumBancoLabel',b);
-            $('opSumBancoValue').innerHTML=`${sy}${fmtNum(sActual)} → <b style="color:${sDesp>=0?'#16a34a':'#dc2626'}">${sy}${fmtNum(sDesp)}</b>`;
+            $('opSumBancoValue').innerHTML=`${bsy}${fmtNum(sActual)} → <b style="color:${sDesp>=0?'#16a34a':'#dc2626'}">${bsy}${fmtNum(sDesp)}</b>`;
         }else{setText('opSumBancoLabel','Saldo');setText('opSumBancoValue','--')}
 
-        $('previewText').innerHTML=isC?`Recibís <b>${fmtNum(neto,2)} USDT</b>`:`Entregás <b>${fmtNum(neto,2)} USDT</b>`;
+        /* Dynamic button text */
+        btn.textContent=isC?`📥 Comprar ${fmtTrunc(neto,2)} USDT`:`📤 Vender ${fmtTrunc(neto,2)} USDT`;
+
+        $('previewText').innerHTML=isC?`Pagás <b>${sy}${fmtNum(montoUYU)}</b>`:`Recibís <b>${sy}${fmtNum(montoUYU)}</b>`;
         $('previewBox').style.display='none';
     }else{
         sum.style.display='none';$('previewBox').style.display='none';
         setText('comisionPlataformaInfo','0 USDT');
+        btn.textContent=isC?'📥 Comprar USDT':'📤 Vender USDT';
     }
 }
 
