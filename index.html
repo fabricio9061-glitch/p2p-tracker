@@ -130,7 +130,6 @@
         .btn-cancel{background:#e5e7eb;color:#4b5563}
         .btn-edit-small{padding:6px 10px;font-size:0.7em;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
         .btn-edit-small:active{background:#e2e8f0}
-        .action-cell{display:flex;gap:4px;justify-content:flex-end}
         .info-text{color:#64748b;font-size:0.75em;margin-top:10px}
         .preview-box{display:none}
 
@@ -166,6 +165,11 @@
             .op-card-actions{display:flex}
             .op-swipe-bg{display:none}
         }
+        /* Transfer card */
+        .op-card.transfer{border-left:3px solid #3b82f6;background:linear-gradient(135deg,#fafbff 0%,#eff6ff 100%)}
+        .op-card.conversion{border-left:3px solid #7c3aed;background:linear-gradient(135deg,#faf9ff 0%,#f5f3ff 100%)}
+        .op-card-flow{display:flex;align-items:center;gap:6px;font-size:0.8em;font-weight:600}
+        .op-card-flow-arrow{color:#94a3b8;font-size:0.9em}
 
         /* ═══ Tables ═══ */
         .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -180,9 +184,6 @@
         .badge-venta{background:#fee2e2;color:#dc2626}
         .badge-ingreso{background:#dcfce7;color:#16a34a}
         .badge-egreso{background:#fee2e2;color:#dc2626}
-        .fecha-hora{display:flex;flex-direction:column;gap:1px}
-        .fecha-hora .fecha{color:#1e293b;font-weight:500}
-        .fecha-hora .hora{color:#94a3b8;font-size:0.85em}
 
         /* ═══ Empty & Pagination ═══ */
         .empty-state{text-align:center;padding:30px;color:#94a3b8}
@@ -485,7 +486,12 @@
             <div class="toggle-section" id="seccionMovimientos" style="display:none">
                 <div class="toggle-header"><span class="toggle-title">💸 Movimientos</span><div class="toggle-right"><span class="toggle-badge" id="totalMovimientos">0</span><span class="toggle-arrow">▼</span></div></div>
                 <div class="toggle-content">
-                    <div class="table-scroll" id="movimientosContent"></div>
+                    <div class="ops-summary" id="movSummary" style="grid-template-columns:repeat(3,1fr)">
+                        <div class="ops-summary-item"><div class="val" id="movSumIngresos" style="color:#16a34a">$0</div><div class="lbl">Ingresos</div></div>
+                        <div class="ops-summary-item"><div class="val" id="movSumEgresos" style="color:#dc2626">$0</div><div class="lbl">Egresos</div></div>
+                        <div class="ops-summary-item"><div class="val" id="movSumBalance">$0</div><div class="lbl">Balance</div></div>
+                    </div>
+                    <div id="movimientosContent"></div>
                     <div class="pagination" id="paginationMov" style="display:none"><button id="btnPrevMov">← Ant</button><span class="pagination-info" id="paginaInfoMov">1 / 1</span><button id="btnNextMov">Sig →</button></div>
                 </div>
             </div>
@@ -494,7 +500,12 @@
             <div class="toggle-section" id="seccionTransferencias" style="display:none">
                 <div class="toggle-header"><span class="toggle-title">↔️ Transferencias</span><div class="toggle-right"><span class="toggle-badge" id="totalTransferencias">0</span><span class="toggle-arrow">▼</span></div></div>
                 <div class="toggle-content">
-                    <div class="table-scroll" id="transferenciasContent"></div>
+                    <div class="ops-summary" id="transSummary" style="grid-template-columns:repeat(3,1fr)">
+                        <div class="ops-summary-item"><div class="val" id="transSumMonto">$0</div><div class="lbl">Transferido</div></div>
+                        <div class="ops-summary-item"><div class="val" id="transSumCom">$0</div><div class="lbl">Comisiones</div></div>
+                        <div class="ops-summary-item"><div class="val" id="transSumTotal">0</div><div class="lbl">Total</div></div>
+                    </div>
+                    <div id="transferenciasContent"></div>
                     <div class="pagination" id="paginationTrans" style="display:none"><button id="btnPrevTrans">← Ant</button><span class="pagination-info" id="paginaInfoTrans">1 / 1</span><button id="btnNextTrans">Sig →</button></div>
                 </div>
             </div>
@@ -503,7 +514,7 @@
             <div class="toggle-section" id="seccionConversiones" style="display:none">
                 <div class="toggle-header"><span class="toggle-title">💱 Conversiones</span><div class="toggle-right"><span class="toggle-badge" id="totalConversiones">0</span><span class="toggle-arrow">▼</span></div></div>
                 <div class="toggle-content">
-                    <div class="table-scroll" id="conversionesContent"></div>
+                    <div id="conversionesContent"></div>
                     <div class="pagination" id="paginationConv" style="display:none"><button id="btnPrevConv">← Ant</button><span class="pagination-info" id="paginaInfoConv">1 / 1</span><button id="btnNextConv">Sig →</button></div>
                 </div>
             </div>
@@ -973,13 +984,20 @@ function renderizarTasasRecientes(){
 
 function getLotesActivosFIFO(){return AppState.datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')))}
 
-/* ═══ Swipe gestures for operation cards (mobile) ═══ */
+/* ═══ Swipe gestures for cards (mobile) ═══ */
 function inicializarSwipe(){
-    if(window.innerWidth>=768)return; /* Desktop uses buttons */
+    if(window.innerWidth>=768)return;
     const THRESHOLD=60,MAX=90;
-    document.querySelectorAll('.op-swipe-content').forEach(el=>{
+    document.querySelectorAll('.op-swipe-content:not([data-swipe-init])').forEach(el=>{
+        el.setAttribute('data-swipe-init','1');
         let startX=0,startY=0,dx=0,dragging=false,locked=false;
         const wrap=el.closest('.op-swipe-wrap');
+        const opId=el.dataset.opId?parseInt(el.dataset.opId):null;
+        const movId=el.dataset.movId?parseInt(el.dataset.movId):null;
+        const transId=el.dataset.transId?parseInt(el.dataset.transId):null;
+        const convId=el.dataset.convId?parseInt(el.dataset.convId):null;
+        const hasEdit=!!opId; /* Only operations support edit via swipe right */
+
         el.addEventListener('touchstart',e=>{
             const t=e.touches[0];startX=t.clientX;startY=t.clientY;dx=0;dragging=true;locked=false;
             el.classList.remove('animate');
@@ -987,31 +1005,31 @@ function inicializarSwipe(){
         el.addEventListener('touchmove',e=>{
             if(!dragging)return;
             const t=e.touches[0],mx=t.clientX-startX,my=t.clientY-startY;
-            /* Lock axis after 8px movement */
             if(!locked&&(Math.abs(mx)>8||Math.abs(my)>8)){
                 locked=true;
-                if(Math.abs(my)>Math.abs(mx)){dragging=false;return} /* Vertical scroll */
+                if(Math.abs(my)>Math.abs(mx)){dragging=false;return}
             }
             if(!locked)return;
-            dx=Math.max(-MAX,Math.min(MAX,mx));
+            /* Operations: both directions. Others: left only (delete) */
+            if(hasEdit)dx=Math.max(-MAX,Math.min(MAX,mx));
+            else dx=Math.max(-MAX,Math.min(0,mx));
             el.style.transform=`translateX(${dx}px)`;
             wrap.classList.toggle('swiping',Math.abs(dx)>10);
         },{passive:true});
         el.addEventListener('touchend',()=>{
-            if(!dragging&&!locked){return}
-            dragging=false;
-            el.classList.add('animate');
-            const opId=parseInt(el.dataset.opId);
-            if(dx>THRESHOLD){
-                /* Swipe right → Edit */
+            if(!dragging&&!locked)return;
+            dragging=false;el.classList.add('animate');
+            if(dx>THRESHOLD&&hasEdit){
                 el.style.transform='translateX(0)';wrap.classList.remove('swiping');
                 setTimeout(()=>abrirEditarOperacion(opId),150);
             }else if(dx<-THRESHOLD){
-                /* Swipe left → Delete */
                 el.style.transform=`translateX(-${MAX}px)`;
                 setTimeout(()=>{
                     el.style.transform='translateX(0)';wrap.classList.remove('swiping');
-                    eliminarOperacion(opId);
+                    if(opId)eliminarOperacion(opId);
+                    else if(movId)eliminarMovimiento(movId);
+                    else if(transId)eliminarTransferencia(transId);
+                    else if(convId)eliminarConversion(convId);
                 },200);
             }else{
                 el.style.transform='translateX(0)';wrap.classList.remove('swiping');
@@ -1825,10 +1843,49 @@ const pagMov=crearPaginacion({getTotal:()=>AppState.datos.movimientos.length,get
     ids:{pagination:'paginationMov',info:'paginaInfoMov',prev:'btnPrevMov',next:'btnNextMov'},
     renderFn:(ini,fin,total)=>{
         setText('totalMovimientos',total||0);const sec=$('seccionMovimientos');if(!total){sec.style.display='none';return}sec.style.display='block';
-        const mvs=AppState.datos.movimientos.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Cuenta</th><th>Monto</th><th>Desc</th><th>Fecha</th><th></th></tr></thead><tbody>';
-        mvs.forEach(m=>{const badge=m.tipoMovimiento==='ingreso'?'<span class="badge badge-ingreso"><b>Ingreso</b></span>':'<span class="badge badge-egreso"><b>Egreso</b></span>';
-            h+=`<tr><td>${badge}</td><td>${m.tipoCuenta==='usdt'?'🪙 USDT':colorBanco(m.banco)}</td><td><b>${m.tipoCuenta==='usdt'?'':'$'}${fmtNum(m.monto)}${m.tipoCuenta==='usdt'?' USDT':''}</b></td><td style="color:#64748b;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(m.descripcion||'-')}</td><td>${fechaHtml(m.fecha,m.hora)}</td><td><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></td></tr>`});
-        $('movimientosContent').innerHTML=h+'</tbody></table>';
+        /* Summary */
+        const allMov=AppState.datos.movimientos;
+        let si=0,se=0;allMov.forEach(m=>{if(m.tipoMovimiento==='ingreso')si=roundMoney(si+m.monto);else se=roundMoney(se+m.monto)});
+        const bal=roundMoney(si-se);
+        setText('movSumIngresos','+$'+fmtNum(si,0));setText('movSumEgresos','-$'+fmtNum(se,0));
+        const be=$('movSumBalance');be.textContent=(bal>=0?'+':'-')+'$'+fmtNum(Math.abs(bal),0);be.style.color=bal>=0?'#16a34a':'#dc2626';
+        $('movSummary').style.display=total?'grid':'none';
+
+        const mvs=allMov.slice(ini,fin);
+        let h='<div class="op-cards">';
+        mvs.forEach(m=>{
+            const isI=m.tipoMovimiento==='ingreso';
+            const badge=isI?'<span class="badge badge-ingreso"><b>Ingreso</b></span>':'<span class="badge badge-egreso"><b>Egreso</b></span>';
+            const isUsdt=m.tipoCuenta==='usdt';
+            const sy=isUsdt?'':'$',suf=isUsdt?' USDT':'';
+            const cuentaTxt=isUsdt?'🪙 USDT':`<span style="color:${getBancoColor(m.banco)};font-weight:600">${m.banco||'-'}</span>`;
+            const descTxt=m.descripcion?escHtml(m.descripcion):'';
+
+            h+=`<div class="op-swipe-wrap">
+                <div class="op-swipe-bg delete">🗑️ Eliminar</div>
+                <div class="op-swipe-content" data-mov-id="${m.id}">
+                    <div class="op-card ${isI?'compra':'venta'}">
+                        <div class="op-card-body">
+                            <div class="op-card-top">
+                                <div class="op-card-main">${badge}<span class="op-card-monto">${sy}${fmtNum(m.monto)}${suf}</span></div>
+                            </div>
+                            <div class="op-card-mid">
+                                <span>${cuentaTxt}</span>
+                                ${descTxt?`<span style="color:#8b5cf6">🏷️ ${descTxt}</span>`:''}
+                            </div>
+                            <div class="op-card-bot">
+                                <span style="color:#94a3b8">${fmtFechaCorta(m.fecha)} ${m.hora||''}</span>
+                            </div>
+                            <div class="op-card-actions">
+                                <button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}" style="flex:1">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        $('movimientosContent').innerHTML=h+'</div>';
+        inicializarSwipe();
     }
 });
 
@@ -1836,10 +1893,45 @@ const pagTrans=crearPaginacion({getTotal:()=>AppState.datos.transferencias.lengt
     ids:{pagination:'paginationTrans',info:'paginaInfoTrans',prev:'btnPrevTrans',next:'btnNextTrans'},
     renderFn:(ini,fin,total)=>{
         setText('totalTransferencias',total||0);const sec=$('seccionTransferencias');if(!total){sec.style.display='none';return}sec.style.display='block';
-        const trs=AppState.datos.transferencias.slice(ini,fin);let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Monto</th><th>Com</th><th>Fecha</th><th></th></tr></thead><tbody>';
-        trs.forEach(tr=>{const oi=getBancoInfo(tr.origen),sy=getSym(oi?.moneda);
-            h+=`<tr><td>${colorBanco(tr.origen)}</td><td>${colorBanco(tr.destino)}</td><td><b>${sy}${fmtNum(tr.monto)}</b></td><td style="color:#ea580c">${tr.comision>0?sy+fmtNum(tr.comision):'-'}</td><td>${fechaHtml(tr.fecha,tr.hora)}</td><td><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">🗑️</button></td></tr>`});
-        $('transferenciasContent').innerHTML=h+'</tbody></table>';
+        /* Summary */
+        const allTr=AppState.datos.transferencias;
+        let sm=0,sc=0;allTr.forEach(t=>{sm=roundMoney(sm+t.monto);sc=roundMoney(sc+(t.comision||0))});
+        setText('transSumMonto','$'+fmtNum(sm,0));setText('transSumCom','$'+fmtNum(sc,0));setText('transSumTotal',allTr.length);
+        $('transSummary').style.display=total?'grid':'none';
+
+        const trs=allTr.slice(ini,fin);
+        let h='<div class="op-cards">';
+        trs.forEach(tr=>{
+            const oi=getBancoInfo(tr.origen),sy=getSym(oi?.moneda);
+            const comTxt=tr.comision>0?`<span style="color:#ea580c">Com: ${sy}${fmtNum(tr.comision)}</span>`:'';
+
+            h+=`<div class="op-swipe-wrap">
+                <div class="op-swipe-bg delete">🗑️ Eliminar</div>
+                <div class="op-swipe-content" data-trans-id="${tr.id}">
+                    <div class="op-card transfer">
+                        <div class="op-card-body">
+                            <div class="op-card-top">
+                                <span class="op-card-monto">${sy}${fmtNum(tr.monto)}</span>
+                            </div>
+                            <div class="op-card-flow" style="margin-top:4px">
+                                <span style="color:${getBancoColor(tr.origen)}">${tr.origen}</span>
+                                <span class="op-card-flow-arrow">→</span>
+                                <span style="color:${getBancoColor(tr.destino)}">${tr.destino}</span>
+                            </div>
+                            <div class="op-card-bot">
+                                ${comTxt}
+                                <span style="color:#94a3b8">${fmtFechaCorta(tr.fecha)} ${tr.hora||''}</span>
+                            </div>
+                            <div class="op-card-actions">
+                                <button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}" style="flex:1">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        $('transferenciasContent').innerHTML=h+'</div>';
+        inicializarSwipe();
     }
 });
 
@@ -1847,10 +1939,38 @@ const pagConv=crearPaginacion({getTotal:()=>(AppState.datos.conversiones||[]).le
     ids:{pagination:'paginationConv',info:'paginaInfoConv',prev:'btnPrevConv',next:'btnNextConv'},
     renderFn:(ini,fin,total)=>{
         setText('totalConversiones',total||0);const sec=$('seccionConversiones');if(!total){sec.style.display='none';return}sec.style.display='block';
-        const cvs=(AppState.datos.conversiones||[]).slice(ini,fin);let h='<table><thead><tr><th>Origen</th><th>Destino</th><th>Debita</th><th>Recibe</th><th>Tasa</th><th>Fecha</th><th></th></tr></thead><tbody>';
-        cvs.forEach(c=>{const syO=c.monedaOrigen==='USD'?'US$':'$',syD=c.monedaDestino==='USD'?'US$':'$';
-            h+=`<tr><td>${colorBanco(c.origen)}</td><td>${colorBanco(c.destino)}</td><td><b>${syO}${fmtNum(c.montoOrigen)}</b></td><td><b>${syD}${fmtNum(c.montoDestino)}</b></td><td>${fmtNum(c.tasa)}</td><td>${fechaHtml(c.fecha,c.hora)}</td><td><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">🗑️</button></td></tr>`});
-        $('conversionesContent').innerHTML=h+'</tbody></table>';
+        const cvs=(AppState.datos.conversiones||[]).slice(ini,fin);
+        let h='<div class="op-cards">';
+        cvs.forEach(c=>{
+            const syO=c.monedaOrigen==='USD'?'US$':'$',syD=c.monedaDestino==='USD'?'US$':'$';
+            h+=`<div class="op-swipe-wrap">
+                <div class="op-swipe-bg delete">🗑️ Eliminar</div>
+                <div class="op-swipe-content" data-conv-id="${c.id}">
+                    <div class="op-card conversion">
+                        <div class="op-card-body">
+                            <div class="op-card-top">
+                                <span class="op-card-monto">${syO}${fmtNum(c.montoOrigen)}</span>
+                                <span style="font-size:0.8em;color:#64748b">→ ${syD}${fmtNum(c.montoDestino)}</span>
+                            </div>
+                            <div class="op-card-flow" style="margin-top:4px">
+                                <span style="color:${getBancoColor(c.origen)}">${c.origen}</span>
+                                <span class="op-card-flow-arrow">→</span>
+                                <span style="color:${getBancoColor(c.destino)}">${c.destino}</span>
+                            </div>
+                            <div class="op-card-bot">
+                                <span style="color:#64748b">Tasa: ${fmtNum(c.tasa)}</span>
+                                <span style="color:#94a3b8">${fmtFechaCorta(c.fecha)} ${c.hora||''}</span>
+                            </div>
+                            <div class="op-card-actions">
+                                <button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}" style="flex:1">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        $('conversionesContent').innerHTML=h+'</div>';
+        inicializarSwipe();
     }
 });
 
