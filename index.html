@@ -100,10 +100,26 @@
         .form-group small{display:block;color:#94a3b8;font-size:0.7em;margin-top:3px}
         .form-group small.error-text{color:#dc2626}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        #tipo{font-weight:700}
-        #tipo option[value="compra"]{color:#16a34a;font-weight:700}
-        #tipo option[value="venta"]{color:#dc2626;font-weight:700}
+        #tipo{position:absolute;opacity:0;pointer-events:none;height:0}
         #banco{font-weight:600}
+        /* Op Toggle */
+        .op-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:10px;overflow:hidden;border:2px solid #e2e8f0;margin-bottom:14px}
+        .op-toggle-btn{padding:12px;text-align:center;font-weight:700;font-size:0.9em;cursor:pointer;transition:all 0.15s;color:#94a3b8;background:white;user-select:none}
+        .op-toggle-btn:active{opacity:0.8}
+        .op-toggle-btn.active-compra{background:#16a34a;color:white;border-color:#16a34a}
+        .op-toggle-btn.active-venta{background:#dc2626;color:white;border-color:#dc2626}
+        /* Tasa highlight */
+        .tasa-input{font-size:20px!important;font-weight:700!important;text-align:center;letter-spacing:0.5px}
+        /* Summary card */
+        .op-summary{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-top:10px}
+        .op-summary-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.8em}
+        .op-summary-row.main{font-size:0.95em;font-weight:700;padding:6px 0}
+        .op-summary-label{color:#64748b}
+        .op-summary-value{color:#1e293b;font-weight:600}
+        .op-btn-compra{background:#16a34a}
+        .op-btn-compra:active{background:#15803d}
+        .op-btn-venta{background:#dc2626}
+        .op-btn-venta:active{background:#b91c1c}
 
         /* ═══ Buttons ═══ */
         .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
@@ -116,7 +132,7 @@
         .btn-edit-small:active{background:#e2e8f0}
         .action-cell{display:flex;gap:4px;justify-content:flex-end}
         .info-text{color:#64748b;font-size:0.75em;margin-top:10px}
-        .preview-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;color:#1e40af;font-size:0.85em}
+        .preview-box{display:none}
 
         /* ═══ Tables ═══ */
         .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -170,13 +186,6 @@
         .tab-egreso{background:#f8fafc;color:#dc2626;border-color:#e2e8f0}
         .tab-egreso:hover{background:#fef2f2;border-color:#fca5a5}
         .tab-egreso.active{background:#dc2626;color:white;border-color:#dc2626}
-
-        /* ═══ Comisión ═══ */
-        .comision-inline{display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;margin-top:8px}
-        .comision-inline label{color:#64748b;font-size:0.75em;font-weight:500;white-space:nowrap}
-        .comision-inline input{width:60px;background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;color:#1e293b;font-size:16px;text-align:center}
-        .comision-inline input:focus{outline:none;border-color:#2563eb}
-        .comision-inline span{color:#64748b;font-weight:500}
 
         /* ═══ Overlays ═══ */
         .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;z-index:2000;flex-direction:column;gap:12px}
@@ -362,19 +371,62 @@
                 <div class="toggle-header"><span class="toggle-title">➕ Nueva Operación</span><span class="toggle-arrow">▼</span></div>
                 <div class="toggle-content">
                     <div class="form-content">
-                        <div class="form-group"><label>Tipo de operación</label><select id="tipo"><option value="compra">🛒 Compra USDT</option><option value="venta">💵 Venta USDT</option></select></div>
-                        <div class="form-row">
-                            <div class="form-group"><label id="montoLabel">Monto (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3900"></div>
-                            <div class="form-group"><label>Tasa *</label><input type="text" id="tasa" placeholder="39,50" inputmode="decimal"><small id="tasaHelp" style="display:none"></small><div id="tasaTagsContainer" style="margin-top:4px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto"></div></div>
+                        <!-- Hidden select for JS compatibility -->
+                        <select id="tipo"><option value="compra">Compra</option><option value="venta">Venta</option></select>
+
+                        <!-- Visual toggle -->
+                        <div class="op-toggle">
+                            <div class="op-toggle-btn active-compra" id="opToggleCompra">📥 Comprar USDT</div>
+                            <div class="op-toggle-btn" id="opToggleVenta">📤 Vender USDT</div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group"><label id="bancoLabel">Banco *</label><select id="banco"><option value="">-- Seleccionar --</option></select><small id="bancoHelp"></small></div>
-                            <div class="form-group" id="comisionBancoGroup"><label>Comisión banco</label><input type="text" inputmode="decimal" id="comisionBanco" value="0" placeholder="0"></div>
+
+                        <!-- Bloque 1: Tasa (protagonista) -->
+                        <div class="form-group" style="margin-bottom:8px">
+                            <label style="text-align:center">Tasa por USDT</label>
+                            <input type="text" id="tasa" placeholder="39,50" inputmode="decimal" class="tasa-input">
+                            <small id="tasaHelp" style="display:none"></small>
+                            <div id="tasaTagsContainer" style="margin-top:5px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;justify-content:center"></div>
                         </div>
-                        <div class="comision-inline"><label>📊 Comisión Binance:</label><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal"><span>%</span></div>
-                        <div class="preview-box" id="previewBox" style="display:none"><span id="previewText"></span></div>
-                        <button class="btn" id="btnAgregarOp" style="margin-top:12px">Agregar Operación</button>
-                        <div class="info-text">Comisión <span id="comisionPctLabel">0.14</span>%: <strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></div>
+
+                        <!-- Bloque 2: Monto + Cuenta -->
+                        <div class="form-row" style="margin-top:10px">
+                            <div class="form-group"><label id="montoLabel">Pagás (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3.900"></div>
+                            <div class="form-group"><label id="bancoLabel">Sale de *</label><select id="banco"><option value="">Seleccionar</option></select><small id="bancoHelp"></small></div>
+                        </div>
+
+                        <!-- Bloque 3: Costos (colapsable) -->
+                        <div style="display:flex;gap:8px;align-items:flex-end">
+                            <div class="form-group" id="comisionBancoGroup" style="flex:1;margin-bottom:0"><label>Comisión banco</label><input type="text" inputmode="decimal" id="comisionBanco" value="0" placeholder="0"></div>
+                            <div style="flex:1;margin-bottom:0">
+                                <div style="display:flex;align-items:center;gap:4px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px">
+                                    <span style="font-size:0.7em;color:#64748b;white-space:nowrap">Binance</span>
+                                    <input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal" style="width:50px;border:none;background:transparent;text-align:center;font-size:14px;font-weight:600;color:#1e293b;padding:0;outline:none">
+                                    <span style="font-size:0.75em;color:#64748b">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bloque 4: Resumen en vivo -->
+                        <div class="op-summary" id="opSummary" style="display:none">
+                            <div class="op-summary-row main">
+                                <span class="op-summary-label" id="opSumMainLabel">Recibís</span>
+                                <span class="op-summary-value" id="opSumMainValue" style="font-size:1.1em">0 USDT</span>
+                            </div>
+                            <div style="border-top:1px solid #e2e8f0;margin:4px 0"></div>
+                            <div class="op-summary-row">
+                                <span class="op-summary-label">Comisión Binance</span>
+                                <span class="op-summary-value" id="opSumComision">0 USDT</span>
+                            </div>
+                            <div class="op-summary-row">
+                                <span class="op-summary-label" id="opSumBancoLabel">Saldo después</span>
+                                <span class="op-summary-value" id="opSumBancoValue">--</span>
+                            </div>
+                        </div>
+                        <div id="previewBox" style="display:none"><span id="previewText"></span></div>
+
+                        <!-- Botón contextual -->
+                        <button class="btn op-btn-compra" id="btnAgregarOp" style="margin-top:14px">📥 Comprar USDT</button>
+                        <div style="text-align:center;margin-top:6px;font-size:0.68em;color:#94a3b8">Comisión <span id="comisionPctLabel">0,14</span>%: <strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></div>
                     </div>
                 </div>
             </div>
@@ -1215,7 +1267,14 @@ function inicializarFirebase(){
 /* ═══════════════════════════════════════
    §9 — FORMULARIO OPERACIÓN
    ═══════════════════════════════════════ */
-function actualizarColorSelect(){const s=$('tipo');s.style.color=s.value==='compra'?'#16a34a':'#dc2626'}
+function actualizarColorSelect(){
+    const v=$('tipo').value,isC=v==='compra';
+    $('opToggleCompra').className='op-toggle-btn'+(isC?' active-compra':'');
+    $('opToggleVenta').className='op-toggle-btn'+(isC?'':' active-venta');
+    const btn=$('btnAgregarOp');
+    btn.textContent=isC?'📥 Comprar USDT':'📤 Vender USDT';
+    btn.className='btn '+(isC?'op-btn-compra':'op-btn-venta');
+}
 function actualizarColorBancoSelect(){const s=$('banco'),v=s.value;s.style.color=v?getBancoColor(v):'#1e293b';s.style.fontWeight=v?'600':'400'}
 
 function actualizarFormulario(){
@@ -1241,16 +1300,41 @@ function actualizarFormulario(){
 function calcularPreview(){
     const t=$('tipo').value,m=pv('monto'),ta=parsearTasa($('tasa').value),cp=getComisionDec(),mon=getMonedaBanco(),isU=mon==='USD';
     $('tasa').classList.remove('error');const th=$('tasaHelp');th.className='';th.textContent='';th.style.display='none';
+    const sum=$('opSummary');
     if(m>0&&ta){
-        /* Binance-matching: compra=round, venta=truncar la base USDT */
         const u=usdtBase(m/ta,t),c=truncar(u*cp,2);
         setText('comisionPlataformaInfo',fmtTrunc(c,2)+' USDT');
         const neto=usdtNeto(u,c,t);
+
+        /* Summary card */
+        sum.style.display='block';
+        if(t==='compra'){
+            setText('opSumMainLabel','Recibís');
+            $('opSumMainValue').innerHTML=`<span style="color:#16a34a">${fmtNum(neto,2)} USDT</span>`;
+        }else{
+            setText('opSumMainLabel','Entregás');
+            $('opSumMainValue').innerHTML=`<span style="color:#dc2626">${fmtNum(neto,2)} USDT</span>`;
+        }
+        setText('opSumComision',fmtTrunc(c,2)+' USDT');
+
+        /* Saldo estimado del banco después de la operación */
+        const b=$('banco').value,cb=roundMoney(pv('comisionBanco'));
+        if(b&&AppState.datos.bancos[b]){
+            const sActual=AppState.datos.bancos[b].saldo,sy=getSym(getBancoInfo(b)?.moneda);
+            const sDesp=t==='compra'?fixNeg(sActual-(m+cb)):fixNeg(sActual+m);
+            setText('opSumBancoLabel','Saldo '+b);
+            $('opSumBancoValue').innerHTML=`${sy}${fmtNum(sActual)} → <b style="color:${sDesp>=0?'#16a34a':'#dc2626'}">${sy}${fmtNum(sDesp)}</b>`;
+        }else{setText('opSumBancoLabel','Saldo después');setText('opSumBancoValue','--')}
+
+        /* Legacy preview (hidden, for compatibility) */
         $('previewText').innerHTML=t==='compra'
-            ?`📥 Recibís <b>${fmtNum(neto,2)} USDT</b> <span style="color:#64748b;font-size:0.85em">(total: ${fmtNum(u,2)})</span>`
+            ?`📥 Recibís <b>${fmtNum(neto,2)} USDT</b>`
             :`📤 Entregás <b>${fmtNum(neto,2)} USDT</b>`;
-        $('previewBox').style.display='block'}
-    else{$('previewBox').style.display='none';setText('comisionPlataformaInfo','0 USDT')}
+        $('previewBox').style.display='none';
+    }else{
+        sum.style.display='none';$('previewBox').style.display='none';
+        setText('comisionPlataformaInfo','0 USDT');
+    }
 }
 
 function guardarComisionYCalcular(){
@@ -1756,11 +1840,15 @@ document.addEventListener('DOMContentLoaded',()=>{
     // Toggle sections
     document.querySelectorAll('.toggle-header').forEach(h=>h.addEventListener('click',()=>h.closest('.toggle-section')?.classList.toggle('open')));
 
-    // Formulario
+    // Formulario — Toggle compra/venta
+    function setTipoOp(v){$('tipo').value=v;AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;actualizarFormulario();actualizarColorSelect()}
+    $('opToggleCompra').addEventListener('click',()=>setTipoOp('compra'));
+    $('opToggleVenta').addEventListener('click',()=>setTipoOp('venta'));
     $('tipo').addEventListener('change',()=>{AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;actualizarFormulario();actualizarColorSelect()});
     $('monto').addEventListener('input',calcularPreview);
     $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview()});
-    $('banco').addEventListener('change',()=>{mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect()});
+    $('banco').addEventListener('change',()=>{mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect();calcularPreview()});
+    $('comisionBanco').addEventListener('input',calcularPreview);
     $('comisionPlataforma').addEventListener('input',guardarComisionYCalcular);
     $('btnAgregarOp').addEventListener('click',agregarOperacion);
 
