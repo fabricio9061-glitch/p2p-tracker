@@ -51,7 +51,7 @@
         .card-title{color:#64748b;font-size:0.7em;font-weight:600;text-transform:uppercase;margin-bottom:4px}
         .card-value{font-size:1.4em;font-weight:bold}
         .card-subtitle{color:#94a3b8;font-size:0.65em;margin-top:2px}
-        .positive{color:#16a34a}.negative{color:#dc2626}.info{color:#0284c7}
+        .positive{color:#16a34a}.negative{color:#dc2626}
         .card-compra{border-left:3px solid #16a34a}
         .card-venta{border-left:3px solid #dc2626}
         .card-bancos{grid-column:span 2}
@@ -130,7 +130,6 @@
         .btn-cancel{background:#e5e7eb;color:#4b5563}
         .btn-edit-small{padding:6px 10px;font-size:0.7em;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
         .btn-edit-small:active{background:#e2e8f0}
-        .info-text{color:#64748b;font-size:0.75em;margin-top:10px}
         .preview-box{display:none}
 
         /* ═══ Operation Cards ═══ */
@@ -171,9 +170,8 @@
         .op-card-flow{display:flex;align-items:center;gap:6px;font-size:0.8em;font-weight:600}
         .op-card-flow-arrow{color:#94a3b8;font-size:0.9em}
 
-        /* ═══ Tables ═══ */
-        .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-        table{width:100%;border-collapse:collapse;min-width:620px}
+        /* ═══ Tables (inventory) ═══ */
+        table{width:100%;border-collapse:collapse}
         th{background:#f8fafc;color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase;border-bottom:2px solid #e2e8f0}
         td{padding:10px 8px;color:#1e293b;border-top:1px solid #e2e8f0;font-size:0.8em}
         tr:hover td{background:#f8fafc}
@@ -613,7 +611,8 @@ const setHtml = (id, h) => { const e=$(id); if(e) e.innerHTML=h; };
 function abrirModal(id) { $(id)?.classList.add('active'); document.body.style.overflow='hidden'; }
 function cerrarModal(id) { $(id)?.classList.remove('active'); if(!document.querySelector('.modal.active'))document.body.style.overflow=''; }
 function setSyncStatus(s,t) {
-    const el=$('syncStatus'),labels={online:'En línea',offline:'Desconectado',syncing:'Sincronizando...',reconnecting:'Reconectando...'};
+    const el=$('syncStatus');if(!el)return;
+    const labels={online:'En línea',offline:'Desconectado',syncing:'Sincronizando...',reconnecting:'Reconectando...'};
     el.className='sync-status '+s;
     setText('syncText',t||labels[s]||s);
     AppState.ui.syncState=s;
@@ -819,7 +818,6 @@ function getUDate(){const n=new Date(),u=n.getTime()+n.getTimezoneOffset()*60000
 function getUDateStr(){const d=getUDate();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function getUTimeStr(){const d=getUDate();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function fmtFechaCorta(f){if(!f)return'-';const p=f.split('-');return p.length===3?`${p[2]}/${p[1]}`:f}
-function fechaHtml(f,h){return`<div class="fecha-hora"><span class="fecha">${fmtFechaCorta(f)}</span><span class="hora">${h||'--:--'}</span></div>`}
 function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
 function getBancoColor(n){const b=getBancoInfo(n);return b?.color||'#1e293b'}
 function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
@@ -1482,7 +1480,7 @@ async function agregarOperacion(){
         /* 3. Reconstrucción DETERMINÍSTICA completa de lotes + ganancias */
         recalcularLotesYGanancias();
         agregarTasaReciente(ta,t,mon);
-        $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
+        $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';$('opSummary').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
         await guardarDatos();actualizarVista();activarCooldown();
     }finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;btn.textContent='Agregar Operación'}
 }
@@ -2096,7 +2094,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('tipo').addEventListener('change',()=>{AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;actualizarFormulario();actualizarColorSelect()});
     $('monto').addEventListener('input',calcularPreview);
     $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview()});
-    $('banco').addEventListener('change',()=>{mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect();calcularPreview()});
+    $('banco').addEventListener('change',()=>{mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect()});
     $('comisionBanco').addEventListener('input',calcularPreview);
     $('comisionPlataforma').addEventListener('input',guardarComisionYCalcular);
     $('btnAgregarOp').addEventListener('click',agregarOperacion);
