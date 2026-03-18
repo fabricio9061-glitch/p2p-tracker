@@ -134,6 +134,39 @@
         .info-text{color:#64748b;font-size:0.75em;margin-top:10px}
         .preview-box{display:none}
 
+        /* ═══ Operation Cards ═══ */
+        .op-cards{display:flex;flex-direction:column;gap:8px;padding:10px}
+        .op-card{border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;transition:transform 0.15s}
+        .op-card.compra{border-left:3px solid #16a34a;background:linear-gradient(135deg,#fbfefb 0%,#f0fdf4 100%)}
+        .op-card.venta{border-left:3px solid #dc2626;background:linear-gradient(135deg,#fefbfb 0%,#fef2f2 100%)}
+        .op-card-body{padding:10px 12px}
+        .op-card-top{display:flex;justify-content:space-between;align-items:center}
+        .op-card-main{display:flex;align-items:baseline;gap:8px}
+        .op-card-monto{font-size:1.1em;font-weight:700;color:#1e293b}
+        .op-card-gp{font-weight:700;font-size:0.85em;white-space:nowrap}
+        .op-card-mid{display:flex;gap:12px;margin-top:4px;font-size:0.75em;color:#64748b}
+        .op-card-bot{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:0.72em}
+        .op-card-actions{display:none;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.05)}
+        .op-card-actions button{flex:1}
+        /* Swipe infrastructure */
+        .op-swipe-wrap{position:relative;overflow:hidden;border-radius:10px}
+        .op-swipe-bg{position:absolute;top:0;bottom:0;width:80px;display:flex;align-items:center;justify-content:center;font-size:0.75em;font-weight:600;color:white;opacity:0;transition:opacity 0.15s}
+        .op-swipe-bg.edit{left:0;background:#3b82f6}
+        .op-swipe-bg.delete{right:0;background:#dc2626}
+        .op-swipe-wrap.swiping .op-swipe-bg{opacity:1}
+        .op-swipe-content{position:relative;z-index:1;background:transparent;will-change:transform}
+        .op-swipe-content.animate{transition:transform 0.25s ease}
+        /* Summary strip */
+        .ops-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:0.7em}
+        .ops-summary-item{text-align:center}
+        .ops-summary-item .val{font-weight:700;font-size:1.15em;color:#1e293b}
+        .ops-summary-item .lbl{color:#94a3b8;margin-top:1px}
+        /* Desktop: show buttons, hide swipe hints */
+        @media(min-width:768px){
+            .op-card-actions{display:flex}
+            .op-swipe-bg{display:none}
+        }
+
         /* ═══ Tables ═══ */
         .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
         table{width:100%;border-collapse:collapse;min-width:620px}
@@ -437,7 +470,13 @@
             <div class="toggle-section open" id="seccionOperaciones">
                 <div class="toggle-header"><span class="toggle-title">📋 Operaciones</span><div class="toggle-right"><span class="toggle-badge" id="totalOperaciones">0</span><span class="toggle-arrow">▼</span></div></div>
                 <div class="toggle-content">
-                    <div class="table-scroll" id="tablaContent"><div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div></div>
+                    <div class="ops-summary" id="opsSummary">
+                        <div class="ops-summary-item"><div class="val" id="opsSumCompras">0</div><div class="lbl">Compras</div></div>
+                        <div class="ops-summary-item"><div class="val" id="opsSumVentas">0</div><div class="lbl">Ventas</div></div>
+                        <div class="ops-summary-item"><div class="val" id="opsSumGanancia" style="color:#16a34a">$0</div><div class="lbl">Ganancia</div></div>
+                        <div class="ops-summary-item"><div class="val" id="opsSumTotal">0</div><div class="lbl">Total</div></div>
+                    </div>
+                    <div id="tablaContent"><div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div></div>
                     <div class="pagination" id="paginationOp" style="display:none"><button id="btnPrevOp">← Ant</button><span class="pagination-info" id="paginaInfoOp">1 / 1</span><button id="btnNextOp">Sig →</button></div>
                 </div>
             </div>
@@ -933,6 +972,54 @@ function renderizarTasasRecientes(){
 }
 
 function getLotesActivosFIFO(){return AppState.datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')))}
+
+/* ═══ Swipe gestures for operation cards (mobile) ═══ */
+function inicializarSwipe(){
+    if(window.innerWidth>=768)return; /* Desktop uses buttons */
+    const THRESHOLD=60,MAX=90;
+    document.querySelectorAll('.op-swipe-content').forEach(el=>{
+        let startX=0,startY=0,dx=0,dragging=false,locked=false;
+        const wrap=el.closest('.op-swipe-wrap');
+        el.addEventListener('touchstart',e=>{
+            const t=e.touches[0];startX=t.clientX;startY=t.clientY;dx=0;dragging=true;locked=false;
+            el.classList.remove('animate');
+        },{passive:true});
+        el.addEventListener('touchmove',e=>{
+            if(!dragging)return;
+            const t=e.touches[0],mx=t.clientX-startX,my=t.clientY-startY;
+            /* Lock axis after 8px movement */
+            if(!locked&&(Math.abs(mx)>8||Math.abs(my)>8)){
+                locked=true;
+                if(Math.abs(my)>Math.abs(mx)){dragging=false;return} /* Vertical scroll */
+            }
+            if(!locked)return;
+            dx=Math.max(-MAX,Math.min(MAX,mx));
+            el.style.transform=`translateX(${dx}px)`;
+            wrap.classList.toggle('swiping',Math.abs(dx)>10);
+        },{passive:true});
+        el.addEventListener('touchend',()=>{
+            if(!dragging&&!locked){return}
+            dragging=false;
+            el.classList.add('animate');
+            const opId=parseInt(el.dataset.opId);
+            if(dx>THRESHOLD){
+                /* Swipe right → Edit */
+                el.style.transform='translateX(0)';wrap.classList.remove('swiping');
+                setTimeout(()=>abrirEditarOperacion(opId),150);
+            }else if(dx<-THRESHOLD){
+                /* Swipe left → Delete */
+                el.style.transform=`translateX(-${MAX}px)`;
+                setTimeout(()=>{
+                    el.style.transform='translateX(0)';wrap.classList.remove('swiping');
+                    eliminarOperacion(opId);
+                },200);
+            }else{
+                el.style.transform='translateX(0)';wrap.classList.remove('swiping');
+            }
+            dx=0;
+        },{passive:true});
+    });
+}
 
 /* ═══════════════════════════════════════
    §5 — PAGINACIÓN GENÉRICA
@@ -1682,13 +1769,55 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
     ids:{pagination:'paginationOp',info:'paginaInfoOp',prev:'btnPrevOp',next:'btnNextOp'},
     renderFn:(ini,fin,total)=>{
         setText('totalOperaciones',total||0);const c=$('tablaContent');
+        /* Summary */
+        const allOps=AppState.datos.operaciones;
+        let sc=0,sv=0,sg=0;allOps.forEach(op=>{if(op.tipo==='compra')sc++;else sv++;sg=roundMoney(sg+(op.ganancia||0))});
+        setText('opsSumCompras',sc);setText('opsSumVentas',sv);setText('opsSumTotal',allOps.length);
+        const sgE=$('opsSumGanancia');sgE.textContent=(sg>=0?'+':'-')+'$'+fmtNum(Math.abs(sg),0);sgE.style.color=sg>=0?'#16a34a':'#dc2626';
+        $('opsSummary').style.display=total?'grid':'none';
+
         if(!total){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>';return}
-        const ops=AppState.datos.operaciones.slice(ini,fin);let h='<table><thead><tr><th>Tipo</th><th>Monto</th><th>Tasa</th><th>USDT</th><th>Banco</th><th>G/P</th><th>Fecha</th><th></th></tr></thead><tbody>';
-        ops.forEach(op=>{const un=usdtNeto(op.usdt,op.comisionPlataforma,op.tipo);const badge=op.tipo==='compra'?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626',gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn)),sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
-            const cl=op.consumedLots&&op.consumedLots.length?op.consumedLots.map(c=>fmtTrunc(c.amount,2)+'@$'+fmtNum(c.precio)).join(', '):'';
-            const usdtHtml=op.tipo==='venta'&&cl?`<b title="FIFO: ${cl}" style="cursor:help;text-decoration:underline dotted #94a3b8">${fmtTrunc(un,2)}</b>`:`<b>${fmtTrunc(un,2)}</b>`;
-            h+=`<tr><td>${badge}</td><td><b>${sy}${fmtNum(op.monto)}</b></td><td>${sy}${fmtNum(op.tasa,td)}</td><td>${usdtHtml}</td><td style="color:${getBancoColor(op.banco)};font-weight:600;font-size:0.75em">${op.banco||'-'}</td><td style="color:${gc};font-weight:600">${gt}</td><td>${fechaHtml(op.fecha,op.hora)}</td><td><div class="action-cell"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️ Editar</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️ Eliminar</button></div></td></tr>`});
-        c.innerHTML=h+'</tbody></table>';
+        const ops=allOps.slice(ini,fin);
+        let h='<div class="op-cards">';
+        ops.forEach(op=>{
+            const isC=op.tipo==='compra',un=usdtNeto(op.usdt,op.comisionPlataforma,op.tipo);
+            const sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
+            const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626';
+            const gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn));
+            const badge=isC?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';
+            const cl=op.consumedLots?.length?op.consumedLots.map(x=>fmtTrunc(x.amount,2)+'@$'+fmtNum(x.precio)).join(', '):'';
+            const fifoTip=cl?` title="FIFO: ${cl}" style="cursor:help"`:'';
+
+            h+=`<div class="op-swipe-wrap">
+                <div class="op-swipe-bg edit">✏️ Editar</div>
+                <div class="op-swipe-bg delete">🗑️ Eliminar</div>
+                <div class="op-swipe-content" data-op-id="${op.id}">
+                    <div class="op-card ${op.tipo}">
+                        <div class="op-card-body">
+                            <div class="op-card-top">
+                                <div class="op-card-main">${badge}<span class="op-card-monto">${sy}${fmtNum(op.monto)}</span></div>
+                                <span class="op-card-gp" style="color:${gc}">${gt}</span>
+                            </div>
+                            <div class="op-card-mid">
+                                <span>Tasa: ${sy}${fmtNum(op.tasa,td)}</span>
+                                <span${fifoTip}>${fmtTrunc(un,2)} USDT</span>
+                            </div>
+                            <div class="op-card-bot">
+                                <span style="color:${getBancoColor(op.banco)};font-weight:600">${op.banco||'-'}</span>
+                                <span style="color:#94a3b8">${fmtFechaCorta(op.fecha)} ${op.hora||''}</span>
+                            </div>
+                            <div class="op-card-actions">
+                                <button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️ Editar</button>
+                                <button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        c.innerHTML=h+'</div>';
+        /* Init swipe on mobile */
+        inicializarSwipe();
     }
 });
 
