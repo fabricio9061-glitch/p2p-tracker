@@ -90,36 +90,50 @@
         .toggle-section.open .toggle-content{display:block}
 
         /* ═══ Forms ═══ */
-        .form-content{padding:15px}
-        .form-group{margin-bottom:12px}
-        .form-group label{display:block;color:#64748b;font-size:0.75em;margin-bottom:4px;font-weight:500}
-        .form-group input,.form-group select,.form-group textarea{width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;color:#1e293b;font-size:16px;font-family:inherit;max-width:100%;box-sizing:border-box}
-        .form-group input[type="date"]{-webkit-appearance:none;-moz-appearance:none;appearance:none;min-height:46px;line-height:normal}
+        .form-content{padding:10px 12px}
+        .form-group{margin-bottom:8px}
+        .form-group label{display:block;color:#64748b;font-size:0.7em;margin-bottom:3px;font-weight:500}
+        .form-group input,.form-group select,.form-group textarea{width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;color:#1e293b;font-size:16px;font-family:inherit;max-width:100%;box-sizing:border-box}
+        .form-group input[type="date"]{-webkit-appearance:none;-moz-appearance:none;appearance:none;min-height:42px;line-height:normal}
         .form-group input:focus,.form-group select:focus{outline:none;border-color:#2563eb}
         .form-group input.error,.form-group select.error{border-color:#dc2626;background:#fef2f2}
-        .form-group small{display:block;color:#94a3b8;font-size:0.7em;margin-top:3px}
+        .form-group small{display:block;color:#94a3b8;font-size:0.7em;margin-top:2px}
         .form-group small.error-text{color:#dc2626}
-        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
         #tipo{position:absolute;opacity:0;pointer-events:none;height:0}
         #banco{font-weight:600}
-        /* Op Toggle */
-        .op-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:10px;overflow:hidden;border:2px solid #e2e8f0;margin-bottom:14px}
-        .op-toggle-btn{padding:12px;text-align:center;font-weight:700;font-size:0.9em;cursor:pointer;transition:all 0.15s;color:#94a3b8;background:white;user-select:none}
+        /* Op Toggle — compact switch */
+        .op-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:8px;overflow:hidden;border:2px solid #e2e8f0;margin-bottom:10px}
+        .op-toggle-btn{padding:9px 4px;text-align:center;font-weight:700;font-size:0.82em;cursor:pointer;transition:all 0.15s;color:#94a3b8;background:white;user-select:none}
         .op-toggle-btn:active{opacity:0.8}
-        .op-toggle-btn.active-compra{background:#16a34a;color:white;border-color:#16a34a}
-        .op-toggle-btn.active-venta{background:#dc2626;color:white;border-color:#dc2626}
-        /* Tasa highlight */
-        .tasa-input{font-size:20px!important;font-weight:700!important;text-align:center;letter-spacing:0.5px}
-        /* Summary card */
-        .op-summary{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-top:10px}
-        .op-summary-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.8em}
-        .op-summary-row.main{font-size:0.95em;font-weight:700;padding:6px 0}
+        .op-toggle-btn.active-compra{background:#16a34a;color:white}
+        .op-toggle-btn.active-venta{background:#dc2626;color:white}
+        /* Tasa block */
+        .tasa-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-bottom:8px;text-align:center}
+        .tasa-block label{display:block;font-size:0.65em;color:#94a3b8;font-weight:500;margin-bottom:2px}
+        .tasa-block input{border:none;background:transparent;font-size:22px;font-weight:700;text-align:center;color:#1e293b;width:100%;padding:2px 0;outline:none;letter-spacing:0.5px}
+        .tasa-block .tasa-tags{display:flex;gap:5px;justify-content:center;margin-top:4px;flex-wrap:nowrap;overflow-x:auto}
+        /* Summary card — compact */
+        .op-summary{border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-top:8px;transition:all 0.2s}
+        .op-summary.modo-compra{background:linear-gradient(135deg,#f7fdf7,#f0fdf4);border-color:#bbf7d0}
+        .op-summary.modo-venta{background:linear-gradient(135deg,#fdf7f7,#fef2f2);border-color:#fecaca}
+        .op-summary-row{display:flex;justify-content:space-between;align-items:center;padding:2px 0;font-size:0.75em}
+        .op-summary-row.main{font-size:0.95em;font-weight:700;padding:3px 0}
         .op-summary-label{color:#64748b}
         .op-summary-value{color:#1e293b;font-weight:600}
+        .op-summary-divider{border-top:1px solid rgba(0,0,0,0.06);margin:3px 0}
+        /* Button — sticky on mobile */
+        .op-btn-wrap{margin-top:10px;position:sticky;bottom:0;z-index:5;padding:6px 0 2px;background:white}
         .op-btn-compra{background:#16a34a}
         .op-btn-compra:active{background:#15803d}
         .op-btn-venta{background:#dc2626}
         .op-btn-venta:active{background:#b91c1c}
+        .op-btn-wrap .btn{padding:12px 20px}
+        .op-meta{text-align:center;font-size:0.64em;color:#94a3b8;margin-top:4px}
+        /* Comision inline pill */
+        .com-pill{display:flex;align-items:center;gap:3px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:0.72em}
+        .com-pill input{width:38px;border:none;background:transparent;text-align:center;font-size:13px;font-weight:600;color:#1e293b;padding:0;outline:none}
+        .com-pill span{color:#64748b}
 
         /* ═══ Buttons ═══ */
         .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
@@ -406,50 +420,38 @@
                 <div class="toggle-header"><span class="toggle-title">➕ Nueva Operación</span><span class="toggle-arrow">▼</span></div>
                 <div class="toggle-content">
                     <div class="form-content">
-                        <!-- Hidden select for JS compatibility -->
                         <select id="tipo"><option value="compra">Compra</option><option value="venta">Venta</option></select>
-
-                        <!-- Visual toggle -->
                         <div class="op-toggle">
                             <div class="op-toggle-btn active-compra" id="opToggleCompra">📥 Comprar USDT</div>
                             <div class="op-toggle-btn" id="opToggleVenta">📤 Vender USDT</div>
                         </div>
 
-                        <!-- Bloque 1: Tasa (protagonista) -->
-                        <div class="form-group" style="margin-bottom:8px">
-                            <label style="text-align:center">Tasa por USDT</label>
-                            <input type="text" id="tasa" placeholder="39,50" inputmode="decimal" class="tasa-input">
+                        <div class="form-group"><label id="montoLabel">Pagás (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3.900"></div>
+
+                        <div class="tasa-block">
+                            <label>Tasa por USDT</label>
+                            <input type="text" id="tasa" placeholder="39,50" inputmode="decimal">
                             <small id="tasaHelp" style="display:none"></small>
-                            <div id="tasaTagsContainer" style="margin-top:5px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;justify-content:center"></div>
+                            <div class="tasa-tags" id="tasaTagsContainer"></div>
                         </div>
 
-                        <!-- Bloque 2: Monto + Cuenta -->
-                        <div class="form-row" style="margin-top:10px">
-                            <div class="form-group"><label id="montoLabel">Pagás (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3.900"></div>
-                            <div class="form-group"><label id="bancoLabel">Sale de *</label><select id="banco"><option value="">Seleccionar</option></select><small id="bancoHelp"></small></div>
+                        <div class="form-row">
+                            <div class="form-group"><label id="bancoLabel">Sale de</label><select id="banco"><option value="">Seleccionar</option></select><small id="bancoHelp"></small></div>
+                            <div class="form-group" id="comisionBancoGroup"><label>Com. banco</label><input type="text" inputmode="decimal" id="comisionBanco" value="0" placeholder="0"></div>
                         </div>
 
-                        <!-- Bloque 3: Costos (colapsable) -->
-                        <div style="display:flex;gap:8px;align-items:flex-end">
-                            <div class="form-group" id="comisionBancoGroup" style="flex:1;margin-bottom:0"><label>Comisión banco</label><input type="text" inputmode="decimal" id="comisionBanco" value="0" placeholder="0"></div>
-                            <div style="flex:1;margin-bottom:0">
-                                <div style="display:flex;align-items:center;gap:4px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px">
-                                    <span style="font-size:0.7em;color:#64748b;white-space:nowrap">Binance</span>
-                                    <input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal" style="width:50px;border:none;background:transparent;text-align:center;font-size:14px;font-weight:600;color:#1e293b;padding:0;outline:none">
-                                    <span style="font-size:0.75em;color:#64748b">%</span>
-                                </div>
-                            </div>
+                        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:2px">
+                            <div class="com-pill"><span>Binance</span><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal"><span>%</span></div>
                         </div>
 
-                        <!-- Bloque 4: Resumen en vivo -->
-                        <div class="op-summary" id="opSummary" style="display:none">
+                        <div class="op-summary modo-compra" id="opSummary" style="display:none">
                             <div class="op-summary-row main">
                                 <span class="op-summary-label" id="opSumMainLabel">Recibís</span>
-                                <span class="op-summary-value" id="opSumMainValue" style="font-size:1.1em">0 USDT</span>
+                                <span class="op-summary-value" id="opSumMainValue" style="font-size:1.05em">0 USDT</span>
                             </div>
-                            <div style="border-top:1px solid #e2e8f0;margin:4px 0"></div>
+                            <div class="op-summary-divider"></div>
                             <div class="op-summary-row">
-                                <span class="op-summary-label">Comisión Binance</span>
+                                <span class="op-summary-label">Comisión <span id="comisionPctLabel">0,14</span>%</span>
                                 <span class="op-summary-value" id="opSumComision">0 USDT</span>
                             </div>
                             <div class="op-summary-row">
@@ -459,9 +461,10 @@
                         </div>
                         <div id="previewBox" style="display:none"><span id="previewText"></span></div>
 
-                        <!-- Botón contextual -->
-                        <button class="btn op-btn-compra" id="btnAgregarOp" style="margin-top:14px">📥 Comprar USDT</button>
-                        <div style="text-align:center;margin-top:6px;font-size:0.68em;color:#94a3b8">Comisión <span id="comisionPctLabel">0,14</span>%: <strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></div>
+                        <div class="op-btn-wrap">
+                            <button class="btn op-btn-compra" id="btnAgregarOp">📥 Comprar USDT</button>
+                            <div class="op-meta"><strong id="comisionPlataformaInfo">0 USDT</strong> comisión <span id="saldoBancoInfo"></span></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1411,31 +1414,24 @@ function calcularPreview(){
         const u=usdtBase(m/ta,t),c=truncar(u*cp,2);
         setText('comisionPlataformaInfo',fmtTrunc(c,2)+' USDT');
         const neto=usdtNeto(u,c,t);
+        const isC=t==='compra';
 
-        /* Summary card */
         sum.style.display='block';
-        if(t==='compra'){
-            setText('opSumMainLabel','Recibís');
-            $('opSumMainValue').innerHTML=`<span style="color:#16a34a">${fmtNum(neto,2)} USDT</span>`;
-        }else{
-            setText('opSumMainLabel','Entregás');
-            $('opSumMainValue').innerHTML=`<span style="color:#dc2626">${fmtNum(neto,2)} USDT</span>`;
-        }
+        sum.className='op-summary '+(isC?'modo-compra':'modo-venta');
+
+        setText('opSumMainLabel',isC?'Recibís':'Entregás');
+        $('opSumMainValue').innerHTML=`<span style="color:${isC?'#16a34a':'#dc2626'}">${fmtNum(neto,2)} USDT</span>`;
         setText('opSumComision',fmtTrunc(c,2)+' USDT');
 
-        /* Saldo estimado del banco después de la operación */
         const b=$('banco').value,cb=roundMoney(pv('comisionBanco'));
         if(b&&AppState.datos.bancos[b]){
             const sActual=AppState.datos.bancos[b].saldo,sy=getSym(getBancoInfo(b)?.moneda);
-            const sDesp=t==='compra'?fixNeg(sActual-(m+cb)):fixNeg(sActual+m);
-            setText('opSumBancoLabel','Saldo '+b);
+            const sDesp=isC?fixNeg(sActual-(m+cb)):fixNeg(sActual+m);
+            setText('opSumBancoLabel',b);
             $('opSumBancoValue').innerHTML=`${sy}${fmtNum(sActual)} → <b style="color:${sDesp>=0?'#16a34a':'#dc2626'}">${sy}${fmtNum(sDesp)}</b>`;
-        }else{setText('opSumBancoLabel','Saldo después');setText('opSumBancoValue','--')}
+        }else{setText('opSumBancoLabel','Saldo');setText('opSumBancoValue','--')}
 
-        /* Legacy preview (hidden, for compatibility) */
-        $('previewText').innerHTML=t==='compra'
-            ?`📥 Recibís <b>${fmtNum(neto,2)} USDT</b>`
-            :`📤 Entregás <b>${fmtNum(neto,2)} USDT</b>`;
+        $('previewText').innerHTML=isC?`Recibís <b>${fmtNum(neto,2)} USDT</b>`:`Entregás <b>${fmtNum(neto,2)} USDT</b>`;
         $('previewBox').style.display='none';
     }else{
         sum.style.display='none';$('previewBox').style.display='none';
