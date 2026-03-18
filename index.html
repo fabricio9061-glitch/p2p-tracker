@@ -426,7 +426,7 @@
                             <div class="op-toggle-btn" id="opToggleVenta">📤 Vender USDT</div>
                         </div>
 
-                        <div class="form-group"><label id="montoLabel">Comprás (USDT)</label><input type="text" inputmode="decimal" id="monto" placeholder="100"></div>
+                        <div class="form-group"><label id="montoLabel">Comprás por (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3.900"></div>
 
                         <div class="tasa-block">
                             <label>Tasa por USDT</label>
@@ -442,14 +442,10 @@
 
                         <div class="op-summary modo-compra" id="opSummary" style="display:none">
                             <div class="op-summary-row main">
-                                <span class="op-summary-label" id="opSumMainLabel">Pagás</span>
-                                <span class="op-summary-value" id="opSumMainValue" style="font-size:1.05em">$0</span>
+                                <span class="op-summary-label" id="opSumMainLabel">Recibís</span>
+                                <span class="op-summary-value" id="opSumMainValue" style="font-size:1.05em">0 USDT</span>
                             </div>
                             <div class="op-summary-divider"></div>
-                            <div class="op-summary-row">
-                                <span class="op-summary-label">USDT neto</span>
-                                <span class="op-summary-value" id="opSumUsdt">0</span>
-                            </div>
                             <div class="op-summary-row">
                                 <span class="op-summary-label">Comisión <span id="comisionPctLabel">0,14</span>%</span>
                                 <span class="op-summary-value" id="opSumComision">0 USDT</span>
@@ -462,9 +458,9 @@
                         <div id="previewBox" style="display:none"><span id="previewText"></span></div>
 
                         <div class="op-btn-wrap">
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
                                 <div class="com-pill"><span>Binance</span><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal"><span>%</span></div>
-                                <span class="op-meta" style="margin:0"><strong id="comisionPlataformaInfo">0 USDT</strong> com. <span id="saldoBancoInfo"></span></span>
+                                <span class="op-meta" style="margin:0"><strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></span>
                             </div>
                             <button class="btn op-btn-compra" id="btnAgregarOp">📥 Comprar USDT</button>
                         </div>
@@ -1394,7 +1390,8 @@ function actualizarFormulario(){
     const prevMon=AppState.ui.ultimoMonedaBanco;
     const monedaCambiada=prevMon!==null&&prevMon!==mon;
     AppState.ui.ultimoMonedaBanco=mon;
-    setText('montoLabel',t==='compra'?'Comprás (USDT)':'Vendés (USDT)');
+    const sy=isU?'USD':'UYU';
+    setText('montoLabel',t==='compra'?`Comprás por (${sy})`:`Vendés por (${sy})`);
     setText('bancoLabel',t==='compra'?'Sale de':'Entra a');
     $('comisionBancoGroup').style.display=t==='compra'?'block':'none';
     if(t==='venta')$('comisionBanco').value='0';
@@ -1410,39 +1407,37 @@ function actualizarFormulario(){
 }
 
 function calcularPreview(){
-    const t=$('tipo').value,usdtIn=pv('monto'),ta=parsearTasa($('tasa').value),cp=getComisionDec(),mon=getMonedaBanco(),isU=mon==='USD';
+    const t=$('tipo').value,m=pv('monto'),ta=parsearTasa($('tasa').value),cp=getComisionDec(),mon=getMonedaBanco(),isU=mon==='USD';
     $('tasa').classList.remove('error');const th=$('tasaHelp');th.className='';th.textContent='';th.style.display='none';
     const sum=$('opSummary'),btn=$('btnAgregarOp');
     const isC=t==='compra',sy=isU?'US$':'$';
 
-    if(usdtIn>0&&ta){
-        /* USDT-centric: user enters USDT, we compute UYU = USDT * tasa */
-        const montoUYU=roundMoney(usdtIn*ta);
-        /* Standard Binance calc from UYU (same as data model) */
-        const u=usdtBase(montoUYU/ta,t),c=truncar(u*cp,2);
+    if(m>0&&ta){
+        /* UYU-centric: monto is fiat, compute USDT */
+        const u=usdtBase(m/ta,t),c=truncar(u*cp,2);
         const neto=usdtNeto(u,c,t);
+        setText('comisionPlataformaInfo',fmtTrunc(c,2)+' USDT');
 
         sum.style.display='block';
         sum.className='op-summary '+(isC?'modo-compra':'modo-venta');
 
-        setText('opSumMainLabel',isC?'Pagás':'Recibís');
-        $('opSumMainValue').innerHTML=`<span style="color:${isC?'#dc2626':'#16a34a'}">${sy}${fmtNum(montoUYU)}</span>`;
-        setText('opSumUsdt',fmtNum(neto,2)+' USDT');
-        setText('comisionPlataformaInfo',fmtTrunc(c,2)+' USDT');
+        /* Main result: USDT amount */
+        setText('opSumMainLabel',isC?'Recibís':'Entregás');
+        $('opSumMainValue').innerHTML=`<span style="color:${isC?'#16a34a':'#dc2626'};font-size:1.05em">${fmtNum(neto,2)} USDT</span>`;
         setText('opSumComision',fmtTrunc(c,2)+' USDT');
 
+        /* Bank saldo impact */
         const b=$('banco').value,cb=roundMoney(pv('comisionBanco'));
         if(b&&AppState.datos.bancos[b]){
             const sActual=AppState.datos.bancos[b].saldo,bsy=getSym(getBancoInfo(b)?.moneda);
-            const sDesp=isC?fixNeg(sActual-(montoUYU+cb)):fixNeg(sActual+montoUYU);
+            const sDesp=isC?fixNeg(sActual-(m+cb)):fixNeg(sActual+m);
             setText('opSumBancoLabel',b);
             $('opSumBancoValue').innerHTML=`${bsy}${fmtNum(sActual)} → <b style="color:${sDesp>=0?'#16a34a':'#dc2626'}">${bsy}${fmtNum(sDesp)}</b>`;
         }else{setText('opSumBancoLabel','Saldo');setText('opSumBancoValue','--')}
 
-        /* Dynamic button text */
+        /* Dynamic button */
         btn.textContent=isC?`📥 Comprar ${fmtTrunc(neto,2)} USDT`:`📤 Vender ${fmtTrunc(neto,2)} USDT`;
 
-        $('previewText').innerHTML=isC?`Pagás <b>${sy}${fmtNum(montoUYU)}</b>`:`Recibís <b>${sy}${fmtNum(montoUYU)}</b>`;
         $('previewBox').style.display='none';
     }else{
         sum.style.display='none';$('previewBox').style.display='none';
@@ -1466,7 +1461,7 @@ async function agregarOperacion(){
     if(!ta){ti.classList.add('error');$('tasaHelp').textContent='Formato inválido';$('tasaHelp').className='error-text';$('tasaHelp').style.display='block';alert('Tasa inválida (ej: '+(isU?'1,025':'39,50')+')');return}
     if(!b){$('bancoHelp').textContent='Seleccioná un banco';$('bancoHelp').className='error-text';$('banco').classList.add('error');alert('Seleccioná un banco');return}
     $('banco').classList.remove('error');
-    /* ═══ Validaciones pre-operación (sobre estado actual, antes de modificar nada) ═══ */
+    /* monto = UYU directamente */
     const u=usdtBase(m/ta,t),cpl=truncar(u*cp,2);
     if(t==='compra'){
         const bk=AppState.datos.bancos[b];
@@ -1479,21 +1474,18 @@ async function agregarOperacion(){
     AppState.ui.guardandoOperacion=true;btn.disabled=true;btn.textContent='Guardando...';
     try{
         const opId=uid();
-        /* 1. Actualizar saldos bancarios (independiente de FIFO) */
         if(t==='compra'){
             AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));
             if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta);AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,roundMoney((AppState.datos.bancos[b].limiteUsadoUSD||0)+mU))}
         }else{
             AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);
         }
-        /* 2. Insertar operación en array (ganancia/usdt se calculan en recalcular) */
         AppState.datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:0,timestamp:new Date().toISOString()});
-        /* 3. Reconstrucción DETERMINÍSTICA completa de lotes + ganancias */
         recalcularLotesYGanancias();
         agregarTasaReciente(ta,t,mon);
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';$('opSummary').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
-        await guardarDatos();actualizarVista();activarCooldown();
-    }finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;btn.textContent='Agregar Operación'}
+        await guardarDatos();actualizarVista();actualizarColorSelect();activarCooldown();
+    }finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect()}
 }
 
 async function eliminarOperacion(id){
