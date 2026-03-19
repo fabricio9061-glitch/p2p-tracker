@@ -292,6 +292,7 @@
         .tag-chip,.tag-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:14px;font-size:0.76em;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;cursor:pointer;transition:all 0.15s;user-select:none;white-space:nowrap}
         .tag-chip:hover,.tag-pill:hover{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
         .tag-chip:active,.tag-pill:active{background:#bfdbfe}
+        .tag-pill.tag-active{background:#2563eb;color:white;border-color:#2563eb}
         .tag-sugerencias{margin-top:6px}
         .tag-sugerencias-label{font-size:0.7em;color:#94a3b8;margin-bottom:4px;font-weight:500}
         .tag-manage-item{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;background:#f8fafc;gap:8px}
@@ -537,7 +538,7 @@
         <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="tagPeriodFilter"></div>
         <input class="tag-search" type="text" id="tagSearch" placeholder="🔍 Buscar categoría...">
         <div id="tagsList" style="max-height:40vh;overflow-y:auto"></div>
-        <div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:12px"><div style="font-size:0.75em;color:#64748b">Las categorías se crean automáticamente al guardar movimientos con descripción</div></div>
+        <div style="background:#f1f5f9;padding:8px 10px;border-radius:8px;margin-top:10px"><div style="font-size:0.7em;color:#64748b">Las categorías se crean desde el formulario de movimiento usando el botón <b style="color:#16a34a">+ nueva</b>. Usá 🔗 para fusionar categorías similares.</div></div>
         <div class="modal-buttons"><button class="btn" id="btnCerrarTags">Cerrar</button></div>
     </div></div>
     <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px"><div class="modal-header">📊 Resumen Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div class="modal-buttons"><button class="btn" id="btnCerrarHistorial">Cerrar</button></div></div></div>
@@ -705,7 +706,7 @@ async function verificarCambioMes(){
         let totalEgresoUYU=0;
         const tags=AppState.datos.tags||[];
         tags.forEach(tag=>{
-            const tagMovs=egresosMes.filter(m=>(m.descripcion||'').toLowerCase()===tag.toLowerCase());
+            const tagMovs=egresosMes.filter(m=>m.descripcion&&tagKey(m.descripcion)===tagKey(tag));
             if(!tagMovs.length)return;
             let uyu=0;tagMovs.forEach(m=>{
                 if(m.tipoCuenta==='usdt')uyu=roundMoney(uyu+(m.valorUYU>0?m.valorUYU:roundMoney(m.monto*(m.tasaRef||tasaFb))));
@@ -830,35 +831,137 @@ function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=truncUsdt(AppState.dato
 
 /* ═══ Tags ═══ */
 function normalizarTag(t){return(t||'').trim().replace(/\s+/g,' ')}
+function stripAccents(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function tagKey(t){return stripAccents(t).toLowerCase()}
+
+/* Keyword → category aliases for smart suggestions */
+const TAG_ALIASES={
+    'uber':'transporte','cabify':'transporte','taxi':'transporte','bus':'transporte','omnibus':'transporte','nafta':'transporte','combustible':'transporte','estacionamiento':'transporte','peaje':'transporte',
+    'netflix':'suscripciones','spotify':'suscripciones','youtube':'suscripciones','hbo':'suscripciones','disney':'suscripciones','amazon':'suscripciones','prime':'suscripciones',
+    'antel':'servicios','ute':'servicios','ose':'servicios','luz':'servicios','agua':'servicios','internet':'servicios','celular':'servicios','telefono':'servicios',
+    'alquiler':'vivienda','renta':'vivienda','expensas':'vivienda','gastos comunes':'vivienda',
+    'super':'alimentacion','supermercado':'alimentacion','comida':'alimentacion','restaurante':'alimentacion','delivery':'alimentacion','rappi':'alimentacion','pedidosya':'alimentacion',
+    'farmacia':'salud','medico':'salud','mutualista':'salud','emergencia':'salud','dentista':'salud',
+    'gimnasio':'deporte','gym':'deporte','futbol':'deporte','cancha':'deporte'
+};
+
+function getAliasSuggestion(text){
+    if(!text||text.length<2)return null;
+    const k=tagKey(text);
+    /* Direct match */
+    if(TAG_ALIASES[k])return TAG_ALIASES[k];
+    /* Partial match: any alias key starts with or is contained in input */
+    for(const[alias,cat] of Object.entries(TAG_ALIASES)){
+        if(alias.startsWith(k)||k.startsWith(alias))return cat;
+    }
+    return null;
+}
+
 function agregarTag(texto){
     const t=normalizarTag(texto);if(!t||t.length<2)return;
-    const existe=AppState.datos.tags.find(x=>x.toLowerCase()===t.toLowerCase());
+    const key=tagKey(t);
+    const existe=AppState.datos.tags.find(x=>tagKey(x)===key);
     if(!existe){AppState.datos.tags.push(t);AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'))}
 }
-function eliminarTag(texto){AppState.datos.tags=AppState.datos.tags.filter(t=>t.toLowerCase()!==texto.toLowerCase())}
+function eliminarTag(texto){AppState.datos.tags=AppState.datos.tags.filter(t=>tagKey(t)!==tagKey(texto))}
 function editarTag(viejo,nuevo){
     const nv=normalizarTag(nuevo);if(!nv||nv.length<2)return false;
-    const dup=AppState.datos.tags.find(t=>t.toLowerCase()===nv.toLowerCase()&&t.toLowerCase()!==viejo.toLowerCase());
+    const nvKey=tagKey(nv),vjKey=tagKey(viejo);
+    const dup=AppState.datos.tags.find(t=>tagKey(t)===nvKey&&tagKey(t)!==vjKey);
     if(dup)return false;
-    const idx=AppState.datos.tags.findIndex(t=>t.toLowerCase()===viejo.toLowerCase());
+    const idx=AppState.datos.tags.findIndex(t=>tagKey(t)===vjKey);
     if(idx>=0){
         AppState.datos.tags[idx]=nv;AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'));
-        /* Cascadear rename a todos los movimientos que usen el nombre viejo */
         AppState.datos.movimientos.forEach(m=>{
-            if(m.descripcion&&m.descripcion.toLowerCase()===viejo.toLowerCase())m.descripcion=nv;
+            if(m.descripcion&&tagKey(m.descripcion)===vjKey)m.descripcion=nv;
         });
     }
     return true;
 }
+function mergeTag(origen,destino){
+    /* Fusionar: todas las refs de origen → destino, luego eliminar origen */
+    const orKey=tagKey(origen),dsKey=tagKey(destino);
+    if(orKey===dsKey)return false;
+    if(!AppState.datos.tags.some(t=>tagKey(t)===dsKey))return false;
+    AppState.datos.movimientos.forEach(m=>{
+        if(m.descripcion&&tagKey(m.descripcion)===orKey){
+            m.descripcion=AppState.datos.tags.find(t=>tagKey(t)===dsKey)||destino;
+        }
+    });
+    AppState.datos.tags=AppState.datos.tags.filter(t=>tagKey(t)!==orKey);
+    return true;
+}
+/* Conteo de usos y tipo dominante por tag */
+function getTagStats(){
+    const stats={};
+    (AppState.datos.tags||[]).forEach(t=>{stats[tagKey(t)]={nombre:t,usos:0,ingresos:0,egresos:0}});
+    AppState.datos.movimientos.forEach(m=>{
+        if(!m.descripcion)return;
+        const k=tagKey(m.descripcion),s=stats[k];
+        if(!s)return;
+        s.usos++;
+        if(m.tipoMovimiento==='ingreso')s.ingresos++;else s.egresos++;
+    });
+    return stats;
+}
 function renderizarTagsSugerencias(inputId,containerId){
     const input=$(inputId),cont=$(containerId);if(!cont||!input)return;
-    const val=input.value.toLowerCase().trim(),tags=AppState.datos.tags||[];
-    if(!tags.length){cont.innerHTML='';return}
-    const filtrados=val?tags.filter(t=>t.toLowerCase().includes(val)):tags.slice(0,15);
-    if(!filtrados.length){cont.innerHTML='';return}
-    let h='<div class="tag-sugerencias"><div class="tag-sugerencias-label">📊 Análisis de Gastos:</div><div class="tags-container">';
-    filtrados.forEach(t=>{h+=`<span class="tag-pill" data-action="usar-tag" data-tag="${escHtml(t)}" data-target="${inputId}">${escHtml(t)}</span>`});
-    h+='</div></div>';cont.innerHTML=h;
+    const val=normalizarTag(input.value),valKey=stripAccents(val).toLowerCase();
+    const tags=AppState.datos.tags||[];
+    if(!valKey&&!tags.length){cont.innerHTML='';return}
+
+    const stats=getTagStats();
+    const tipoMov=AppState.ui.tipoMovimiento||'egreso';
+
+    /* Check keyword alias */
+    const aliasCat=getAliasSuggestion(valKey);
+    const aliasKey=aliasCat?tagKey(aliasCat):null;
+
+    let scored=tags.map(t=>{
+        const k=tagKey(t),s=stats[k]||{usos:0,ingresos:0,egresos:0};
+        let score=s.usos;
+        if(tipoMov==='ingreso'&&s.ingresos>0)score+=10;
+        if(tipoMov==='egreso'&&s.egresos>0)score+=10;
+        if(tipoMov==='ingreso'&&s.egresos>0&&s.ingresos===0&&s.usos>2)score=-1;
+        if(tipoMov==='egreso'&&s.ingresos>0&&s.egresos===0&&s.usos>2)score=-1;
+        let match=0;
+        if(valKey){
+            const tk=stripAccents(t).toLowerCase();
+            if(tk===valKey)match=100;
+            else if(tk.startsWith(valKey))match=50;
+            else if(tk.includes(valKey))match=20;
+            /* Alias boost: if tag matches the alias category */
+            else if(aliasKey&&tk===aliasKey)match=80;
+            else if(aliasKey&&tk.includes(aliasKey))match=30;
+            else match=-999;
+        }
+        return{tag:t,score:score+match,match,usos:s.usos};
+    }).filter(t=>t.score>=0&&t.match>=-1);
+
+    scored.sort((a,b)=>b.score-a.score);
+
+    const MAX_VISIBLE=AppState.ui._tagShowAll?50:5;
+    const visible=scored.slice(0,MAX_VISIBLE);
+    const hasMore=scored.length>MAX_VISIBLE;
+    const exactMatch=valKey&&tags.some(t=>tagKey(t)===valKey);
+    const showCreate=valKey&&val.length>=2&&!exactMatch;
+
+    if(!visible.length&&!showCreate&&!aliasCat){cont.innerHTML='';return}
+
+    let h='<div class="tag-sugerencias"><div class="tags-container">';
+    const selected=input.value.trim();
+    visible.forEach(t=>{
+        const isActive=tagKey(selected)===tagKey(t.tag);
+        h+=`<span class="tag-pill${isActive?' tag-active':''}" data-action="usar-tag" data-tag="${escHtml(t.tag)}" data-target="${inputId}">${escHtml(t.tag)}${t.usos>0?` <span style="opacity:0.5;font-size:0.8em">${t.usos}</span>`:''}</span>`;
+    });
+    if(hasMore)h+=`<span class="tag-pill" style="background:#e0e7ff;color:#4338ca;font-size:0.7em" data-action="tag-ver-mas" data-target="${inputId}">+${scored.length-MAX_VISIBLE} más</span>`;
+    /* Alias suggestion: suggest creating the category name */
+    if(showCreate&&aliasCat&&!tags.some(t=>tagKey(t)===aliasKey)){
+        h+=`<span class="tag-pill" style="background:#fef3c7;color:#92400e;border-color:#fcd34d" data-action="tag-crear" data-tag="${escHtml(aliasCat)}" data-target="${inputId}">💡 ${escHtml(aliasCat)}</span>`;
+    }
+    if(showCreate)h+=`<span class="tag-pill" style="background:#dcfce7;color:#16a34a;border-color:#bbf7d0" data-action="tag-crear" data-tag="${escHtml(val)}" data-target="${inputId}">+ ${escHtml(val)}</span>`;
+    h+='</div></div>';
+    cont.innerHTML=h;
 }
 function renderizarGestionTags(){
     const periodo=AppState.ui.tagPeriodo||'total';
@@ -894,7 +997,7 @@ function renderizarGestionTags(){
 
     const tags=AppState.datos.tags||[],search=($('tagSearch')?.value||'').toLowerCase();
     const tagStats=tags.map(t=>{
-        const movs=egresos.filter(m=>(m.descripcion||'').toLowerCase()===t.toLowerCase());
+        const movs=egresos.filter(m=>m.descripcion&&tagKey(m.descripcion)===tagKey(t));
         const ops=movs.length;
         const montoOriginal=movs.reduce((s,m)=>roundMoney(s+m.monto),0);
         const egresoTotal=movs.reduce((s,m)=>roundMoney(s+egresoUYU(m)),0);
@@ -903,7 +1006,7 @@ function renderizarGestionTags(){
     }).sort((a,b)=>b.egresoTotal-a.egresoTotal);
 
     const totalEgreso=tagStats.reduce((s,t)=>s+t.egresoTotal,0);
-    const sinTagMovs=egresos.filter(m=>!m.descripcion||!tags.some(t=>t.toLowerCase()===m.descripcion.toLowerCase()));
+    const sinTagMovs=egresos.filter(m=>!m.descripcion||!tags.some(t=>tagKey(t)===tagKey(m.descripcion)));
     const sinTagUYU=sinTagMovs.reduce((s,m)=>roundMoney(s+egresoUYU(m)),0);
     const grandTotal=roundMoney(totalEgreso+sinTagUYU);
 
@@ -946,7 +1049,8 @@ function renderizarGestionTags(){
     }
 
     const cont=$('tagsList');if(!cont)return;
-    const filtrados=search?tagStats.filter(t=>t.tag.toLowerCase().includes(search)):tagStats;
+    const searchKey=stripAccents(search);
+    const filtrados=searchKey?tagStats.filter(t=>stripAccents(t.tag.toLowerCase()).includes(searchKey)):tagStats;
     if(!filtrados.length){cont.innerHTML=`<div style="text-align:center;padding:20px;color:#94a3b8"><div style="font-size:1.8em;margin-bottom:6px">🏷️</div><div>${search?'Sin resultados':'Sin categorías aún'}</div></div>`;return}
     let h='';
     filtrados.forEach(t=>{
@@ -961,7 +1065,7 @@ function renderizarGestionTags(){
                 <div style="display:flex;align-items:center;gap:6px"><span class="tag-name">${escHtml(t.tag)}</span>${pct>0?`<span style="font-size:0.6em;background:#fef2f2;color:#dc2626;padding:1px 5px;border-radius:8px">${pct}%</span>`:''}</div>
                 <div style="font-size:0.65em;color:#94a3b8;margin-top:2px">${metaParts.join(' · ')}</div>
             </div>
-            <div class="tag-actions"><button class="tag-edit-btn" data-action="editar-tag" data-tag="${escHtml(t.tag)}">✏️</button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${escHtml(t.tag)}">🗑️</button></div>
+            <div class="tag-actions"><button class="tag-edit-btn" data-action="merge-tag" data-tag="${escHtml(t.tag)}" title="Fusionar">🔗</button><button class="tag-edit-btn" data-action="editar-tag" data-tag="${escHtml(t.tag)}">✏️</button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${escHtml(t.tag)}">🗑️</button></div>
         </div>`;
     });
     cont.innerHTML=h;
@@ -1577,12 +1681,12 @@ async function guardarEditarOperacion(){
    §10 — MOVIMIENTOS
    ═══════════════════════════════════════ */
 function abrirModalMovimiento(){
-    AppState.ui.guardandoMovimiento=false;AppState.ui.tipoMovimiento='ingreso';
+    AppState.ui.guardandoMovimiento=false;AppState.ui.tipoMovimiento='ingreso';AppState.ui._tagShowAll=false;
     $('tabIngreso').className='tab tab-ingreso active';$('tabEgreso').className='tab tab-egreso';
     $('movTipoCuenta').value='banco';$('movMonto').value='';$('movTasaRef').value='';$('movDescripcion').value='';$('btnGuardarMov').disabled=false;$('btnGuardarMov').textContent='Guardar';
     actualizarCuentasMovimiento();renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov');abrirModal('modalMovimiento');
 }
-function setTipoMovimiento(t){AppState.ui.tipoMovimiento=t;$('tabIngreso').className='tab tab-ingreso'+(t==='ingreso'?' active':'');$('tabEgreso').className='tab tab-egreso'+(t==='egreso'?' active':'');actualizarCuentasMovimiento()}
+function setTipoMovimiento(t){AppState.ui.tipoMovimiento=t;AppState.ui._tagShowAll=false;$('tabIngreso').className='tab tab-ingreso'+(t==='ingreso'?' active':'');$('tabEgreso').className='tab tab-egreso'+(t==='egreso'?' active':'');actualizarCuentasMovimiento();renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov')}
 function actualizarCuentasMovimiento(){
     const tc=$('movTipoCuenta').value;$('movBancoGroup').style.display=tc==='usdt'?'none':'block';setText('movMontoLabel',tc==='usdt'?'Monto (USDT)':'Monto');
     const esUsdtIngreso=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso';
@@ -1624,7 +1728,6 @@ async function guardarMovimiento(){
         }
         /* Insertar movimiento (valorUYU se calcula en recalcular para egresos USDT) */
         const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:mR,valorUYU:0,tasaRef:tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0,descripcion:desc,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()};
-        if(desc)agregarTag(desc);
         AppState.datos.movimientos.unshift(md);
         /* Reconstrucción DETERMINÍSTICA si involucra USDT */
         if(tc==='usdt')recalcularLotesYGanancias();
@@ -2144,7 +2247,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('editOpTasa').addEventListener('input',calcularEditOpPreview);
     $('editOpBanco').addEventListener('change',()=>{const v=$('editOpBanco').value;$('editOpBanco').style.color=v?getBancoColor(v):'#1e293b';$('editOpBanco').style.fontWeight=v?'600':'400'});
     $('tagSearch').addEventListener('input',renderizarGestionTags);
-    $('movDescripcion').addEventListener('input',()=>renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov'));
+    $('movDescripcion').addEventListener('input',()=>{AppState.ui._tagShowAll=false;renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov')});
     $('btnCalPrev').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()-1);renderizarCalendario()});
     $('btnCalNext').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()+1);renderizarCalendario()});
     $('btnCerrarCalendario').addEventListener('click',()=>cerrarModal('modalCalendario'));
@@ -2166,6 +2269,15 @@ document.addEventListener('DOMContentLoaded',()=>{
             const tag=t.dataset.tag,target=t.dataset.target;
             if(tag&&target){const inp=$(target);if(inp){inp.value=tag;inp.focus();renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'')}}
         }
+        else if(a==='tag-crear'){
+            const tag=t.dataset.tag,target=t.dataset.target;
+            if(tag){agregarTag(tag);const inp=$(target);if(inp){inp.value=tag;inp.focus();renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'')}}
+        }
+        else if(a==='tag-ver-mas'){
+            const target=t.dataset.target;
+            AppState.ui._tagShowAll=true;
+            if(target)renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'');
+        }
         else if(a==='usar-tasa'){
             const v=t.dataset.valor;if(v){$('tasa').value=fmtTasa(parseFloat(v),getMonedaBanco());AppState.ui.tasaManual=true;calcularPreview()}
         }
@@ -2173,6 +2285,21 @@ document.addEventListener('DOMContentLoaded',()=>{
             const oldTag=t.dataset.tag;if(!oldTag)return;
             const nuevoNombre=prompt('Editar categoría:',oldTag);
             if(nuevoNombre!==null){if(editarTag(oldTag,nuevoNombre)){guardarDatos();renderizarGestionTags()}else{alert('Nombre inválido o ya existe')}}
+        }
+        else if(a==='merge-tag'){
+            const srcTag=t.dataset.tag;if(!srcTag)return;
+            const otros=AppState.datos.tags.filter(x=>tagKey(x)!==tagKey(srcTag));
+            if(!otros.length){alert('No hay otras categorías para fusionar');return}
+            const destino=prompt('Fusionar "'+srcTag+'" con:\n'+otros.join(', ')+'\n\nEscribí el nombre destino:');
+            if(destino!==null){
+                const dk=tagKey(destino);
+                if(!AppState.datos.tags.some(x=>tagKey(x)===dk)){alert('La categoría destino no existe');return}
+                if(tagKey(destino)===tagKey(srcTag)){alert('No podés fusionar una categoría consigo misma');return}
+                const usos=AppState.datos.movimientos.filter(m=>m.descripcion&&tagKey(m.descripcion)===tagKey(srcTag)).length;
+                if(confirm(`¿Fusionar "${srcTag}" (${usos} movimientos) → "${destino}"?\nEsto moverá todos los movimientos y eliminará "${srcTag}".`)){
+                    mergeTag(srcTag,destino);guardarDatos();renderizarGestionTags();
+                }
+            }
         }
         else if(a==='eliminar-tag'){
             const tag=t.dataset.tag;if(!tag)return;
