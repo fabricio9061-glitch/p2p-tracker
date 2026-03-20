@@ -293,12 +293,11 @@
         /* ═══ Tags ═══ */
         .tags-container{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:0}
         .tags-container:empty{display:none}
-        .tag-chip,.tag-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:14px;font-size:0.76em;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;cursor:pointer;transition:all 0.15s;user-select:none;white-space:nowrap}
-        .tag-chip:hover,.tag-pill:hover{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
-        .tag-chip:active,.tag-pill:active{background:#bfdbfe}
+        .tag-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:14px;font-size:0.76em;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;cursor:pointer;transition:all 0.15s;user-select:none;white-space:nowrap}
+        .tag-pill:hover{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
+        .tag-pill:active{background:#bfdbfe}
         .tag-pill.tag-active{background:#2563eb;color:white;border-color:#2563eb}
         .tag-sugerencias{margin-top:6px}
-        .tag-sugerencias-label{font-size:0.7em;color:#94a3b8;margin-bottom:4px;font-weight:500}
         .tag-manage-item{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;background:#f8fafc;gap:8px}
         .tag-name{font-size:0.88em;color:#1e293b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .tag-actions{display:flex;gap:6px;flex-shrink:0}
@@ -1666,7 +1665,7 @@ async function agregarOperacion(){
         agregarTasaReciente(ta,t,mon);
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';$('opSummary').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
         await guardarDatos();actualizarVista();actualizarColorSelect();activarCooldown();
-    }finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect()}
+    }catch(e){console.error('[P2P] Error guardando operación:',e)}finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect()}
 }
 
 async function eliminarOperacion(id){
@@ -1752,7 +1751,7 @@ async function guardarEditarOperacion(){
         recalcularLotesYGanancias();
         await guardarDatos();actualizarVista();
         cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null;
-    }finally{btn.disabled=false;btn.textContent='Guardar'}
+    }catch(e){console.error('[P2P] Error editando operación:',e)}finally{btn.disabled=false;btn.textContent='Guardar'}
 }
 
 /* ═══════════════════════════════════════
@@ -1810,7 +1809,7 @@ async function guardarMovimiento(){
         /* Reconstrucción DETERMINÍSTICA si involucra USDT */
         if(tc==='usdt')recalcularLotesYGanancias();
         await guardarDatos();actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
-    }finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar'}
+    }catch(e){console.error('[P2P] Error guardando movimiento:',e)}finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar'}
 }
 
 async function eliminarMovimiento(id){
@@ -1883,7 +1882,7 @@ async function realizarTransferencia(){
             AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-m);
             AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+montoRecibido);
             await guardarDatos();actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
-        }finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Convertir'}
+        }catch(e){console.error('[P2P] Error en conversión:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Convertir'}
     }else{
         if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);const dU=roundMoney(AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}}
         btn.disabled=true;btn.textContent='Transfiriendo...';AppState.ui.guardandoTransferencia=true;
@@ -1892,7 +1891,7 @@ async function realizarTransferencia(){
             AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-(m+c));AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+m);
             if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,roundMoney((AppState.datos.bancos[o].limiteUsadoUSD||0)+mU))}
             await guardarDatos();actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
-        }finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Transferir'}
+        }catch(e){console.error('[P2P] Error en transferencia:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Transferir'}
     }
 }
 
@@ -2206,7 +2205,7 @@ async function guardarLote(){
         if(AppState.ui.loteEditandoId){const l=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);if(l){l.precioCompra=roundMoney(p,3);l.disponible=truncUsdt(d);l.cantidad=truncUsdt(d);l.fecha=f}}
         else AppState.datos.lotes.push({id:uid(),fecha:f,hora:getUTimeStr(),precioCompra:roundMoney(p,3),cantidad:truncUsdt(d),disponible:truncUsdt(d),moneda:'UYU',manual:true});
         recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
-    }finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Guardar'}
+    }catch(e){console.error('[P2P] Error guardando lote:',e)}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Guardar'}
 }
 async function eliminarLoteActual(){
     if(!AppState.ui.loteEditandoId||AppState.ui.guardandoLote)return;
@@ -2216,7 +2215,7 @@ async function eliminarLoteActual(){
         AppState.datos.lotes=AppState.datos.lotes.filter(l=>l.id!==AppState.ui.loteEditandoId);
         recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();
         cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
-    }finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Eliminar'}
+    }catch(e){console.error('[P2P] Error eliminando lote:',e)}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Eliminar'}
 }
 async function forzarRecalculo(){if(!confirm('¿Recalcular todos los lotes y ganancias?\nLos lotes manuales se preservan.'))return;try{recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();alert('✅ Recálculo completado.')}catch(e){console.error('[P2P] Error en recálculo:',e)}}
 
