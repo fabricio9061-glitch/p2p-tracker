@@ -151,12 +151,20 @@
         .op-card.compra{border-left:2px solid #16a34a;background:linear-gradient(135deg,#fdfefd 0%,#f7fdf7 100%)}
         .op-card.venta{border-left:2px solid #dc2626;background:linear-gradient(135deg,#fefdfd 0%,#fdf7f7 100%)}
         .op-card-body{padding:5px 9px;line-height:1.35}
+        /* Mobile ops: 3-row card grid */
+        .op-card-body:has(.opc-badge){display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto auto;gap:0 6px;align-items:baseline;line-height:1.4}
+        .opc-badge{grid-row:1;grid-column:1}
+        .opc-monto{grid-row:1;grid-column:2;font-size:0.92em;font-weight:700;color:#1e293b}
+        .opc-gp{grid-row:1;grid-column:3;font-weight:700;font-size:0.78em;text-align:right}
+        .opc-tasa{grid-row:2;grid-column:1/3;font-size:0.68em;color:#64748b}
+        .opc-usdt{grid-row:2;grid-column:3;font-size:0.68em;color:#64748b;text-align:right}
+        .opc-banco{grid-row:3;grid-column:1/2;font-size:0.65em;font-weight:600}
+        .opc-fecha{grid-row:3;grid-column:2/4;font-size:0.64em;color:#94a3b8;text-align:right}
+        .opc-actions{display:none}
+        /* Shared card layout for mov/trans/conv */
         .op-card-top{display:flex;justify-content:space-between;align-items:center}
         .op-card-main{display:flex;align-items:baseline;gap:5px}
         .op-card-monto{font-size:0.92em;font-weight:700;color:#1e293b}
-        .op-card-gp{font-weight:700;font-size:0.73em;white-space:nowrap}
-        .op-card-mid{display:flex;gap:8px;margin-top:1px;font-size:0.68em;color:#64748b;line-height:1.2}
-        .op-card-bot{display:flex;justify-content:space-between;align-items:center;margin-top:1px;font-size:0.64em;color:#94a3b8}
         .op-card-actions{display:none;gap:3px;margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.04)}
         .op-card-actions button{flex:1;padding:3px 6px;min-height:26px;font-size:0.62em}
         /* Swipe infrastructure */
@@ -305,65 +313,91 @@
             .header h1{font-size:1.4em;margin-bottom:0}
             .sync-status{margin-top:0}
             .menu-container{top:50%;transform:translateY(-50%)}
-            .cards{grid-template-columns:repeat(4,1fr);gap:12px}
+            /* Cards: ganancia hoy prominent */
+            .cards{grid-template-columns:repeat(4,1fr);gap:10px}
+            .card{padding:10px}
             .card.main-card{grid-column:span 1}
-            .card.main-card .card-value{font-size:1.2em}
+            .card.main-card .card-value{font-size:1.3em}
             .card-bancos{grid-column:span 1}
-            .bancos-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-            .desktop-columns{display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start}
-            .col-left{position:sticky;top:16px}
+            .card-title{font-size:0.65em}
+            .bancos-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+            .banco-mini-card{padding:7px}
+            .banco-nombre{font-size:0.72em}
+            .banco-saldo{font-size:0.95em}
+            .section-title{font-size:0.88em;margin-bottom:8px}
+            /* 2-column layout */
+            .desktop-columns{display:grid;grid-template-columns:320px 1fr;gap:14px;align-items:start}
+            .col-left{position:sticky;top:14px}
             /* Compact form panel */
             .col-left .form-content{padding:8px 10px}
-            .col-left .form-group{margin-bottom:6px}
-            .col-left .form-group input,.col-left .form-group select{padding:8px 10px;font-size:15px}
-            .col-left .op-toggle-btn{padding:7px 4px;font-size:0.78em}
-            .col-left .tasa-block{padding:6px 8px}
-            .col-left .tasa-block input{font-size:20px}
-            .col-left .op-summary{padding:6px 8px}
-            .col-left .op-summary-row{font-size:0.72em}
-            .col-left .op-btn-wrap .btn{padding:10px 16px;font-size:0.9em}
-            .col-left .toggle-header{padding:10px 12px}
-            .col-left .toggle-title{font-size:0.88em}
-            /* Desktop operation rows — compact density */
-            .op-cards{padding:2px 0;gap:1px;max-width:none;width:100%}
-            .op-card{border-radius:0;box-shadow:none;border:none;border-bottom:1px solid #f1f5f9}
-            .op-card.compra{border-left:2px solid #16a34a;background:transparent}
-            .op-card.venta{border-left:2px solid #dc2626;background:transparent}
-            .op-card.transfer{border-left:2px solid #3b82f6;background:transparent}
-            .op-card.conversion{border-left:2px solid #7c3aed;background:transparent}
+            .col-left .form-group{margin-bottom:5px}
+            .col-left .form-group input,.col-left .form-group select{padding:7px 9px;font-size:14px}
+            .col-left .form-group label{font-size:0.65em;margin-bottom:2px}
+            .col-left .op-toggle{margin-bottom:8px}
+            .col-left .op-toggle-btn{padding:6px 4px;font-size:0.76em}
+            .col-left .tasa-block{padding:5px 8px;margin-bottom:6px}
+            .col-left .tasa-block input{font-size:19px}
+            .col-left .tasa-block label{font-size:0.6em}
+            .col-left .op-summary{padding:5px 8px;margin-top:6px}
+            .col-left .op-summary-row{font-size:0.7em;padding:1px 0}
+            .col-left .op-summary-row.main{font-size:0.88em;padding:2px 0}
+            .col-left .op-btn-wrap{margin-top:6px;padding:4px 0 0}
+            .col-left .op-btn-wrap .btn{padding:9px 14px;font-size:0.85em}
+            .col-left .op-meta{font-size:0.6em}
+            .col-left .com-pill{font-size:0.68em;padding:3px 6px}
+            .col-left .com-pill input{font-size:12px;width:34px}
+            .col-left .toggle-header{padding:8px 10px}
+            .col-left .toggle-title{font-size:0.85em}
+            .col-left .form-row{gap:6px}
+            /* ═══ Desktop table grid for operations ═══ */
+            .op-cards{padding:0;gap:0;max-width:none;width:100%}
+            .op-card{border-radius:0;box-shadow:none;border:none;border-bottom:1px solid #f0f2f4}
+            .op-card.compra,.op-card.venta,.op-card.transfer,.op-card.conversion{background:transparent;border-left:2px solid transparent}
+            .op-card.compra{border-left-color:#16a34a}
+            .op-card.venta{border-left-color:#dc2626}
+            .op-card.transfer{border-left-color:#3b82f6}
+            .op-card.conversion{border-left-color:#7c3aed}
             .op-card:hover{background:#f8fafc}
-            .op-card-body{padding:3px 10px 3px 8px}
-            .op-card-top{align-items:center}
-            .op-card-monto{font-size:0.85em}
-            .op-card-gp{font-size:0.72em}
-            .op-card-mid{margin-top:0;font-size:0.68em;gap:8px;line-height:1.2}
-            .op-card-bot{margin-top:0;font-size:0.64em}
-            .op-card-flow{font-size:0.7em;margin-top:0}
-            /* Hover-only actions */
-            .op-card-actions{display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);margin:0;padding:0;border:none;background:white;box-shadow:-8px 0 8px white;z-index:2;gap:2px}
-            .op-card:hover .op-card-actions{display:flex}
-            .op-card-actions button{padding:2px 6px;min-height:20px;font-size:0.58em}
+            /* Table grid only for ops (has opc-badge) */
+            .op-card-body:has(.opc-badge){display:grid;grid-template-columns:28px 90px 70px 60px 80px 80px 72px 50px;gap:0;align-items:center;padding:0 8px;height:30px;line-height:30px;position:relative}
+            /* Mov/trans/conv keep card body */
+            .op-card-body:not(:has(.opc-badge)){padding:4px 10px 4px 8px;position:relative}
+            /* Reset mobile styles */
+            .opc-badge,.opc-monto,.opc-tasa,.opc-usdt,.opc-banco,.opc-gp,.opc-fecha,.opc-actions{display:block;float:none;margin:0;font-size:0.75em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .opc-badge .badge{font-size:0.85em;padding:1px 4px}
+            .opc-monto{font-size:0.8em;font-weight:600;color:#1e293b}
+            .opc-tasa{font-size:0.72em;color:#64748b}
+            .opc-usdt{font-size:0.72em;color:#64748b}
+            .opc-banco{font-size:0.72em}
+            .opc-gp{font-size:0.82em;font-weight:700;text-align:right}
+            .opc-fecha{font-size:0.68em;color:#94a3b8;text-align:right}
+            .opc-gp::after,.opc-fecha::after{display:none}
+            /* Actions: last column, visible on hover */
+            .opc-actions{display:none;gap:2px;justify-content:flex-end}
+            .op-card:hover .opc-actions{display:flex}
+            .op-card:hover .opc-fecha{display:none}
+            .opc-actions button{padding:1px 5px;min-height:18px;font-size:0.72em}
             .op-swipe-wrap{border-radius:0}
             .op-swipe-bg{display:none}
-            .op-card-body{position:relative}
             /* Desktop summary compact */
-            .ops-summary{max-width:none;width:auto;margin:2px 0;border-radius:0;padding:4px 8px;border:none;border-bottom:1px solid #e2e8f0;box-shadow:none;background:#fafbfc}
-            .ops-summary-item .val{font-size:0.95em}
-            .ops-summary-item .lbl{font-size:0.85em}
-            /* Section headers compact */
-            .col-right .toggle-header{padding:10px 12px}
-            .col-right .toggle-title{font-size:0.9em}
-            .col-right .toggle-section{border-radius:8px}
-            .section-title{font-size:0.92em;margin-bottom:10px}
-            /* Banco cards compact */
-            .banco-mini-card{padding:8px}
-            .banco-nombre{font-size:0.75em}
-            .banco-saldo{font-size:1em}
+            .ops-summary{max-width:none;width:auto;margin:0;border-radius:0;padding:3px 8px;border:none;border-bottom:1px solid #e2e8f0;box-shadow:none;background:#fafbfc}
+            .ops-summary-item .val{font-size:0.9em}
+            .ops-summary-item .lbl{font-size:0.8em}
+            /* Section headers */
+            .col-right .toggle-header{padding:8px 10px}
+            .col-right .toggle-title{font-size:0.88em}
+            .col-right .toggle-section{border-radius:6px}
+            /* Mov/Trans/Conv cards — desktop compact */
+            .op-card-flow{font-size:0.7em;margin-top:0}
+            .op-card-mid{margin-top:0;font-size:0.68em}
+            .op-card-bot{margin-top:0;font-size:0.64em}
+            .op-card-actions{display:none;gap:2px;margin:0;padding:0;border:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:white;box-shadow:-6px 0 6px white;z-index:2}
+            .op-card:hover .op-card-actions{display:flex}
+            .op-card-actions button{padding:1px 5px;min-height:18px;font-size:0.6em}
         }
         @media(min-width:1100px){
-            .cards{grid-template-columns:repeat(4,1fr)}
-            .bancos-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
-            .desktop-columns{grid-template-columns:380px 1fr}
+            .desktop-columns{grid-template-columns:360px 1fr}
+            .op-card-body:has(.opc-badge){grid-template-columns:30px 100px 76px 66px 86px 90px 78px 54px}
         }
     </style>
 </head>
@@ -1931,7 +1965,6 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
     ids:{pagination:'paginationOp',info:'paginaInfoOp',prev:'btnPrevOp',next:'btnNextOp'},
     renderFn:(ini,fin,total)=>{
         setText('totalOperaciones',total||0);const c=$('tablaContent');
-        /* Summary */
         const allOps=AppState.datos.operaciones;
         let sc=0,sv=0,sg=0;allOps.forEach(op=>{if(op.tipo==='compra')sc++;else sv++;sg=roundMoney(sg+(op.ganancia||0))});
         setText('opsSumCompras',sc);setText('opsSumVentas',sv);setText('opsSumTotal',allOps.length);
@@ -1946,39 +1979,33 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
             const sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
             const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626';
             const gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn));
-            const badge=isC?'<span class="badge badge-compra"><b>Compra</b></span>':'<span class="badge badge-venta"><b>Venta</b></span>';
+            const badge=isC?'<span class="badge badge-compra"><b>C</b></span>':'<span class="badge badge-venta"><b>V</b></span>';
             const cl=op.consumedLots?.length?op.consumedLots.map(x=>fmtTrunc(x.amount,2)+'@$'+fmtNum(x.precio)).join(', '):'';
             const fifoTip=cl?` title="FIFO: ${cl}" style="cursor:help"`:'';
 
             h+=`<div class="op-swipe-wrap">
-                <div class="op-swipe-bg edit">✏️ Editar</div>
-                <div class="op-swipe-bg delete">🗑️ Eliminar</div>
+                <div class="op-swipe-bg edit">✏️</div>
+                <div class="op-swipe-bg delete">🗑️</div>
                 <div class="op-swipe-content" data-op-id="${op.id}">
                     <div class="op-card ${op.tipo}">
                         <div class="op-card-body">
-                            <div class="op-card-top">
-                                <div class="op-card-main">${badge}<span class="op-card-monto">${sy}${fmtNum(op.monto)}</span></div>
-                                <span class="op-card-gp" style="color:${gc}">${gt}</span>
-                            </div>
-                            <div class="op-card-mid">
-                                <span>Tasa: ${sy}${fmtNum(op.tasa,td)}</span>
-                                <span${fifoTip}>${fmtTrunc(un,2)} USDT</span>
-                            </div>
-                            <div class="op-card-bot">
-                                <span style="color:${getBancoColor(op.banco)};font-weight:600">${op.banco||'-'}</span>
-                                <span style="color:#94a3b8">${fmtFechaCorta(op.fecha)} ${op.hora||''}</span>
-                            </div>
-                            <div class="op-card-actions">
-                                <button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️ Editar</button>
-                                <button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️ Eliminar</button>
-                            </div>
+                            <span class="opc-badge">${badge}</span>
+                            <span class="opc-monto">${sy}${fmtNum(op.monto)}</span>
+                            <span class="opc-tasa">${sy}${fmtNum(op.tasa,td)}</span>
+                            <span class="opc-usdt"${fifoTip}>${fmtTrunc(un,2)}</span>
+                            <span class="opc-banco" style="color:${getBancoColor(op.banco)}">${op.banco||'-'}</span>
+                            <span class="opc-gp" style="color:${gc}">${gt}</span>
+                            <span class="opc-fecha">${fmtFechaCorta(op.fecha)} ${op.hora||''}</span>
+                            <span class="opc-actions">
+                                <button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button>
+                                <button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button>
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>`;
         });
         c.innerHTML=h+'</div>';
-        /* Init swipe on mobile */
         inicializarSwipe();
     }
 });
