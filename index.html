@@ -351,7 +351,8 @@
             /* Flatten r1+r2 into single row via display:contents */
             .r1,.r2{display:contents;height:auto;padding:0}
             .r2-c3{display:contents}
-            .op-card-body:has(.r1){display:grid;grid-template-columns:1fr auto auto auto 1fr auto;column-gap:12px;height:32px;line-height:32px;align-items:center;padding:0 14px;position:relative}
+            /* 7-column grid: monto | G/P | tasa | USDT | banco | fecha | actions */
+            .op-card-body:has(.r1){display:grid;grid-template-columns:1fr auto auto auto 1fr auto 52px;column-gap:10px;height:32px;line-height:32px;align-items:center;padding:0 12px}
             .r1-monto{font-size:0.82em;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
             .r1-gp{font-size:0.88em;font-weight:800;text-align:right;letter-spacing:-0.3px;white-space:nowrap}
             .r2-c1{font-size:0.74em;color:#94a3b8;white-space:nowrap}
@@ -359,9 +360,9 @@
             .r2-banco{font-size:0.72em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
             .r2-fecha{font-size:0.68em;color:#b0b8c4;text-align:right;white-space:nowrap}
             .r2 span{font-size:inherit}
-            /* Desktop-only hover actions */
-            .dk-actions{display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);gap:3px;background:inherit;box-shadow:-8px 0 8px white;z-index:2}
-            .op-card:hover .dk-actions{display:flex}
+            /* Actions: dedicated column, visible on hover only */
+            .dk-actions{display:flex;gap:3px;justify-content:flex-end;align-items:center;visibility:hidden}
+            .op-card:hover .dk-actions{visibility:visible}
             .dk-actions button{padding:2px 6px;min-height:20px;font-size:0.68em}
             /* Desktop summary */
             .ops-summary{max-width:none;width:auto;margin:0;border-radius:0;padding:4px 14px;border:none;border-bottom:1px solid #e2e8f0;background:#fafbfc}
@@ -374,7 +375,7 @@
         }
         @media(min-width:1100px){
             .desktop-columns{grid-template-columns:360px 1fr}
-            .op-card-body:has(.r1){column-gap:14px}
+            .op-card-body:has(.r1){column-gap:12px}
         }
     </style>
 </head>
