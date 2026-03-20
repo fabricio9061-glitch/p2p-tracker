@@ -146,45 +146,41 @@
         .btn-edit-small:active{background:#e2e8f0}
 
         /* ═══ Operation Cards ═══ */
-        .op-cards{display:flex;flex-direction:column;gap:0;padding:0 4px;max-width:540px;margin:0 auto;width:96%}
+        .op-cards{display:flex;flex-direction:column;gap:0;padding:0;max-width:540px;margin:0 auto;width:100%}
         .op-card{border-radius:0;border:none;border-bottom:1px solid #eef0f3;overflow:hidden;box-shadow:none}
         .op-card.compra{border-left:2px solid #16a34a;background:transparent}
         .op-card.venta{border-left:2px solid #dc2626;background:transparent}
-        .op-card-body{padding:4px 8px;line-height:1.3}
-        /* ═══ Mobile 2-row table grid ═══ */
-        .op-card-body:has(.opc-badge){display:grid;grid-template-columns:20px 1fr 1fr 1fr 68px;grid-template-rows:auto auto;column-gap:6px;row-gap:0;align-items:baseline;padding:5px 8px 4px}
-        /* Row 1: badge | monto (span 2-4) | G/P (col 5) */
-        .opc-badge{grid-row:1;grid-column:1;line-height:1}
-        .opc-monto{grid-row:1;grid-column:2/5;font-size:0.88em;font-weight:700;color:#1e293b}
-        .opc-gp{grid-row:1;grid-column:5;font-weight:700;font-size:0.82em;text-align:right;white-space:nowrap}
-        /* Row 2: sub-table with aligned columns */
-        .opc-tasa{grid-row:2;grid-column:1/3;font-size:0.64em;color:#94a3b8}
-        .opc-usdt{grid-row:2;grid-column:3;font-size:0.64em;color:#64748b;text-align:center}
-        .opc-banco{grid-row:2;grid-column:4;font-size:0.64em;font-weight:500;text-align:center}
-        .opc-fecha{grid-row:2;grid-column:5;font-size:0.62em;color:#b0b8c4;text-align:right}
-        .opc-actions{grid-row:3;grid-column:1/6;display:none}
-        /* ═══ Mov/Trans/Conv: same 2-row grid ═══ */
-        .op-card-body:has(.opc-tipo){display:grid;grid-template-columns:auto 1fr 1fr 68px;grid-template-rows:auto auto;column-gap:6px;row-gap:0;align-items:baseline;padding:5px 8px 4px}
-        .opc-tipo{grid-row:1;grid-column:1;line-height:1}
-        .opc-main{grid-row:1;grid-column:2/4;font-size:0.88em;font-weight:700;color:#1e293b}
-        .opc-result{grid-row:1;grid-column:4;font-size:0.82em;font-weight:700;text-align:right;white-space:nowrap}
-        .opc-d1{grid-row:2;grid-column:1/3;font-size:0.64em;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .opc-d2{grid-row:2;grid-column:3;font-size:0.64em;color:#94a3b8;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .opc-d3{grid-row:2;grid-column:4;font-size:0.62em;color:#b0b8c4;text-align:right;white-space:nowrap}
-        .opc-mtc-actions{grid-row:3;grid-column:1/5;display:none}
-        /* Transfer / Conversion card types */
         .op-card.transfer{border-left:2px solid #3b82f6;background:transparent}
         .op-card.conversion{border-left:2px solid #7c3aed;background:transparent}
-        /* Swipe */
+        .op-card-body{padding:0;line-height:1}
+        /* ═══ Universal 2-row table: all sections ═══ */
+        .r1,.r2{display:grid;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden}
+        /* Row 1: monto + result — fixed 20px */
+        .r1{grid-template-columns:1fr 80px;height:20px;line-height:20px;padding-top:3px}
+        .r1-monto{font-size:0.88em;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis}
+        .r1-gp{font-size:0.88em;font-weight:800;text-align:right;white-space:nowrap}
+        /* Row 2: details — fixed 16px */
+        .r2{grid-template-columns:1fr 1fr 1fr 56px;column-gap:4px;height:16px;line-height:16px;padding-bottom:3px}
+        .r2 span{font-size:0.63em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .r2-c1{color:#94a3b8}
+        .r2-c2{color:#64748b;text-align:center}
+        .r2-c3{color:#94a3b8;text-align:center}
+        .r2-c4{color:#b0b8c4;text-align:right}
+        /* Zebra */
+        .op-swipe-wrap:nth-child(even) .op-card{background:#fafbfc}
+        /* Swipe infrastructure */
         .op-swipe-wrap{position:relative;overflow:hidden;border-radius:0}
-        .op-swipe-bg{position:absolute;top:0;bottom:0;width:60px;display:flex;align-items:center;justify-content:center;font-size:0.6em;font-weight:600;color:white;opacity:0;transition:opacity 0.15s}
+        .op-swipe-bg{position:absolute;top:0;bottom:0;width:56px;display:flex;align-items:center;justify-content:center;font-size:0.65em;font-weight:600;color:white;opacity:0;transition:opacity 0.15s}
         .op-swipe-bg.edit{left:0;background:#3b82f6}
         .op-swipe-bg.delete{right:0;background:#dc2626}
         .op-swipe-wrap.swiping .op-swipe-bg{opacity:1}
-        .op-swipe-content{position:relative;z-index:1;background:transparent;will-change:transform}
+        .op-swipe-content{position:relative;z-index:1;background:white;will-change:transform}
+        .op-swipe-wrap:nth-child(even) .op-swipe-content{background:#fafbfc}
         .op-swipe-content.animate{transition:transform 0.25s ease}
+        /* Desktop-only actions (hidden on mobile, swipe handles it) */
+        .dk-actions{display:none}
         /* Summary strip */
-        .ops-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;padding:4px 6px;background:#f8fafc;border:1px solid #e8eaed;border-radius:4px;font-size:0.62em;max-width:540px;margin:4px auto;width:96%;box-shadow:none}
+        .ops-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;padding:4px 6px;background:#f8fafc;border-bottom:1px solid #e8eaed;font-size:0.62em;max-width:540px;margin:0 auto;width:100%}
         .ops-summary-item{text-align:center}
         .ops-summary-item .val{font-weight:700;font-size:1em;color:#1e293b}
         .ops-summary-item .lbl{color:#94a3b8;margin-top:0}
@@ -194,13 +190,6 @@
         th{background:#f8fafc;color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase;border-bottom:2px solid #e2e8f0}
         td{padding:10px 8px;color:#1e293b;border-top:1px solid #e2e8f0;font-size:0.8em}
         tr:hover td{background:#f8fafc}
-
-        /* ═══ Badges ═══ */
-        .badge{display:inline-block;padding:1px 4px;border-radius:3px;font-size:0.55em;font-weight:700;line-height:1.3}
-        .badge-compra{background:#dcfce7;color:#16a34a}
-        .badge-venta{background:#fee2e2;color:#dc2626}
-        .badge-ingreso{background:#dcfce7;color:#16a34a}
-        .badge-egreso{background:#fee2e2;color:#dc2626}
 
         /* ═══ Empty & Pagination ═══ */
         .empty-state{text-align:center;padding:30px;color:#94a3b8}
@@ -351,62 +340,40 @@
             .col-left .toggle-header{padding:8px 10px}
             .col-left .toggle-title{font-size:0.85em}
             .col-left .form-row{gap:6px}
-            /* ═══ Desktop operations table ═══ */
-            .op-cards{padding:0;gap:0;max-width:none;width:100%}
-            .op-card{border-radius:0;box-shadow:none;border:none;border-bottom:1px solid #eef0f3}
-            .op-card.compra,.op-card.venta,.op-card.transfer,.op-card.conversion{background:transparent;border-left:2px solid transparent}
-            .op-card.compra{border-left-color:#16a34a}
-            .op-card.venta{border-left-color:#dc2626}
-            .op-card.transfer{border-left-color:#3b82f6}
-            .op-card.conversion{border-left-color:#7c3aed}
+            /* ═══ Desktop: flatten rows into single-line table ═══ */
+            .op-cards{max-width:none;width:100%}
             .op-card:hover{background:#f1f5f9}
             .op-swipe-wrap:nth-child(even) .op-card{background:#fafbfd}
             .op-swipe-wrap:nth-child(even) .op-card:hover{background:#f1f5f9}
-            /* Grid: 8 columns with generous horizontal gaps */
-            .op-card-body:has(.opc-badge){display:grid;grid-template-columns:24px 1fr 78px 64px 78px 88px 68px 40px;column-gap:12px;align-items:center;padding:0 14px;height:33px;line-height:33px;position:relative}
-            .op-card-body:not(:has(.opc-badge)){padding:5px 14px 5px 10px;position:relative}
-            /* Reset all opc- spans for desktop grid */
-            .opc-badge,.opc-monto,.opc-tasa,.opc-usdt,.opc-banco,.opc-gp,.opc-fecha,.opc-actions{display:block;float:none;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;order:0;flex:none}
-            .opc-badge .badge{font-size:0.78em;padding:1px 3px;border-radius:3px}
-            .opc-monto{font-size:0.82em;font-weight:600;color:#1e293b}
-            .opc-tasa{font-size:0.74em;color:#94a3b8;font-weight:400}
-            .opc-usdt{font-size:0.74em;color:#64748b}
-            .opc-banco{font-size:0.72em;color:#94a3b8}
-            .opc-gp{font-size:0.9em;font-weight:800;text-align:right;letter-spacing:-0.3px}
-            .opc-fecha{font-size:0.68em;color:#b0b8c4;text-align:right}
-            .opc-gp::after,.opc-fecha::after{display:none}
-            /* Hover actions replace fecha column */
-            .opc-actions{display:none;gap:3px;justify-content:flex-end}
-            .op-card:hover .opc-actions{display:flex}
-            .op-card:hover .opc-fecha{display:none}
-            .opc-actions button{padding:2px 7px;min-height:20px;font-size:0.68em}
-            .op-swipe-wrap{border-radius:0}
             .op-swipe-bg{display:none}
+            .op-swipe-content{background:inherit!important}
+            .op-card-body{display:grid;grid-template-columns:1fr;padding:0 14px;position:relative}
+            /* Flatten: r1 and r2 become a single row */
+            .r1,.r2{display:contents}
+            .op-card-body:has(.r1){display:grid;grid-template-columns:1fr 72px 60px 72px 84px 60px;column-gap:10px;height:32px;line-height:32px;align-items:center}
+            .r1-monto{font-size:0.82em;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+            .r1-gp{font-size:0.88em;font-weight:800;text-align:right;letter-spacing:-0.3px}
+            .r2-c1{font-size:0.74em;color:#94a3b8}
+            .r2-c2{font-size:0.74em;color:#64748b;text-align:center}
+            .r2-c3{font-size:0.72em;color:#94a3b8;text-align:center}
+            .r2-c4{font-size:0.68em;color:#b0b8c4;text-align:right}
+            .r2 span{font-size:inherit}
+            /* Desktop-only hover actions */
+            .dk-actions{display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);gap:3px;background:inherit;box-shadow:-8px 0 8px white;z-index:2}
+            .op-card:hover .dk-actions{display:flex}
+            .dk-actions button{padding:2px 6px;min-height:20px;font-size:0.68em}
             /* Desktop summary */
-            .ops-summary{max-width:none;width:auto;margin:0;border-radius:0;padding:4px 14px;border:none;border-bottom:1px solid #e2e8f0;box-shadow:none;background:#fafbfc}
+            .ops-summary{max-width:none;width:auto;margin:0;border-radius:0;padding:4px 14px;border:none;border-bottom:1px solid #e2e8f0;background:#fafbfc}
             .ops-summary-item .val{font-size:0.9em}
             .ops-summary-item .lbl{font-size:0.8em}
             /* Section headers */
             .col-right .toggle-header{padding:8px 10px}
             .col-right .toggle-title{font-size:0.88em}
             .col-right .toggle-section{border-radius:6px}
-            /* Mov/Trans/Conv desktop: single-row table grid */
-            .op-card-body:has(.opc-tipo){display:grid;grid-template-columns:28px 1fr 1fr 1fr 68px;column-gap:12px;align-items:center;padding:0 14px;height:33px;line-height:33px;position:relative}
-            .opc-tipo,.opc-main,.opc-result,.opc-d1,.opc-d2,.opc-d3,.opc-mtc-actions{display:block;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;grid-row:1}
-            .opc-tipo{grid-column:1}
-            .opc-main{grid-column:2;font-size:0.82em;font-weight:600;color:#1e293b}
-            .opc-result{grid-column:3;font-size:0.74em;text-align:right}
-            .opc-d1{grid-column:4;font-size:0.72em;color:#64748b}
-            .opc-d2{display:none}
-            .opc-d3{grid-column:5;font-size:0.68em;color:#b0b8c4;text-align:right}
-            .opc-mtc-actions{grid-column:5;display:none;gap:3px;justify-content:flex-end}
-            .op-card:hover .opc-mtc-actions{display:flex}
-            .op-card:hover .opc-d3{display:none}
-            .opc-mtc-actions button{padding:2px 7px;min-height:20px;font-size:0.68em}
         }
         @media(min-width:1100px){
             .desktop-columns{grid-template-columns:360px 1fr}
-            .op-card-body:has(.opc-badge){grid-template-columns:26px 1fr 84px 70px 84px 96px 74px 44px;column-gap:14px}
+            .op-card-body:has(.r1){grid-template-columns:1fr 78px 66px 78px 90px 66px;column-gap:12px}
         }
     </style>
 </head>
@@ -1988,9 +1955,8 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
             const sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
             const gn=op.ganancia||0,gc=gn>=0?'#16a34a':'#dc2626';
             const gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn));
-            const badge=isC?'<span class="badge badge-compra"><b>C</b></span>':'<span class="badge badge-venta"><b>V</b></span>';
             const cl=op.consumedLots?.length?op.consumedLots.map(x=>fmtTrunc(x.amount,2)+'@$'+fmtNum(x.precio)).join(', '):'';
-            const fifoTip=cl?` title="FIFO: ${cl}" style="cursor:help"`:'';
+            const fifoTip=cl?` title="FIFO: ${cl}"`:'';
 
             h+=`<div class="op-swipe-wrap">
                 <div class="op-swipe-bg edit">✏️</div>
@@ -1998,17 +1964,9 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
                 <div class="op-swipe-content" data-op-id="${op.id}">
                     <div class="op-card ${op.tipo}">
                         <div class="op-card-body">
-                            <span class="opc-badge">${badge}</span>
-                            <span class="opc-monto">${sy}${fmtNum(op.monto)}</span>
-                            <span class="opc-tasa">${sy}${fmtNum(op.tasa,td)}</span>
-                            <span class="opc-usdt"${fifoTip}>${fmtTrunc(un,2)}</span>
-                            <span class="opc-banco" style="color:${getBancoColor(op.banco)}">${op.banco||'-'}</span>
-                            <span class="opc-gp" style="color:${gc}">${gt}</span>
-                            <span class="opc-fecha">${fmtFechaCorta(op.fecha)} ${op.hora||''}</span>
-                            <span class="opc-actions">
-                                <button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button>
-                                <button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button>
-                            </span>
+                            <div class="r1"><span class="r1-monto">${sy}${fmtNum(op.monto)}</span><span class="r1-gp" style="color:${gc}">${gt}</span></div>
+                            <div class="r2"><span class="r2-c1">${sy}${fmtNum(op.tasa,td)}</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} U</span><span class="r2-c3">${op.banco||'-'}</span><span class="r2-c4">${fmtFechaCorta(op.fecha)}</span></div>
+                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button></span>
                         </div>
                     </div>
                 </div>
@@ -2035,10 +1993,8 @@ const pagMov=crearPaginacion({getTotal:()=>AppState.datos.movimientos.length,get
         let h='<div class="op-cards">';
         mvs.forEach(m=>{
             const isI=m.tipoMovimiento==='ingreso';
-            const badge=isI?'<span class="badge badge-ingreso"><b>Ingreso</b></span>':'<span class="badge badge-egreso"><b>Egreso</b></span>';
             const isUsdt=m.tipoCuenta==='usdt';
             const sy=isUsdt?'':'$',suf=isUsdt?' USDT':'';
-            const cuentaTxt=isUsdt?'🪙 USDT':`<span style="color:${getBancoColor(m.banco)};font-weight:600">${m.banco||'-'}</span>`;
             const descTxt=m.descripcion?escHtml(m.descripcion):'';
 
             h+=`<div class="op-swipe-wrap">
@@ -2046,13 +2002,9 @@ const pagMov=crearPaginacion({getTotal:()=>AppState.datos.movimientos.length,get
                 <div class="op-swipe-content" data-mov-id="${m.id}">
                     <div class="op-card ${isI?'compra':'venta'}">
                         <div class="op-card-body">
-                            <span class="opc-tipo">${badge}</span>
-                            <span class="opc-main">${sy}${fmtNum(m.monto)}${suf}</span>
-                            <span class="opc-result"></span>
-                            <span class="opc-d1">${cuentaTxt}</span>
-                            <span class="opc-d2">${descTxt?`<span style="color:#8b5cf6">🏷️ ${descTxt}</span>`:''}</span>
-                            <span class="opc-d3">${fmtFechaCorta(m.fecha)} ${m.hora||''}</span>
-                            <span class="opc-mtc-actions"><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}" style="flex:1">🗑️</button></span>
+                            <div class="r1"><span class="r1-monto">${sy}${fmtNum(m.monto)}${suf}</span><span class="r1-gp" style="color:${isI?'#16a34a':'#dc2626'}">${isI?'+':'-'}</span></div>
+                            <div class="r2"><span class="r2-c1">${isUsdt?'🪙 USDT':m.banco||'-'}</span><span class="r2-c2">${descTxt?'🏷️'+descTxt:''}</span><span class="r2-c3"></span><span class="r2-c4">${fmtFechaCorta(m.fecha)}</span></div>
+                            <span class="dk-actions"><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></span>
                         </div>
                     </div>
                 </div>
@@ -2077,20 +2029,15 @@ const pagTrans=crearPaginacion({getTotal:()=>AppState.datos.transferencias.lengt
         let h='<div class="op-cards">';
         trs.forEach(tr=>{
             const oi=getBancoInfo(tr.origen),sy=getSym(oi?.moneda);
-            const comTxt=tr.comision>0?`<span style="color:#ea580c">Com: ${sy}${fmtNum(tr.comision)}</span>`:'';
 
             h+=`<div class="op-swipe-wrap">
                 <div class="op-swipe-bg delete">🗑️</div>
                 <div class="op-swipe-content" data-trans-id="${tr.id}">
                     <div class="op-card transfer">
                         <div class="op-card-body">
-                            <span class="opc-tipo"><span class="badge" style="background:#dbeafe;color:#2563eb"><b>T</b></span></span>
-                            <span class="opc-main">${sy}${fmtNum(tr.monto)}</span>
-                            <span class="opc-result"><span style="color:${getBancoColor(tr.origen)}">${tr.origen}</span> → <span style="color:${getBancoColor(tr.destino)}">${tr.destino}</span></span>
-                            <span class="opc-d1">${comTxt||'Sin comisión'}</span>
-                            <span class="opc-d2"></span>
-                            <span class="opc-d3">${fmtFechaCorta(tr.fecha)} ${tr.hora||''}</span>
-                            <span class="opc-mtc-actions"><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}" style="flex:1">🗑️</button></span>
+                            <div class="r1"><span class="r1-monto">${sy}${fmtNum(tr.monto)}</span><span class="r1-gp">${tr.origen}→${tr.destino}</span></div>
+                            <div class="r2"><span class="r2-c1">${tr.comision>0?'Com: '+sy+fmtNum(tr.comision):''}</span><span class="r2-c2"></span><span class="r2-c3"></span><span class="r2-c4">${fmtFechaCorta(tr.fecha)}</span></div>
+                            <span class="dk-actions"><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">🗑️</button></span>
                         </div>
                     </div>
                 </div>
@@ -2114,13 +2061,9 @@ const pagConv=crearPaginacion({getTotal:()=>(AppState.datos.conversiones||[]).le
                 <div class="op-swipe-content" data-conv-id="${c.id}">
                     <div class="op-card conversion">
                         <div class="op-card-body">
-                            <span class="opc-tipo"><span class="badge" style="background:#ede9fe;color:#7c3aed"><b>CV</b></span></span>
-                            <span class="opc-main">${syO}${fmtNum(c.montoOrigen)}</span>
-                            <span class="opc-result"><span style="color:#64748b">→ ${syD}${fmtNum(c.montoDestino)}</span></span>
-                            <span class="opc-d1"><span style="color:${getBancoColor(c.origen)}">${c.origen}</span> → <span style="color:${getBancoColor(c.destino)}">${c.destino}</span></span>
-                            <span class="opc-d2">Tasa: ${fmtNum(c.tasa)}</span>
-                            <span class="opc-d3">${fmtFechaCorta(c.fecha)} ${c.hora||''}</span>
-                            <span class="opc-mtc-actions"><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}" style="flex:1">🗑️</button></span>
+                            <div class="r1"><span class="r1-monto">${syO}${fmtNum(c.montoOrigen)}</span><span class="r1-gp" style="color:#64748b">→${syD}${fmtNum(c.montoDestino)}</span></div>
+                            <div class="r2"><span class="r2-c1">${c.origen}→${c.destino}</span><span class="r2-c2">T:${fmtNum(c.tasa)}</span><span class="r2-c3"></span><span class="r2-c4">${fmtFechaCorta(c.fecha)}</span></div>
+                            <span class="dk-actions"><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">🗑️</button></span>
                         </div>
                     </div>
                 </div>
