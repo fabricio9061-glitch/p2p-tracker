@@ -349,55 +349,56 @@
             .col-left .toggle-header{padding:8px 10px}
             .col-left .toggle-title{font-size:0.85em}
             .col-left .form-row{gap:6px}
-            /* ═══ Desktop table grid for operations ═══ */
+            /* ═══ Desktop operations table ═══ */
             .op-cards{padding:0;gap:0;max-width:none;width:100%}
-            .op-card{border-radius:0;box-shadow:none;border:none;border-bottom:1px solid #f0f2f4}
+            .op-card{border-radius:0;box-shadow:none;border:none;border-bottom:1px solid #eef0f3}
             .op-card.compra,.op-card.venta,.op-card.transfer,.op-card.conversion{background:transparent;border-left:2px solid transparent}
             .op-card.compra{border-left-color:#16a34a}
             .op-card.venta{border-left-color:#dc2626}
             .op-card.transfer{border-left-color:#3b82f6}
             .op-card.conversion{border-left-color:#7c3aed}
-            .op-card:hover{background:#f8fafc}
-            /* Table grid only for ops (has opc-badge) */
-            .op-card-body:has(.opc-badge){display:grid;grid-template-columns:28px 90px 70px 60px 80px 80px 72px 50px;gap:0;align-items:center;padding:0 8px;height:30px;line-height:30px;position:relative}
-            /* Mov/trans/conv keep card body */
-            .op-card-body:not(:has(.opc-badge)){padding:4px 10px 4px 8px;position:relative}
-            /* Reset mobile styles */
-            .opc-badge,.opc-monto,.opc-tasa,.opc-usdt,.opc-banco,.opc-gp,.opc-fecha,.opc-actions{display:block;float:none;margin:0;font-size:0.75em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-            .opc-badge .badge{font-size:0.85em;padding:1px 4px}
-            .opc-monto{font-size:0.8em;font-weight:600;color:#1e293b}
-            .opc-tasa{font-size:0.72em;color:#64748b}
-            .opc-usdt{font-size:0.72em;color:#64748b}
-            .opc-banco{font-size:0.72em}
-            .opc-gp{font-size:0.82em;font-weight:700;text-align:right}
-            .opc-fecha{font-size:0.68em;color:#94a3b8;text-align:right}
+            .op-card:hover{background:#f1f5f9}
+            .op-swipe-wrap:nth-child(even) .op-card{background:#fafbfd}
+            .op-swipe-wrap:nth-child(even) .op-card:hover{background:#f1f5f9}
+            /* Grid: 8 columns with generous horizontal gaps */
+            .op-card-body:has(.opc-badge){display:grid;grid-template-columns:24px 1fr 78px 64px 78px 88px 68px 40px;column-gap:12px;align-items:center;padding:0 14px;height:33px;line-height:33px;position:relative}
+            .op-card-body:not(:has(.opc-badge)){padding:5px 14px 5px 10px;position:relative}
+            /* Reset all opc- spans */
+            .opc-badge,.opc-monto,.opc-tasa,.opc-usdt,.opc-banco,.opc-gp,.opc-fecha,.opc-actions{display:block;float:none;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;grid-row:auto;grid-column:auto}
+            .opc-badge .badge{font-size:0.78em;padding:1px 3px;border-radius:3px}
+            .opc-monto{font-size:0.82em;font-weight:600;color:#1e293b}
+            .opc-tasa{font-size:0.74em;color:#94a3b8;font-weight:400}
+            .opc-usdt{font-size:0.74em;color:#64748b}
+            .opc-banco{font-size:0.72em;color:#94a3b8}
+            .opc-gp{font-size:0.9em;font-weight:800;text-align:right;letter-spacing:-0.3px}
+            .opc-fecha{font-size:0.68em;color:#b0b8c4;text-align:right}
             .opc-gp::after,.opc-fecha::after{display:none}
-            /* Actions: last column, visible on hover */
-            .opc-actions{display:none;gap:2px;justify-content:flex-end}
+            /* Hover actions replace fecha column */
+            .opc-actions{display:none;gap:3px;justify-content:flex-end}
             .op-card:hover .opc-actions{display:flex}
             .op-card:hover .opc-fecha{display:none}
-            .opc-actions button{padding:1px 5px;min-height:18px;font-size:0.72em}
+            .opc-actions button{padding:2px 7px;min-height:20px;font-size:0.68em}
             .op-swipe-wrap{border-radius:0}
             .op-swipe-bg{display:none}
-            /* Desktop summary compact */
-            .ops-summary{max-width:none;width:auto;margin:0;border-radius:0;padding:3px 8px;border:none;border-bottom:1px solid #e2e8f0;box-shadow:none;background:#fafbfc}
+            /* Desktop summary */
+            .ops-summary{max-width:none;width:auto;margin:0;border-radius:0;padding:4px 14px;border:none;border-bottom:1px solid #e2e8f0;box-shadow:none;background:#fafbfc}
             .ops-summary-item .val{font-size:0.9em}
             .ops-summary-item .lbl{font-size:0.8em}
             /* Section headers */
             .col-right .toggle-header{padding:8px 10px}
             .col-right .toggle-title{font-size:0.88em}
             .col-right .toggle-section{border-radius:6px}
-            /* Mov/Trans/Conv cards — desktop compact */
+            /* Mov/Trans/Conv desktop compact */
             .op-card-flow{font-size:0.7em;margin-top:0}
             .op-card-mid{margin-top:0;font-size:0.68em}
             .op-card-bot{margin-top:0;font-size:0.64em}
-            .op-card-actions{display:none;gap:2px;margin:0;padding:0;border:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:white;box-shadow:-6px 0 6px white;z-index:2}
+            .op-card-actions{display:none;gap:2px;margin:0;padding:0;border:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:white;box-shadow:-6px 0 6px white;z-index:2}
             .op-card:hover .op-card-actions{display:flex}
             .op-card-actions button{padding:1px 5px;min-height:18px;font-size:0.6em}
         }
         @media(min-width:1100px){
             .desktop-columns{grid-template-columns:360px 1fr}
-            .op-card-body:has(.opc-badge){grid-template-columns:30px 100px 76px 66px 86px 90px 78px 54px}
+            .op-card-body:has(.opc-badge){grid-template-columns:26px 1fr 84px 70px 84px 96px 74px 44px;column-gap:14px}
         }
     </style>
 </head>
