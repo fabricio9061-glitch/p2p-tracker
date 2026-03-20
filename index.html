@@ -154,17 +154,17 @@
         .op-card.conversion{border-left:2px solid #7c3aed;background:transparent}
         .op-card-body{padding:0;line-height:1}
         /* ═══ Universal 2-row table: all sections ═══ */
-        .r1,.r2{display:grid;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden}
+        .r1,.r2{display:grid;align-items:center;padding:0 10px;white-space:nowrap;overflow:hidden}
         /* Row 1: monto + result — fixed 20px */
-        .r1{grid-template-columns:1fr 80px;height:20px;line-height:20px;padding-top:3px}
+        .r1{grid-template-columns:1fr auto;height:20px;line-height:20px;padding-top:3px;column-gap:8px}
         .r1-monto{font-size:0.88em;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis}
         .r1-gp{font-size:0.88em;font-weight:800;text-align:right;white-space:nowrap}
-        /* Row 2: details — fixed 16px */
-        .r2{grid-template-columns:1fr 1fr 1fr 56px;column-gap:4px;height:16px;line-height:16px;padding-bottom:3px}
-        .r2 span{font-size:0.63em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        /* Row 2: 4-col details — fixed 16px */
+        .r2{grid-template-columns:60px 1fr 1fr 52px;column-gap:6px;height:16px;line-height:16px;padding-bottom:3px}
+        .r2 span{font-size:0.64em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .r2-c1{color:#94a3b8}
-        .r2-c2{color:#64748b;text-align:center}
-        .r2-c3{color:#94a3b8;text-align:center}
+        .r2-c2{color:#475569;text-align:left}
+        .r2-c3{text-align:right;font-weight:500}
         .r2-c4{color:#b0b8c4;text-align:right}
         /* Zebra */
         .op-swipe-wrap:nth-child(even) .op-card{background:#fafbfc}
@@ -875,6 +875,7 @@ function getUTimeStr(){const d=getUDate();return`${String(d.getHours()).padStart
 function fmtFechaCorta(f){if(!f)return'-';const p=f.split('-');return p.length===3?`${p[2]}/${p[1]}`:f}
 function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
 function getBancoColor(n){const b=getBancoInfo(n);return b?.color||'#1e293b'}
+function abrevBanco(n){if(!n)return'-';const m={'Mercado Pago':'M.Pago','Scotiabank':'Scotia','Santander':'Santan','Midinero':'Midin'};return m[n]||n}
 function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function colorBanco(n){return`<span style="color:${getBancoColor(n)};font-weight:600">${n}</span>`}
 function getSym(mon){return mon==='USD'?'US$':'$'}
@@ -1965,7 +1966,7 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
                     <div class="op-card ${op.tipo}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${sy}${fmtNum(op.monto)}</span><span class="r1-gp" style="color:${gc}">${gt}</span></div>
-                            <div class="r2"><span class="r2-c1">${sy}${fmtNum(op.tasa,td)}</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} U</span><span class="r2-c3">${op.banco||'-'}</span><span class="r2-c4">${fmtFechaCorta(op.fecha)}</span></div>
+                            <div class="r2"><span class="r2-c1">${sy}${fmtNum(op.tasa,td)}</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT</span><span class="r2-c3" style="color:${getBancoColor(op.banco)}">${abrevBanco(op.banco)}</span><span class="r2-c4">${fmtFechaCorta(op.fecha)}</span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button></span>
                         </div>
                     </div>
@@ -2002,8 +2003,8 @@ const pagMov=crearPaginacion({getTotal:()=>AppState.datos.movimientos.length,get
                 <div class="op-swipe-content" data-mov-id="${m.id}">
                     <div class="op-card ${isI?'compra':'venta'}">
                         <div class="op-card-body">
-                            <div class="r1"><span class="r1-monto">${sy}${fmtNum(m.monto)}${suf}</span><span class="r1-gp" style="color:${isI?'#16a34a':'#dc2626'}">${isI?'+':'-'}</span></div>
-                            <div class="r2"><span class="r2-c1">${isUsdt?'🪙 USDT':m.banco||'-'}</span><span class="r2-c2">${descTxt?'🏷️'+descTxt:''}</span><span class="r2-c3"></span><span class="r2-c4">${fmtFechaCorta(m.fecha)}</span></div>
+                            <div class="r1"><span class="r1-monto">${sy}${fmtNum(m.monto)}${suf}</span><span class="r1-gp" style="color:${isI?'#16a34a':'#dc2626'}">${isI?'Ingreso':'Egreso'}</span></div>
+                            <div class="r2"><span class="r2-c1">${isUsdt?'🪙 USDT':''}</span><span class="r2-c2">${descTxt?'🏷️ '+descTxt:''}</span><span class="r2-c3" style="color:${isUsdt?'#64748b':getBancoColor(m.banco)}">${isUsdt?'':abrevBanco(m.banco)}</span><span class="r2-c4">${fmtFechaCorta(m.fecha)}</span></div>
                             <span class="dk-actions"><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></span>
                         </div>
                     </div>
@@ -2035,7 +2036,7 @@ const pagTrans=crearPaginacion({getTotal:()=>AppState.datos.transferencias.lengt
                 <div class="op-swipe-content" data-trans-id="${tr.id}">
                     <div class="op-card transfer">
                         <div class="op-card-body">
-                            <div class="r1"><span class="r1-monto">${sy}${fmtNum(tr.monto)}</span><span class="r1-gp">${tr.origen}→${tr.destino}</span></div>
+                            <div class="r1"><span class="r1-monto">${sy}${fmtNum(tr.monto)}</span><span class="r1-gp" style="color:#64748b;font-weight:600;font-size:0.72em"><span style="color:${getBancoColor(tr.origen)}">${abrevBanco(tr.origen)}</span> → <span style="color:${getBancoColor(tr.destino)}">${abrevBanco(tr.destino)}</span></span></div>
                             <div class="r2"><span class="r2-c1">${tr.comision>0?'Com: '+sy+fmtNum(tr.comision):''}</span><span class="r2-c2"></span><span class="r2-c3"></span><span class="r2-c4">${fmtFechaCorta(tr.fecha)}</span></div>
                             <span class="dk-actions"><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">🗑️</button></span>
                         </div>
@@ -2061,8 +2062,8 @@ const pagConv=crearPaginacion({getTotal:()=>(AppState.datos.conversiones||[]).le
                 <div class="op-swipe-content" data-conv-id="${c.id}">
                     <div class="op-card conversion">
                         <div class="op-card-body">
-                            <div class="r1"><span class="r1-monto">${syO}${fmtNum(c.montoOrigen)}</span><span class="r1-gp" style="color:#64748b">→${syD}${fmtNum(c.montoDestino)}</span></div>
-                            <div class="r2"><span class="r2-c1">${c.origen}→${c.destino}</span><span class="r2-c2">T:${fmtNum(c.tasa)}</span><span class="r2-c3"></span><span class="r2-c4">${fmtFechaCorta(c.fecha)}</span></div>
+                            <div class="r1"><span class="r1-monto">${syO}${fmtNum(c.montoOrigen)} → ${syD}${fmtNum(c.montoDestino)}</span><span class="r1-gp" style="color:#64748b;font-weight:600;font-size:0.72em"><span style="color:${getBancoColor(c.origen)}">${abrevBanco(c.origen)}</span> → <span style="color:${getBancoColor(c.destino)}">${abrevBanco(c.destino)}</span></span></div>
+                            <div class="r2"><span class="r2-c1">Tasa: ${fmtNum(c.tasa)}</span><span class="r2-c2"></span><span class="r2-c3"></span><span class="r2-c4">${fmtFechaCorta(c.fecha)}</span></div>
                             <span class="dk-actions"><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">🗑️</button></span>
                         </div>
                     </div>
