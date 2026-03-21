@@ -1589,7 +1589,7 @@ function calcularPreview(){
             /* COMPRA: total=base, liberada=neto (lo que recibís) */
             setText('opSumTotalLabel','Cantidad total');
             $('opSumTotalValue').innerHTML=`<b style="color:#1e293b">${fmtNum(u,2)} USDT</b>`;
-            setText('opSumLibLabel','Recibís');
+            setText('opSumLibLabel','Cantidad a recibir');
             $('opSumLibValue').innerHTML=`<b style="color:#1e293b">${fmtNum(neto,2)} USDT</b>`;
         }else{
             /* VENTA: total=neto (lo que sale del wallet), liberada=base */
