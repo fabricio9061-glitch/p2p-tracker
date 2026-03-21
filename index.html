@@ -498,14 +498,18 @@
 
                         <div class="op-summary modo-compra" id="opSummary" style="display:none">
                             <div class="op-summary-row main">
-                                <span class="op-summary-label" id="opSumMainLabel">Recibís</span>
-                                <span class="op-summary-value" id="opSumMainValue" style="font-size:1.05em">0 USDT</span>
+                                <span class="op-summary-label" id="opSumTotalLabel">Cantidad total</span>
+                                <span class="op-summary-value" id="opSumTotalValue" style="font-size:1.05em;color:#1e293b">0 USDT</span>
                             </div>
-                            <div class="op-summary-divider"></div>
+                            <div class="op-summary-row">
+                                <span class="op-summary-label" id="opSumLibLabel">Cantidad liberada</span>
+                                <span class="op-summary-value" id="opSumLibValue" style="color:#1e293b">0 USDT</span>
+                            </div>
                             <div class="op-summary-row">
                                 <span class="op-summary-label">Comisión <span id="comisionPctLabel">0,14</span>%</span>
                                 <span class="op-summary-value" id="opSumComision">0 USDT</span>
                             </div>
+                            <div class="op-summary-divider"></div>
                             <div class="op-summary-row">
                                 <span class="op-summary-label" id="opSumBancoLabel">Saldo</span>
                                 <span class="op-summary-value" id="opSumBancoValue">--</span>
@@ -1581,9 +1585,19 @@ function calcularPreview(){
         sum.style.display='block';
         sum.className='op-summary '+(isC?'modo-compra':'modo-venta');
 
-        /* Main result: USDT amount */
-        setText('opSumMainLabel',isC?'Recibís':'Entregás');
-        $('opSumMainValue').innerHTML=`<span style="color:${isC?'#16a34a':'#dc2626'};font-size:1.05em">${fmtNum(neto,2)} USDT</span>`;
+        if(isC){
+            /* COMPRA: total=base, liberada=neto (lo que recibís) */
+            setText('opSumTotalLabel','Cantidad total');
+            $('opSumTotalValue').innerHTML=`<b style="color:#1e293b">${fmtNum(u,2)} USDT</b>`;
+            setText('opSumLibLabel','Recibís');
+            $('opSumLibValue').innerHTML=`<b style="color:#1e293b">${fmtNum(neto,2)} USDT</b>`;
+        }else{
+            /* VENTA: total=neto (lo que sale del wallet), liberada=base */
+            setText('opSumTotalLabel','Entregás');
+            $('opSumTotalValue').innerHTML=`<b style="color:#1e293b">${fmtNum(neto,2)} USDT</b>`;
+            setText('opSumLibLabel','Cantidad liberada');
+            $('opSumLibValue').innerHTML=`<b style="color:#1e293b">${fmtNum(u,2)} USDT</b>`;
+        }
         setText('opSumComision',fmtTrunc(c,2)+' USDT');
 
         /* Bank saldo impact */
