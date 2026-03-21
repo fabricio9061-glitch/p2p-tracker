@@ -1606,7 +1606,7 @@ function calcularPreview(){
             const sActual=AppState.datos.bancos[b].saldo,bsy=getSym(getBancoInfo(b)?.moneda);
             const sDesp=isC?fixNeg(sActual-(m+cb)):fixNeg(sActual+m);
             setText('opSumBancoLabel',b);
-            $('opSumBancoValue').innerHTML=`${bsy}${fmtNum(sActual)} → <b style="color:${sDesp>=0?'#16a34a':'#dc2626'}">${bsy}${fmtNum(sDesp)}</b>`;
+            $('opSumBancoValue').innerHTML=`${bsy}${fmtNum(sActual)} → <b style="color:${sDesp>=sActual?'#16a34a':'#dc2626'}">${bsy}${fmtNum(sDesp)}</b>`;
         }else{setText('opSumBancoLabel','Saldo');setText('opSumBancoValue','--')}
 
         /* Dynamic button */
