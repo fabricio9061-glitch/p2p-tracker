@@ -909,17 +909,23 @@ const TAG_ALIASES={
 function getAliasSuggestion(text){
     if(!text||text.length<2)return null;
     const k=tagKey(text);
-    /* Direct match */
+    const kNoSpace=k.replace(/\s+/g,'');
+    /* Direct match (with and without spaces) */
     if(TAG_ALIASES[k])return TAG_ALIASES[k];
-    /* Partial match: any alias key starts with or is contained in input */
+    if(TAG_ALIASES[kNoSpace])return TAG_ALIASES[kNoSpace];
+    /* Partial match */
     for(const[alias,cat] of Object.entries(TAG_ALIASES)){
+        const aliasNS=alias.replace(/\s+/g,'');
         if(alias.startsWith(k)||k.startsWith(alias))return cat;
+        if(aliasNS.startsWith(kNoSpace)||kNoSpace.startsWith(aliasNS))return cat;
     }
     return null;
 }
 
 function agregarTag(texto){
-    const t=normalizarTag(texto);if(!t||t.length<2)return;
+    const raw=normalizarTag(texto);if(!raw||raw.length<2)return;
+    /* Always store lowercase, accent-stripped */
+    const t=stripAccents(raw).toLowerCase();
     const key=tagKey(t);
     const existe=AppState.datos.tags.find(x=>tagKey(x)===key);
     if(!existe){AppState.datos.tags.push(t);AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'))}
@@ -2284,7 +2290,11 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='editar-lote')abrirEditarLote(loteId);
         else if(a==='usar-tag'){
             const tag=t.dataset.tag,target=t.dataset.target;
-            if(tag&&target){const inp=$(target);if(inp){inp.value=tag;inp.focus();renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'')}}
+            if(tag&&target){const inp=$(target);if(inp){
+                /* Toggle: deselect if already selected */
+                inp.value=(tagKey(inp.value.trim())===tagKey(tag))?'':tag;
+                inp.focus();renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'');
+            }}
         }
         else if(a==='tag-crear'){
             const tag=t.dataset.tag,target=t.dataset.target;
