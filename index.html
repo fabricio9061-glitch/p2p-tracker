@@ -610,32 +610,56 @@
 
     <!-- ═══ PRA MODULE — Análisis de Usuario P2P (encapsulated) ═══ -->
     <style>
-        /* ═══ PRA Scoped Styles ═══ */
+        /* ═══ PRA Scoped Styles v3 ═══ */
         #modalAnalisis .modal-content{max-width:420px;padding:0;overflow:hidden;border-radius:14px}
-        .pra-header{padding:16px 20px 12px;text-align:center;border-bottom:1px solid #f1f5f9;background:white}
+        .pra-header{padding:14px 20px 10px;text-align:center;border-bottom:1px solid #f1f5f9;background:white}
         .pra-title{font-size:1.05em;font-weight:700;color:#1e293b}
         .pra-sub{font-size:0.68em;color:#94a3b8;margin-top:2px}
-        .pra-tabs{display:flex;gap:0;margin-top:10px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}
+        .pra-tabs{display:flex;margin-top:10px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}
         .pra-tab{flex:1;padding:6px 0;text-align:center;font-size:0.72em;font-weight:600;cursor:pointer;background:#f8fafc;color:#64748b;border:none;transition:all 0.2s}
         .pra-tab.active{background:#2563eb;color:white}
         .pra-body{max-height:66vh;overflow-y:auto;padding:14px 20px 18px}
-        .pra-section{font-size:0.58em;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px}
+        .pra-sect{font-size:0.58em;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px}
+        .pra-sect-opt{color:#94a3b8}
+        .pra-sect-opt::after{content:'OPCIONAL';margin-left:6px;font-size:0.85em;padding:1px 5px;background:#f1f5f9;border-radius:3px;color:#94a3b8;font-weight:600}
         .pra-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
         .pra-grid .form-group{margin-bottom:0}
-        .pra-grid input{transition:border-color 0.2s}
+        .pra-grid input{transition:border-color 0.2s,background 0.2s}
         .pra-grid input.pra-err{border-color:#dc2626;background:#fef2f2}
         .pra-grid input.pra-ok{border-color:#16a34a}
+        .pra-grid input.pra-warn{border-color:#d97706;background:#fffbeb}
         .pra-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
         .pra-footer{padding:8px 20px 12px;border-top:1px solid #f1f5f9;text-align:center}
         .pra-footer button{background:none;border:none;font-size:0.75em;color:#94a3b8;cursor:pointer;padding:5px 14px}
         .pra-footer button:hover{color:#64748b}
-        /* Result animations */
+        /* Animations */
         .pra-fade-in{animation:praFadeIn 0.35s ease}
         @keyframes praFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-        .pra-score-ring{width:90px;height:90px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 8px;position:relative}
-        .pra-score-ring::before{content:'';position:absolute;inset:0;border-radius:50%;border:4px solid #e2e8f0}
-        .pra-score-num{font-size:1.7em;font-weight:800;line-height:1}
-        .pra-score-label{font-size:0.58em;color:#64748b;margin-top:1px}
+        .pra-loading{text-align:center;padding:40px 20px}
+        .pra-spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:praSpin 0.7s linear infinite;margin:0 auto 10px}
+        @keyframes praSpin{to{transform:rotate(360deg)}}
+        /* Score display */
+        .pra-score-card{text-align:center;padding:16px 12px;border-radius:10px;margin-bottom:10px}
+        .pra-score-big{font-size:2.4em;font-weight:800;line-height:1;letter-spacing:-1px}
+        .pra-score-tier{font-size:0.82em;font-weight:700;margin-top:4px}
+        .pra-score-meta{font-size:0.55em;color:#94a3b8;margin-top:4px}
+        /* Breakdown bars */
+        .pra-breakdown{margin-bottom:10px;border:1px solid #f1f5f9;border-radius:8px;overflow:hidden}
+        .pra-bk-toggle{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;cursor:pointer;background:#f8fafc;font-size:0.68em;font-weight:600;color:#64748b;border:none;width:100%}
+        .pra-bk-toggle:hover{background:#f1f5f9}
+        .pra-bk-body{padding:6px 10px 8px;display:none}
+        .pra-bk-body.open{display:block}
+        .pra-bk-row{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:0.68em}
+        .pra-bk-name{flex:1;color:#475569;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .pra-bk-pts{font-weight:700;width:38px;text-align:right;flex-shrink:0}
+        .pra-bk-bar{flex:0 0 50px;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden}
+        .pra-bk-fill{height:100%;border-radius:3px;transition:width 0.4s ease}
+        .pra-bk-divider{border-top:1px dashed #e2e8f0;margin:4px 0}
+        /* Recommendation */
+        .pra-recom{padding:10px 12px;border-radius:0 8px 8px 0;margin-bottom:10px}
+        /* Alert sections */
+        .pra-alert-hdr{font-size:0.62em;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+        .pra-alert-row{font-size:0.73em;color:#1e293b;padding:3px 0;border-bottom:1px solid}
         /* History */
         .pra-hist-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.15s}
         .pra-hist-item:hover{background:#f8fafc;margin:0 -8px;padding:10px 8px;border-radius:6px}
@@ -654,41 +678,38 @@
             </div>
         </div>
         <div id="pra-body" class="pra-body">
-            <!-- FORM VIEW -->
             <div id="pra-form">
                 <div class="form-group" style="margin-bottom:12px"><label>👤 Nombre / Alias</label><input type="text" id="pra-name" placeholder="Ej: CriptolatUy" autocomplete="off"></div>
-                <div class="pra-section">Actividad</div>
+                <div class="pra-sect">Actividad</div>
                 <div class="pra-grid">
                     <div class="form-group"><label>Comercios 30d</label><input type="text" inputmode="numeric" id="pra-ops30d" placeholder="28"></div>
                     <div class="form-group"><label>Finalización 30d</label><input type="text" inputmode="decimal" id="pra-completion" placeholder="100"></div>
                     <div class="form-group"><label>Total comercios</label><input type="text" inputmode="numeric" id="pra-trades" placeholder="510"></div>
                 </div>
-                <div class="pra-section">Reputación</div>
+                <div class="pra-sect">Reputación</div>
                 <div class="pra-grid">
-                    <div class="form-group"><label>Contrapartes</label><input type="text" inputmode="numeric" id="pra-counter" placeholder="150"></div>
                     <div class="form-group"><label>% Positivos</label><input type="text" inputmode="decimal" id="pra-positive" placeholder="100"></div>
                     <div class="form-group"><label>Negativos</label><input type="text" inputmode="numeric" id="pra-negative" placeholder="0"></div>
-                </div>
-                <div class="pra-section">Tiempos</div>
-                <div class="pra-grid">
                     <div class="form-group"><label>Registrado (días)</label><input type="text" inputmode="numeric" id="pra-age" placeholder="754"></div>
+                </div>
+                <div class="pra-sect">Consistencia</div>
+                <div class="pra-grid">
+                    <div class="form-group"><label>% Compras</label><input type="text" inputmode="decimal" id="pra-buyratio" placeholder="59"></div>
+                    <div class="form-group"><label>Países</label><input type="text" inputmode="numeric" id="pra-countries" placeholder="1"></div>
+                    <div class="form-group"><label>Contrapartes</label><input type="text" inputmode="numeric" id="pra-counter" placeholder="150"></div>
+                </div>
+                <div class="pra-sect pra-sect-opt">Factores adicionales</div>
+                <div class="pra-grid" style="margin-bottom:16px">
                     <div class="form-group"><label>T. pago (min)</label><input type="text" inputmode="decimal" id="pra-pay" placeholder="2,47"></div>
                     <div class="form-group"><label>T. liberación (min)</label><input type="text" inputmode="decimal" id="pra-release" placeholder="1,95"></div>
-                </div>
-                <div class="pra-section">Consistencia</div>
-                <div class="pra-grid" style="margin-bottom:16px">
-                    <div class="form-group"><label>% Compras</label><input type="text" inputmode="decimal" id="pra-buyratio" placeholder="59"></div>
                     <div class="form-group"><label>Bancos</label><input type="text" inputmode="numeric" id="pra-banks" placeholder="2"></div>
-                    <div class="form-group"><label>Países</label><input type="text" inputmode="numeric" id="pra-countries" placeholder="1"></div>
                 </div>
                 <div class="pra-btns">
                     <button class="btn" id="btnPraAnalizar">🔍 Analizar</button>
                     <button class="btn btn-cancel" id="btnPraReset">↺ Limpiar</button>
                 </div>
             </div>
-            <!-- RESULT VIEW -->
             <div id="pra-result" style="display:none"></div>
-            <!-- HISTORY VIEW -->
             <div id="pra-history" style="display:none"></div>
         </div>
         <div class="pra-footer"><button id="btnCerrarAnalisis">Cerrar</button></div>
@@ -2276,225 +2297,194 @@ async function borrarTodo(){
 }
 
 /* ═══════════════════════════════════════
-   §17 — ANALIZADOR DE USUARIO P2P (v2, encapsulated)
+   §17 — PRA: Análisis de Contraparte P2P (v3)
+   Pure-function scoring · Breakdown · History
    ═══════════════════════════════════════ */
 const PRA=(function(){
-    const FIELD_IDS=['pra-ops30d','pra-completion','pra-trades','pra-counter','pra-positive','pra-negative','pra-age','pra-pay','pra-release','pra-buyratio','pra-banks','pra-countries'];
+    const PRIMARY_IDS=['pra-ops30d','pra-completion','pra-trades','pra-positive','pra-negative','pra-age','pra-buyratio','pra-countries','pra-counter'];
+    const SECONDARY_IDS=['pra-pay','pra-release','pra-banks'];
+    const ALL_IDS=[...PRIMARY_IDS,...SECONDARY_IDS];
     const STORE_KEY='pra_history';
 
-    /* ─── Helpers ─── */
+    /* ─── I/O ─── */
     function read(id){const e=$(id);if(!e)return 0;return parseFloat(e.value.replace(',','.').trim())||0}
     function validate(){
         let ok=true;
-        FIELD_IDS.forEach(id=>{
-            const e=$(id);if(!e)return;
-            const v=e.value.trim(),n=parseFloat(v.replace(',','.'));
-            if(!v||isNaN(n)){e.classList.add('pra-err');e.classList.remove('pra-ok');ok=false}
-            else{e.classList.remove('pra-err');e.classList.add('pra-ok')}
-        });
+        PRIMARY_IDS.forEach(id=>{const e=$(id);if(!e)return;const v=e.value.trim();if(!v||isNaN(parseFloat(v.replace(',','.')))){e.classList.add('pra-err');e.classList.remove('pra-ok','pra-warn');ok=false}else{e.classList.remove('pra-err');e.classList.add('pra-ok')}});
+        SECONDARY_IDS.forEach(id=>{const e=$(id);if(!e)return;e.classList.remove('pra-err');const v=e.value.trim();if(v&&!isNaN(parseFloat(v.replace(',','.'))))e.classList.add('pra-ok');else e.classList.remove('pra-ok')});
         return ok;
     }
-    function clearValidation(){FIELD_IDS.forEach(id=>{const e=$(id);if(e){e.classList.remove('pra-err','pra-ok')}})}
+    function clearV(){ALL_IDS.forEach(id=>{const e=$(id);if(e)e.classList.remove('pra-err','pra-ok','pra-warn')})}
+    function liveWarn(){const c=$('pra-completion');if(c){const v=parseFloat(c.value.replace(',','.'))||0;if(c.value.trim()&&v>0&&v<85)c.classList.add('pra-warn');else c.classList.remove('pra-warn')}}
 
-    /* ─── Persistence (localStorage, no Firebase coupling) ─── */
-    function loadHistory(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||[]}catch(e){return[]}}
-    function saveHistory(list){try{localStorage.setItem(STORE_KEY,JSON.stringify(list.slice(0,50)))}catch(e){}}
-    function addToHistory(entry){const h=loadHistory();h.unshift(entry);saveHistory(h)}
-    function removeFromHistory(idx){const h=loadHistory();h.splice(idx,1);saveHistory(h)}
-    function clearHistory(){localStorage.removeItem(STORE_KEY)}
+    /* ─── Persistence ─── */
+    function loadH(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||[]}catch(e){return[]}}
+    function saveH(l){try{localStorage.setItem(STORE_KEY,JSON.stringify(l.slice(0,50)))}catch(e){}}
+    function addH(e){const h=loadH();h.unshift(e);saveH(h)}
+    function clearH(){localStorage.removeItem(STORE_KEY)}
 
-    /* ─── Tab switching ─── */
+    /* ─── Tabs ─── */
     function showTab(tab){
-        const isForm=tab==='form';
-        $('praTabForm').classList.toggle('active',isForm);
-        $('praTabHist').classList.toggle('active',!isForm);
-        $('pra-form').style.display=isForm?'block':'none';
-        $('pra-result').style.display='none';
-        $('pra-history').style.display=isForm?'none':'block';
-        if(!isForm)renderHistory();
+        const f=tab==='form';
+        $('praTabForm').classList.toggle('active',f);$('praTabHist').classList.toggle('active',!f);
+        $('pra-form').style.display=f?'block':'none';$('pra-result').style.display='none';
+        $('pra-history').style.display=f?'none':'block';
+        if(!f)renderHistory();
     }
-
-    /* ─── Reset ─── */
     function reset(){
-        FIELD_IDS.forEach(id=>{const e=$(id);if(e)e.value=''});
+        ALL_IDS.forEach(id=>{const e=$(id);if(e)e.value=''});
         const n=$('pra-name');if(n)n.value='';
-        clearValidation();
-        $('pra-result').style.display='none';$('pra-form').style.display='block';
-        showTab('form');
+        clearV();$('pra-result').style.display='none';$('pra-form').style.display='block';showTab('form');
     }
 
-    /* ═══════════════════════════════════════
-       SCORING ENGINE v2
-       Primary vars (max ~13 raw, clamped 0-10)
-       Secondary vars (max +1.5 adjustment)
-       ═══════════════════════════════════════ */
-    function computeScore(d){
-        let primary=0;const alerts=[];const positives=[];
-
-        /* P1. Tasa de finalización — PESO MÁXIMO */
-        if(d.completion<75){primary+=2.5;alerts.push({l:'r',t:'Finalización crítica ('+d.completion+'%)'})}
-        else if(d.completion<85){primary+=2;alerts.push({l:'r',t:'Finalización baja ('+d.completion+'%)'})}
-        else if(d.completion<92){primary+=1.2;alerts.push({l:'y',t:'Finalización mejorable ('+d.completion+'%)'})}
-        else if(d.completion<97){primary+=0.3;positives.push('Finalización aceptable ('+d.completion+'%)')}
-        else positives.push('Finalización excelente ('+d.completion+'%)');
-
-        /* P2. Actividad reciente */
-        if(d.ops30d===0){primary+=2;alerts.push({l:'r',t:'Sin actividad en 30 días'})}
-        else if(d.ops30d<3){primary+=1.5;alerts.push({l:'y',t:'Actividad muy baja ('+d.ops30d+' comercios/30d)'})}
-        else if(d.ops30d<8){primary+=0.5;positives.push('Actividad moderada ('+d.ops30d+'/30d)')}
-        else positives.push('Alta actividad ('+d.ops30d+'/30d)');
-
-        /* P3. Total comercios */
-        if(d.trades<10){primary+=1;alerts.push({l:'y',t:'Muy poca experiencia ('+d.trades+' comercios)'})}
-        else if(d.trades<30){primary+=0.5}
-        else if(d.trades>200)positives.push('Trader experimentado ('+d.trades+')');
-
-        /* P4. % positivos */
-        if(d.positive<80){primary+=1.5;alerts.push({l:'r',t:'Reputación baja ('+d.positive+'%)'})}
-        else if(d.positive<90){primary+=0.8;alerts.push({l:'y',t:'Reputación mejorable ('+d.positive+'%)'})}
-        else if(d.positive<96){primary+=0.2}
-        else positives.push('Excelente reputación ('+d.positive+'%)');
-
-        /* P5. Negativos */
-        const negR=d.trades>0?d.negative/d.trades*100:0;
-        if(d.negative>10||negR>5){primary+=1.5;alerts.push({l:'r',t:'Demasiados negativos ('+d.negative+')'})}
-        else if(d.negative>5||negR>2){primary+=0.8;alerts.push({l:'y',t:'Negativos elevados ('+d.negative+')'})}
-        else if(d.negative>2){primary+=0.2}
-        else positives.push('Mínimos negativos ('+d.negative+')');
-
-        /* P6. Antigüedad */
-        if(d.age<15){primary+=1.5;alerts.push({l:'r',t:'Cuenta muy nueva ('+d.age+' días)'})}
-        else if(d.age<45){primary+=0.8;alerts.push({l:'y',t:'Cuenta reciente ('+d.age+' días)'})}
-        else if(d.age<120){primary+=0.2}
-        else positives.push('Cuenta veterana ('+d.age+' días)');
-
-        /* P7. Ratio compra/venta */
-        const dev=Math.abs(d.buyratio-50);
-        if(dev>42){primary+=1;alerts.push({l:'y',t:'Patrón unilateral ('+(d.buyratio>50?d.buyratio+'% compras':Math.round(100-d.buyratio)+'% ventas')+')'})}
-        else if(dev>35){primary+=0.3}
-
-        /* P8. Países */
-        if(d.countries>3){primary+=2;alerts.push({l:'r',t:d.countries+' países — triangulación probable'})}
-        else if(d.countries>2){primary+=1.5;alerts.push({l:'r',t:'Múltiples países ('+d.countries+')'})}
-        else if(d.countries===2){primary+=0.8;alerts.push({l:'y',t:'Actividad en 2 países'})}
-        else positives.push('Operación local');
-
-        /* ─── Secondary (capped +1.5) ─── */
-        let secondary=0;
-        if(d.banks>3&&d.countries>1){secondary+=0.5;alerts.push({l:'r',t:d.banks+' bancos + múltiples países'})}
-        else if(d.banks>4){alerts.push({l:'y',t:'Muchos bancos ('+d.banks+')'})}
-        if(d.pay>20){secondary+=0.3;alerts.push({l:'y',t:'Pago lento ('+d.pay+' min)'})}
-        if(d.release>15){secondary+=0.3;alerts.push({l:'y',t:'Liberación lenta ('+d.release+' min)'})}
-        if(d.trades>30&&d.counter>0&&d.trades/d.counter>10){secondary+=0.2;alerts.push({l:'y',t:'Baja diversidad de contrapartes'})}
-        secondary=Math.min(1.5,secondary);
-
-        const score=Math.min(10,Math.max(0,Math.round((primary+secondary)*10)/10));
-        return{score,primary:Math.round(primary*10)/10,secondary:Math.round(secondary*10)/10,alerts,positives};
+    /* ══════════════════════════════════════════
+       SCORING ENGINE v3 — Pure functions
+       ══════════════════════════════════════════ */
+    function calculatePrimaryScore(d){
+        const items=[];let v;
+        v=0;if(d.completion<75)v=2.5;else if(d.completion<85)v=2;else if(d.completion<92)v=1.2;else if(d.completion<97)v=0.3;
+        items.push({name:'Finalización',pts:v,max:2.5});
+        v=0;if(d.ops30d===0)v=2;else if(d.ops30d<3)v=1.5;else if(d.ops30d<8)v=0.5;
+        items.push({name:'Comercios 30d',pts:v,max:2});
+        v=0;if(d.trades<10)v=1;else if(d.trades<30)v=0.5;
+        items.push({name:'Total comercios',pts:v,max:1});
+        v=0;if(d.positive<80)v=1.5;else if(d.positive<90)v=0.8;else if(d.positive<96)v=0.2;
+        items.push({name:'% Positivos',pts:v,max:1.5});
+        v=0;const negR=d.trades>0?d.negative/d.trades*100:0;
+        if(d.negative>10||negR>5)v=1.5;else if(d.negative>5||negR>2)v=0.8;else if(d.negative>2)v=0.2;
+        items.push({name:'Negativos',pts:v,max:1.5});
+        v=0;if(d.age<15)v=1.5;else if(d.age<45)v=0.8;else if(d.age<120)v=0.2;
+        items.push({name:'Antigüedad',pts:v,max:1.5});
+        v=0;const dev=Math.abs(d.buyratio-50);if(dev>42)v=1;else if(dev>35)v=0.3;
+        items.push({name:'Ratio C/V',pts:v,max:1});
+        v=0;if(d.countries>3)v=2;else if(d.countries>2)v=1.5;else if(d.countries===2)v=0.8;
+        items.push({name:'Países',pts:v,max:2});
+        return{items,total:Math.round(items.reduce((s,i)=>s+i.pts,0)*10)/10};
     }
 
-    function getTier(score){
+    function calculateSecondaryScore(d){
+        const items=[];let v;
+        v=0;if(d.banks>3&&d.countries>1)v=0.5;
+        items.push({name:'Bancos+Países',pts:v,max:0.5});
+        v=0;if(d.pay>20)v=0.3;
+        items.push({name:'T. pago',pts:v,max:0.3});
+        v=0;if(d.release>15)v=0.3;
+        items.push({name:'T. liberación',pts:v,max:0.3});
+        v=0;if(d.trades>30&&d.counter>0&&d.trades/d.counter>10)v=0.2;
+        items.push({name:'Diversidad',pts:v,max:0.2});
+        return{items,total:Math.min(1.5,Math.round(items.reduce((s,i)=>s+i.pts,0)*10)/10)};
+    }
+
+    function calculateFinalScore(p,s){return Math.min(10,Math.max(0,Math.round((p+s)*10)/10))}
+
+    function getRiskTier(score){
         if(score<=2.5)return{tier:'SEGURO',color:'#16a34a',bg:'#f0fdf4',emoji:'🟢',action:'Operar sin problema'};
         if(score<=5)return{tier:'PRECAUCIÓN',color:'#d97706',bg:'#fffbeb',emoji:'🟡',action:'Operar con precaución'};
         return{tier:'RIESGOSO',color:'#dc2626',bg:'#fef2f2',emoji:'🔴',action:'No operar'};
     }
 
-    function getReason(score,alerts){
-        const reds=alerts.filter(a=>a.l==='r'),yellows=alerts.filter(a=>a.l==='y');
-        if(!reds.length&&!yellows.length)return'Perfil sólido sin señales de alerta. Historial consistente y confiable.';
-        if(score<=2.5)return'Buen perfil general.'+(yellows.length?' Observaciones menores: '+yellows[0].t.toLowerCase()+'.':'');
-        if(score<=5)return'Atención: '+(reds.length?reds[0]:yellows[0]).t.toLowerCase()+'. Verificar antes de operar con montos altos.';
-        return'Riesgo elevado: '+reds.slice(0,2).map(a=>a.t.toLowerCase()).join('; ')+'. Se recomienda evitar esta contraparte.';
+    function generateAlerts(d){
+        const a=[],p=[];
+        if(d.completion<85)a.push({l:'r',t:'Finalización baja ('+d.completion+'%)'});else if(d.completion<92)a.push({l:'y',t:'Finalización mejorable ('+d.completion+'%)'});else if(d.completion>=97)p.push('Finalización excelente');
+        if(d.ops30d===0)a.push({l:'r',t:'Sin actividad en 30 días'});else if(d.ops30d<5)a.push({l:'y',t:'Baja actividad ('+d.ops30d+'/30d)'});else if(d.ops30d>=8)p.push('Alta actividad ('+d.ops30d+'/30d)');
+        if(d.trades<10)a.push({l:'y',t:'Poca experiencia ('+d.trades+' comercios)'});else if(d.trades>200)p.push('Trader experimentado');
+        if(d.positive<80)a.push({l:'r',t:'Reputación baja ('+d.positive+'%)'});else if(d.positive<90)a.push({l:'y',t:'Reputación mejorable ('+d.positive+'%)'});else if(d.positive>=96)p.push('Excelente reputación');
+        if(d.negative>10)a.push({l:'r',t:'Demasiados negativos ('+d.negative+')'});else if(d.negative>5)a.push({l:'y',t:'Negativos elevados ('+d.negative+')'});else if(d.negative<=2)p.push('Mínimos negativos');
+        if(d.age<15)a.push({l:'r',t:'Cuenta muy nueva ('+d.age+' días)'});else if(d.age<45)a.push({l:'y',t:'Cuenta reciente ('+d.age+' días)'});else if(d.age>=120)p.push('Cuenta veterana');
+        const bDev=Math.abs(d.buyratio-50);if(bDev>42)a.push({l:'y',t:'Patrón unilateral ('+(d.buyratio>50?d.buyratio+'% compras':Math.round(100-d.buyratio)+'% ventas')+')'});
+        if(d.countries>2)a.push({l:'r',t:d.countries+' países — posible triangulación'});else if(d.countries===2)a.push({l:'y',t:'Actividad en 2 países'});else if(d.countries===1)p.push('Operación local');
+        if(d.banks>3&&d.countries>1)a.push({l:'r',t:'Múltiples bancos ('+d.banks+') + países'});else if(d.banks>4)a.push({l:'y',t:'Muchos bancos ('+d.banks+')'});
+        if(d.pay>20)a.push({l:'y',t:'Pago lento ('+d.pay+' min)'});
+        if(d.release>15)a.push({l:'y',t:'Liberación lenta ('+d.release+' min)'});
+        return{alerts:a,positives:p};
+    }
+
+    function getExplanation(score,alerts){
+        const r=alerts.filter(a=>a.l==='r'),y=alerts.filter(a=>a.l==='y');
+        if(!r.length&&!y.length)return'Perfil sólido sin señales de alerta. Historial consistente y confiable.';
+        if(score<=2.5)return'Buen perfil.'+(y.length?' Nota: '+y[0].t.toLowerCase()+'.':'');
+        if(score<=5)return'Atención: '+(r.length?r[0]:y[0]).t.toLowerCase()+'. Verificar antes de operar montos altos.';
+        return'Riesgo: '+r.slice(0,2).map(a=>a.t.toLowerCase()).join('; ')+'. Evitar esta contraparte.';
+    }
+
+    /* ─── Breakdown panel ─── */
+    function bkRow(name,pts,max,color){
+        const pct=Math.min(100,pts/2.5*100);const c=pts===0?'#cbd5e1':color;
+        return'<div class="pra-bk-row"><span class="pra-bk-name">'+name+'</span><span class="pra-bk-pts" style="color:'+c+'">'+(pts>0?'+'+pts.toFixed(1):'0')+'</span><div class="pra-bk-bar"><div class="pra-bk-fill" style="width:'+pct+'%;background:'+c+'"></div></div></div>';
+    }
+    function renderBreakdown(pI,sI,tc){
+        let h=pI.map(i=>bkRow(i.name,i.pts,i.max,tc)).join('');
+        h+='<div class="pra-bk-divider"></div>';
+        h+=sI.map(i=>bkRow(i.name,i.pts,i.max,'#64748b')).join('');
+        return'<div class="pra-breakdown"><button class="pra-bk-toggle" id="praBkToggle">📊 Desglose del score <span style="font-size:0.9em">▾</span></button><div class="pra-bk-body" id="praBkBody">'+h+'</div></div>';
     }
 
     /* ═══ ANALYZE ═══ */
     function analyze(){
         if(!validate())return;
-        const d={
-            ops30d:read('pra-ops30d'),completion:read('pra-completion'),trades:read('pra-trades'),
-            counter:read('pra-counter'),positive:read('pra-positive'),negative:read('pra-negative'),
-            age:read('pra-age'),pay:read('pra-pay'),release:read('pra-release'),
-            buyratio:read('pra-buyratio'),banks:read('pra-banks'),countries:read('pra-countries')
-        };
-        const name=($('pra-name')?.value||'').trim()||'Sin nombre';
-        const result=computeScore(d);
-        const t=getTier(result.score);
-        const reason=getReason(result.score,result.alerts);
-        const reds=result.alerts.filter(a=>a.l==='r'),yellows=result.alerts.filter(a=>a.l==='y');
-
-        /* Safety tips */
-        let safety='';
-        if(result.score>2.5){
-            const tips=[];
-            if(d.age<90)tips.push('Solo montos bajos (< $5.000)');
-            if(d.banks>2||d.countries>1)tips.push('Verificar titularidad bancaria');
-            if(d.countries>1)tips.push('Confirmar ubicación real');
-            if(d.completion<95)tips.push('Temporizador corto');
-            if(d.negative>3)tips.push('Leer negativos antes de operar');
-            tips.push('Guardar capturas de pantalla');
-            safety=tips.map(x=>'<div style="padding:2px 0">• '+x+'</div>').join('');
-        }
-
-        /* Save to history */
-        addToHistory({name,score:result.score,tier:t.tier,date:new Date().toLocaleDateString('es-UY'),data:d});
-
-        /* Render result */
-        const r=$('pra-result');
-        r.innerHTML=`<div class="pra-fade-in">
-            <div style="text-align:center;padding:14px;background:${t.bg};border:1px solid ${t.color}22;border-radius:10px;margin-bottom:10px">
-                <div class="pra-score-ring" style="border-color:${t.color}">
-                    <div class="pra-score-num" style="color:${t.color}">${result.score.toFixed(1)}</div>
-                    <div class="pra-score-label">de 10</div>
-                </div>
-                <div style="font-size:0.82em;font-weight:700;color:${t.color}">${t.emoji} ${t.tier}</div>
-                <div style="font-size:0.55em;color:#94a3b8;margin-top:4px">Primario ${result.primary} + Secundario ${result.secondary}</div>
-            </div>
-            <div style="padding:10px 12px;border-left:3px solid ${t.color};background:${t.color}08;border-radius:0 8px 8px 0;margin-bottom:10px">
-                <div style="font-weight:700;color:${t.color};font-size:0.82em">${t.action}</div>
-                <div style="color:#475569;font-size:0.72em;margin-top:3px;line-height:1.4">${reason}</div>
-            </div>
-            ${reds.length?'<div style="margin-bottom:8px"><div style="font-size:0.62em;font-weight:700;color:#dc2626;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">🔴 Riesgo alto</div>'+reds.map(a=>'<div style="font-size:0.73em;color:#1e293b;padding:3px 0;border-bottom:1px solid #fee2e2">'+a.t+'</div>').join('')+'</div>':''}
-            ${yellows.length?'<div style="margin-bottom:8px"><div style="font-size:0.62em;font-weight:700;color:#d97706;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">🟡 Atención</div>'+yellows.map(a=>'<div style="font-size:0.73em;color:#1e293b;padding:3px 0;border-bottom:1px solid #fef3c7">'+a.t+'</div>').join('')+'</div>':''}
-            ${result.positives.length?'<div style="margin-bottom:8px"><div style="font-size:0.62em;font-weight:700;color:#16a34a;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">✅ Positivo</div>'+result.positives.map(p=>'<div style="font-size:0.72em;color:#16a34a;padding:2px 0">• '+p+'</div>').join('')+'</div>':''}
-            ${safety?'<div style="padding:8px 10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;margin-bottom:8px"><div style="font-weight:700;font-size:0.7em;color:#92400e;margin-bottom:3px">💡 Condiciones sugeridas</div><div style="font-size:0.7em;color:#78350f">'+safety+'</div></div>':''}
-            <button class="btn btn-cancel" id="btnPraNuevo" style="width:100%;margin-top:4px">← Nuevo análisis</button>
-        </div>`;
-        r.style.display='block';$('pra-form').style.display='none';
-        $('btnPraNuevo').addEventListener('click',()=>{reset()});
+        const r=$('pra-result'),f=$('pra-form');
+        f.style.display='none';r.style.display='block';
+        r.innerHTML='<div class="pra-loading"><div class="pra-spinner"></div><div style="font-size:0.78em;color:#64748b">Analizando perfil...</div></div>';
         $('pra-body').scrollTop=0;
+
+        setTimeout(()=>{
+            const d={ops30d:read('pra-ops30d'),completion:read('pra-completion'),trades:read('pra-trades'),counter:read('pra-counter'),positive:read('pra-positive'),negative:read('pra-negative'),age:read('pra-age'),pay:read('pra-pay'),release:read('pra-release'),buyratio:read('pra-buyratio'),banks:read('pra-banks'),countries:read('pra-countries')};
+            const name=($('pra-name')?.value||'').trim()||'Sin nombre';
+            const pS=calculatePrimaryScore(d),sS=calculateSecondaryScore(d);
+            const score=calculateFinalScore(pS.total,sS.total);
+            const tier=getRiskTier(score);
+            const{alerts,positives}=generateAlerts(d);
+            const reason=getExplanation(score,alerts);
+            const reds=alerts.filter(a=>a.l==='r'),yel=alerts.filter(a=>a.l==='y');
+
+            let safety='';
+            if(score>2.5){const t=[];if(d.age<90)t.push('Solo montos bajos (< $5.000)');if(d.banks>2||d.countries>1)t.push('Verificar titularidad bancaria');if(d.countries>1)t.push('Confirmar ubicación real');if(d.completion<95)t.push('Temporizador corto');if(d.negative>3)t.push('Leer negativos antes de operar');t.push('Guardar capturas');safety=t.map(x=>'<div style="padding:2px 0">• '+x+'</div>').join('')}
+
+            addH({name,score,tier:tier.tier,date:new Date().toLocaleDateString('es-UY'),data:d});
+
+            r.innerHTML='<div class="pra-fade-in">'+
+                '<div class="pra-score-card" style="background:'+tier.bg+';border:1px solid '+tier.color+'22">'+
+                    '<div class="pra-score-big" style="color:'+tier.color+'">'+score.toFixed(1)+'</div>'+
+                    '<div style="font-size:0.65em;color:#64748b;margin:2px 0">de 10</div>'+
+                    '<div class="pra-score-tier" style="color:'+tier.color+'">'+tier.emoji+' '+tier.tier+'</div>'+
+                    '<div class="pra-score-meta">Primario '+pS.total+' · Secundario '+sS.total+'</div>'+
+                '</div>'+
+                '<div class="pra-recom" style="border-left:3px solid '+tier.color+';background:'+tier.color+'08">'+
+                    '<div style="font-weight:700;color:'+tier.color+';font-size:0.82em">'+tier.action+'</div>'+
+                    '<div style="color:#475569;font-size:0.72em;margin-top:3px;line-height:1.4">'+reason+'</div>'+
+                '</div>'+
+                renderBreakdown(pS.items,sS.items,tier.color)+
+                (reds.length?'<div style="margin-bottom:8px"><div class="pra-alert-hdr" style="color:#dc2626">🔴 Riesgo alto</div>'+reds.map(a=>'<div class="pra-alert-row" style="border-color:#fee2e2">'+a.t+'</div>').join('')+'</div>':'')+
+                (yel.length?'<div style="margin-bottom:8px"><div class="pra-alert-hdr" style="color:#d97706">🟡 Atención</div>'+yel.map(a=>'<div class="pra-alert-row" style="border-color:#fef3c7">'+a.t+'</div>').join('')+'</div>':'')+
+                (positives.length?'<div style="margin-bottom:8px"><div class="pra-alert-hdr" style="color:#16a34a">✅ Positivo</div>'+positives.map(p=>'<div style="font-size:0.72em;color:#16a34a;padding:2px 0">• '+p+'</div>').join('')+'</div>':'')+
+                (safety?'<div style="padding:8px 10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;margin-bottom:8px"><div style="font-weight:700;font-size:0.7em;color:#92400e;margin-bottom:3px">💡 Condiciones sugeridas</div><div style="font-size:0.7em;color:#78350f">'+safety+'</div></div>':'')+
+                '<button class="btn btn-cancel" id="btnPraNuevo" style="width:100%;margin-top:4px">← Nuevo análisis</button>'+
+            '</div>';
+            $('btnPraNuevo').addEventListener('click',reset);
+            $('praBkToggle').addEventListener('click',()=>$('praBkBody').classList.toggle('open'));
+        },350);
     }
 
-    /* ═══ HISTORY RENDERING ═══ */
+    /* ═══ HISTORY ═══ */
     function renderHistory(){
-        const h=loadHistory(),c=$('pra-history');
+        const h=loadH(),c=$('pra-history');
         if(!h.length){c.innerHTML='<div class="pra-empty"><div style="font-size:1.5em;margin-bottom:6px">📭</div>Sin análisis guardados</div>';return}
         let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:0.72em;font-weight:600;color:#64748b">'+h.length+' análisis</div><button id="btnPraClearHist" style="background:none;border:none;font-size:0.65em;color:#dc2626;cursor:pointer">Borrar todo</button></div>';
-        h.forEach((entry,i)=>{
-            const t=getTier(entry.score);
-            html+=`<div class="pra-hist-item" data-pra-hist="${i}">
-                <div><div class="pra-hist-name">${escHtml(entry.name||'Sin nombre')}</div><div class="pra-hist-date">${entry.date||'—'}</div></div>
-                <div class="pra-hist-score" style="background:${t.bg};color:${t.color}">${entry.score.toFixed(1)} ${t.emoji}</div>
-            </div>`;
-        });
+        h.forEach((e,i)=>{const t=getRiskTier(e.score);html+='<div class="pra-hist-item" data-pra-hist="'+i+'"><div><div class="pra-hist-name">'+escHtml(e.name||'Sin nombre')+'</div><div class="pra-hist-date">'+(e.date||'—')+'</div></div><div class="pra-hist-score" style="background:'+t.bg+';color:'+t.color+'">'+e.score.toFixed(1)+' '+t.emoji+'</div></div>'});
         c.innerHTML=html;
-        c.querySelectorAll('[data-pra-hist]').forEach(el=>{
-            el.addEventListener('click',()=>{
-                const idx=parseInt(el.dataset.praHist);
-                const entry=loadHistory()[idx];if(!entry||!entry.data)return;
-                showTab('form');
-                const n=$('pra-name');if(n)n.value=entry.name||'';
-                const map={ops30d:'pra-ops30d',completion:'pra-completion',trades:'pra-trades',counter:'pra-counter',positive:'pra-positive',negative:'pra-negative',age:'pra-age',pay:'pra-pay',release:'pra-release',buyratio:'pra-buyratio',banks:'pra-banks',countries:'pra-countries'};
-                Object.entries(map).forEach(([k,id])=>{const e=$(id);if(e)e.value=entry.data[k]!=null?String(entry.data[k]).replace('.',','):''});
-                clearValidation();
-            });
-        });
-        const clearBtn=$('btnPraClearHist');
-        if(clearBtn)clearBtn.addEventListener('click',()=>{if(confirm('¿Borrar todo el historial?')){clearHistory();renderHistory()}});
+        c.querySelectorAll('[data-pra-hist]').forEach(el=>{el.addEventListener('click',()=>{
+            const entry=loadH()[parseInt(el.dataset.praHist)];if(!entry?.data)return;showTab('form');
+            const n=$('pra-name');if(n)n.value=entry.name||'';
+            const map={ops30d:'pra-ops30d',completion:'pra-completion',trades:'pra-trades',counter:'pra-counter',positive:'pra-positive',negative:'pra-negative',age:'pra-age',pay:'pra-pay',release:'pra-release',buyratio:'pra-buyratio',banks:'pra-banks',countries:'pra-countries'};
+            Object.entries(map).forEach(([k,id])=>{const e=$(id);if(e)e.value=entry.data[k]!=null?String(entry.data[k]).replace('.',','):''});clearV();
+        })});
+        const cb=$('btnPraClearHist');if(cb)cb.addEventListener('click',()=>{if(confirm('¿Borrar todo el historial?')){clearH();renderHistory()}});
     }
 
-    /* ═══ INIT TABS ═══ */
     function initTabs(){
         $('praTabForm').addEventListener('click',()=>showTab('form'));
         $('praTabHist').addEventListener('click',()=>showTab('history'));
+        $('pra-completion')?.addEventListener('input',liveWarn);
     }
 
     return{analyze,reset,initTabs,showTab};
