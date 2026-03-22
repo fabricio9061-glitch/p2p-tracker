@@ -436,6 +436,9 @@
                         <div class="menu-item" data-action="calendario"><span>📅</span><span>Calendario</span></div>
                         <div class="menu-item" data-action="historial-mensual"><span>🗓️</span><span>Resumen Mensual</span></div>
                         <div class="menu-divider"></div>
+                        <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Herramientas</div>
+                        <div class="menu-item" data-action="analisis-usuario"><span>🔍</span><span>Analizar Usuario P2P</span></div>
+                        <div class="menu-divider"></div>
                         <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Sistema</div>
                         <div class="menu-item danger" data-action="borrar-todo"><span>🔄</span><span>Reiniciar Datos</span></div>
                         <div class="menu-item" data-action="cerrar-sesion"><span>🚪</span><span>Cerrar Sesión</span></div>
@@ -604,6 +607,30 @@
     </div></div>
     <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px"><div class="modal-header">📊 Resumen Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div class="modal-buttons"><button class="btn" id="btnCerrarHistorial">Cerrar</button></div></div></div>
     <div id="modalEditarOp" class="modal"><div class="modal-content"><div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div><div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div><div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div><div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div><div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div><div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div></div></div>
+
+    <!-- ═══ ANALYZER MODAL ═══ -->
+    <div id="modalAnalisis" class="modal"><div class="modal-content" style="max-width:480px;padding:16px">
+        <div class="modal-header">🔍 Analizar Usuario P2P</div>
+        <div id="analisisForm" style="max-height:65vh;overflow-y:auto;padding:2px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div class="form-group"><label>📊 Ops últimos 30d</label><input type="text" inputmode="numeric" id="anOps30d" placeholder="45"></div>
+                <div class="form-group"><label>📈 % finalización</label><input type="text" inputmode="decimal" id="anFinalizacion" placeholder="98,5"></div>
+                <div class="form-group"><label>🔢 Total trades</label><input type="text" inputmode="numeric" id="anTotalTrades" placeholder="350"></div>
+                <div class="form-group"><label>👥 Contrapartes</label><input type="text" inputmode="numeric" id="anContrapartes" placeholder="120"></div>
+                <div class="form-group"><label>⭐ % positivos</label><input type="text" inputmode="decimal" id="anPositivos" placeholder="98"></div>
+                <div class="form-group"><label>❌ Negativos</label><input type="text" inputmode="numeric" id="anNegativos" placeholder="2"></div>
+                <div class="form-group"><label>📅 Antigüedad (días)</label><input type="text" inputmode="numeric" id="anAntiguedad" placeholder="365"></div>
+                <div class="form-group"><label>⏱ Pago prom. (min)</label><input type="text" inputmode="decimal" id="anTiempoPago" placeholder="5"></div>
+                <div class="form-group"><label>⏱ Liberación (min)</label><input type="text" inputmode="decimal" id="anTiempoLib" placeholder="3"></div>
+                <div class="form-group"><label>🔄 % compras</label><input type="text" inputmode="decimal" id="anPctCompras" placeholder="50"></div>
+                <div class="form-group"><label>🏦 Bancos usados</label><input type="text" inputmode="numeric" id="anBancos" placeholder="2"></div>
+                <div class="form-group"><label>🌍 Países detectados</label><input type="text" inputmode="numeric" id="anPaises" placeholder="1"></div>
+            </div>
+            <button class="btn" id="btnAnalizarUsuario" style="margin-top:10px">🔍 Analizar Riesgo</button>
+        </div>
+        <div id="analisisResultado" style="display:none;margin-top:12px"></div>
+        <div class="modal-buttons" style="margin-top:10px"><button class="btn btn-cancel" id="btnCerrarAnalisis">Cerrar</button></div>
+    </div></div>
 
     <!-- ═══ FIREBASE SDK ═══ -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -2187,7 +2214,120 @@ async function borrarTodo(){
 }
 
 /* ═══════════════════════════════════════
-   §17 — EVENT LISTENERS (sin inline)
+   §17 — ANALIZADOR DE USUARIO P2P
+   ═══════════════════════════════════════ */
+function analizarUsuarioP2P(){
+    const g=id=>{const e=$(id);if(!e)return 0;const v=e.value.replace(',','.').trim();return parseFloat(v)||0};
+    const d={
+        ops30d:g('anOps30d'), finalizacion:g('anFinalizacion'), totalTrades:g('anTotalTrades'),
+        contrapartes:g('anContrapartes'), positivos:g('anPositivos'), negativos:g('anNegativos'),
+        antiguedad:g('anAntiguedad'), tiempoPago:g('anTiempoPago'), tiempoLib:g('anTiempoLib'),
+        pctCompras:g('anPctCompras'), bancos:g('anBancos'), paises:g('anPaises')
+    };
+
+    /* ═══ SCORING ENGINE ═══ */
+    let score=0;const alertas=[];const detalles=[];
+
+    /* 1. Tasa de finalización (peso alto) */
+    if(d.finalizacion<80){score+=3;alertas.push('🔴 Finalización muy baja ('+d.finalizacion+'%)')}
+    else if(d.finalizacion<90){score+=2;alertas.push('🟡 Finalización baja ('+d.finalizacion+'%)')}
+    else if(d.finalizacion<95){score+=1;detalles.push('Finalización aceptable ('+d.finalizacion+'%)')}
+    else detalles.push('Finalización excelente ('+d.finalizacion+'%)');
+
+    /* 2. Actividad reciente */
+    if(d.ops30d<3){score+=2;alertas.push('🟡 Muy baja actividad reciente ('+d.ops30d+' ops/30d)')}
+    else if(d.ops30d<10){score+=1;detalles.push('Actividad moderada ('+d.ops30d+' ops/30d)')}
+    else detalles.push('Actividad saludable ('+d.ops30d+' ops/30d)');
+
+    /* 3. Antigüedad */
+    if(d.antiguedad<30){score+=2;alertas.push('🟡 Cuenta nueva ('+d.antiguedad+' días)')}
+    else if(d.antiguedad<90){score+=1;detalles.push('Cuenta joven ('+d.antiguedad+' días)')}
+    else detalles.push('Cuenta con antigüedad ('+d.antiguedad+' días)');
+
+    /* 4. Comentarios */
+    if(d.positivos<85){score+=2;alertas.push('🟡 Bajo % positivos ('+d.positivos+'%)')}
+    else if(d.positivos<95){score+=0.5}
+    if(d.negativos>5){score+=1.5;alertas.push('🟡 Muchos comentarios negativos ('+d.negativos+')')}
+    else if(d.negativos>2){score+=0.5}
+
+    /* 5. Triangulación: múltiples países */
+    if(d.paises>2){score+=3;alertas.push('🔴 Múltiples países detectados ('+d.paises+') — posible triangulación')}
+    else if(d.paises>1){score+=1.5;alertas.push('🟡 Actividad en '+d.paises+' países')}
+
+    /* 6. Múltiples bancos + países = fuerte señal */
+    if(d.bancos>3&&d.paises>1){score+=2;alertas.push('🔴 Múltiples bancos ('+d.bancos+') + múltiples países → alto riesgo')}
+    else if(d.bancos>4){score+=1;alertas.push('🟡 Muchos bancos ('+d.bancos+')')}
+
+    /* 7. Patrón compra/venta */
+    if(d.pctCompras>90||d.pctCompras<10){score+=1.5;alertas.push('🟡 Patrón unidireccional ('+(d.pctCompras>50?'solo compra':'solo venta')+')')}
+    else if(d.pctCompras>80||d.pctCompras<20){score+=0.5}
+
+    /* 8. Tiempos */
+    if(d.tiempoPago>15){score+=1;alertas.push('🟡 Tiempo de pago lento ('+d.tiempoPago+' min)')}
+    if(d.tiempoLib>10){score+=1;alertas.push('🟡 Liberación lenta ('+d.tiempoLib+' min)')}
+
+    /* 9. Relación contrapartes / trades */
+    if(d.totalTrades>50&&d.contrapartes>0){
+        const ratio=d.totalTrades/d.contrapartes;
+        if(ratio>10){score+=0.5;detalles.push('Opera repetidamente con mismas personas')}
+    }
+
+    /* Clamp score 0-10 */
+    score=Math.min(10,Math.max(0,Math.round(score*10)/10));
+
+    /* ═══ CLASIFICACIÓN ═══ */
+    let nivel,nivelColor,nivelBg,emoji,recomendacion,recomColor;
+    if(score<=3){
+        nivel='SEGURO';nivelColor='#16a34a';nivelBg='#f0fdf4';emoji='🟢';
+        recomendacion='Operar sin problema';recomColor='#16a34a';
+    }else if(score<=6){
+        nivel='PRECAUCIÓN';nivelColor='#d97706';nivelBg='#fffbeb';emoji='🟡';
+        recomendacion='Operar con precaución';recomColor='#d97706';
+    }else{
+        nivel='RIESGOSO';nivelColor='#dc2626';nivelBg='#fef2f2';emoji='🔴';
+        recomendacion='No operar';recomColor='#dc2626';
+    }
+
+    /* ═══ MOTIVO PRINCIPAL ═══ */
+    let motivo='';
+    if(alertas.length===0)motivo='Perfil consistente sin señales de alerta. Historial sólido.';
+    else if(score<=3)motivo='Perfil generalmente bueno con observaciones menores.';
+    else if(score<=6)motivo='Se detectaron inconsistencias que requieren atención. Verificar datos antes de operar.';
+    else motivo='Múltiples señales de riesgo detectadas. Se recomienda evitar esta contraparte.';
+
+    /* ═══ CONDICIONES SEGURAS (si precaución) ═══ */
+    let condiciones='';
+    if(score>3&&score<=6){
+        condiciones='<div style="margin-top:8px;padding:8px 10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;font-size:0.75em;color:#92400e"><b>💡 Condiciones sugeridas:</b><br>';
+        if(d.antiguedad<90)condiciones+='• Solo montos bajos (< $5.000)<br>';
+        if(d.bancos>2)condiciones+='• Verificar titularidad bancaria<br>';
+        if(d.paises>1)condiciones+='• Confirmar ubicación del usuario<br>';
+        if(d.finalizacion<95)condiciones+='• Usar temporizador corto<br>';
+        condiciones+='• Guardar capturas de toda la operación</div>';
+    }
+
+    /* ═══ RENDER ═══ */
+    const cont=$('analisisResultado');
+    cont.style.display='block';
+    cont.innerHTML=`
+        <div style="background:${nivelBg};border:1px solid ${nivelColor}30;border-radius:10px;padding:14px;text-align:center">
+            <div style="font-size:2.2em;margin-bottom:4px">${emoji}</div>
+            <div style="font-size:1.8em;font-weight:800;color:${nivelColor};letter-spacing:-0.5px">${score.toFixed(1)}</div>
+            <div style="font-size:0.7em;color:#64748b;margin-top:2px">de 10 — ${nivel}</div>
+        </div>
+        <div style="margin-top:10px;padding:10px;background:${recomColor}10;border-left:3px solid ${recomColor};border-radius:0 6px 6px 0">
+            <div style="font-size:0.8em;font-weight:700;color:${recomColor}">${recomendacion}</div>
+            <div style="font-size:0.72em;color:#475569;margin-top:4px">${motivo}</div>
+        </div>
+        ${alertas.length?`<div style="margin-top:10px"><div style="font-size:0.7em;font-weight:600;color:#64748b;margin-bottom:6px">⚠️ SEÑALES DE ALERTA</div>${alertas.map(a=>`<div style="font-size:0.73em;color:#1e293b;padding:3px 0;border-bottom:1px solid #f1f5f9">${a}</div>`).join('')}</div>`:''}
+        ${detalles.length?`<div style="margin-top:8px"><div style="font-size:0.7em;font-weight:600;color:#64748b;margin-bottom:4px">✅ POSITIVO</div>${detalles.map(d=>`<div style="font-size:0.72em;color:#16a34a;padding:2px 0">• ${d}</div>`).join('')}</div>`:''}
+        ${condiciones}
+    `;
+    cont.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ═══════════════════════════════════════
+   §18 — EVENT LISTENERS (sin inline)
    ═══════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded',()=>{
     // Auth
@@ -2210,6 +2350,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='transferencia')abrirModalTransferencia();
         else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
         else if(a==='historial-mensual')cargarHistorialMensual();
+        else if(a==='analisis-usuario'){$('analisisResultado').style.display='none';abrirModal('modalAnalisis')}
         else if(a==='borrar-todo')borrarTodo();
         else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;AppState.auth.signOut()}}
     });
@@ -2264,6 +2405,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnGuardarLote').addEventListener('click',guardarLote);
     $('btnCerrarTags').addEventListener('click',()=>cerrarModal('modalGestionTags'));
     $('btnCerrarHistorial').addEventListener('click',()=>cerrarModal('modalHistorial'));
+    $('btnCerrarAnalisis').addEventListener('click',()=>cerrarModal('modalAnalisis'));
+    $('btnAnalizarUsuario').addEventListener('click',analizarUsuarioP2P);
     $('btnCancelEditOp').addEventListener('click',()=>{cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null});
     $('btnGuardarEditOp').addEventListener('click',guardarEditarOperacion);
     $('editOpMonto').addEventListener('input',calcularEditOpPreview);
