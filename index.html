@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="P2P Tracker">
     <title>Registro P2P</title>
@@ -608,28 +608,48 @@
     <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px"><div class="modal-header">📊 Resumen Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div class="modal-buttons"><button class="btn" id="btnCerrarHistorial">Cerrar</button></div></div></div>
     <div id="modalEditarOp" class="modal"><div class="modal-content"><div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div><div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div><div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div><div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div><div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div><div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div></div></div>
 
-    <!-- ═══ ANALYZER MODAL ═══ -->
-    <div id="modalAnalisis" class="modal"><div class="modal-content" style="max-width:480px;padding:16px">
-        <div class="modal-header">🔍 Analizar Usuario P2P</div>
-        <div id="analisisForm" style="max-height:65vh;overflow-y:auto;padding:2px">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                <div class="form-group"><label>📊 Ops últimos 30d</label><input type="text" inputmode="numeric" id="anOps30d" placeholder="45"></div>
-                <div class="form-group"><label>📈 % finalización</label><input type="text" inputmode="decimal" id="anFinalizacion" placeholder="98,5"></div>
-                <div class="form-group"><label>🔢 Total trades</label><input type="text" inputmode="numeric" id="anTotalTrades" placeholder="350"></div>
-                <div class="form-group"><label>👥 Contrapartes</label><input type="text" inputmode="numeric" id="anContrapartes" placeholder="120"></div>
-                <div class="form-group"><label>⭐ % positivos</label><input type="text" inputmode="decimal" id="anPositivos" placeholder="98"></div>
-                <div class="form-group"><label>❌ Negativos</label><input type="text" inputmode="numeric" id="anNegativos" placeholder="2"></div>
-                <div class="form-group"><label>📅 Antigüedad (días)</label><input type="text" inputmode="numeric" id="anAntiguedad" placeholder="365"></div>
-                <div class="form-group"><label>⏱ Pago prom. (min)</label><input type="text" inputmode="decimal" id="anTiempoPago" placeholder="5"></div>
-                <div class="form-group"><label>⏱ Liberación (min)</label><input type="text" inputmode="decimal" id="anTiempoLib" placeholder="3"></div>
-                <div class="form-group"><label>🔄 % compras</label><input type="text" inputmode="decimal" id="anPctCompras" placeholder="50"></div>
-                <div class="form-group"><label>🏦 Bancos usados</label><input type="text" inputmode="numeric" id="anBancos" placeholder="2"></div>
-                <div class="form-group"><label>🌍 Países detectados</label><input type="text" inputmode="numeric" id="anPaises" placeholder="1"></div>
+    <!-- ═══ ANALYZER MODULE (encapsulated) ═══ -->
+    <div id="modalAnalisis" class="modal"><div class="modal-content" style="max-width:520px;padding:0;overflow:hidden">
+        <div style="padding:14px 16px 10px;border-bottom:1px solid #e2e8f0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="font-size:1.05em;font-weight:700;color:#1e293b">🔍 Análisis de Contraparte</div>
+                <button id="btnCerrarAnalisis" style="background:none;border:none;font-size:1.2em;cursor:pointer;color:#94a3b8;padding:4px">✕</button>
             </div>
-            <button class="btn" id="btnAnalizarUsuario" style="margin-top:10px">🔍 Analizar Riesgo</button>
+            <div style="font-size:0.68em;color:#94a3b8;margin-top:2px">Ingresá los datos del perfil de Binance P2P</div>
         </div>
-        <div id="analisisResultado" style="display:none;margin-top:12px"></div>
-        <div class="modal-buttons" style="margin-top:10px"><button class="btn btn-cancel" id="btnCerrarAnalisis">Cerrar</button></div>
+        <div id="pra-body" style="max-height:70vh;overflow-y:auto;padding:12px 16px">
+            <div id="pra-form">
+                <div style="font-size:0.62em;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Actividad</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+                    <div class="form-group"><label>Ops 30d</label><input type="text" inputmode="numeric" id="pra-ops30d" placeholder="45"></div>
+                    <div class="form-group"><label>% Finaliz.</label><input type="text" inputmode="decimal" id="pra-completion" placeholder="98,5"></div>
+                    <div class="form-group"><label>Total trades</label><input type="text" inputmode="numeric" id="pra-trades" placeholder="350"></div>
+                </div>
+                <div style="font-size:0.62em;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Reputación</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+                    <div class="form-group"><label>Contrapartes</label><input type="text" inputmode="numeric" id="pra-counter" placeholder="120"></div>
+                    <div class="form-group"><label>% Positivos</label><input type="text" inputmode="decimal" id="pra-positive" placeholder="98"></div>
+                    <div class="form-group"><label>Negativos</label><input type="text" inputmode="numeric" id="pra-negative" placeholder="2"></div>
+                </div>
+                <div style="font-size:0.62em;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Comportamiento</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+                    <div class="form-group"><label>Antigüedad (d)</label><input type="text" inputmode="numeric" id="pra-age" placeholder="365"></div>
+                    <div class="form-group"><label>Pago (min)</label><input type="text" inputmode="decimal" id="pra-pay" placeholder="5"></div>
+                    <div class="form-group"><label>Liberac. (min)</label><input type="text" inputmode="decimal" id="pra-release" placeholder="3"></div>
+                </div>
+                <div style="font-size:0.62em;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Consistencia</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+                    <div class="form-group"><label>% Compras</label><input type="text" inputmode="decimal" id="pra-buyratio" placeholder="50"></div>
+                    <div class="form-group"><label>Bancos</label><input type="text" inputmode="numeric" id="pra-banks" placeholder="2"></div>
+                    <div class="form-group"><label>Países</label><input type="text" inputmode="numeric" id="pra-countries" placeholder="1"></div>
+                </div>
+                <div style="display:flex;gap:8px">
+                    <button class="btn" id="btnPraAnalizar" style="flex:1">🔍 Analizar Riesgo</button>
+                    <button class="btn btn-cancel" id="btnPraReset" style="flex:0 0 auto;padding:10px 14px">↺</button>
+                </div>
+            </div>
+            <div id="pra-result" style="display:none"></div>
+        </div>
     </div></div>
 
     <!-- ═══ FIREBASE SDK ═══ -->
@@ -2214,117 +2234,149 @@ async function borrarTodo(){
 }
 
 /* ═══════════════════════════════════════
-   §17 — ANALIZADOR DE USUARIO P2P
+   §17 — ANALIZADOR DE USUARIO P2P (encapsulated)
    ═══════════════════════════════════════ */
-function analizarUsuarioP2P(){
-    const g=id=>{const e=$(id);if(!e)return 0;const v=e.value.replace(',','.').trim();return parseFloat(v)||0};
-    const d={
-        ops30d:g('anOps30d'), finalizacion:g('anFinalizacion'), totalTrades:g('anTotalTrades'),
-        contrapartes:g('anContrapartes'), positivos:g('anPositivos'), negativos:g('anNegativos'),
-        antiguedad:g('anAntiguedad'), tiempoPago:g('anTiempoPago'), tiempoLib:g('anTiempoLib'),
-        pctCompras:g('anPctCompras'), bancos:g('anBancos'), paises:g('anPaises')
-    };
+const PRA=(function(){
+    const IDS=['pra-ops30d','pra-completion','pra-trades','pra-counter','pra-positive','pra-negative','pra-age','pra-pay','pra-release','pra-buyratio','pra-banks','pra-countries'];
+    const WEIGHTS={completion:3,ops30d:2,age:2,positive:1.5,negative:1.5,countries:3,banksCountries:2,banks:1,buyratio:1.5,pay:1,release:1,counterRatio:0.5};
 
-    /* ═══ SCORING ENGINE ═══ */
-    let score=0;const alertas=[];const detalles=[];
-
-    /* 1. Tasa de finalización (peso alto) */
-    if(d.finalizacion<80){score+=3;alertas.push('🔴 Finalización muy baja ('+d.finalizacion+'%)')}
-    else if(d.finalizacion<90){score+=2;alertas.push('🟡 Finalización baja ('+d.finalizacion+'%)')}
-    else if(d.finalizacion<95){score+=1;detalles.push('Finalización aceptable ('+d.finalizacion+'%)')}
-    else detalles.push('Finalización excelente ('+d.finalizacion+'%)');
-
-    /* 2. Actividad reciente */
-    if(d.ops30d<3){score+=2;alertas.push('🟡 Muy baja actividad reciente ('+d.ops30d+' ops/30d)')}
-    else if(d.ops30d<10){score+=1;detalles.push('Actividad moderada ('+d.ops30d+' ops/30d)')}
-    else detalles.push('Actividad saludable ('+d.ops30d+' ops/30d)');
-
-    /* 3. Antigüedad */
-    if(d.antiguedad<30){score+=2;alertas.push('🟡 Cuenta nueva ('+d.antiguedad+' días)')}
-    else if(d.antiguedad<90){score+=1;detalles.push('Cuenta joven ('+d.antiguedad+' días)')}
-    else detalles.push('Cuenta con antigüedad ('+d.antiguedad+' días)');
-
-    /* 4. Comentarios */
-    if(d.positivos<85){score+=2;alertas.push('🟡 Bajo % positivos ('+d.positivos+'%)')}
-    else if(d.positivos<95){score+=0.5}
-    if(d.negativos>5){score+=1.5;alertas.push('🟡 Muchos comentarios negativos ('+d.negativos+')')}
-    else if(d.negativos>2){score+=0.5}
-
-    /* 5. Triangulación: múltiples países */
-    if(d.paises>2){score+=3;alertas.push('🔴 Múltiples países detectados ('+d.paises+') — posible triangulación')}
-    else if(d.paises>1){score+=1.5;alertas.push('🟡 Actividad en '+d.paises+' países')}
-
-    /* 6. Múltiples bancos + países = fuerte señal */
-    if(d.bancos>3&&d.paises>1){score+=2;alertas.push('🔴 Múltiples bancos ('+d.bancos+') + múltiples países → alto riesgo')}
-    else if(d.bancos>4){score+=1;alertas.push('🟡 Muchos bancos ('+d.bancos+')')}
-
-    /* 7. Patrón compra/venta */
-    if(d.pctCompras>90||d.pctCompras<10){score+=1.5;alertas.push('🟡 Patrón unidireccional ('+(d.pctCompras>50?'solo compra':'solo venta')+')')}
-    else if(d.pctCompras>80||d.pctCompras<20){score+=0.5}
-
-    /* 8. Tiempos */
-    if(d.tiempoPago>15){score+=1;alertas.push('🟡 Tiempo de pago lento ('+d.tiempoPago+' min)')}
-    if(d.tiempoLib>10){score+=1;alertas.push('🟡 Liberación lenta ('+d.tiempoLib+' min)')}
-
-    /* 9. Relación contrapartes / trades */
-    if(d.totalTrades>50&&d.contrapartes>0){
-        const ratio=d.totalTrades/d.contrapartes;
-        if(ratio>10){score+=0.5;detalles.push('Opera repetidamente con mismas personas')}
+    function readField(id){const e=$(id);if(!e)return 0;const v=e.value.replace(',','.').trim();return parseFloat(v)||0}
+    function validate(){
+        let ok=true;
+        IDS.forEach(id=>{
+            const e=$(id);if(!e)return;
+            const v=e.value.trim();
+            e.style.borderColor=(!v||isNaN(parseFloat(v.replace(',','.'))))?((ok=false),'#dc2626'):'#e2e8f0';
+        });
+        return ok;
+    }
+    function reset(){
+        IDS.forEach(id=>{const e=$(id);if(e){e.value='';e.style.borderColor='#e2e8f0'}});
+        $('pra-result').style.display='none';$('pra-form').style.display='block';
     }
 
-    /* Clamp score 0-10 */
-    score=Math.min(10,Math.max(0,Math.round(score*10)/10));
+    function analyze(){
+        if(!validate())return;
+        const d={
+            ops30d:readField('pra-ops30d'),completion:readField('pra-completion'),trades:readField('pra-trades'),
+            counter:readField('pra-counter'),positive:readField('pra-positive'),negative:readField('pra-negative'),
+            age:readField('pra-age'),pay:readField('pra-pay'),release:readField('pra-release'),
+            buyratio:readField('pra-buyratio'),banks:readField('pra-banks'),countries:readField('pra-countries')
+        };
 
-    /* ═══ CLASIFICACIÓN ═══ */
-    let nivel,nivelColor,nivelBg,emoji,recomendacion,recomColor;
-    if(score<=3){
-        nivel='SEGURO';nivelColor='#16a34a';nivelBg='#f0fdf4';emoji='🟢';
-        recomendacion='Operar sin problema';recomColor='#16a34a';
-    }else if(score<=6){
-        nivel='PRECAUCIÓN';nivelColor='#d97706';nivelBg='#fffbeb';emoji='🟡';
-        recomendacion='Operar con precaución';recomColor='#d97706';
-    }else{
-        nivel='RIESGOSO';nivelColor='#dc2626';nivelBg='#fef2f2';emoji='🔴';
-        recomendacion='No operar';recomColor='#dc2626';
+        let score=0;const alerts=[];const positives=[];
+
+        /* 1. Completion rate (weight: 3) */
+        if(d.completion<80){score+=WEIGHTS.completion;alerts.push({level:'red',text:'Finalización muy baja ('+d.completion+'%)'})}
+        else if(d.completion<85){score+=2;alerts.push({level:'red',text:'Finalización baja ('+d.completion+'%)'})}
+        else if(d.completion<90){score+=1.5;alerts.push({level:'yellow',text:'Finalización por debajo del promedio ('+d.completion+'%)'})}
+        else if(d.completion<95){score+=0.5;positives.push('Finalización aceptable ('+d.completion+'%)')}
+        else positives.push('Finalización excelente ('+d.completion+'%)');
+
+        /* 2. Recent activity */
+        if(d.ops30d<2){score+=WEIGHTS.ops30d;alerts.push({level:'red',text:'Casi sin actividad reciente ('+d.ops30d+' ops)'})}
+        else if(d.ops30d<5){score+=1.5;alerts.push({level:'yellow',text:'Baja actividad reciente ('+d.ops30d+' ops/30d)'})}
+        else if(d.ops30d<15){score+=0.5;positives.push('Actividad moderada ('+d.ops30d+' ops/30d)')}
+        else positives.push('Alta actividad ('+d.ops30d+' ops/30d)');
+
+        /* 3. Account age */
+        if(d.age<15){score+=WEIGHTS.age;alerts.push({level:'red',text:'Cuenta muy nueva ('+d.age+' días)'})}
+        else if(d.age<30){score+=1.5;alerts.push({level:'yellow',text:'Cuenta reciente ('+d.age+' días)'})}
+        else if(d.age<90){score+=0.5;positives.push('Cuenta joven ('+d.age+' días)')}
+        else positives.push('Cuenta veterana ('+d.age+' días)');
+
+        /* 4. Positive rate */
+        if(d.positive<80){score+=WEIGHTS.positive;alerts.push({level:'red',text:'Reputación baja ('+d.positive+'% positivos)'})}
+        else if(d.positive<90){score+=1;alerts.push({level:'yellow',text:'Reputación mejorable ('+d.positive+'%)'})}
+        else if(d.positive<95){score+=0.3}
+        else positives.push('Excelente reputación ('+d.positive+'%)');
+
+        /* 5. Negative comments */
+        if(d.negative>10){score+=WEIGHTS.negative;alerts.push({level:'red',text:'Muchos comentarios negativos ('+d.negative+')'})}
+        else if(d.negative>5){score+=1;alerts.push({level:'yellow',text:'Comentarios negativos elevados ('+d.negative+')'})}
+        else if(d.negative>2){score+=0.3}
+        else positives.push('Pocos negativos ('+d.negative+')');
+
+        /* 6. Countries — triangulation */
+        if(d.countries>2){score+=WEIGHTS.countries;alerts.push({level:'red',text:'Múltiples países ('+d.countries+') — posible triangulación'})}
+        else if(d.countries>1){score+=1.5;alerts.push({level:'yellow',text:'Actividad en '+d.countries+' países'})}
+        else positives.push('Operación local (1 país)');
+
+        /* 7. Banks + countries combo */
+        if(d.banks>2&&d.countries>1){score+=WEIGHTS.banksCountries;alerts.push({level:'red',text:'Múltiples bancos ('+d.banks+') + países → señal fuerte'})}
+        else if(d.banks>4){score+=WEIGHTS.banks;alerts.push({level:'yellow',text:'Muchos métodos de pago ('+d.banks+' bancos)'})}
+
+        /* 8. Buy/sell ratio */
+        const deviation=Math.abs(d.buyratio-50);
+        if(deviation>40){score+=WEIGHTS.buyratio;alerts.push({level:'yellow',text:'Patrón muy unilateral ('+(d.buyratio>50?d.buyratio+'% compra':Math.round(100-d.buyratio)+'% venta')+')'})}
+        else if(deviation>30){score+=0.5}
+
+        /* 9. Timing */
+        if(d.pay>20){score+=WEIGHTS.pay;alerts.push({level:'yellow',text:'Pago muy lento ('+d.pay+' min)'})}
+        else if(d.pay>10){score+=0.5}
+        if(d.release>15){score+=WEIGHTS.release;alerts.push({level:'yellow',text:'Liberación lenta ('+d.release+' min)'})}
+        else if(d.release>8){score+=0.5}
+
+        /* 10. Counterparty diversity */
+        if(d.trades>30&&d.counter>0&&d.trades/d.counter>8){score+=WEIGHTS.counterRatio;alerts.push({level:'yellow',text:'Baja diversidad de contrapartes'})}
+
+        /* Clamp 0-10 */
+        score=Math.min(10,Math.max(0,Math.round(score*10)/10));
+
+        /* Tier */
+        let tier,tierColor,tierBg,emoji,action,actionColor;
+        if(score<=3){tier='SEGURO';tierColor='#16a34a';tierBg='#f0fdf4';emoji='🟢';action='Operar sin problema';actionColor='#16a34a'}
+        else if(score<=6){tier='PRECAUCIÓN';tierColor='#d97706';tierBg='#fffbeb';emoji='🟡';action='Operar con precaución';actionColor='#d97706'}
+        else{tier='RIESGOSO';tierColor='#dc2626';tierBg='#fef2f2';emoji='🔴';action='No operar';actionColor='#dc2626'}
+
+        /* Explanation */
+        let reason;
+        if(!alerts.length)reason='Perfil sólido sin señales de alerta. Historial consistente y confiable.';
+        else if(score<=3)reason='Buen perfil con observaciones menores que no representan riesgo significativo.';
+        else if(score<=6)reason='Se detectaron inconsistencias. Verificar datos del usuario antes de confirmar.';
+        else reason='Múltiples señales de riesgo. Se recomienda evitar esta contraparte.';
+
+        /* Safety conditions */
+        let safety='';
+        if(score>3){
+            const tips=[];
+            if(d.age<90)tips.push('Solo montos bajos (< $5.000)');
+            if(d.banks>2||d.countries>1)tips.push('Verificar titularidad bancaria');
+            if(d.countries>1)tips.push('Confirmar ubicación real');
+            if(d.completion<95)tips.push('Usar temporizador corto');
+            tips.push('Guardar capturas de pantalla');
+            safety=tips.map(t=>'<div style="padding:2px 0">• '+t+'</div>').join('');
+        }
+
+        /* Render */
+        const r=$('pra-result');
+        const redAlerts=alerts.filter(a=>a.level==='red');
+        const yellowAlerts=alerts.filter(a=>a.level==='yellow');
+
+        r.innerHTML=`
+            <div style="text-align:center;padding:16px 12px;background:${tierBg};border:1px solid ${tierColor}22;border-radius:10px;margin-bottom:10px">
+                <div style="font-size:2em;line-height:1">${emoji}</div>
+                <div style="font-size:2em;font-weight:800;color:${tierColor};margin:4px 0;letter-spacing:-1px">${score.toFixed(1)}</div>
+                <div style="font-size:0.72em;color:#64748b">de 10 · ${tier}</div>
+            </div>
+            <div style="padding:10px 12px;border-left:3px solid ${actionColor};background:${actionColor}08;border-radius:0 8px 8px 0;margin-bottom:10px">
+                <div style="font-weight:700;color:${actionColor};font-size:0.85em">${action}</div>
+                <div style="color:#475569;font-size:0.73em;margin-top:3px;line-height:1.4">${reason}</div>
+            </div>
+            ${redAlerts.length?`<div style="margin-bottom:8px"><div style="font-size:0.65em;font-weight:700;color:#dc2626;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">🔴 Riesgo alto</div>${redAlerts.map(a=>'<div style="font-size:0.74em;color:#1e293b;padding:4px 0;border-bottom:1px solid #fee2e2">'+a.text+'</div>').join('')}</div>`:''}
+            ${yellowAlerts.length?`<div style="margin-bottom:8px"><div style="font-size:0.65em;font-weight:700;color:#d97706;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">🟡 Atención</div>${yellowAlerts.map(a=>'<div style="font-size:0.74em;color:#1e293b;padding:4px 0;border-bottom:1px solid #fef3c7">'+a.text+'</div>').join('')}</div>`:''}
+            ${positives.length?`<div style="margin-bottom:8px"><div style="font-size:0.65em;font-weight:700;color:#16a34a;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">✅ Positivo</div>${positives.map(p=>'<div style="font-size:0.73em;color:#16a34a;padding:2px 0">• '+p+'</div>').join('')}</div>`:''}
+            ${safety?`<div style="padding:8px 10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;margin-bottom:8px"><div style="font-weight:700;font-size:0.72em;color:#92400e;margin-bottom:4px">💡 Condiciones sugeridas</div><div style="font-size:0.72em;color:#78350f">${safety}</div></div>`:''}
+            <button class="btn btn-cancel" id="btnPraNuevo" style="width:100%;margin-top:4px">Nuevo análisis</button>
+        `;
+        r.style.display='block';
+        $('pra-form').style.display='none';
+        $('btnPraNuevo').addEventListener('click',()=>{reset()});
+        r.scrollIntoView({behavior:'smooth',block:'start'});
     }
 
-    /* ═══ MOTIVO PRINCIPAL ═══ */
-    let motivo='';
-    if(alertas.length===0)motivo='Perfil consistente sin señales de alerta. Historial sólido.';
-    else if(score<=3)motivo='Perfil generalmente bueno con observaciones menores.';
-    else if(score<=6)motivo='Se detectaron inconsistencias que requieren atención. Verificar datos antes de operar.';
-    else motivo='Múltiples señales de riesgo detectadas. Se recomienda evitar esta contraparte.';
-
-    /* ═══ CONDICIONES SEGURAS (si precaución) ═══ */
-    let condiciones='';
-    if(score>3&&score<=6){
-        condiciones='<div style="margin-top:8px;padding:8px 10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;font-size:0.75em;color:#92400e"><b>💡 Condiciones sugeridas:</b><br>';
-        if(d.antiguedad<90)condiciones+='• Solo montos bajos (< $5.000)<br>';
-        if(d.bancos>2)condiciones+='• Verificar titularidad bancaria<br>';
-        if(d.paises>1)condiciones+='• Confirmar ubicación del usuario<br>';
-        if(d.finalizacion<95)condiciones+='• Usar temporizador corto<br>';
-        condiciones+='• Guardar capturas de toda la operación</div>';
-    }
-
-    /* ═══ RENDER ═══ */
-    const cont=$('analisisResultado');
-    cont.style.display='block';
-    cont.innerHTML=`
-        <div style="background:${nivelBg};border:1px solid ${nivelColor}30;border-radius:10px;padding:14px;text-align:center">
-            <div style="font-size:2.2em;margin-bottom:4px">${emoji}</div>
-            <div style="font-size:1.8em;font-weight:800;color:${nivelColor};letter-spacing:-0.5px">${score.toFixed(1)}</div>
-            <div style="font-size:0.7em;color:#64748b;margin-top:2px">de 10 — ${nivel}</div>
-        </div>
-        <div style="margin-top:10px;padding:10px;background:${recomColor}10;border-left:3px solid ${recomColor};border-radius:0 6px 6px 0">
-            <div style="font-size:0.8em;font-weight:700;color:${recomColor}">${recomendacion}</div>
-            <div style="font-size:0.72em;color:#475569;margin-top:4px">${motivo}</div>
-        </div>
-        ${alertas.length?`<div style="margin-top:10px"><div style="font-size:0.7em;font-weight:600;color:#64748b;margin-bottom:6px">⚠️ SEÑALES DE ALERTA</div>${alertas.map(a=>`<div style="font-size:0.73em;color:#1e293b;padding:3px 0;border-bottom:1px solid #f1f5f9">${a}</div>`).join('')}</div>`:''}
-        ${detalles.length?`<div style="margin-top:8px"><div style="font-size:0.7em;font-weight:600;color:#64748b;margin-bottom:4px">✅ POSITIVO</div>${detalles.map(d=>`<div style="font-size:0.72em;color:#16a34a;padding:2px 0">• ${d}</div>`).join('')}</div>`:''}
-        ${condiciones}
-    `;
-    cont.scrollIntoView({behavior:'smooth',block:'nearest'});
-}
+    return{analyze,reset};
+})();
 
 /* ═══════════════════════════════════════
    §18 — EVENT LISTENERS (sin inline)
@@ -2350,7 +2402,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='transferencia')abrirModalTransferencia();
         else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
         else if(a==='historial-mensual')cargarHistorialMensual();
-        else if(a==='analisis-usuario'){$('analisisResultado').style.display='none';abrirModal('modalAnalisis')}
+        else if(a==='analisis-usuario'){PRA.reset();abrirModal('modalAnalisis')}
         else if(a==='borrar-todo')borrarTodo();
         else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;AppState.auth.signOut()}}
     });
@@ -2406,7 +2458,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnCerrarTags').addEventListener('click',()=>cerrarModal('modalGestionTags'));
     $('btnCerrarHistorial').addEventListener('click',()=>cerrarModal('modalHistorial'));
     $('btnCerrarAnalisis').addEventListener('click',()=>cerrarModal('modalAnalisis'));
-    $('btnAnalizarUsuario').addEventListener('click',analizarUsuarioP2P);
+    $('btnPraAnalizar').addEventListener('click',PRA.analyze);
+    $('btnPraReset').addEventListener('click',PRA.reset);
     $('btnCancelEditOp').addEventListener('click',()=>{cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null});
     $('btnGuardarEditOp').addEventListener('click',guardarEditarOperacion);
     $('editOpMonto').addEventListener('input',calcularEditOpPreview);
