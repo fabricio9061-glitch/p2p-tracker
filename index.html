@@ -7,9 +7,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="P2P Tracker">
     <title>Registro P2P</title>
-    <link rel="icon" type="image/png" href="https://i.imgur.com/CRnSPFT.png">
-    <link rel="apple-touch-icon" href="https://i.imgur.com/CRnSPFT.png">
-    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUDJQIFRyYWNrZXIiLCJzaG9ydF9uYW1lIjoiUDJQIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmMGYwZWUiLCJ0aGVtZV9jb2xvciI6IiMyNTYzZWIiLCJpY29ucyI6W3sic3JjIjoiaHR0cHM6Ly9pLmltZ3VyLmNvbS9DUm5TUEZULnBuZyIsInNpemVzIjoiNTEyeDUxMiIsInR5cGUiOiJpbWFnZS9wbmciLCJwdXJwb3NlIjoiYW55IG1hc2thYmxlIn1dfQ==">
+    <link rel="icon" type="image/png" href="https://i.imgur.com/l1FPI8E.png">
+    <link rel="apple-touch-icon" href="https://i.imgur.com/l1FPI8E.png">
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUDJQIFRyYWNrZXIiLCJzaG9ydF9uYW1lIjoiUDJQIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmMGYwZWUiLCJ0aGVtZV9jb2xvciI6IiMyNTYzZWIiLCJpY29ucyI6W3sic3JjIjoiaHR0cHM6Ly9pLmltZ3VyLmNvbS9sMUZQSThFLnBuZyIsInNpemVzIjoiNTEyeDUxMiIsInR5cGUiOiJpbWFnZS9wbmciLCJwdXJwb3NlIjoiYW55IG1hc2thYmxlIn1dfQ==">
     <style>
         /* ═══ Reset & Base ═══ */
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -610,13 +610,13 @@
 
     <!-- ═══ PRA MODULE — Análisis de Usuario P2P (encapsulated) ═══ -->
     <style>
-        /* ═══ PRA Scoped Styles v4 ═══ */
+        /* ═══ PRA v5 ═══ */
         #modalAnalisis .modal-content{max-width:420px;padding:0;overflow:hidden;border-radius:14px}
         .pra-header{padding:14px 20px 10px;text-align:center;border-bottom:1px solid #f1f5f9;background:white}
         .pra-title{font-size:1.05em;font-weight:700;color:#1e293b}
         .pra-sub{font-size:0.68em;color:#94a3b8;margin-top:2px}
         .pra-tabs{display:flex;margin-top:10px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}
-        .pra-tab{flex:1;padding:6px 0;text-align:center;font-size:0.72em;font-weight:600;cursor:pointer;background:#f8fafc;color:#64748b;border:none;transition:all 0.2s}
+        .pra-tab{flex:1;padding:6px 0;text-align:center;font-size:0.68em;font-weight:600;cursor:pointer;background:#f8fafc;color:#64748b;border:none;transition:all 0.2s}
         .pra-tab.active{background:#2563eb;color:white}
         .pra-body{max-height:66vh;overflow-y:auto;padding:14px 20px 18px}
         .pra-sect{font-size:0.58em;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px}
@@ -631,7 +631,6 @@
         .pra-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
         .pra-footer{padding:8px 20px 12px;border-top:1px solid #f1f5f9;text-align:center}
         .pra-footer button{background:none;border:none;font-size:0.75em;color:#94a3b8;cursor:pointer;padding:5px 14px}
-        .pra-footer button:hover{color:#64748b}
         .pra-fade-in{animation:praFadeIn 0.35s ease}
         @keyframes praFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         .pra-loading{text-align:center;padding:40px 20px}
@@ -641,19 +640,13 @@
         .pra-score-big{font-size:2.4em;font-weight:800;line-height:1;letter-spacing:-1px}
         .pra-score-tier{font-size:0.82em;font-weight:700;margin-top:4px}
         .pra-score-meta{font-size:0.55em;color:#94a3b8;margin-top:4px}
-        /* Confidence badge */
         .pra-confidence{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:0.62em;font-weight:600;margin-top:6px}
-        .pra-conf-high{background:#dcfce7;color:#16a34a}
-        .pra-conf-med{background:#fef3c7;color:#d97706}
-        .pra-conf-low{background:#fee2e2;color:#dc2626}
-        /* Breakdown */
+        .pra-conf-high{background:#dcfce7;color:#16a34a}.pra-conf-med{background:#fef3c7;color:#d97706}.pra-conf-low{background:#fee2e2;color:#dc2626}
         .pra-breakdown{margin-bottom:10px;border:1px solid #f1f5f9;border-radius:8px;overflow:hidden}
         .pra-bk-toggle{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;cursor:pointer;background:#f8fafc;font-size:0.68em;font-weight:600;color:#64748b;border:none;width:100%}
-        .pra-bk-toggle:hover{background:#f1f5f9}
-        .pra-bk-body{padding:6px 10px 8px;display:none}
-        .pra-bk-body.open{display:block}
+        .pra-bk-body{padding:6px 10px 8px;display:none}.pra-bk-body.open{display:block}
         .pra-bk-row{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:0.68em}
-        .pra-bk-name{flex:1;color:#475569;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .pra-bk-name{flex:1;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .pra-bk-pts{font-weight:700;width:38px;text-align:right;flex-shrink:0}
         .pra-bk-bar{flex:0 0 50px;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden}
         .pra-bk-fill{height:100%;border-radius:3px;transition:width 0.4s ease}
@@ -665,11 +658,23 @@
         .pra-hist-item:hover{background:#f8fafc;margin:0 -8px;padding:10px 8px;border-radius:6px}
         .pra-hist-name{font-size:0.82em;font-weight:600;color:#1e293b}
         .pra-hist-date{font-size:0.62em;color:#94a3b8}
-        .pra-hist-badge{display:flex;align-items:center;gap:4px}
         .pra-hist-score{font-size:0.78em;font-weight:700;border-radius:6px;padding:2px 8px}
-        .pra-hist-count{font-size:0.55em;color:#94a3b8}
         .pra-empty{text-align:center;padding:30px 10px;color:#94a3b8;font-size:0.8em}
         .pra-sync{font-size:0.55em;color:#94a3b8;text-align:center;margin-top:6px}
+        /* Outcome feedback */
+        .pra-outcome{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+        .pra-outcome button{padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:0.65em;background:white;cursor:pointer;transition:all 0.15s;color:#475569}
+        .pra-outcome button:hover{background:#f1f5f9}
+        .pra-outcome button.selected{border-color:#2563eb;background:#eff6ff;color:#2563eb;font-weight:600}
+        /* Community card */
+        .pra-comm-card{border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px}
+        .pra-comm-card h4{font-size:0.78em;font-weight:700;color:#1e293b;margin-bottom:8px}
+        .pra-comm-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;font-size:0.68em}
+        .pra-comm-stat .val{font-weight:700;font-size:1.1em;color:#1e293b}
+        .pra-comm-stat .lbl{color:#94a3b8;font-size:0.85em}
+        .pra-comm-alert{font-size:0.68em;padding:4px 0;color:#475569;border-bottom:1px solid #f1f5f9}
+        .pra-comm-search{width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:0.85em;margin-bottom:12px}
+        .pra-comm-search:focus{outline:none;border-color:#2563eb}
     </style>
     <div id="modalAnalisis" class="modal"><div class="modal-content">
         <div class="pra-header">
@@ -678,6 +683,7 @@
             <div class="pra-tabs">
                 <button class="pra-tab active" id="praTabForm">Analizar</button>
                 <button class="pra-tab" id="praTabHist">Historial</button>
+                <button class="pra-tab" id="praTabComm">Comunidad</button>
             </div>
         </div>
         <div id="pra-body" class="pra-body">
@@ -702,10 +708,15 @@
                     <div class="form-group"><label>Contrapartes</label><input type="text" inputmode="numeric" id="pra-counter" placeholder="150"></div>
                 </div>
                 <div class="pra-sect pra-sect-opt">Factores adicionales</div>
-                <div class="pra-grid" style="margin-bottom:16px">
+                <div class="pra-grid" style="margin-bottom:14px">
                     <div class="form-group"><label>T. pago (min)</label><input type="text" inputmode="decimal" id="pra-pay" placeholder="2,47"></div>
                     <div class="form-group"><label>T. liberación (min)</label><input type="text" inputmode="decimal" id="pra-release" placeholder="1,95"></div>
                     <div class="form-group"><label>Bancos</label><input type="text" inputmode="numeric" id="pra-banks" placeholder="2"></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+                    <label style="font-size:0.72em;color:#64748b;white-space:nowrap">☁️ Compartir</label>
+                    <label style="position:relative;width:36px;height:20px;flex-shrink:0"><input type="checkbox" id="pra-share" checked style="display:none"><span style="position:absolute;inset:0;background:#cbd5e1;border-radius:10px;cursor:pointer;transition:0.2s"></span><span style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:white;border-radius:50%;transition:0.2s"></span></label>
+                    <span style="font-size:0.6em;color:#94a3b8">Visible para otros usuarios</span>
                 </div>
                 <div class="pra-btns">
                     <button class="btn" id="btnPraAnalizar">🔍 Analizar</button>
@@ -714,6 +725,7 @@
             </div>
             <div id="pra-result" style="display:none"></div>
             <div id="pra-history" style="display:none"></div>
+            <div id="pra-community" style="display:none"></div>
         </div>
         <div class="pra-footer"><button id="btnCerrarAnalisis">Cerrar</button></div>
     </div></div>
@@ -2307,284 +2319,268 @@ async function borrarTodo(){
    §17 — PRA: Análisis de Contraparte P2P (v4)
    Confidence score · Firebase sync · Dedup
    ═══════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   §17 — PRA v5: Análisis + Comunidad + Feedback
+   ═══════════════════════════════════════ */
 const PRA=(function(){
     const PRIMARY_IDS=['pra-ops30d','pra-completion','pra-trades','pra-positive','pra-negative','pra-age','pra-buyratio','pra-countries','pra-counter'];
     const SECONDARY_IDS=['pra-pay','pra-release','pra-banks'];
     const ALL_IDS=[...PRIMARY_IDS,...SECONDARY_IDS];
 
-    /* ─── I/O ─── */
     function read(id){const e=$(id);if(!e)return 0;return parseFloat(e.value.replace(',','.').trim())||0}
-    function validate(){
-        let ok=true;
-        PRIMARY_IDS.forEach(id=>{const e=$(id);if(!e)return;const v=e.value.trim();if(!v||isNaN(parseFloat(v.replace(',','.')))){e.classList.add('pra-err');e.classList.remove('pra-ok','pra-warn');ok=false}else{e.classList.remove('pra-err');e.classList.add('pra-ok')}});
-        SECONDARY_IDS.forEach(id=>{const e=$(id);if(!e)return;e.classList.remove('pra-err');const v=e.value.trim();if(v&&!isNaN(parseFloat(v.replace(',','.'))))e.classList.add('pra-ok');else e.classList.remove('pra-ok')});
-        return ok;
-    }
+    function validate(){let ok=true;PRIMARY_IDS.forEach(id=>{const e=$(id);if(!e)return;const v=e.value.trim();if(!v||isNaN(parseFloat(v.replace(',','.')))){e.classList.add('pra-err');e.classList.remove('pra-ok','pra-warn');ok=false}else{e.classList.remove('pra-err');e.classList.add('pra-ok')}});SECONDARY_IDS.forEach(id=>{const e=$(id);if(!e)return;e.classList.remove('pra-err');const v=e.value.trim();if(v&&!isNaN(parseFloat(v.replace(',','.'))))e.classList.add('pra-ok');else e.classList.remove('pra-ok')});return ok}
     function clearV(){ALL_IDS.forEach(id=>{const e=$(id);if(e)e.classList.remove('pra-err','pra-ok','pra-warn')})}
     function liveWarn(){const c=$('pra-completion');if(c){const v=parseFloat(c.value.replace(',','.'))||0;if(c.value.trim()&&v>0&&v<85)c.classList.add('pra-warn');else c.classList.remove('pra-warn')}}
 
-    /* ─── Dedup key ─── */
-    function normalizeAlias(name){return(name||'').trim().toLowerCase().replace(/\s+/g,' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+    /* ─── Alias normalization ─── */
+    function normalizeAlias(n){return(n||'').trim().toLowerCase().replace(/\s+/g,' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 _.-]/g,'')}
 
-    /* ─── Firebase persistence ─── */
-    function getCollection(){
-        if(!AppState.db||!AppState.currentUser)return null;
-        return AppState.db.collection('users').doc(AppState.currentUser.uid).collection('pra_analyses');
-    }
-    async function loadHistory(){
-        const col=getCollection();
-        if(!col){try{return JSON.parse(localStorage.getItem('pra_history'))||[]}catch(e){return[]}}
-        try{
-            const snap=await col.orderBy('updatedAt','desc').limit(50).get();
-            const list=[];snap.forEach(doc=>{const d=doc.data();d._id=doc.id;list.push(d)});return list;
-        }catch(e){console.error('[PRA] load error:',e);try{return JSON.parse(localStorage.getItem('pra_history'))||[]}catch(e2){return[]}}
-    }
-    async function saveAnalysis(entry){
-        const col=getCollection();
-        const key=normalizeAlias(entry.name);
-        entry.aliasKey=key;
-        entry.updatedAt=new Date().toISOString();
-        if(!col){
-            /* Fallback localStorage */
-            try{const h=JSON.parse(localStorage.getItem('pra_history'))||[];
-            const idx=h.findIndex(x=>normalizeAlias(x.name)===key);
-            if(idx>=0){h[idx].history=(h[idx].history||[]).concat({score:h[idx].score,date:h[idx].date});
-                Object.assign(h[idx],entry);const item=h.splice(idx,1)[0];h.unshift(item)}
-            else{entry.history=[];h.unshift(entry)}
-            localStorage.setItem('pra_history',JSON.stringify(h.slice(0,50)))}catch(e){}
-            return;
-        }
-        try{
-            /* Check if alias already exists */
-            const existing=await col.where('aliasKey','==',key).limit(1).get();
-            if(!existing.empty){
-                const doc=existing.docs[0];const prev=doc.data();
-                const hist=(prev.history||[]).concat({score:prev.score,date:prev.date,confidence:prev.confidence});
-                await doc.ref.update({...entry,history:hist.slice(-20)});
-            }else{
-                entry.history=[];
-                await col.add(entry);
-            }
-        }catch(e){console.error('[PRA] save error:',e);
-            try{const h=JSON.parse(localStorage.getItem('pra_history'))||[];h.unshift(entry);localStorage.setItem('pra_history',JSON.stringify(h.slice(0,50)))}catch(e2){}}
-    }
-    async function clearAllHistory(){
-        const col=getCollection();
-        if(!col){localStorage.removeItem('pra_history');return}
-        try{const snap=await col.get();const batch=AppState.db.batch();snap.forEach(doc=>batch.delete(doc.ref));await batch.commit()}catch(e){console.error('[PRA] clear error:',e)}
-    }
+    /* ─── Firebase refs ─── */
+    function privateCol(){return AppState.db&&AppState.currentUser?AppState.db.collection('users').doc(AppState.currentUser.uid).collection('pra_analyses'):null}
+    function sharedCol(){return AppState.db?AppState.db.collection('pra_shared'):null}
+    function uid(){return AppState.currentUser?.uid||'anon'}
 
-    /* ─── Tabs ─── */
-    function showTab(tab){
-        const f=tab==='form';
-        $('praTabForm').classList.toggle('active',f);$('praTabHist').classList.toggle('active',!f);
-        $('pra-form').style.display=f?'block':'none';$('pra-result').style.display='none';
-        $('pra-history').style.display=f?'none':'block';
-        if(!f)renderHistory();
-    }
-    function reset(){
-        ALL_IDS.forEach(id=>{const e=$(id);if(e)e.value=''});
-        const n=$('pra-name');if(n)n.value='';
-        clearV();$('pra-result').style.display='none';$('pra-form').style.display='block';showTab('form');
-    }
-
-    /* ══════════════════════════════════════════
-       SCORING: Primary (unchanged weights)
-       ══════════════════════════════════════════ */
-    function calculatePrimaryScore(d){
-        const items=[];let v;
-        v=0;if(d.completion<75)v=2.5;else if(d.completion<85)v=2;else if(d.completion<92)v=1.2;else if(d.completion<97)v=0.3;
-        items.push({name:'Finalización',pts:v,max:2.5});
-        v=0;if(d.ops30d===0)v=2;else if(d.ops30d<3)v=1.5;else if(d.ops30d<8)v=0.5;
-        items.push({name:'Comercios 30d',pts:v,max:2});
-        v=0;if(d.trades<10)v=1;else if(d.trades<30)v=0.5;
-        items.push({name:'Total comercios',pts:v,max:1});
-        v=0;if(d.positive<80)v=1.5;else if(d.positive<90)v=0.8;else if(d.positive<96)v=0.2;
-        items.push({name:'% Positivos',pts:v,max:1.5});
-        v=0;const negR=d.trades>0?d.negative/d.trades*100:0;
-        if(d.negative>10||negR>5)v=1.5;else if(d.negative>5||negR>2)v=0.8;else if(d.negative>2)v=0.2;
-        items.push({name:'Negativos',pts:v,max:1.5});
-        v=0;if(d.age<15)v=1.5;else if(d.age<45)v=0.8;else if(d.age<120)v=0.2;
-        items.push({name:'Antigüedad',pts:v,max:1.5});
-        v=0;const dev=Math.abs(d.buyratio-50);if(dev>42)v=1;else if(dev>35)v=0.3;
-        items.push({name:'Ratio C/V',pts:v,max:1});
-        v=0;if(d.countries>3)v=2;else if(d.countries>2)v=1.5;else if(d.countries===2)v=0.8;
-        items.push({name:'Países',pts:v,max:2});
-        return{items,total:Math.round(items.reduce((s,i)=>s+i.pts,0)*10)/10};
-    }
-
-    /* ══════════════════════════════════════════
-       SCORING: Secondary (unchanged, cap 1.5)
-       ══════════════════════════════════════════ */
-    function calculateSecondaryScore(d){
-        const items=[];let v;
-        v=0;if(d.banks>3&&d.countries>1)v=0.5;
-        items.push({name:'Bancos+Países',pts:v,max:0.5});
-        v=0;if(d.pay>20)v=0.3;
-        items.push({name:'T. pago',pts:v,max:0.3});
-        v=0;if(d.release>15)v=0.3;
-        items.push({name:'T. liberación',pts:v,max:0.3});
-        v=0;if(d.trades>30&&d.counter>0&&d.trades/d.counter>10)v=0.2;
-        items.push({name:'Diversidad',pts:v,max:0.2});
-        return{items,total:Math.min(1.5,Math.round(items.reduce((s,i)=>s+i.pts,0)*10)/10)};
-    }
-
+    /* ═══ SCORING (unchanged weights) ═══ */
+    function calculatePrimaryScore(d){const i=[];let v;
+        v=0;if(d.completion<75)v=2.5;else if(d.completion<85)v=2;else if(d.completion<92)v=1.2;else if(d.completion<97)v=0.3;i.push({name:'Finalización',pts:v,max:2.5});
+        v=0;if(d.ops30d===0)v=2;else if(d.ops30d<3)v=1.5;else if(d.ops30d<8)v=0.5;i.push({name:'Comercios 30d',pts:v,max:2});
+        v=0;if(d.trades<10)v=1;else if(d.trades<30)v=0.5;i.push({name:'Total comercios',pts:v,max:1});
+        v=0;if(d.positive<80)v=1.5;else if(d.positive<90)v=0.8;else if(d.positive<96)v=0.2;i.push({name:'% Positivos',pts:v,max:1.5});
+        v=0;const nR=d.trades>0?d.negative/d.trades*100:0;if(d.negative>10||nR>5)v=1.5;else if(d.negative>5||nR>2)v=0.8;else if(d.negative>2)v=0.2;i.push({name:'Negativos',pts:v,max:1.5});
+        v=0;if(d.age<15)v=1.5;else if(d.age<45)v=0.8;else if(d.age<120)v=0.2;i.push({name:'Antigüedad',pts:v,max:1.5});
+        v=0;const dv=Math.abs(d.buyratio-50);if(dv>42)v=1;else if(dv>35)v=0.3;i.push({name:'Ratio C/V',pts:v,max:1});
+        v=0;if(d.countries>3)v=2;else if(d.countries>2)v=1.5;else if(d.countries===2)v=0.8;i.push({name:'Países',pts:v,max:2});
+        return{items:i,total:Math.round(i.reduce((s,x)=>s+x.pts,0)*10)/10}}
+    function calculateSecondaryScore(d){const i=[];let v;
+        v=0;if(d.banks>3&&d.countries>1)v=0.5;i.push({name:'Bancos+Países',pts:v,max:0.5});
+        v=0;if(d.pay>20)v=0.3;i.push({name:'T. pago',pts:v,max:0.3});
+        v=0;if(d.release>15)v=0.3;i.push({name:'T. liberación',pts:v,max:0.3});
+        v=0;if(d.trades>30&&d.counter>0&&d.trades/d.counter>10)v=0.2;i.push({name:'Diversidad',pts:v,max:0.2});
+        return{items:i,total:Math.min(1.5,Math.round(i.reduce((s,x)=>s+x.pts,0)*10)/10)}}
     function calculateFinalScore(p,s){return Math.min(10,Math.max(0,Math.round((p+s)*10)/10))}
-
-    /* ══════════════════════════════════════════
-       CONFIDENCE SCORE (0-100, independent)
-       ══════════════════════════════════════════ */
-    function calculateConfidenceScore(d){
-        let conf=100;const notes=[];
-        /* Data completeness */
-        if(!d.banks){conf-=8;notes.push('Sin dato de bancos')}
-        if(!d.countries){conf-=10;notes.push('Sin dato de países')}
-        if(!d.pay&&!d.release){conf-=5;notes.push('Sin tiempos de operación')}
-        if(!d.counter){conf-=5;notes.push('Sin dato de contrapartes')}
-        /* Sample quality */
-        if(d.trades<5){conf-=20;notes.push('Muestra muy pequeña ('+d.trades+' trades)')}
-        else if(d.trades<20){conf-=10;notes.push('Muestra limitada ('+d.trades+' trades)')}
-        else if(d.trades<50){conf-=3}
-        /* Activity recency */
-        if(d.ops30d===0){conf-=15;notes.push('Sin actividad reciente')}
-        else if(d.ops30d<3){conf-=8;notes.push('Actividad reciente escasa')}
-        /* Account maturity */
-        if(d.age<30){conf-=10;notes.push('Cuenta demasiado nueva para evaluar')}
-        else if(d.age<60){conf-=5}
-        /* Consistency checks */
-        if(d.positive===100&&d.negative===0&&d.trades>50){conf+=5;notes.push('Historial perfecto')}
-        if(d.trades>200&&d.age>180){conf+=5;notes.push('Alta madurez de datos')}
-        /* Clamp */
-        conf=Math.min(100,Math.max(10,conf));
-        return{score:conf,notes};
-    }
-
-    function getConfidenceTier(conf){
-        if(conf>=75)return{label:'Alta',cls:'pra-conf-high',icon:'🟢'};
-        if(conf>=50)return{label:'Media',cls:'pra-conf-med',icon:'🟡'};
-        return{label:'Baja',cls:'pra-conf-low',icon:'🔴'};
-    }
-
-    /* ══════════════════════════════════════════ */
-    function getRiskTier(score){
-        if(score<=2.5)return{tier:'SEGURO',color:'#16a34a',bg:'#f0fdf4',emoji:'🟢',action:'Operar sin problema'};
-        if(score<=5)return{tier:'PRECAUCIÓN',color:'#d97706',bg:'#fffbeb',emoji:'🟡',action:'Operar con precaución'};
-        return{tier:'RIESGOSO',color:'#dc2626',bg:'#fef2f2',emoji:'🔴',action:'No operar'};
-    }
-
-    function generateAlerts(d){
-        const a=[],p=[];
+    function calculateConfidenceScore(d){let c=100;const n=[];
+        if(!d.banks){c-=8;n.push('Sin dato de bancos')}if(!d.countries){c-=10;n.push('Sin dato de países')}if(!d.pay&&!d.release){c-=5;n.push('Sin tiempos')}if(!d.counter){c-=5;n.push('Sin contrapartes')}
+        if(d.trades<5){c-=20;n.push('Muestra muy pequeña')}else if(d.trades<20){c-=10;n.push('Muestra limitada')}else if(d.trades<50)c-=3;
+        if(d.ops30d===0){c-=15;n.push('Sin actividad reciente')}else if(d.ops30d<3){c-=8;n.push('Actividad escasa')}
+        if(d.age<30){c-=10;n.push('Cuenta muy nueva')}else if(d.age<60)c-=5;
+        if(d.positive===100&&d.negative===0&&d.trades>50)c+=5;
+        if(d.trades>200&&d.age>180)c+=5;
+        return{score:Math.min(100,Math.max(10,c)),notes:n}}
+    function getConfidenceTier(c){if(c>=75)return{label:'Alta',cls:'pra-conf-high',icon:'🟢'};if(c>=50)return{label:'Media',cls:'pra-conf-med',icon:'🟡'};return{label:'Baja',cls:'pra-conf-low',icon:'🔴'}}
+    function getRiskTier(s){if(s<=2.5)return{tier:'SEGURO',color:'#16a34a',bg:'#f0fdf4',emoji:'🟢',action:'Operar sin problema'};if(s<=5)return{tier:'PRECAUCIÓN',color:'#d97706',bg:'#fffbeb',emoji:'🟡',action:'Operar con precaución'};return{tier:'RIESGOSO',color:'#dc2626',bg:'#fef2f2',emoji:'🔴',action:'No operar'}}
+    function generateAlerts(d){const a=[],p=[];
         if(d.completion<85)a.push({l:'r',t:'Finalización baja ('+d.completion+'%)'});else if(d.completion<92)a.push({l:'y',t:'Finalización mejorable ('+d.completion+'%)'});else if(d.completion>=97)p.push('Finalización excelente');
-        if(d.ops30d===0)a.push({l:'r',t:'Sin actividad en 30 días'});else if(d.ops30d<5)a.push({l:'y',t:'Baja actividad ('+d.ops30d+'/30d)'});else if(d.ops30d>=8)p.push('Alta actividad ('+d.ops30d+'/30d)');
-        if(d.trades<10)a.push({l:'y',t:'Poca experiencia ('+d.trades+' comercios)'});else if(d.trades>200)p.push('Trader experimentado');
-        if(d.positive<80)a.push({l:'r',t:'Reputación baja ('+d.positive+'%)'});else if(d.positive<90)a.push({l:'y',t:'Reputación mejorable ('+d.positive+'%)'});else if(d.positive>=96)p.push('Excelente reputación');
-        if(d.negative>10)a.push({l:'r',t:'Demasiados negativos ('+d.negative+')'});else if(d.negative>5)a.push({l:'y',t:'Negativos elevados ('+d.negative+')'});else if(d.negative<=2)p.push('Mínimos negativos');
-        if(d.age<15)a.push({l:'r',t:'Cuenta muy nueva ('+d.age+' días)'});else if(d.age<45)a.push({l:'y',t:'Cuenta reciente ('+d.age+' días)'});else if(d.age>=120)p.push('Cuenta veterana');
-        const bDev=Math.abs(d.buyratio-50);if(bDev>42)a.push({l:'y',t:'Patrón unilateral ('+(d.buyratio>50?d.buyratio+'% compras':Math.round(100-d.buyratio)+'% ventas')+')'});
-        if(d.countries>2)a.push({l:'r',t:d.countries+' países — posible triangulación'});else if(d.countries===2)a.push({l:'y',t:'Actividad en 2 países'});else if(d.countries===1)p.push('Operación local');
-        if(d.banks>3&&d.countries>1)a.push({l:'r',t:'Múltiples bancos ('+d.banks+') + países'});else if(d.banks>4)a.push({l:'y',t:'Muchos bancos ('+d.banks+')'});
-        if(d.pay>20)a.push({l:'y',t:'Pago lento ('+d.pay+' min)'});
-        if(d.release>15)a.push({l:'y',t:'Liberación lenta ('+d.release+' min)'});
-        return{alerts:a,positives:p};
-    }
-
-    function getExplanation(score,alerts){
-        const r=alerts.filter(a=>a.l==='r'),y=alerts.filter(a=>a.l==='y');
-        if(!r.length&&!y.length)return'Perfil sólido sin señales de alerta. Historial consistente y confiable.';
-        if(score<=2.5)return'Buen perfil.'+(y.length?' Nota: '+y[0].t.toLowerCase()+'.':'');
-        if(score<=5)return'Atención: '+(r.length?r[0]:y[0]).t.toLowerCase()+'. Verificar antes de operar montos altos.';
-        return'Riesgo: '+r.slice(0,2).map(a=>a.t.toLowerCase()).join('; ')+'. Evitar esta contraparte.';
-    }
+        if(d.ops30d===0)a.push({l:'r',t:'Sin actividad en 30 días'});else if(d.ops30d<5)a.push({l:'y',t:'Baja actividad ('+d.ops30d+'/30d)'});else if(d.ops30d>=8)p.push('Alta actividad');
+        if(d.trades<10)a.push({l:'y',t:'Poca experiencia ('+d.trades+')'});else if(d.trades>200)p.push('Trader experimentado');
+        if(d.positive<80)a.push({l:'r',t:'Reputación baja ('+d.positive+'%)'});else if(d.positive<90)a.push({l:'y',t:'Reputación mejorable'});else if(d.positive>=96)p.push('Excelente reputación');
+        if(d.negative>10)a.push({l:'r',t:'Demasiados negativos ('+d.negative+')'});else if(d.negative>5)a.push({l:'y',t:'Negativos elevados'});else if(d.negative<=2)p.push('Mínimos negativos');
+        if(d.age<15)a.push({l:'r',t:'Cuenta muy nueva ('+d.age+'d)'});else if(d.age<45)a.push({l:'y',t:'Cuenta reciente'});else if(d.age>=120)p.push('Cuenta veterana');
+        const bd=Math.abs(d.buyratio-50);if(bd>42)a.push({l:'y',t:'Patrón unilateral ('+(d.buyratio>50?d.buyratio+'% compras':Math.round(100-d.buyratio)+'% ventas')+')'});
+        if(d.countries>2)a.push({l:'r',t:d.countries+' países — triangulación'});else if(d.countries===2)a.push({l:'y',t:'2 países'});else if(d.countries===1)p.push('Operación local');
+        if(d.banks>3&&d.countries>1)a.push({l:'r',t:d.banks+' bancos + múltiples países'});else if(d.banks>4)a.push({l:'y',t:'Muchos bancos'});
+        if(d.pay>20)a.push({l:'y',t:'Pago lento ('+d.pay+'min)'});if(d.release>15)a.push({l:'y',t:'Liberación lenta ('+d.release+'min)'});
+        return{alerts:a,positives:p}}
+    function getExplanation(s,al){const r=al.filter(a=>a.l==='r'),y=al.filter(a=>a.l==='y');
+        if(!r.length&&!y.length)return'Perfil sólido sin señales de alerta.';
+        if(s<=2.5)return'Buen perfil.'+(y.length?' Nota: '+y[0].t.toLowerCase()+'.':'');
+        if(s<=5)return'Atención: '+(r.length?r[0]:y[0]).t.toLowerCase()+'. Verificar antes de operar montos altos.';
+        return'Riesgo: '+r.slice(0,2).map(a=>a.t.toLowerCase()).join('; ')+'. Evitar esta contraparte.'}
 
     /* ─── Breakdown ─── */
     function bkRow(n,pts,c){const pct=Math.min(100,pts/2.5*100);const cl=pts===0?'#cbd5e1':c;
         return'<div class="pra-bk-row"><span class="pra-bk-name">'+n+'</span><span class="pra-bk-pts" style="color:'+cl+'">'+(pts>0?'+'+pts.toFixed(1):'0')+'</span><div class="pra-bk-bar"><div class="pra-bk-fill" style="width:'+pct+'%;background:'+cl+'"></div></div></div>'}
-    function renderBreakdown(pI,sI,tc){
-        let h=pI.map(i=>bkRow(i.name,i.pts,tc)).join('')+'<div class="pra-bk-divider"></div>'+sI.map(i=>bkRow(i.name,i.pts,'#64748b')).join('');
-        return'<div class="pra-breakdown"><button class="pra-bk-toggle" id="praBkToggle">📊 Desglose del score <span style="font-size:0.9em">▾</span></button><div class="pra-bk-body" id="praBkBody">'+h+'</div></div>';
-    }
+    function renderBreakdown(pI,sI,tc){return'<div class="pra-breakdown"><button class="pra-bk-toggle" id="praBkToggle">📊 Desglose ▾</button><div class="pra-bk-body" id="praBkBody">'+pI.map(i=>bkRow(i.name,i.pts,tc)).join('')+'<div class="pra-bk-divider"></div>'+sI.map(i=>bkRow(i.name,i.pts,'#64748b')).join('')+'</div></div>'}
+
+    /* ═══ PERSISTENCE ═══ */
+    async function savePrivateAnalysis(entry){
+        const col=privateCol();const key=entry.aliasKey;
+        if(!col){try{const h=JSON.parse(localStorage.getItem('pra_history'))||[];const idx=h.findIndex(x=>x.aliasKey===key);
+            if(idx>=0){h[idx].history=(h[idx].history||[]).concat({score:h[idx].score,date:h[idx].date});Object.assign(h[idx],entry);const it=h.splice(idx,1)[0];h.unshift(it)}
+            else{entry.history=[];h.unshift(entry)}
+            localStorage.setItem('pra_history',JSON.stringify(h.slice(0,50)))}catch(e){}return}
+        try{const ex=await col.where('aliasKey','==',key).limit(1).get();
+            if(!ex.empty){const doc=ex.docs[0];const prev=doc.data();const hist=(prev.history||[]).concat({score:prev.score,date:prev.date});await doc.ref.update({...entry,history:hist.slice(-20)})}
+            else{entry.history=[];await col.add(entry)}}
+        catch(e){console.error('[PRA] private save:',e)}}
+
+    async function saveSharedAnalysis(entry){
+        const col=sharedCol();if(!col)return;
+        const doc={...entry,ownerUserId:uid(),ownerName:AppState.currentUser?.email?.split('@')[0]||'anon',sharedAt:new Date().toISOString()};
+        try{const ex=await col.where('aliasKey','==',entry.aliasKey).where('ownerUserId','==',uid()).limit(1).get();
+            if(!ex.empty){await ex.docs[0].ref.update(doc)}else{await col.add(doc)}}
+        catch(e){console.error('[PRA] shared save:',e)}}
+
+    async function loadHistory(){
+        const col=privateCol();
+        if(!col){try{return JSON.parse(localStorage.getItem('pra_history'))||[]}catch(e){return[]}}
+        try{const snap=await col.orderBy('updatedAt','desc').limit(50).get();const list=[];snap.forEach(doc=>{const d=doc.data();d._id=doc.id;list.push(d)});return list}
+        catch(e){try{return JSON.parse(localStorage.getItem('pra_history'))||[]}catch(e2){return[]}}}
+
+    async function clearAllHistory(){
+        const col=privateCol();if(!col){localStorage.removeItem('pra_history');return}
+        try{const snap=await col.get();const b=AppState.db.batch();snap.forEach(doc=>b.delete(doc.ref));await b.commit()}catch(e){}}
+
+    /* ═══ COMMUNITY AGGREGATE ═══ */
+    async function getCommunityAggregate(aliasKey){
+        const col=sharedCol();if(!col)return null;
+        try{const snap=await col.where('aliasKey','==',aliasKey).orderBy('updatedAt','desc').limit(20).get();
+            if(snap.empty)return null;
+            const analyses=[];snap.forEach(doc=>analyses.push(doc.data()));
+            const scores=analyses.map(a=>a.score);const avg=scores.reduce((s,v)=>s+v,0)/scores.length;
+            /* Most common alerts */
+            const alertMap={};analyses.forEach(a=>{(a.alertTexts||[]).forEach(t=>{alertMap[t]=(alertMap[t]||0)+1})});
+            const topAlerts=Object.entries(alertMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([t,c])=>({text:t,count:c}));
+            /* Consensus: std deviation */
+            const variance=scores.length>1?scores.reduce((s,v)=>s+Math.pow(v-avg,2),0)/scores.length:0;
+            const stdDev=Math.sqrt(variance);
+            const consensus=stdDev<1?'Alto':stdDev<2?'Medio':'Bajo';
+            /* Outcomes */
+            const outcomes={ok:0,dispute:0,suspicious:0,thirdParty:0,notDone:0};
+            analyses.forEach(a=>{if(a.outcome)outcomes[a.outcome]=(outcomes[a.outcome]||0)+1});
+            return{count:analyses.length,avgScore:Math.round(avg*10)/10,topAlerts,consensus,stdDev:Math.round(stdDev*10)/10,lastDate:analyses[0]?.date||'—',outcomes,tier:getRiskTier(Math.round(avg*10)/10)}}
+        catch(e){console.error('[PRA] community:',e);return null}}
+
+    /* ═══ OUTCOME FEEDBACK ═══ */
+    async function recordOutcome(aliasKey,outcome){
+        /* Update private */
+        const pCol=privateCol();
+        if(pCol){try{const ex=await pCol.where('aliasKey','==',aliasKey).limit(1).get();if(!ex.empty)await ex.docs[0].ref.update({outcome})}catch(e){}}
+        /* Update shared */
+        const sCol=sharedCol();
+        if(sCol){try{const ex=await sCol.where('aliasKey','==',aliasKey).where('ownerUserId','==',uid()).limit(1).get();if(!ex.empty)await ex.docs[0].ref.update({outcome})}catch(e){}}}
+
+    /* ═══ TABS ═══ */
+    function showTab(tab){
+        ['form','history','community'].forEach(t=>{const el=$('pra-'+({form:'form',history:'history',community:'community'}[t]));if(el)el.style.display='none'});
+        $('pra-result').style.display='none';
+        $('praTabForm').classList.toggle('active',tab==='form');
+        $('praTabHist').classList.toggle('active',tab==='history');
+        $('praTabComm').classList.toggle('active',tab==='community');
+        if(tab==='form')$('pra-form').style.display='block';
+        else if(tab==='history'){$('pra-history').style.display='block';renderHistory()}
+        else{$('pra-community').style.display='block';renderCommunitySearch()}}
+    function reset(){ALL_IDS.forEach(id=>{const e=$(id);if(e)e.value=''});const n=$('pra-name');if(n)n.value='';clearV();$('pra-result').style.display='none';$('pra-form').style.display='block';showTab('form')}
 
     /* ═══ ANALYZE ═══ */
     function analyze(){
         if(!validate())return;
         const r=$('pra-result'),f=$('pra-form');
         f.style.display='none';r.style.display='block';
-        r.innerHTML='<div class="pra-loading"><div class="pra-spinner"></div><div style="font-size:0.78em;color:#64748b">Analizando perfil...</div></div>';
+        r.innerHTML='<div class="pra-loading"><div class="pra-spinner"></div><div style="font-size:0.78em;color:#64748b">Analizando...</div></div>';
         $('pra-body').scrollTop=0;
-
         setTimeout(async()=>{
             const d={ops30d:read('pra-ops30d'),completion:read('pra-completion'),trades:read('pra-trades'),counter:read('pra-counter'),positive:read('pra-positive'),negative:read('pra-negative'),age:read('pra-age'),pay:read('pra-pay'),release:read('pra-release'),buyratio:read('pra-buyratio'),banks:read('pra-banks'),countries:read('pra-countries')};
             const name=($('pra-name')?.value||'').trim()||'Sin nombre';
+            const aliasKey=normalizeAlias(name);
             const pS=calculatePrimaryScore(d),sS=calculateSecondaryScore(d);
             const score=calculateFinalScore(pS.total,sS.total);
             const tier=getRiskTier(score);
             const{alerts,positives}=generateAlerts(d);
             const reason=getExplanation(score,alerts);
-            const conf=calculateConfidenceScore(d);
-            const confTier=getConfidenceTier(conf.score);
+            const conf=calculateConfidenceScore(d),confT=getConfidenceTier(conf.score);
             const reds=alerts.filter(a=>a.l==='r'),yel=alerts.filter(a=>a.l==='y');
 
+            const entry={name,aliasKey,score,confidence:conf.score,tier:tier.tier,date:new Date().toLocaleDateString('es-UY'),updatedAt:new Date().toISOString(),data:d,alertTexts:alerts.map(a=>a.t)};
+            try{await savePrivateAnalysis(entry)}catch(e){}
+            const shared=$('pra-share')?.checked;
+            if(shared){try{await saveSharedAnalysis(entry)}catch(e){}}
+
             let safety='';
-            if(score>2.5){const t=[];if(d.age<90)t.push('Solo montos bajos (< $5.000)');if(d.banks>2||d.countries>1)t.push('Verificar titularidad bancaria');if(d.countries>1)t.push('Confirmar ubicación real');if(d.completion<95)t.push('Temporizador corto');if(d.negative>3)t.push('Leer negativos antes de operar');t.push('Guardar capturas');safety=t.map(x=>'<div style="padding:2px 0">• '+x+'</div>').join('')}
+            if(score>2.5){const t=[];if(d.age<90)t.push('Solo montos bajos');if(d.banks>2||d.countries>1)t.push('Verificar titularidad');if(d.countries>1)t.push('Confirmar ubicación');if(d.completion<95)t.push('Temporizador corto');t.push('Guardar capturas');safety=t.map(x=>'<div style="padding:2px 0">• '+x+'</div>').join('')}
 
-            /* Confidence notes */
-            let confHtml='';
-            if(conf.notes.length){confHtml='<div style="margin-top:4px;font-size:0.52em;color:#94a3b8">'+conf.notes.slice(0,3).join(' · ')+'</div>'}
-
-            try{await saveAnalysis({name,score,confidence:conf.score,tier:tier.tier,date:new Date().toLocaleDateString('es-UY'),data:d})}catch(e){}
+            /* Community check */
+            let commHtml='';
+            const comm=await getCommunityAggregate(aliasKey);
+            if(comm&&comm.count>1){const ct=comm.tier;
+                commHtml='<div class="pra-comm-card"><h4>👥 Señal comunitaria ('+comm.count+' análisis)</h4><div class="pra-comm-stats"><div class="pra-comm-stat"><div class="val" style="color:'+ct.color+'">'+comm.avgScore.toFixed(1)+'</div><div class="lbl">Promedio</div></div><div class="pra-comm-stat"><div class="val">'+comm.consensus+'</div><div class="lbl">Consenso</div></div><div class="pra-comm-stat"><div class="val">'+comm.lastDate+'</div><div class="lbl">Último</div></div></div>';
+                if(comm.topAlerts.length)commHtml+='<div style="margin-top:8px;font-size:0.6em;font-weight:600;color:#64748b;margin-bottom:4px">Alertas más reportadas:</div>'+comm.topAlerts.slice(0,3).map(a=>'<div class="pra-comm-alert">'+escHtml(a.text)+' <span style="color:#94a3b8">('+a.count+'×)</span></div>').join('');
+                commHtml+='</div>'}
 
             r.innerHTML='<div class="pra-fade-in">'+
                 '<div class="pra-score-card" style="background:'+tier.bg+';border:1px solid '+tier.color+'22">'+
                     '<div class="pra-score-big" style="color:'+tier.color+'">'+score.toFixed(1)+'</div>'+
                     '<div style="font-size:0.65em;color:#64748b;margin:2px 0">de 10</div>'+
                     '<div class="pra-score-tier" style="color:'+tier.color+'">'+tier.emoji+' '+tier.tier+'</div>'+
-                    '<div class="pra-confidence '+confTier.cls+'">'+confTier.icon+' Certeza: '+confTier.label+' ('+conf.score+'%)</div>'+
-                    confHtml+
-                    '<div class="pra-score-meta">Primario '+pS.total+' · Secundario '+sS.total+'</div>'+
+                    '<div class="pra-confidence '+confT.cls+'">'+confT.icon+' Certeza: '+confT.label+' ('+conf.score+'%)</div>'+
+                    (conf.notes.length?'<div style="font-size:0.52em;color:#94a3b8;margin-top:3px">'+conf.notes.slice(0,3).join(' · ')+'</div>':'')+
+                    '<div class="pra-score-meta">P:'+pS.total+' · S:'+sS.total+(shared?' · ☁️':' · 💾')+'</div>'+
                 '</div>'+
                 '<div class="pra-recom" style="border-left:3px solid '+tier.color+';background:'+tier.color+'08">'+
                     '<div style="font-weight:700;color:'+tier.color+';font-size:0.82em">'+tier.action+'</div>'+
                     '<div style="color:#475569;font-size:0.72em;margin-top:3px;line-height:1.4">'+reason+'</div>'+
                 '</div>'+
+                commHtml+
                 renderBreakdown(pS.items,sS.items,tier.color)+
                 (reds.length?'<div style="margin-bottom:8px"><div class="pra-alert-hdr" style="color:#dc2626">🔴 Riesgo alto</div>'+reds.map(a=>'<div class="pra-alert-row" style="border-color:#fee2e2">'+a.t+'</div>').join('')+'</div>':'')+
                 (yel.length?'<div style="margin-bottom:8px"><div class="pra-alert-hdr" style="color:#d97706">🟡 Atención</div>'+yel.map(a=>'<div class="pra-alert-row" style="border-color:#fef3c7">'+a.t+'</div>').join('')+'</div>':'')+
                 (positives.length?'<div style="margin-bottom:8px"><div class="pra-alert-hdr" style="color:#16a34a">✅ Positivo</div>'+positives.map(p=>'<div style="font-size:0.72em;color:#16a34a;padding:2px 0">• '+p+'</div>').join('')+'</div>':'')+
-                (safety?'<div style="padding:8px 10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;margin-bottom:8px"><div style="font-weight:700;font-size:0.7em;color:#92400e;margin-bottom:3px">💡 Condiciones sugeridas</div><div style="font-size:0.7em;color:#78350f">'+safety+'</div></div>':'')+
+                (safety?'<div style="padding:8px 10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;margin-bottom:8px"><div style="font-weight:700;font-size:0.7em;color:#92400e;margin-bottom:3px">💡 Sugerencias</div><div style="font-size:0.7em;color:#78350f">'+safety+'</div></div>':'')+
+                '<div style="margin-bottom:8px"><div style="font-size:0.62em;font-weight:600;color:#64748b;margin-bottom:6px">📝 ¿Cómo resultó la operación?</div><div class="pra-outcome" id="praOutcome" data-alias="'+escHtml(aliasKey)+'">'+
+                    '<button data-oc="ok">✅ Todo bien</button><button data-oc="dispute">⚠️ Disputa</button>'+
+                    '<button data-oc="thirdParty">🔄 Pago tercero</button><button data-oc="suspicious">🚨 Sospechoso</button>'+
+                '</div></div>'+
                 '<button class="btn btn-cancel" id="btnPraNuevo" style="width:100%;margin-top:4px">← Nuevo análisis</button>'+
-                '<div class="pra-sync">'+(getCollection()?'☁️ Sincronizado':'💾 Solo local')+'</div>'+
             '</div>';
             $('btnPraNuevo').addEventListener('click',reset);
             $('praBkToggle').addEventListener('click',()=>$('praBkBody').classList.toggle('open'));
+            $('praOutcome').querySelectorAll('[data-oc]').forEach(btn=>{btn.addEventListener('click',async()=>{
+                const oc=btn.dataset.oc;$('praOutcome').querySelectorAll('button').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');
+                try{await recordOutcome(aliasKey,oc)}catch(e){}})});
         },350);
     }
 
     /* ═══ HISTORY ═══ */
     async function renderHistory(){
-        const c=$('pra-history');
-        c.innerHTML='<div class="pra-loading"><div class="pra-spinner"></div><div style="font-size:0.78em;color:#64748b">Cargando historial...</div></div>';
+        const c=$('pra-history');c.innerHTML='<div class="pra-loading"><div class="pra-spinner"></div><div style="font-size:0.78em;color:#64748b">Cargando...</div></div>';
         const h=await loadHistory();
         if(!h.length){c.innerHTML='<div class="pra-empty"><div style="font-size:1.5em;margin-bottom:6px">📭</div>Sin análisis guardados</div>';return}
         let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:0.72em;font-weight:600;color:#64748b">'+h.length+' usuario'+(h.length>1?'s':'')+'</div><button id="btnPraClearHist" style="background:none;border:none;font-size:0.65em;color:#dc2626;cursor:pointer">Borrar todo</button></div>';
-        h.forEach((e,i)=>{
-            const t=getRiskTier(e.score);const histCount=(e.history||[]).length;
-            html+='<div class="pra-hist-item" data-pra-hist="'+i+'"><div><div class="pra-hist-name">'+escHtml(e.name||'Sin nombre')+'</div><div class="pra-hist-date">'+(e.date||'—')+(histCount?' · '+histCount+' análisis prev.':'')+'</div></div><div class="pra-hist-badge"><div class="pra-hist-score" style="background:'+t.bg+';color:'+t.color+'">'+e.score.toFixed(1)+' '+t.emoji+'</div></div></div>';
-        });
-        html+='<div class="pra-sync" style="margin-top:8px">'+(getCollection()?'☁️ Sincronizado con tu cuenta':'💾 Almacenamiento local')+'</div>';
+        h.forEach((e,i)=>{const t=getRiskTier(e.score);const hc=(e.history||[]).length;
+            html+='<div class="pra-hist-item" data-pra-hist="'+i+'"><div><div class="pra-hist-name">'+escHtml(e.name||'Sin nombre')+'</div><div class="pra-hist-date">'+(e.date||'—')+(hc?' · '+hc+' prev.':'')+(e.outcome?' · '+{ok:'✅',dispute:'⚠️',thirdParty:'🔄',suspicious:'🚨'}[e.outcome]:'')+'</div></div><div class="pra-hist-score" style="background:'+t.bg+';color:'+t.color+'">'+e.score.toFixed(1)+' '+t.emoji+'</div></div>'});
+        html+='<div class="pra-sync">'+(privateCol()?'☁️ Sincronizado':'💾 Local')+'</div>';
         c.innerHTML=html;
         c.querySelectorAll('[data-pra-hist]').forEach(el=>{el.addEventListener('click',async()=>{
             const entry=(await loadHistory())[parseInt(el.dataset.praHist)];if(!entry?.data)return;showTab('form');
             const n=$('pra-name');if(n)n.value=entry.name||'';
             const map={ops30d:'pra-ops30d',completion:'pra-completion',trades:'pra-trades',counter:'pra-counter',positive:'pra-positive',negative:'pra-negative',age:'pra-age',pay:'pra-pay',release:'pra-release',buyratio:'pra-buyratio',banks:'pra-banks',countries:'pra-countries'};
-            Object.entries(map).forEach(([k,id])=>{const e=$(id);if(e)e.value=entry.data[k]!=null?String(entry.data[k]).replace('.',','):''});clearV();
-        })});
-        const cb=$('btnPraClearHist');if(cb)cb.addEventListener('click',async()=>{if(confirm('¿Borrar todo el historial?')){await clearAllHistory();renderHistory()}});
-    }
+            Object.entries(map).forEach(([k,id])=>{const e=$(id);if(e)e.value=entry.data[k]!=null?String(entry.data[k]).replace('.',','):''});clearV()})});
+        const cb=$('btnPraClearHist');if(cb)cb.addEventListener('click',async()=>{if(confirm('¿Borrar historial?')){await clearAllHistory();renderHistory()}})}
+
+    /* ═══ COMMUNITY TAB ═══ */
+    function renderCommunitySearch(){
+        const c=$('pra-community');
+        c.innerHTML='<input type="text" class="pra-comm-search" id="praCommSearch" placeholder="Buscar alias... ej: CriptolatUy"><div id="praCommResult"><div class="pra-empty"><div style="font-size:1.5em;margin-bottom:6px">🌐</div>Escribí un alias para buscar análisis comunitarios</div></div>';
+        let debounce;
+        $('praCommSearch').addEventListener('input',()=>{clearTimeout(debounce);debounce=setTimeout(async()=>{
+            const q=normalizeAlias($('praCommSearch').value);
+            const rc=$('praCommResult');
+            if(!q||q.length<2){rc.innerHTML='<div class="pra-empty">Escribí al menos 2 caracteres</div>';return}
+            rc.innerHTML='<div class="pra-loading"><div class="pra-spinner"></div><div style="font-size:0.78em;color:#64748b">Buscando...</div></div>';
+            const comm=await getCommunityAggregate(q);
+            if(!comm){rc.innerHTML='<div class="pra-empty"><div style="font-size:1.2em;margin-bottom:4px">🔍</div>Sin resultados para "'+escHtml($('praCommSearch').value)+'"</div>';return}
+            const ct=comm.tier;
+            let h='<div class="pra-fade-in"><div class="pra-comm-card"><h4>'+escHtml($('praCommSearch').value)+' — '+comm.count+' análisis</h4>'+
+                '<div class="pra-comm-stats"><div class="pra-comm-stat"><div class="val" style="color:'+ct.color+'">'+comm.avgScore.toFixed(1)+' '+ct.emoji+'</div><div class="lbl">Score promedio</div></div><div class="pra-comm-stat"><div class="val">'+comm.consensus+'</div><div class="lbl">Consenso</div></div><div class="pra-comm-stat"><div class="val">'+comm.lastDate+'</div><div class="lbl">Último análisis</div></div></div>';
+            if(comm.topAlerts.length){h+='<div style="margin-top:10px"><div style="font-size:0.62em;font-weight:600;color:#64748b;margin-bottom:4px">⚠️ Alertas más reportadas</div>';
+                comm.topAlerts.forEach(a=>{h+='<div class="pra-comm-alert">'+escHtml(a.text)+' <span style="color:#94a3b8">('+a.count+'×)</span></div>'});h+='</div>'}
+            const oc=comm.outcomes;const totalOc=oc.ok+oc.dispute+oc.suspicious+oc.thirdParty+oc.notDone;
+            if(totalOc>0){h+='<div style="margin-top:10px"><div style="font-size:0.62em;font-weight:600;color:#64748b;margin-bottom:4px">📊 Resultados reportados ('+totalOc+')</div>';
+                if(oc.ok)h+='<div style="font-size:0.68em;color:#16a34a;padding:2px 0">✅ Todo bien: '+oc.ok+'</div>';
+                if(oc.dispute)h+='<div style="font-size:0.68em;color:#d97706;padding:2px 0">⚠️ Disputas: '+oc.dispute+'</div>';
+                if(oc.thirdParty)h+='<div style="font-size:0.68em;color:#d97706;padding:2px 0">🔄 Pagos tercero: '+oc.thirdParty+'</div>';
+                if(oc.suspicious)h+='<div style="font-size:0.68em;color:#dc2626;padding:2px 0">🚨 Sospechosos: '+oc.suspicious+'</div>';
+                h+='</div>'}
+            h+='</div></div>';
+            rc.innerHTML=h;
+        },400)})}
 
     function initTabs(){
         $('praTabForm').addEventListener('click',()=>showTab('form'));
         $('praTabHist').addEventListener('click',()=>showTab('history'));
+        $('praTabComm').addEventListener('click',()=>showTab('community'));
         $('pra-completion')?.addEventListener('input',liveWarn);
+        /* Toggle switch CSS */
+        const sw=$('pra-share');if(sw){sw.addEventListener('change',()=>{const spans=sw.parentElement.querySelectorAll('span');if(sw.checked){spans[0].style.background='#2563eb';spans[1].style.left='18px'}else{spans[0].style.background='#cbd5e1';spans[1].style.left='2px'}})}
     }
 
     return{analyze,reset,initTabs,showTab};
