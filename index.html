@@ -408,13 +408,13 @@
             <div class="auth-error" id="authError"></div>
             <form class="auth-form" id="loginForm">
                 <div class="form-group"><label>Usuario</label><input type="text" id="loginUser" placeholder="Tu usuario" required></div>
-                <div class="form-group"><label>Contraseña</label><input type="password" id="loginPass" placeholder="Tu contraseña" required></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="loginPass" placeholder="Tu contraseña" autocomplete="current-password" required></div>
                 <button type="submit" class="btn" id="loginBtn">Iniciar Sesión</button>
             </form>
             <form class="auth-form" id="registerForm" style="display:none">
                 <div class="form-group"><label>Usuario</label><input type="text" id="regUser" placeholder="Elige un usuario" required><small>Letras, números, guiones. 3-20 caracteres.</small></div>
-                <div class="form-group"><label>Contraseña</label><input type="password" id="regPass" placeholder="Crea una contraseña" required><small>Mínimo 6 caracteres</small></div>
-                <div class="form-group"><label>Confirmar Contraseña</label><input type="password" id="regPassConfirm" placeholder="Repite la contraseña" required></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="regPass" placeholder="Crea una contraseña" autocomplete="new-password" required><small>Mínimo 6 caracteres</small></div>
+                <div class="form-group"><label>Confirmar Contraseña</label><input type="password" id="regPassConfirm" placeholder="Repite la contraseña" autocomplete="new-password" required></div>
                 <button type="submit" class="btn" id="registerBtn">Crear Cuenta</button>
             </form>
         </div>
@@ -679,8 +679,23 @@
         .pra-comm-stat .val{font-weight:700;font-size:1.1em;color:#1e293b}
         .pra-comm-stat .lbl{color:#94a3b8;font-size:0.85em}
         .pra-comm-alert{font-size:0.68em;padding:4px 0;color:#475569;border-bottom:1px solid #f1f5f9}
-        .pra-comm-search{width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:0.85em;margin-bottom:12px}
+        .pra-comm-search{width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:0.85em;margin-bottom:8px}
         .pra-comm-search:focus{outline:none;border-color:#2563eb}
+        .pra-comm-sort{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
+        .pra-comm-sort button{padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:0.62em;background:white;cursor:pointer;color:#64748b;font-weight:500;transition:all 0.15s}
+        .pra-comm-sort button.active{background:#2563eb;color:white;border-color:#2563eb}
+        .pra-comm-feed-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.15s}
+        .pra-comm-feed-item:hover{background:#f8fafc;margin:0 -6px;padding:10px 6px;border-radius:6px}
+        .pra-comm-feed-item:last-child{border-bottom:none}
+        .pra-comm-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.72em;font-weight:700;flex-shrink:0}
+        .pra-comm-info{flex:1;min-width:0}
+        .pra-comm-info-name{font-size:0.8em;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .pra-comm-info-meta{font-size:0.6em;color:#94a3b8;margin-top:1px}
+        .pra-comm-info-score{font-size:0.82em;font-weight:700;flex-shrink:0}
+        .pra-comm-detail-back{display:flex;align-items:center;gap:4px;font-size:0.72em;color:#2563eb;cursor:pointer;margin-bottom:10px;font-weight:600;border:none;background:none;padding:0}
+        .pra-comm-use{display:block;width:100%;padding:8px;border:1px solid #2563eb;border-radius:8px;background:#eff6ff;color:#2563eb;font-size:0.75em;font-weight:600;cursor:pointer;margin-top:8px;text-align:center;transition:background 0.15s}
+        .pra-comm-use:hover{background:#dbeafe}
+        .pra-comm-count{display:inline-block;padding:1px 6px;border-radius:10px;font-size:0.55em;font-weight:600;margin-left:4px}
     </style>
     <div id="modalAnalisis" class="modal"><div class="modal-content">
         <div class="pra-header">
@@ -2434,27 +2449,156 @@ const PRA=(function(){
         const col=privateCol();if(!col){localStorage.removeItem('pra_history');return}
         try{const snap=await col.get();const b=AppState.db.batch();snap.forEach(doc=>b.delete(doc.ref));await b.commit()}catch(e){}}
 
-    /* ═══ COMMUNITY AGGREGATE ═══ */
+    /* ═══ COMMUNITY: Aggregate per alias ═══ */
     async function getCommunityAggregate(aliasKey){
         if(_sharedOk===false)return null;
         const col=sharedCol();if(!col)return null;
         try{const snap=await col.where('aliasKey','==',aliasKey).orderBy('updatedAt','desc').limit(20).get();
-            _sharedOk=true;
-            if(snap.empty)return null;
-            const analyses=[];snap.forEach(doc=>analyses.push(doc.data()));
-            const scores=analyses.map(a=>a.score);const avg=scores.reduce((s,v)=>s+v,0)/scores.length;
-            /* Most common alerts */
-            const alertMap={};analyses.forEach(a=>{(a.alertTexts||[]).forEach(t=>{alertMap[t]=(alertMap[t]||0)+1})});
-            const topAlerts=Object.entries(alertMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([t,c])=>({text:t,count:c}));
-            /* Consensus: std deviation */
-            const variance=scores.length>1?scores.reduce((s,v)=>s+Math.pow(v-avg,2),0)/scores.length:0;
-            const stdDev=Math.sqrt(variance);
-            const consensus=stdDev<1?'Alto':stdDev<2?'Medio':'Bajo';
-            /* Outcomes */
-            const outcomes={ok:0,dispute:0,suspicious:0,thirdParty:0,notDone:0};
-            analyses.forEach(a=>{if(a.outcome)outcomes[a.outcome]=(outcomes[a.outcome]||0)+1});
-            return{count:analyses.length,avgScore:Math.round(avg*10)/10,topAlerts,consensus,stdDev:Math.round(stdDev*10)/10,lastDate:analyses[0]?.date||'—',outcomes,tier:getRiskTier(Math.round(avg*10)/10)}}
+            _sharedOk=true;if(snap.empty)return null;
+            const analyses=[];snap.forEach(doc=>{const d=doc.data();d._id=doc.id;analyses.push(d)});
+            return aggregateAnalyses(analyses)}
         catch(e){if(e.code==='permission-denied')_sharedOk=false;return null}}
+
+    function aggregateAnalyses(analyses){
+        if(!analyses.length)return null;
+        const scores=analyses.map(a=>a.score);const avg=scores.reduce((s,v)=>s+v,0)/scores.length;
+        /* Weighted: more recent = more weight */
+        const now=Date.now();let wSum=0,wTotal=0;
+        analyses.forEach(a=>{const age=Math.max(1,(now-new Date(a.updatedAt||0).getTime())/86400000);const w=1/Math.sqrt(age);wSum+=a.score*w;wTotal+=w});
+        const weightedAvg=wTotal>0?wSum/wTotal:avg;
+        /* Alerts */
+        const alertMap={};analyses.forEach(a=>{(a.alertTexts||[]).forEach(t=>{alertMap[t]=(alertMap[t]||0)+1})});
+        const topAlerts=Object.entries(alertMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([t,c])=>({text:t,count:c}));
+        /* Consensus */
+        const variance=scores.length>1?scores.reduce((s,v)=>s+Math.pow(v-avg,2),0)/scores.length:0;
+        const stdDev=Math.sqrt(variance);const consensus=stdDev<1?'Alto':stdDev<2?'Medio':'Bajo';
+        /* Outcomes */
+        const outcomes={ok:0,dispute:0,suspicious:0,thirdParty:0,notDone:0};
+        analyses.forEach(a=>{if(a.outcome)outcomes[a.outcome]=(outcomes[a.outcome]||0)+1});
+        const stable=stdDev<1.5;
+        return{count:analyses.length,avgScore:Math.round(avg*10)/10,weightedScore:Math.round(weightedAvg*10)/10,
+            topAlerts,consensus,stdDev:Math.round(stdDev*10)/10,stable,
+            lastDate:analyses[0]?.date||'—',lastData:analyses[0]?.data||null,name:analyses[0]?.name||'',aliasKey:analyses[0]?.aliasKey||'',
+            outcomes,tier:getRiskTier(Math.round(weightedAvg*10)/10),analyses}}
+
+    /* ═══ COMMUNITY: Load all profiles (grouped) ═══ */
+    async function loadCommunityFeed(){
+        if(_sharedOk===false)return[];
+        const col=sharedCol();if(!col)return[];
+        try{const snap=await col.orderBy('updatedAt','desc').limit(200).get();
+            _sharedOk=true;if(snap.empty)return[];
+            /* Group by aliasKey */
+            const groups={};
+            snap.forEach(doc=>{const d=doc.data();d._id=doc.id;const k=d.aliasKey||'';if(!groups[k])groups[k]=[];groups[k].push(d)});
+            return Object.values(groups).map(g=>aggregateAnalyses(g)).filter(Boolean)}
+        catch(e){if(e.code==='permission-denied')_sharedOk=false;return[]}}
+
+    /* ═══ COMMUNITY: Render ═══ */
+    let _commCache=null,_commSort='recent';
+
+    async function renderCommunity(){
+        const c=$('pra-community');
+        const ok=await testSharedAccess();
+        if(!ok){c.innerHTML='<div class="pra-empty"><div style="font-size:1.5em;margin-bottom:6px">🔒</div><div>Comunidad no disponible</div><div style="font-size:0.75em;margin-top:6px;color:#94a3b8;line-height:1.4">Configurar reglas de Firestore para <b>pra_shared</b></div></div>';return}
+
+        c.innerHTML='<input type="text" class="pra-comm-search" id="praCommSearch" placeholder="Buscar contraparte...">'+
+            '<div class="pra-comm-sort" id="praCommSort"><button class="active" data-sort="recent">Recientes</button><button data-sort="analyzed">Más analizados</button><button data-sort="risk">Mayor riesgo</button></div>'+
+            '<div id="praCommFeed"><div class="pra-loading"><div class="pra-spinner"></div><div style="font-size:0.78em;color:#64748b">Cargando comunidad...</div></div></div>';
+
+        /* Sort buttons */
+        $('praCommSort').addEventListener('click',e=>{const btn=e.target.closest('[data-sort]');if(!btn)return;
+            _commSort=btn.dataset.sort;$('praCommSort').querySelectorAll('button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderFeed()});
+
+        /* Search with debounce */
+        let debounce;
+        $('praCommSearch').addEventListener('input',()=>{clearTimeout(debounce);debounce=setTimeout(renderFeed,300)});
+
+        /* Load data */
+        _commCache=await loadCommunityFeed();
+        renderFeed();
+    }
+
+    function renderFeed(){
+        const fc=$('praCommFeed');if(!fc)return;
+        if(!_commCache||!_commCache.length){fc.innerHTML='<div class="pra-empty"><div style="font-size:1.5em;margin-bottom:6px">🌐</div>Sin análisis compartidos aún.<br><span style="font-size:0.85em">Activá "☁️ Compartir" al analizar.</span></div>';return}
+
+        let data=[..._commCache];
+        /* Filter by search */
+        const q=normalizeAlias($('praCommSearch')?.value||'');
+        if(q&&q.length>=2)data=data.filter(d=>(d.aliasKey||'').includes(q)||(d.name||'').toLowerCase().includes(q));
+
+        /* Sort */
+        if(_commSort==='recent')data.sort((a,b)=>(b.analyses[0]?.updatedAt||'').localeCompare(a.analyses[0]?.updatedAt||''));
+        else if(_commSort==='analyzed')data.sort((a,b)=>b.count-a.count);
+        else if(_commSort==='risk')data.sort((a,b)=>b.weightedScore-a.weightedScore);
+
+        if(!data.length){fc.innerHTML='<div class="pra-empty">Sin resultados</div>';return}
+
+        let h='<div style="font-size:0.6em;color:#94a3b8;margin-bottom:6px">'+data.length+' contraparte'+(data.length>1?'s':'')+'</div>';
+        data.slice(0,50).forEach((p,i)=>{
+            const t=p.tier;const initial=(p.name||'?')[0].toUpperCase();
+            h+='<div class="pra-comm-feed-item" data-comm-idx="'+i+'">';
+            h+='<div class="pra-comm-avatar" style="background:'+t.bg+';color:'+t.color+'">'+initial+'</div>';
+            h+='<div class="pra-comm-info"><div class="pra-comm-info-name">'+escHtml(p.name||'Sin nombre')+'<span class="pra-comm-count" style="background:'+t.bg+';color:'+t.color+'">'+p.count+'</span></div>';
+            h+='<div class="pra-comm-info-meta">'+p.lastDate+' · '+p.consensus+' consenso'+(p.stable?'':' · ⚠️ inestable')+'</div></div>';
+            h+='<div class="pra-comm-info-score" style="color:'+t.color+'">'+p.weightedScore.toFixed(1)+' '+t.emoji+'</div>';
+            h+='</div>';
+        });
+        fc.innerHTML=h;
+        /* Click → detail */
+        fc.querySelectorAll('[data-comm-idx]').forEach(el=>{el.addEventListener('click',()=>{
+            const idx=parseInt(el.dataset.commIdx);const profile=data[idx];if(profile)renderCommunityDetail(profile)})});
+    }
+
+    function renderCommunityDetail(p){
+        const c=$('praCommFeed');if(!c)return;
+        const t=p.tier;const oc=p.outcomes;const totalOc=oc.ok+oc.dispute+oc.suspicious+oc.thirdParty+oc.notDone;
+
+        let h='<div class="pra-fade-in"><button class="pra-comm-detail-back" id="praCommBack">← Volver</button>';
+        /* Header card */
+        h+='<div class="pra-comm-card" style="border-color:'+t.color+'33"><h4>'+escHtml(p.name)+'</h4>';
+        h+='<div class="pra-comm-stats">';
+        h+='<div class="pra-comm-stat"><div class="val" style="color:'+t.color+'">'+p.weightedScore.toFixed(1)+' '+t.emoji+'</div><div class="lbl">Score ponderado</div></div>';
+        h+='<div class="pra-comm-stat"><div class="val">'+p.count+'</div><div class="lbl">Análisis</div></div>';
+        h+='<div class="pra-comm-stat"><div class="val">'+p.consensus+'</div><div class="lbl">Consenso</div></div>';
+        h+='</div>';
+        if(p.avgScore!==p.weightedScore)h+='<div style="font-size:0.6em;color:#94a3b8;text-align:center;margin-top:6px">Promedio simple: '+p.avgScore.toFixed(1)+' · Desviación: ±'+p.stdDev+'</div>';
+        if(!p.stable)h+='<div style="font-size:0.62em;color:#d97706;text-align:center;margin-top:4px">⚠️ Perfil inestable — evaluaciones contradictorias</div>';
+        h+='</div>';
+
+        /* Alerts */
+        if(p.topAlerts.length){h+='<div style="margin-bottom:8px"><div class="pra-alert-hdr" style="color:#64748b">⚠️ Alertas más reportadas</div>';
+            p.topAlerts.forEach(a=>{h+='<div class="pra-comm-alert">'+escHtml(a.text)+' <span style="color:#94a3b8">('+a.count+'×)</span></div>'});h+='</div>'}
+
+        /* Outcomes */
+        if(totalOc>0){h+='<div style="margin-bottom:8px"><div class="pra-alert-hdr" style="color:#64748b">📊 Resultados reportados ('+totalOc+')</div>';
+            if(oc.ok)h+='<div style="font-size:0.68em;color:#16a34a;padding:2px 0">✅ Todo bien: '+oc.ok+'</div>';
+            if(oc.dispute)h+='<div style="font-size:0.68em;color:#d97706;padding:2px 0">⚠️ Disputas: '+oc.dispute+'</div>';
+            if(oc.thirdParty)h+='<div style="font-size:0.68em;color:#d97706;padding:2px 0">🔄 Pagos tercero: '+oc.thirdParty+'</div>';
+            if(oc.suspicious)h+='<div style="font-size:0.68em;color:#dc2626;padding:2px 0">🚨 Sospechosos: '+oc.suspicious+'</div>';
+            h+='</div>'}
+
+        /* History of analyses */
+        if(p.analyses.length>1){h+='<div style="margin-bottom:8px"><div class="pra-alert-hdr" style="color:#64748b">📋 Historial de análisis</div>';
+            p.analyses.slice(0,10).forEach(a=>{const at=getRiskTier(a.score);
+                h+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:0.68em"><span style="color:#64748b">'+(a.ownerName||'usuario')+' · '+(a.date||'—')+'</span><span style="font-weight:700;color:'+at.color+'">'+a.score.toFixed(1)+' '+at.emoji+'</span></div>'});
+            h+='</div>'}
+
+        /* Use data button */
+        if(p.lastData){h+='<button class="pra-comm-use" id="praCommUse">📋 Usar estos datos para analizar</button>'}
+
+        h+='</div>';
+        c.innerHTML=h;
+
+        $('praCommBack').addEventListener('click',renderFeed);
+        const useBtn=$('praCommUse');
+        if(useBtn&&p.lastData){useBtn.addEventListener('click',()=>{
+            showTab('form');
+            const n=$('pra-name');if(n)n.value=p.name||'';
+            const map={ops30d:'pra-ops30d',completion:'pra-completion',trades:'pra-trades',counter:'pra-counter',positive:'pra-positive',negative:'pra-negative',age:'pra-age',pay:'pra-pay',release:'pra-release',buyratio:'pra-buyratio',banks:'pra-banks',countries:'pra-countries'};
+            Object.entries(map).forEach(([k,id])=>{const e=$(id);if(e)e.value=p.lastData[k]!=null?String(p.lastData[k]).replace('.',','):''});
+            clearV()})}
+    }
 
     /* ═══ OUTCOME FEEDBACK ═══ */
     async function recordOutcome(aliasKey,outcome){
@@ -2473,7 +2617,7 @@ const PRA=(function(){
         $('praTabComm').classList.toggle('active',tab==='community');
         if(tab==='form')$('pra-form').style.display='block';
         else if(tab==='history'){$('pra-history').style.display='block';renderHistory()}
-        else{$('pra-community').style.display='block';renderCommunitySearch()}}
+        else{$('pra-community').style.display='block';renderCommunity()}}
     function reset(){ALL_IDS.forEach(id=>{const e=$(id);if(e)e.value=''});const n=$('pra-name');if(n)n.value='';clearV();$('pra-result').style.display='none';$('pra-form').style.display='block';showTab('form')}
 
     /* ═══ ANALYZE ═══ */
@@ -2498,7 +2642,7 @@ const PRA=(function(){
             const entry={name,aliasKey,score,confidence:conf.score,tier:tier.tier,date:new Date().toLocaleDateString('es-UY'),updatedAt:new Date().toISOString(),data:d,alertTexts:alerts.map(a=>a.t)};
             try{await savePrivateAnalysis(entry)}catch(e){}
             const shared=$('pra-share')?.checked&&_sharedOk!==false;
-            if(shared){try{await saveSharedAnalysis(entry)}catch(e){}}
+            if(shared){try{await saveSharedAnalysis(entry);_commCache=null}catch(e){}}
 
             let safety='';
             if(score>2.5){const t=[];if(d.age<90)t.push('Solo montos bajos');if(d.banks>2||d.countries>1)t.push('Verificar titularidad');if(d.countries>1)t.push('Confirmar ubicación');if(d.completion<95)t.push('Temporizador corto');t.push('Guardar capturas');safety=t.map(x=>'<div style="padding:2px 0">• '+x+'</div>').join('')}
@@ -2507,8 +2651,9 @@ const PRA=(function(){
             let commHtml='';
             const comm=await getCommunityAggregate(aliasKey);
             if(comm&&comm.count>1){const ct=comm.tier;
-                commHtml='<div class="pra-comm-card"><h4>👥 Señal comunitaria ('+comm.count+' análisis)</h4><div class="pra-comm-stats"><div class="pra-comm-stat"><div class="val" style="color:'+ct.color+'">'+comm.avgScore.toFixed(1)+'</div><div class="lbl">Promedio</div></div><div class="pra-comm-stat"><div class="val">'+comm.consensus+'</div><div class="lbl">Consenso</div></div><div class="pra-comm-stat"><div class="val">'+comm.lastDate+'</div><div class="lbl">Último</div></div></div>';
-                if(comm.topAlerts.length)commHtml+='<div style="margin-top:8px;font-size:0.6em;font-weight:600;color:#64748b;margin-bottom:4px">Alertas más reportadas:</div>'+comm.topAlerts.slice(0,3).map(a=>'<div class="pra-comm-alert">'+escHtml(a.text)+' <span style="color:#94a3b8">('+a.count+'×)</span></div>').join('');
+                commHtml='<div class="pra-comm-card"><h4>👥 Señal comunitaria ('+comm.count+' análisis)</h4><div class="pra-comm-stats"><div class="pra-comm-stat"><div class="val" style="color:'+ct.color+'">'+comm.weightedScore.toFixed(1)+' '+ct.emoji+'</div><div class="lbl">Ponderado</div></div><div class="pra-comm-stat"><div class="val">'+comm.consensus+'</div><div class="lbl">Consenso</div></div><div class="pra-comm-stat"><div class="val">'+comm.lastDate+'</div><div class="lbl">Último</div></div></div>';
+                if(!comm.stable)commHtml+='<div style="font-size:0.6em;color:#d97706;text-align:center;margin-top:6px">⚠️ Perfil inestable — evaluaciones contradictorias</div>';
+                if(comm.topAlerts.length)commHtml+='<div style="margin-top:8px;font-size:0.6em;font-weight:600;color:#64748b;margin-bottom:4px">Alertas frecuentes:</div>'+comm.topAlerts.slice(0,3).map(a=>'<div class="pra-comm-alert">'+escHtml(a.text)+' <span style="color:#94a3b8">('+a.count+'×)</span></div>').join('');
                 commHtml+='</div>'}
 
             r.innerHTML='<div class="pra-fade-in">'+
@@ -2562,36 +2707,6 @@ const PRA=(function(){
         const cb=$('btnPraClearHist');if(cb)cb.addEventListener('click',async()=>{if(confirm('¿Borrar historial?')){await clearAllHistory();renderHistory()}})}
 
     /* ═══ COMMUNITY TAB ═══ */
-    async function renderCommunitySearch(){
-        const c=$('pra-community');
-        /* Test access first */
-        const ok=await testSharedAccess();
-        if(!ok){c.innerHTML='<div class="pra-empty"><div style="font-size:1.5em;margin-bottom:6px">🔒</div><div>Comunidad no disponible</div><div style="font-size:0.75em;margin-top:6px;color:#94a3b8;line-height:1.4">Para habilitar análisis compartidos,<br>configurar reglas de Firestore para <b>pra_shared</b></div></div>';return}
-        c.innerHTML='<input type="text" class="pra-comm-search" id="praCommSearch" placeholder="Buscar alias... ej: CriptolatUy"><div id="praCommResult"><div class="pra-empty"><div style="font-size:1.5em;margin-bottom:6px">🌐</div>Escribí un alias para buscar análisis comunitarios</div></div>';
-        let debounce;
-        $('praCommSearch').addEventListener('input',()=>{clearTimeout(debounce);debounce=setTimeout(async()=>{
-            const q=normalizeAlias($('praCommSearch').value);
-            const rc=$('praCommResult');
-            if(!q||q.length<2){rc.innerHTML='<div class="pra-empty">Escribí al menos 2 caracteres</div>';return}
-            rc.innerHTML='<div class="pra-loading"><div class="pra-spinner"></div><div style="font-size:0.78em;color:#64748b">Buscando...</div></div>';
-            const comm=await getCommunityAggregate(q);
-            if(!comm){rc.innerHTML='<div class="pra-empty"><div style="font-size:1.2em;margin-bottom:4px">🔍</div>Sin resultados para "'+escHtml($('praCommSearch').value)+'"</div>';return}
-            const ct=comm.tier;
-            let h='<div class="pra-fade-in"><div class="pra-comm-card"><h4>'+escHtml($('praCommSearch').value)+' — '+comm.count+' análisis</h4>'+
-                '<div class="pra-comm-stats"><div class="pra-comm-stat"><div class="val" style="color:'+ct.color+'">'+comm.avgScore.toFixed(1)+' '+ct.emoji+'</div><div class="lbl">Score promedio</div></div><div class="pra-comm-stat"><div class="val">'+comm.consensus+'</div><div class="lbl">Consenso</div></div><div class="pra-comm-stat"><div class="val">'+comm.lastDate+'</div><div class="lbl">Último análisis</div></div></div>';
-            if(comm.topAlerts.length){h+='<div style="margin-top:10px"><div style="font-size:0.62em;font-weight:600;color:#64748b;margin-bottom:4px">⚠️ Alertas más reportadas</div>';
-                comm.topAlerts.forEach(a=>{h+='<div class="pra-comm-alert">'+escHtml(a.text)+' <span style="color:#94a3b8">('+a.count+'×)</span></div>'});h+='</div>'}
-            const oc=comm.outcomes;const totalOc=oc.ok+oc.dispute+oc.suspicious+oc.thirdParty+oc.notDone;
-            if(totalOc>0){h+='<div style="margin-top:10px"><div style="font-size:0.62em;font-weight:600;color:#64748b;margin-bottom:4px">📊 Resultados reportados ('+totalOc+')</div>';
-                if(oc.ok)h+='<div style="font-size:0.68em;color:#16a34a;padding:2px 0">✅ Todo bien: '+oc.ok+'</div>';
-                if(oc.dispute)h+='<div style="font-size:0.68em;color:#d97706;padding:2px 0">⚠️ Disputas: '+oc.dispute+'</div>';
-                if(oc.thirdParty)h+='<div style="font-size:0.68em;color:#d97706;padding:2px 0">🔄 Pagos tercero: '+oc.thirdParty+'</div>';
-                if(oc.suspicious)h+='<div style="font-size:0.68em;color:#dc2626;padding:2px 0">🚨 Sospechosos: '+oc.suspicious+'</div>';
-                h+='</div>'}
-            h+='</div></div>';
-            rc.innerHTML=h;
-        },400)})}
-
     function initTabs(){
         $('praTabForm').addEventListener('click',()=>showTab('form'));
         $('praTabHist').addEventListener('click',()=>showTab('history'));
