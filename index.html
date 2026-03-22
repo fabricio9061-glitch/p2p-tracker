@@ -37,15 +37,22 @@
         .menu-btn.active span:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
         .menu-btn.active span:nth-child(2){opacity:0}
         .menu-btn.active span:nth-child(3){transform:rotate(-45deg) translate(4px,-4px)}
-        .menu-dropdown{position:absolute;top:50px;right:0;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:8px;min-width:200px;box-shadow:0 10px 40px rgba(0,0,0,0.15);opacity:0;visibility:hidden;transform:translateY(-10px);transition:all 0.2s;z-index:100}
+        .menu-dropdown{position:absolute;top:50px;right:0;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:6px;min-width:210px;box-shadow:0 10px 40px rgba(0,0,0,0.15);opacity:0;visibility:hidden;transform:translateY(-10px);transition:all 0.2s;z-index:100}
         .menu-dropdown.active{opacity:1;visibility:visible;transform:translateY(0)}
-        .menu-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:8px;cursor:pointer;color:#1e293b;font-size:0.88em;font-weight:500;white-space:nowrap}
+        .menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:#1e293b;font-size:0.85em;font-weight:500;white-space:nowrap;transition:background 0.12s}
+        .menu-item:hover{background:#f8fafc}
         .menu-item:active{background:#f1f5f9}
         .menu-item.danger{color:#dc2626}
-        .menu-divider{height:1px;background:#e2e8f0;margin:6px 0}
-        .menu-user{padding:10px 12px;border-bottom:1px solid #e2e8f0;margin-bottom:6px}
-        .menu-user-name{font-weight:600;color:#1e293b;font-size:0.9em}
-        .menu-user-email{color:#64748b;font-size:0.7em;margin-top:2px}
+        .menu-item.danger:hover{background:#fef2f2}
+        .menu-item-hero{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;cursor:pointer;color:#1e40af;font-weight:600;font-size:0.88em;background:linear-gradient(135deg,#eff6ff,#e0ecff);border:1px solid #bfdbfe;margin:2px 0 4px;transition:all 0.15s}
+        .menu-item-hero:hover{background:linear-gradient(135deg,#dbeafe,#d0e0ff);box-shadow:0 2px 8px rgba(37,99,235,0.12)}
+        .menu-item-hero:active{background:#dbeafe;transform:scale(0.98)}
+        .menu-item-hero .menu-hero-sub{font-size:0.72em;font-weight:400;color:#64748b;margin-top:1px}
+        .menu-sect{padding:4px 12px 2px;font-size:0.56em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+        .menu-divider{height:1px;background:#f1f5f9;margin:4px 0}
+        .menu-user{padding:10px 12px;border-bottom:1px solid #f1f5f9;margin-bottom:4px}
+        .menu-user-name{font-weight:600;color:#1e293b;font-size:0.88em}
+        .menu-user-email{color:#94a3b8;font-size:0.68em;margin-top:1px}
 
         /* ═══ Cards ═══ */
         .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
@@ -423,25 +430,24 @@
                     <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
                     <div class="menu-dropdown" id="menuDropdown">
                         <div class="menu-user"><div class="menu-user-name" id="menuUserName">Usuario</div><div class="menu-user-email" id="menuUserEmail">@p2p</div></div>
-                        <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Operaciones</div>
-                        <div class="menu-item" data-action="movimiento"><span>💸</span><span>Movimiento Externo</span></div>
-                        <div class="menu-item" data-action="transferencia"><span>↔️</span><span>Transferencia entre Bancos</span></div>
+                        <div class="menu-item-hero" data-action="analisis-usuario"><span style="font-size:1.2em">🔍</span><div><div>Analizar</div><div class="menu-hero-sub">Evaluar riesgo P2P</div></div></div>
                         <div class="menu-divider"></div>
-                        <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Administración</div>
-                        <div class="menu-item" data-action="bancos"><span>🏦</span><span>Cuentas Bancarias</span></div>
-                        <div class="menu-item" data-action="inventario"><span>📦</span><span>Lotes de USDT</span></div>
-                        <div class="menu-item" data-action="gestion-tags"><span>📊</span><span>Análisis de Gastos</span></div>
+                        <div class="menu-sect">Operar</div>
+                        <div class="menu-item" data-action="movimiento"><span>💸</span><span>Mover</span></div>
+                        <div class="menu-item" data-action="transferencia"><span>↔️</span><span>Transferir</span></div>
                         <div class="menu-divider"></div>
-                        <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Reportes</div>
+                        <div class="menu-sect">Cuentas</div>
+                        <div class="menu-item" data-action="bancos"><span>🏦</span><span>Cuentas</span></div>
+                        <div class="menu-item" data-action="inventario"><span>📦</span><span>Lotes</span></div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-sect">Control</div>
+                        <div class="menu-item" data-action="gestion-tags"><span>🏷️</span><span>Gastos</span></div>
                         <div class="menu-item" data-action="calendario"><span>📅</span><span>Calendario</span></div>
-                        <div class="menu-item" data-action="historial-mensual"><span>🗓️</span><span>Resumen Mensual</span></div>
+                        <div class="menu-item" data-action="historial-mensual"><span>📊</span><span>Resumen</span></div>
                         <div class="menu-divider"></div>
-                        <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Herramientas</div>
-                        <div class="menu-item" data-action="analisis-usuario"><span>🔍</span><span>Analizar Usuario P2P</span></div>
-                        <div class="menu-divider"></div>
-                        <div style="padding:2px 12px;font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Sistema</div>
-                        <div class="menu-item danger" data-action="borrar-todo"><span>🔄</span><span>Reiniciar Datos</span></div>
-                        <div class="menu-item" data-action="cerrar-sesion"><span>🚪</span><span>Cerrar Sesión</span></div>
+                        <div class="menu-sect">Sistema</div>
+                        <div class="menu-item danger" data-action="borrar-todo"><span>🔄</span><span>Resetear</span></div>
+                        <div class="menu-item" data-action="cerrar-sesion"><span>🚪</span><span>Salir</span></div>
                     </div>
                 </div>
             </div>
