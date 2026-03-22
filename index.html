@@ -2238,16 +2238,11 @@ async function borrarTodo(){
    ═══════════════════════════════════════ */
 const PRA=(function(){
     const IDS=['pra-ops30d','pra-completion','pra-trades','pra-counter','pra-positive','pra-negative','pra-age','pra-pay','pra-release','pra-buyratio','pra-banks','pra-countries'];
-    const WEIGHTS={completion:3,ops30d:2,age:2,positive:1.5,negative:1.5,countries:3,banksCountries:2,banks:1,buyratio:1.5,pay:1,release:1,counterRatio:0.5};
 
     function readField(id){const e=$(id);if(!e)return 0;const v=e.value.replace(',','.').trim();return parseFloat(v)||0}
     function validate(){
         let ok=true;
-        IDS.forEach(id=>{
-            const e=$(id);if(!e)return;
-            const v=e.value.trim();
-            e.style.borderColor=(!v||isNaN(parseFloat(v.replace(',','.'))))?((ok=false),'#dc2626'):'#e2e8f0';
-        });
+        IDS.forEach(id=>{const e=$(id);if(!e)return;const v=e.value.trim();e.style.borderColor=(!v||isNaN(parseFloat(v.replace(',','.'))))?((ok=false),'#dc2626'):'#e2e8f0'});
         return ok;
     }
     function reset(){
@@ -2264,100 +2259,132 @@ const PRA=(function(){
             buyratio:readField('pra-buyratio'),banks:readField('pra-banks'),countries:readField('pra-countries')
         };
 
-        let score=0;const alerts=[];const positives=[];
+        /* ════════════════════════════════════════════
+           PRIMARY VARIABLES (drive the core score)
+           Max theoretical primary score: ~10
+           ════════════════════════════════════════════ */
+        let primary=0;const alerts=[];const positives=[];
 
-        /* 1. Completion rate (weight: 3) */
-        if(d.completion<80){score+=WEIGHTS.completion;alerts.push({level:'red',text:'Finalización muy baja ('+d.completion+'%)'})}
-        else if(d.completion<85){score+=2;alerts.push({level:'red',text:'Finalización baja ('+d.completion+'%)'})}
-        else if(d.completion<90){score+=1.5;alerts.push({level:'yellow',text:'Finalización por debajo del promedio ('+d.completion+'%)'})}
-        else if(d.completion<95){score+=0.5;positives.push('Finalización aceptable ('+d.completion+'%)')}
+        /* P1. Tasa de finalización — PESO MÁXIMO */
+        if(d.completion<75){primary+=2.5;alerts.push({level:'red',text:'Finalización crítica ('+d.completion+'%)'})}
+        else if(d.completion<85){primary+=2;alerts.push({level:'red',text:'Finalización baja ('+d.completion+'%)'})}
+        else if(d.completion<92){primary+=1.2;alerts.push({level:'yellow',text:'Finalización mejorable ('+d.completion+'%)'})}
+        else if(d.completion<97){primary+=0.3;positives.push('Finalización aceptable ('+d.completion+'%)')}
         else positives.push('Finalización excelente ('+d.completion+'%)');
 
-        /* 2. Recent activity */
-        if(d.ops30d<2){score+=WEIGHTS.ops30d;alerts.push({level:'red',text:'Casi sin actividad reciente ('+d.ops30d+' ops)'})}
-        else if(d.ops30d<5){score+=1.5;alerts.push({level:'yellow',text:'Baja actividad reciente ('+d.ops30d+' ops/30d)'})}
-        else if(d.ops30d<15){score+=0.5;positives.push('Actividad moderada ('+d.ops30d+' ops/30d)')}
-        else positives.push('Alta actividad ('+d.ops30d+' ops/30d)');
+        /* P2. Actividad reciente (30d) */
+        if(d.ops30d===0){primary+=2;alerts.push({level:'red',text:'Sin actividad en 30 días'})}
+        else if(d.ops30d<3){primary+=1.5;alerts.push({level:'yellow',text:'Actividad muy baja ('+d.ops30d+' comercios/30d)'})}
+        else if(d.ops30d<8){primary+=0.5;positives.push('Actividad moderada ('+d.ops30d+' comercios/30d)')}
+        else positives.push('Alta actividad reciente ('+d.ops30d+' comercios/30d)');
 
-        /* 3. Account age */
-        if(d.age<15){score+=WEIGHTS.age;alerts.push({level:'red',text:'Cuenta muy nueva ('+d.age+' días)'})}
-        else if(d.age<30){score+=1.5;alerts.push({level:'yellow',text:'Cuenta reciente ('+d.age+' días)'})}
-        else if(d.age<90){score+=0.5;positives.push('Cuenta joven ('+d.age+' días)')}
-        else positives.push('Cuenta veterana ('+d.age+' días)');
+        /* P3. Total de operaciones (experiencia) */
+        if(d.trades<10){primary+=1;alerts.push({level:'yellow',text:'Muy poca experiencia ('+d.trades+' comercios)'})}
+        else if(d.trades<30){primary+=0.5}
+        else if(d.trades>200)positives.push('Trader experimentado ('+d.trades+' comercios)');
 
-        /* 4. Positive rate */
-        if(d.positive<80){score+=WEIGHTS.positive;alerts.push({level:'red',text:'Reputación baja ('+d.positive+'% positivos)'})}
-        else if(d.positive<90){score+=1;alerts.push({level:'yellow',text:'Reputación mejorable ('+d.positive+'%)'})}
-        else if(d.positive<95){score+=0.3}
+        /* P4. Reputación: % positivos */
+        if(d.positive<80){primary+=1.5;alerts.push({level:'red',text:'Reputación baja ('+d.positive+'% positivos)'})}
+        else if(d.positive<90){primary+=0.8;alerts.push({level:'yellow',text:'Reputación por debajo del promedio ('+d.positive+'%)'})}
+        else if(d.positive<96){primary+=0.2}
         else positives.push('Excelente reputación ('+d.positive+'%)');
 
-        /* 5. Negative comments */
-        if(d.negative>10){score+=WEIGHTS.negative;alerts.push({level:'red',text:'Muchos comentarios negativos ('+d.negative+')'})}
-        else if(d.negative>5){score+=1;alerts.push({level:'yellow',text:'Comentarios negativos elevados ('+d.negative+')'})}
-        else if(d.negative>2){score+=0.3}
-        else positives.push('Pocos negativos ('+d.negative+')');
+        /* P5. Comentarios negativos (absoluto, no %) */
+        const negRatio=d.trades>0?d.negative/d.trades*100:0;
+        if(d.negative>10||negRatio>5){primary+=1.5;alerts.push({level:'red',text:'Demasiados negativos ('+d.negative+', '+negRatio.toFixed(1)+'% del total)'})}
+        else if(d.negative>5||negRatio>2){primary+=0.8;alerts.push({level:'yellow',text:'Negativos elevados ('+d.negative+')'})}
+        else if(d.negative>2){primary+=0.2}
+        else positives.push('Pocos o sin negativos ('+d.negative+')');
 
-        /* 6. Countries — triangulation */
-        if(d.countries>2){score+=WEIGHTS.countries;alerts.push({level:'red',text:'Múltiples países ('+d.countries+') — posible triangulación'})}
-        else if(d.countries>1){score+=1.5;alerts.push({level:'yellow',text:'Actividad en '+d.countries+' países'})}
+        /* P6. Antigüedad de cuenta */
+        if(d.age<15){primary+=1.5;alerts.push({level:'red',text:'Cuenta muy nueva ('+d.age+' días)'})}
+        else if(d.age<45){primary+=0.8;alerts.push({level:'yellow',text:'Cuenta reciente ('+d.age+' días)'})}
+        else if(d.age<120){primary+=0.2}
+        else positives.push('Cuenta con antigüedad ('+d.age+' días)');
+
+        /* P7. Relación compra/venta */
+        const buyDev=Math.abs(d.buyratio-50);
+        if(buyDev>42){primary+=1;alerts.push({level:'yellow',text:'Operación muy unilateral ('+(d.buyratio>50?d.buyratio+'% compras':Math.round(100-d.buyratio)+'% ventas')+')'})}
+        else if(buyDev>35){primary+=0.3}
+
+        /* P8. Países — triangulación (señal fuerte) */
+        if(d.countries>3){primary+=2;alerts.push({level:'red',text:'Actividad en '+d.countries+' países — fuerte señal de triangulación'})}
+        else if(d.countries>2){primary+=1.5;alerts.push({level:'red',text:'Múltiples países ('+d.countries+') — posible triangulación'})}
+        else if(d.countries===2){primary+=0.8;alerts.push({level:'yellow',text:'Actividad en 2 países'})}
         else positives.push('Operación local (1 país)');
 
-        /* 7. Banks + countries combo */
-        if(d.banks>2&&d.countries>1){score+=WEIGHTS.banksCountries;alerts.push({level:'red',text:'Múltiples bancos ('+d.banks+') + países → señal fuerte'})}
-        else if(d.banks>4){score+=WEIGHTS.banks;alerts.push({level:'yellow',text:'Muchos métodos de pago ('+d.banks+' bancos)'})}
+        /* ════════════════════════════════════════════
+           SECONDARY VARIABLES (max +1.5 adjustment)
+           Only shift score slightly or trigger alerts
+           ════════════════════════════════════════════ */
+        let secondary=0;
 
-        /* 8. Buy/sell ratio */
-        const deviation=Math.abs(d.buyratio-50);
-        if(deviation>40){score+=WEIGHTS.buyratio;alerts.push({level:'yellow',text:'Patrón muy unilateral ('+(d.buyratio>50?d.buyratio+'% compra':Math.round(100-d.buyratio)+'% venta')+')'})}
-        else if(deviation>30){score+=0.5}
+        /* S1. Bancos — solo alarma si se combina con otros */
+        if(d.banks>3&&d.countries>1){secondary+=0.5;alerts.push({level:'red',text:'Múltiples bancos ('+d.banks+') + múltiples países'})}
+        else if(d.banks>4){alerts.push({level:'yellow',text:'Usa muchos métodos de pago ('+d.banks+' bancos)'})}
 
-        /* 9. Timing */
-        if(d.pay>20){score+=WEIGHTS.pay;alerts.push({level:'yellow',text:'Pago muy lento ('+d.pay+' min)'})}
-        else if(d.pay>10){score+=0.5}
-        if(d.release>15){score+=WEIGHTS.release;alerts.push({level:'yellow',text:'Liberación lenta ('+d.release+' min)'})}
-        else if(d.release>8){score+=0.5}
+        /* S2. Tiempo de pago */
+        if(d.pay>20){secondary+=0.3;alerts.push({level:'yellow',text:'Tiempo de pago lento ('+d.pay+' min)'})}
+        else if(d.pay>12){alerts.push({level:'yellow',text:'Pago por encima del promedio ('+d.pay+' min)'})}
 
-        /* 10. Counterparty diversity */
-        if(d.trades>30&&d.counter>0&&d.trades/d.counter>8){score+=WEIGHTS.counterRatio;alerts.push({level:'yellow',text:'Baja diversidad de contrapartes'})}
+        /* S3. Tiempo de liberación */
+        if(d.release>15){secondary+=0.3;alerts.push({level:'yellow',text:'Liberación lenta ('+d.release+' min)'})}
+        else if(d.release>8){alerts.push({level:'yellow',text:'Liberación por encima del promedio ('+d.release+' min)'})}
 
-        /* Clamp 0-10 */
-        score=Math.min(10,Math.max(0,Math.round(score*10)/10));
+        /* S4. Diversidad de contrapartes */
+        if(d.trades>30&&d.counter>0&&d.trades/d.counter>10){secondary+=0.2;alerts.push({level:'yellow',text:'Baja diversidad de contrapartes ('+d.counter+' para '+d.trades+' ops)'})}
 
-        /* Tier */
+        /* Cap secondary at 1.5 */
+        secondary=Math.min(1.5,secondary);
+
+        /* ════════════════════════════════════════════
+           FINAL SCORE: primary + secondary, clamped 0-10
+           ════════════════════════════════════════════ */
+        let score=Math.min(10,Math.max(0,Math.round((primary+secondary)*10)/10));
+
+        /* ═══ TIER + RECOMMENDATION ═══ */
         let tier,tierColor,tierBg,emoji,action,actionColor;
-        if(score<=3){tier='SEGURO';tierColor='#16a34a';tierBg='#f0fdf4';emoji='🟢';action='Operar sin problema';actionColor='#16a34a'}
-        else if(score<=6){tier='PRECAUCIÓN';tierColor='#d97706';tierBg='#fffbeb';emoji='🟡';action='Operar con precaución';actionColor='#d97706'}
+        if(score<=2.5){tier='SEGURO';tierColor='#16a34a';tierBg='#f0fdf4';emoji='🟢';action='Operar sin problema';actionColor='#16a34a'}
+        else if(score<=5){tier='PRECAUCIÓN';tierColor='#d97706';tierBg='#fffbeb';emoji='🟡';action='Operar con precaución';actionColor='#d97706'}
         else{tier='RIESGOSO';tierColor='#dc2626';tierBg='#fef2f2';emoji='🔴';action='No operar';actionColor='#dc2626'}
 
-        /* Explanation */
+        /* ═══ SMART EXPLANATION (max 3 lines) ═══ */
+        const redAlerts=alerts.filter(a=>a.level==='red');
+        const yellowAlerts=alerts.filter(a=>a.level==='yellow');
         let reason;
-        if(!alerts.length)reason='Perfil sólido sin señales de alerta. Historial consistente y confiable.';
-        else if(score<=3)reason='Buen perfil con observaciones menores que no representan riesgo significativo.';
-        else if(score<=6)reason='Se detectaron inconsistencias. Verificar datos del usuario antes de confirmar.';
-        else reason='Múltiples señales de riesgo. Se recomienda evitar esta contraparte.';
+        if(redAlerts.length===0&&yellowAlerts.length===0)reason='Perfil sólido: historial consistente, buena reputación y actividad saludable. Sin señales de alerta.';
+        else if(score<=2.5){
+            reason='Buen perfil general.';
+            if(yellowAlerts.length)reason+=' Observaciones menores: '+yellowAlerts[0].text.toLowerCase()+'.';
+        }else if(score<=5){
+            const main=redAlerts.length?redAlerts[0].text:yellowAlerts[0].text;
+            reason='Atención: '+main.toLowerCase()+'. Verificar antes de operar con montos altos.';
+        }else{
+            const tops=redAlerts.slice(0,2).map(a=>a.text.toLowerCase());
+            reason='Riesgo elevado: '+tops.join('; ')+'. Se recomienda no operar con esta contraparte.';
+        }
 
-        /* Safety conditions */
+        /* ═══ SAFETY TIPS (contextual) ═══ */
         let safety='';
-        if(score>3){
+        if(score>2.5){
             const tips=[];
-            if(d.age<90)tips.push('Solo montos bajos (< $5.000)');
-            if(d.banks>2||d.countries>1)tips.push('Verificar titularidad bancaria');
-            if(d.countries>1)tips.push('Confirmar ubicación real');
-            if(d.completion<95)tips.push('Usar temporizador corto');
-            tips.push('Guardar capturas de pantalla');
+            if(d.age<90)tips.push('Operar solo montos bajos (< $5.000)');
+            if(d.banks>2||d.countries>1)tips.push('Verificar titularidad de la cuenta bancaria');
+            if(d.countries>1)tips.push('Confirmar ubicación real del usuario');
+            if(d.completion<95)tips.push('Configurar temporizador corto en la orden');
+            if(d.negative>3)tips.push('Leer los comentarios negativos antes de operar');
+            tips.push('Guardar capturas de toda la conversación');
             safety=tips.map(t=>'<div style="padding:2px 0">• '+t+'</div>').join('');
         }
 
-        /* Render */
+        /* ═══ RENDER ═══ */
         const r=$('pra-result');
-        const redAlerts=alerts.filter(a=>a.level==='red');
-        const yellowAlerts=alerts.filter(a=>a.level==='yellow');
-
         r.innerHTML=`
             <div style="text-align:center;padding:16px 12px;background:${tierBg};border:1px solid ${tierColor}22;border-radius:10px;margin-bottom:10px">
                 <div style="font-size:2em;line-height:1">${emoji}</div>
                 <div style="font-size:2em;font-weight:800;color:${tierColor};margin:4px 0;letter-spacing:-1px">${score.toFixed(1)}</div>
                 <div style="font-size:0.72em;color:#64748b">de 10 · ${tier}</div>
+                <div style="font-size:0.58em;color:#94a3b8;margin-top:2px">Primario: ${primary.toFixed(1)} + Secundario: ${secondary.toFixed(1)}</div>
             </div>
             <div style="padding:10px 12px;border-left:3px solid ${actionColor};background:${actionColor}08;border-radius:0 8px 8px 0;margin-bottom:10px">
                 <div style="font-weight:700;color:${actionColor};font-size:0.85em">${action}</div>
