@@ -2343,8 +2343,15 @@ const PRA=(function(){
 
     /* ─── Firebase refs ─── */
     function privateCol(){return AppState.db&&AppState.currentUser?AppState.db.collection('users').doc(AppState.currentUser.uid).collection('pra_analyses'):null}
-    function sharedCol(){return AppState.db?AppState.db.collection('pra_shared'):null}
+    let _sharedOk=null; /* null=untested, true/false=cached result */
+    function sharedCol(){return(AppState.db&&_sharedOk!==false)?AppState.db.collection('pra_shared'):null}
     function uid(){return AppState.currentUser?.uid||'anon'}
+    async function testSharedAccess(){
+        if(_sharedOk!==null)return _sharedOk;
+        if(!AppState.db){_sharedOk=false;return false}
+        try{await AppState.db.collection('pra_shared').limit(1).get();_sharedOk=true;return true}
+        catch(e){_sharedOk=false;console.warn('[PRA] Comunidad no disponible — configurar reglas de Firestore para pra_shared');return false}
+    }
 
     /* ═══ SCORING (unchanged weights) ═══ */
     function calculatePrimaryScore(d){const i=[];let v;
@@ -2410,11 +2417,12 @@ const PRA=(function(){
         catch(e){console.error('[PRA] private save:',e)}}
 
     async function saveSharedAnalysis(entry){
+        if(_sharedOk===false)return;
         const col=sharedCol();if(!col)return;
         const doc={...entry,ownerUserId:uid(),ownerName:AppState.currentUser?.email?.split('@')[0]||'anon',sharedAt:new Date().toISOString()};
         try{const ex=await col.where('aliasKey','==',entry.aliasKey).where('ownerUserId','==',uid()).limit(1).get();
-            if(!ex.empty){await ex.docs[0].ref.update(doc)}else{await col.add(doc)}}
-        catch(e){console.error('[PRA] shared save:',e)}}
+            if(!ex.empty){await ex.docs[0].ref.update(doc)}else{await col.add(doc)};_sharedOk=true}
+        catch(e){_sharedOk=false}}
 
     async function loadHistory(){
         const col=privateCol();
@@ -2428,8 +2436,10 @@ const PRA=(function(){
 
     /* ═══ COMMUNITY AGGREGATE ═══ */
     async function getCommunityAggregate(aliasKey){
+        if(_sharedOk===false)return null;
         const col=sharedCol();if(!col)return null;
         try{const snap=await col.where('aliasKey','==',aliasKey).orderBy('updatedAt','desc').limit(20).get();
+            _sharedOk=true;
             if(snap.empty)return null;
             const analyses=[];snap.forEach(doc=>analyses.push(doc.data()));
             const scores=analyses.map(a=>a.score);const avg=scores.reduce((s,v)=>s+v,0)/scores.length;
@@ -2444,14 +2454,13 @@ const PRA=(function(){
             const outcomes={ok:0,dispute:0,suspicious:0,thirdParty:0,notDone:0};
             analyses.forEach(a=>{if(a.outcome)outcomes[a.outcome]=(outcomes[a.outcome]||0)+1});
             return{count:analyses.length,avgScore:Math.round(avg*10)/10,topAlerts,consensus,stdDev:Math.round(stdDev*10)/10,lastDate:analyses[0]?.date||'—',outcomes,tier:getRiskTier(Math.round(avg*10)/10)}}
-        catch(e){console.error('[PRA] community:',e);return null}}
+        catch(e){if(e.code==='permission-denied')_sharedOk=false;return null}}
 
     /* ═══ OUTCOME FEEDBACK ═══ */
     async function recordOutcome(aliasKey,outcome){
-        /* Update private */
         const pCol=privateCol();
         if(pCol){try{const ex=await pCol.where('aliasKey','==',aliasKey).limit(1).get();if(!ex.empty)await ex.docs[0].ref.update({outcome})}catch(e){}}
-        /* Update shared */
+        if(_sharedOk===false)return;
         const sCol=sharedCol();
         if(sCol){try{const ex=await sCol.where('aliasKey','==',aliasKey).where('ownerUserId','==',uid()).limit(1).get();if(!ex.empty)await ex.docs[0].ref.update({outcome})}catch(e){}}}
 
@@ -2488,7 +2497,7 @@ const PRA=(function(){
 
             const entry={name,aliasKey,score,confidence:conf.score,tier:tier.tier,date:new Date().toLocaleDateString('es-UY'),updatedAt:new Date().toISOString(),data:d,alertTexts:alerts.map(a=>a.t)};
             try{await savePrivateAnalysis(entry)}catch(e){}
-            const shared=$('pra-share')?.checked;
+            const shared=$('pra-share')?.checked&&_sharedOk!==false;
             if(shared){try{await saveSharedAnalysis(entry)}catch(e){}}
 
             let safety='';
@@ -2553,8 +2562,11 @@ const PRA=(function(){
         const cb=$('btnPraClearHist');if(cb)cb.addEventListener('click',async()=>{if(confirm('¿Borrar historial?')){await clearAllHistory();renderHistory()}})}
 
     /* ═══ COMMUNITY TAB ═══ */
-    function renderCommunitySearch(){
+    async function renderCommunitySearch(){
         const c=$('pra-community');
+        /* Test access first */
+        const ok=await testSharedAccess();
+        if(!ok){c.innerHTML='<div class="pra-empty"><div style="font-size:1.5em;margin-bottom:6px">🔒</div><div>Comunidad no disponible</div><div style="font-size:0.75em;margin-top:6px;color:#94a3b8;line-height:1.4">Para habilitar análisis compartidos,<br>configurar reglas de Firestore para <b>pra_shared</b></div></div>';return}
         c.innerHTML='<input type="text" class="pra-comm-search" id="praCommSearch" placeholder="Buscar alias... ej: CriptolatUy"><div id="praCommResult"><div class="pra-empty"><div style="font-size:1.5em;margin-bottom:6px">🌐</div>Escribí un alias para buscar análisis comunitarios</div></div>';
         let debounce;
         $('praCommSearch').addEventListener('input',()=>{clearTimeout(debounce);debounce=setTimeout(async()=>{
