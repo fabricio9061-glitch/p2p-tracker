@@ -609,46 +609,46 @@
     <div id="modalEditarOp" class="modal"><div class="modal-content"><div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div><div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div><div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div><div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div><div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div><div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div></div></div>
 
     <!-- ═══ ANALYZER MODULE (encapsulated) ═══ -->
-    <div id="modalAnalisis" class="modal"><div class="modal-content" style="max-width:520px;padding:0;overflow:hidden">
-        <div style="padding:14px 16px 10px;border-bottom:1px solid #e2e8f0">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-                <div style="font-size:1.05em;font-weight:700;color:#1e293b">🔍 Análisis de Contraparte</div>
-                <button id="btnCerrarAnalisis" style="background:none;border:none;font-size:1.2em;cursor:pointer;color:#94a3b8;padding:4px">✕</button>
-            </div>
-            <div style="font-size:0.68em;color:#94a3b8;margin-top:2px">Ingresá los datos del perfil de Binance P2P</div>
+    <div id="modalAnalisis" class="modal"><div class="modal-content" style="max-width:400px;padding:0;overflow:hidden;border-radius:16px">
+        <div style="padding:18px 20px 14px;text-align:center;border-bottom:1px solid #f1f5f9">
+            <div style="font-size:1.1em;font-weight:700;color:#1e293b">🔍 Análisis de Contraparte</div>
+            <div style="font-size:0.7em;color:#94a3b8;margin-top:3px">Datos del perfil de Binance P2P</div>
         </div>
-        <div id="pra-body" style="max-height:70vh;overflow-y:auto;padding:12px 16px">
+        <div id="pra-body" style="max-height:68vh;overflow-y:auto;padding:16px 20px 20px">
             <div id="pra-form">
-                <div style="font-size:0.62em;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Actividad</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+                <div style="font-size:0.6em;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Actividad</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
                     <div class="form-group"><label>Ops 30d</label><input type="text" inputmode="numeric" id="pra-ops30d" placeholder="45"></div>
                     <div class="form-group"><label>% Finaliz.</label><input type="text" inputmode="decimal" id="pra-completion" placeholder="98,5"></div>
                     <div class="form-group"><label>Total trades</label><input type="text" inputmode="numeric" id="pra-trades" placeholder="350"></div>
                 </div>
-                <div style="font-size:0.62em;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Reputación</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+                <div style="font-size:0.6em;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Reputación</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
                     <div class="form-group"><label>Contrapartes</label><input type="text" inputmode="numeric" id="pra-counter" placeholder="120"></div>
                     <div class="form-group"><label>% Positivos</label><input type="text" inputmode="decimal" id="pra-positive" placeholder="98"></div>
                     <div class="form-group"><label>Negativos</label><input type="text" inputmode="numeric" id="pra-negative" placeholder="2"></div>
                 </div>
-                <div style="font-size:0.62em;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Comportamiento</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+                <div style="font-size:0.6em;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Comportamiento</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
                     <div class="form-group"><label>Antigüedad (d)</label><input type="text" inputmode="numeric" id="pra-age" placeholder="365"></div>
                     <div class="form-group"><label>Pago (min)</label><input type="text" inputmode="decimal" id="pra-pay" placeholder="5"></div>
                     <div class="form-group"><label>Liberac. (min)</label><input type="text" inputmode="decimal" id="pra-release" placeholder="3"></div>
                 </div>
-                <div style="font-size:0.62em;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Consistencia</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+                <div style="font-size:0.6em;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Consistencia</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px">
                     <div class="form-group"><label>% Compras</label><input type="text" inputmode="decimal" id="pra-buyratio" placeholder="50"></div>
                     <div class="form-group"><label>Bancos</label><input type="text" inputmode="numeric" id="pra-banks" placeholder="2"></div>
                     <div class="form-group"><label>Países</label><input type="text" inputmode="numeric" id="pra-countries" placeholder="1"></div>
                 </div>
-                <div style="display:flex;gap:8px">
-                    <button class="btn" id="btnPraAnalizar" style="flex:1">🔍 Analizar Riesgo</button>
-                    <button class="btn btn-cancel" id="btnPraReset" style="flex:0 0 auto;padding:10px 14px">↺</button>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <button class="btn" id="btnPraAnalizar">🔍 Analizar</button>
+                    <button class="btn btn-cancel" id="btnPraReset">↺ Limpiar</button>
                 </div>
             </div>
             <div id="pra-result" style="display:none"></div>
+        </div>
+        <div style="padding:10px 20px 14px;border-top:1px solid #f1f5f9;text-align:center">
+            <button id="btnCerrarAnalisis" style="background:none;border:none;font-size:0.78em;color:#94a3b8;cursor:pointer;padding:6px 16px">Cerrar</button>
         </div>
     </div></div>
 
