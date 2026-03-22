@@ -610,7 +610,7 @@
 
     <!-- ═══ PRA MODULE — Análisis de Usuario P2P (encapsulated) ═══ -->
     <style>
-        /* ═══ PRA Scoped Styles v3 ═══ */
+        /* ═══ PRA Scoped Styles v4 ═══ */
         #modalAnalisis .modal-content{max-width:420px;padding:0;overflow:hidden;border-radius:14px}
         .pra-header{padding:14px 20px 10px;text-align:center;border-bottom:1px solid #f1f5f9;background:white}
         .pra-title{font-size:1.05em;font-weight:700;color:#1e293b}
@@ -632,18 +632,21 @@
         .pra-footer{padding:8px 20px 12px;border-top:1px solid #f1f5f9;text-align:center}
         .pra-footer button{background:none;border:none;font-size:0.75em;color:#94a3b8;cursor:pointer;padding:5px 14px}
         .pra-footer button:hover{color:#64748b}
-        /* Animations */
         .pra-fade-in{animation:praFadeIn 0.35s ease}
         @keyframes praFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         .pra-loading{text-align:center;padding:40px 20px}
         .pra-spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:praSpin 0.7s linear infinite;margin:0 auto 10px}
         @keyframes praSpin{to{transform:rotate(360deg)}}
-        /* Score display */
         .pra-score-card{text-align:center;padding:16px 12px;border-radius:10px;margin-bottom:10px}
         .pra-score-big{font-size:2.4em;font-weight:800;line-height:1;letter-spacing:-1px}
         .pra-score-tier{font-size:0.82em;font-weight:700;margin-top:4px}
         .pra-score-meta{font-size:0.55em;color:#94a3b8;margin-top:4px}
-        /* Breakdown bars */
+        /* Confidence badge */
+        .pra-confidence{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:0.62em;font-weight:600;margin-top:6px}
+        .pra-conf-high{background:#dcfce7;color:#16a34a}
+        .pra-conf-med{background:#fef3c7;color:#d97706}
+        .pra-conf-low{background:#fee2e2;color:#dc2626}
+        /* Breakdown */
         .pra-breakdown{margin-bottom:10px;border:1px solid #f1f5f9;border-radius:8px;overflow:hidden}
         .pra-bk-toggle{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;cursor:pointer;background:#f8fafc;font-size:0.68em;font-weight:600;color:#64748b;border:none;width:100%}
         .pra-bk-toggle:hover{background:#f1f5f9}
@@ -655,18 +658,18 @@
         .pra-bk-bar{flex:0 0 50px;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden}
         .pra-bk-fill{height:100%;border-radius:3px;transition:width 0.4s ease}
         .pra-bk-divider{border-top:1px dashed #e2e8f0;margin:4px 0}
-        /* Recommendation */
         .pra-recom{padding:10px 12px;border-radius:0 8px 8px 0;margin-bottom:10px}
-        /* Alert sections */
         .pra-alert-hdr{font-size:0.62em;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
         .pra-alert-row{font-size:0.73em;color:#1e293b;padding:3px 0;border-bottom:1px solid}
-        /* History */
         .pra-hist-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.15s}
         .pra-hist-item:hover{background:#f8fafc;margin:0 -8px;padding:10px 8px;border-radius:6px}
         .pra-hist-name{font-size:0.82em;font-weight:600;color:#1e293b}
         .pra-hist-date{font-size:0.62em;color:#94a3b8}
+        .pra-hist-badge{display:flex;align-items:center;gap:4px}
         .pra-hist-score{font-size:0.78em;font-weight:700;border-radius:6px;padding:2px 8px}
+        .pra-hist-count{font-size:0.55em;color:#94a3b8}
         .pra-empty{text-align:center;padding:30px 10px;color:#94a3b8;font-size:0.8em}
+        .pra-sync{font-size:0.55em;color:#94a3b8;text-align:center;margin-top:6px}
     </style>
     <div id="modalAnalisis" class="modal"><div class="modal-content">
         <div class="pra-header">
@@ -2300,11 +2303,14 @@ async function borrarTodo(){
    §17 — PRA: Análisis de Contraparte P2P (v3)
    Pure-function scoring · Breakdown · History
    ═══════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   §17 — PRA: Análisis de Contraparte P2P (v4)
+   Confidence score · Firebase sync · Dedup
+   ═══════════════════════════════════════ */
 const PRA=(function(){
     const PRIMARY_IDS=['pra-ops30d','pra-completion','pra-trades','pra-positive','pra-negative','pra-age','pra-buyratio','pra-countries','pra-counter'];
     const SECONDARY_IDS=['pra-pay','pra-release','pra-banks'];
     const ALL_IDS=[...PRIMARY_IDS,...SECONDARY_IDS];
-    const STORE_KEY='pra_history';
 
     /* ─── I/O ─── */
     function read(id){const e=$(id);if(!e)return 0;return parseFloat(e.value.replace(',','.').trim())||0}
@@ -2317,11 +2323,56 @@ const PRA=(function(){
     function clearV(){ALL_IDS.forEach(id=>{const e=$(id);if(e)e.classList.remove('pra-err','pra-ok','pra-warn')})}
     function liveWarn(){const c=$('pra-completion');if(c){const v=parseFloat(c.value.replace(',','.'))||0;if(c.value.trim()&&v>0&&v<85)c.classList.add('pra-warn');else c.classList.remove('pra-warn')}}
 
-    /* ─── Persistence ─── */
-    function loadH(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||[]}catch(e){return[]}}
-    function saveH(l){try{localStorage.setItem(STORE_KEY,JSON.stringify(l.slice(0,50)))}catch(e){}}
-    function addH(e){const h=loadH();h.unshift(e);saveH(h)}
-    function clearH(){localStorage.removeItem(STORE_KEY)}
+    /* ─── Dedup key ─── */
+    function normalizeAlias(name){return(name||'').trim().toLowerCase().replace(/\s+/g,' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+
+    /* ─── Firebase persistence ─── */
+    function getCollection(){
+        if(!AppState.db||!AppState.currentUser)return null;
+        return AppState.db.collection('users').doc(AppState.currentUser.uid).collection('pra_analyses');
+    }
+    async function loadHistory(){
+        const col=getCollection();
+        if(!col){try{return JSON.parse(localStorage.getItem('pra_history'))||[]}catch(e){return[]}}
+        try{
+            const snap=await col.orderBy('updatedAt','desc').limit(50).get();
+            const list=[];snap.forEach(doc=>{const d=doc.data();d._id=doc.id;list.push(d)});return list;
+        }catch(e){console.error('[PRA] load error:',e);try{return JSON.parse(localStorage.getItem('pra_history'))||[]}catch(e2){return[]}}
+    }
+    async function saveAnalysis(entry){
+        const col=getCollection();
+        const key=normalizeAlias(entry.name);
+        entry.aliasKey=key;
+        entry.updatedAt=new Date().toISOString();
+        if(!col){
+            /* Fallback localStorage */
+            try{const h=JSON.parse(localStorage.getItem('pra_history'))||[];
+            const idx=h.findIndex(x=>normalizeAlias(x.name)===key);
+            if(idx>=0){h[idx].history=(h[idx].history||[]).concat({score:h[idx].score,date:h[idx].date});
+                Object.assign(h[idx],entry);const item=h.splice(idx,1)[0];h.unshift(item)}
+            else{entry.history=[];h.unshift(entry)}
+            localStorage.setItem('pra_history',JSON.stringify(h.slice(0,50)))}catch(e){}
+            return;
+        }
+        try{
+            /* Check if alias already exists */
+            const existing=await col.where('aliasKey','==',key).limit(1).get();
+            if(!existing.empty){
+                const doc=existing.docs[0];const prev=doc.data();
+                const hist=(prev.history||[]).concat({score:prev.score,date:prev.date,confidence:prev.confidence});
+                await doc.ref.update({...entry,history:hist.slice(-20)});
+            }else{
+                entry.history=[];
+                await col.add(entry);
+            }
+        }catch(e){console.error('[PRA] save error:',e);
+            try{const h=JSON.parse(localStorage.getItem('pra_history'))||[];h.unshift(entry);localStorage.setItem('pra_history',JSON.stringify(h.slice(0,50)))}catch(e2){}}
+    }
+    async function clearAllHistory(){
+        const col=getCollection();
+        if(!col){localStorage.removeItem('pra_history');return}
+        try{const snap=await col.get();const batch=AppState.db.batch();snap.forEach(doc=>batch.delete(doc.ref));await batch.commit()}catch(e){console.error('[PRA] clear error:',e)}
+    }
 
     /* ─── Tabs ─── */
     function showTab(tab){
@@ -2338,7 +2389,7 @@ const PRA=(function(){
     }
 
     /* ══════════════════════════════════════════
-       SCORING ENGINE v3 — Pure functions
+       SCORING: Primary (unchanged weights)
        ══════════════════════════════════════════ */
     function calculatePrimaryScore(d){
         const items=[];let v;
@@ -2362,6 +2413,9 @@ const PRA=(function(){
         return{items,total:Math.round(items.reduce((s,i)=>s+i.pts,0)*10)/10};
     }
 
+    /* ══════════════════════════════════════════
+       SCORING: Secondary (unchanged, cap 1.5)
+       ══════════════════════════════════════════ */
     function calculateSecondaryScore(d){
         const items=[];let v;
         v=0;if(d.banks>3&&d.countries>1)v=0.5;
@@ -2377,6 +2431,41 @@ const PRA=(function(){
 
     function calculateFinalScore(p,s){return Math.min(10,Math.max(0,Math.round((p+s)*10)/10))}
 
+    /* ══════════════════════════════════════════
+       CONFIDENCE SCORE (0-100, independent)
+       ══════════════════════════════════════════ */
+    function calculateConfidenceScore(d){
+        let conf=100;const notes=[];
+        /* Data completeness */
+        if(!d.banks){conf-=8;notes.push('Sin dato de bancos')}
+        if(!d.countries){conf-=10;notes.push('Sin dato de países')}
+        if(!d.pay&&!d.release){conf-=5;notes.push('Sin tiempos de operación')}
+        if(!d.counter){conf-=5;notes.push('Sin dato de contrapartes')}
+        /* Sample quality */
+        if(d.trades<5){conf-=20;notes.push('Muestra muy pequeña ('+d.trades+' trades)')}
+        else if(d.trades<20){conf-=10;notes.push('Muestra limitada ('+d.trades+' trades)')}
+        else if(d.trades<50){conf-=3}
+        /* Activity recency */
+        if(d.ops30d===0){conf-=15;notes.push('Sin actividad reciente')}
+        else if(d.ops30d<3){conf-=8;notes.push('Actividad reciente escasa')}
+        /* Account maturity */
+        if(d.age<30){conf-=10;notes.push('Cuenta demasiado nueva para evaluar')}
+        else if(d.age<60){conf-=5}
+        /* Consistency checks */
+        if(d.positive===100&&d.negative===0&&d.trades>50){conf+=5;notes.push('Historial perfecto')}
+        if(d.trades>200&&d.age>180){conf+=5;notes.push('Alta madurez de datos')}
+        /* Clamp */
+        conf=Math.min(100,Math.max(10,conf));
+        return{score:conf,notes};
+    }
+
+    function getConfidenceTier(conf){
+        if(conf>=75)return{label:'Alta',cls:'pra-conf-high',icon:'🟢'};
+        if(conf>=50)return{label:'Media',cls:'pra-conf-med',icon:'🟡'};
+        return{label:'Baja',cls:'pra-conf-low',icon:'🔴'};
+    }
+
+    /* ══════════════════════════════════════════ */
     function getRiskTier(score){
         if(score<=2.5)return{tier:'SEGURO',color:'#16a34a',bg:'#f0fdf4',emoji:'🟢',action:'Operar sin problema'};
         if(score<=5)return{tier:'PRECAUCIÓN',color:'#d97706',bg:'#fffbeb',emoji:'🟡',action:'Operar con precaución'};
@@ -2407,15 +2496,11 @@ const PRA=(function(){
         return'Riesgo: '+r.slice(0,2).map(a=>a.t.toLowerCase()).join('; ')+'. Evitar esta contraparte.';
     }
 
-    /* ─── Breakdown panel ─── */
-    function bkRow(name,pts,max,color){
-        const pct=Math.min(100,pts/2.5*100);const c=pts===0?'#cbd5e1':color;
-        return'<div class="pra-bk-row"><span class="pra-bk-name">'+name+'</span><span class="pra-bk-pts" style="color:'+c+'">'+(pts>0?'+'+pts.toFixed(1):'0')+'</span><div class="pra-bk-bar"><div class="pra-bk-fill" style="width:'+pct+'%;background:'+c+'"></div></div></div>';
-    }
+    /* ─── Breakdown ─── */
+    function bkRow(n,pts,c){const pct=Math.min(100,pts/2.5*100);const cl=pts===0?'#cbd5e1':c;
+        return'<div class="pra-bk-row"><span class="pra-bk-name">'+n+'</span><span class="pra-bk-pts" style="color:'+cl+'">'+(pts>0?'+'+pts.toFixed(1):'0')+'</span><div class="pra-bk-bar"><div class="pra-bk-fill" style="width:'+pct+'%;background:'+cl+'"></div></div></div>'}
     function renderBreakdown(pI,sI,tc){
-        let h=pI.map(i=>bkRow(i.name,i.pts,i.max,tc)).join('');
-        h+='<div class="pra-bk-divider"></div>';
-        h+=sI.map(i=>bkRow(i.name,i.pts,i.max,'#64748b')).join('');
+        let h=pI.map(i=>bkRow(i.name,i.pts,tc)).join('')+'<div class="pra-bk-divider"></div>'+sI.map(i=>bkRow(i.name,i.pts,'#64748b')).join('');
         return'<div class="pra-breakdown"><button class="pra-bk-toggle" id="praBkToggle">📊 Desglose del score <span style="font-size:0.9em">▾</span></button><div class="pra-bk-body" id="praBkBody">'+h+'</div></div>';
     }
 
@@ -2427,7 +2512,7 @@ const PRA=(function(){
         r.innerHTML='<div class="pra-loading"><div class="pra-spinner"></div><div style="font-size:0.78em;color:#64748b">Analizando perfil...</div></div>';
         $('pra-body').scrollTop=0;
 
-        setTimeout(()=>{
+        setTimeout(async()=>{
             const d={ops30d:read('pra-ops30d'),completion:read('pra-completion'),trades:read('pra-trades'),counter:read('pra-counter'),positive:read('pra-positive'),negative:read('pra-negative'),age:read('pra-age'),pay:read('pra-pay'),release:read('pra-release'),buyratio:read('pra-buyratio'),banks:read('pra-banks'),countries:read('pra-countries')};
             const name=($('pra-name')?.value||'').trim()||'Sin nombre';
             const pS=calculatePrimaryScore(d),sS=calculateSecondaryScore(d);
@@ -2435,18 +2520,26 @@ const PRA=(function(){
             const tier=getRiskTier(score);
             const{alerts,positives}=generateAlerts(d);
             const reason=getExplanation(score,alerts);
+            const conf=calculateConfidenceScore(d);
+            const confTier=getConfidenceTier(conf.score);
             const reds=alerts.filter(a=>a.l==='r'),yel=alerts.filter(a=>a.l==='y');
 
             let safety='';
             if(score>2.5){const t=[];if(d.age<90)t.push('Solo montos bajos (< $5.000)');if(d.banks>2||d.countries>1)t.push('Verificar titularidad bancaria');if(d.countries>1)t.push('Confirmar ubicación real');if(d.completion<95)t.push('Temporizador corto');if(d.negative>3)t.push('Leer negativos antes de operar');t.push('Guardar capturas');safety=t.map(x=>'<div style="padding:2px 0">• '+x+'</div>').join('')}
 
-            addH({name,score,tier:tier.tier,date:new Date().toLocaleDateString('es-UY'),data:d});
+            /* Confidence notes */
+            let confHtml='';
+            if(conf.notes.length){confHtml='<div style="margin-top:4px;font-size:0.52em;color:#94a3b8">'+conf.notes.slice(0,3).join(' · ')+'</div>'}
+
+            try{await saveAnalysis({name,score,confidence:conf.score,tier:tier.tier,date:new Date().toLocaleDateString('es-UY'),data:d})}catch(e){}
 
             r.innerHTML='<div class="pra-fade-in">'+
                 '<div class="pra-score-card" style="background:'+tier.bg+';border:1px solid '+tier.color+'22">'+
                     '<div class="pra-score-big" style="color:'+tier.color+'">'+score.toFixed(1)+'</div>'+
                     '<div style="font-size:0.65em;color:#64748b;margin:2px 0">de 10</div>'+
                     '<div class="pra-score-tier" style="color:'+tier.color+'">'+tier.emoji+' '+tier.tier+'</div>'+
+                    '<div class="pra-confidence '+confTier.cls+'">'+confTier.icon+' Certeza: '+confTier.label+' ('+conf.score+'%)</div>'+
+                    confHtml+
                     '<div class="pra-score-meta">Primario '+pS.total+' · Secundario '+sS.total+'</div>'+
                 '</div>'+
                 '<div class="pra-recom" style="border-left:3px solid '+tier.color+';background:'+tier.color+'08">'+
@@ -2459,6 +2552,7 @@ const PRA=(function(){
                 (positives.length?'<div style="margin-bottom:8px"><div class="pra-alert-hdr" style="color:#16a34a">✅ Positivo</div>'+positives.map(p=>'<div style="font-size:0.72em;color:#16a34a;padding:2px 0">• '+p+'</div>').join('')+'</div>':'')+
                 (safety?'<div style="padding:8px 10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;margin-bottom:8px"><div style="font-weight:700;font-size:0.7em;color:#92400e;margin-bottom:3px">💡 Condiciones sugeridas</div><div style="font-size:0.7em;color:#78350f">'+safety+'</div></div>':'')+
                 '<button class="btn btn-cancel" id="btnPraNuevo" style="width:100%;margin-top:4px">← Nuevo análisis</button>'+
+                '<div class="pra-sync">'+(getCollection()?'☁️ Sincronizado':'💾 Solo local')+'</div>'+
             '</div>';
             $('btnPraNuevo').addEventListener('click',reset);
             $('praBkToggle').addEventListener('click',()=>$('praBkBody').classList.toggle('open'));
@@ -2466,19 +2560,25 @@ const PRA=(function(){
     }
 
     /* ═══ HISTORY ═══ */
-    function renderHistory(){
-        const h=loadH(),c=$('pra-history');
+    async function renderHistory(){
+        const c=$('pra-history');
+        c.innerHTML='<div class="pra-loading"><div class="pra-spinner"></div><div style="font-size:0.78em;color:#64748b">Cargando historial...</div></div>';
+        const h=await loadHistory();
         if(!h.length){c.innerHTML='<div class="pra-empty"><div style="font-size:1.5em;margin-bottom:6px">📭</div>Sin análisis guardados</div>';return}
-        let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:0.72em;font-weight:600;color:#64748b">'+h.length+' análisis</div><button id="btnPraClearHist" style="background:none;border:none;font-size:0.65em;color:#dc2626;cursor:pointer">Borrar todo</button></div>';
-        h.forEach((e,i)=>{const t=getRiskTier(e.score);html+='<div class="pra-hist-item" data-pra-hist="'+i+'"><div><div class="pra-hist-name">'+escHtml(e.name||'Sin nombre')+'</div><div class="pra-hist-date">'+(e.date||'—')+'</div></div><div class="pra-hist-score" style="background:'+t.bg+';color:'+t.color+'">'+e.score.toFixed(1)+' '+t.emoji+'</div></div>'});
+        let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:0.72em;font-weight:600;color:#64748b">'+h.length+' usuario'+(h.length>1?'s':'')+'</div><button id="btnPraClearHist" style="background:none;border:none;font-size:0.65em;color:#dc2626;cursor:pointer">Borrar todo</button></div>';
+        h.forEach((e,i)=>{
+            const t=getRiskTier(e.score);const histCount=(e.history||[]).length;
+            html+='<div class="pra-hist-item" data-pra-hist="'+i+'"><div><div class="pra-hist-name">'+escHtml(e.name||'Sin nombre')+'</div><div class="pra-hist-date">'+(e.date||'—')+(histCount?' · '+histCount+' análisis prev.':'')+'</div></div><div class="pra-hist-badge"><div class="pra-hist-score" style="background:'+t.bg+';color:'+t.color+'">'+e.score.toFixed(1)+' '+t.emoji+'</div></div></div>';
+        });
+        html+='<div class="pra-sync" style="margin-top:8px">'+(getCollection()?'☁️ Sincronizado con tu cuenta':'💾 Almacenamiento local')+'</div>';
         c.innerHTML=html;
-        c.querySelectorAll('[data-pra-hist]').forEach(el=>{el.addEventListener('click',()=>{
-            const entry=loadH()[parseInt(el.dataset.praHist)];if(!entry?.data)return;showTab('form');
+        c.querySelectorAll('[data-pra-hist]').forEach(el=>{el.addEventListener('click',async()=>{
+            const entry=(await loadHistory())[parseInt(el.dataset.praHist)];if(!entry?.data)return;showTab('form');
             const n=$('pra-name');if(n)n.value=entry.name||'';
             const map={ops30d:'pra-ops30d',completion:'pra-completion',trades:'pra-trades',counter:'pra-counter',positive:'pra-positive',negative:'pra-negative',age:'pra-age',pay:'pra-pay',release:'pra-release',buyratio:'pra-buyratio',banks:'pra-banks',countries:'pra-countries'};
             Object.entries(map).forEach(([k,id])=>{const e=$(id);if(e)e.value=entry.data[k]!=null?String(entry.data[k]).replace('.',','):''});clearV();
         })});
-        const cb=$('btnPraClearHist');if(cb)cb.addEventListener('click',()=>{if(confirm('¿Borrar todo el historial?')){clearH();renderHistory()}});
+        const cb=$('btnPraClearHist');if(cb)cb.addEventListener('click',async()=>{if(confirm('¿Borrar todo el historial?')){await clearAllHistory();renderHistory()}});
     }
 
     function initTabs(){
