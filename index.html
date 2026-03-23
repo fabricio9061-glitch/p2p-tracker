@@ -171,13 +171,16 @@
         .r1-monto{font-size:0.88em;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis}
         .r1-gp{font-size:0.88em;font-weight:800;text-align:right;white-space:nowrap}
         /* Row 2: 4-col — tasa·USDT tight, banco left-aligned, fecha right */
-        .r2{grid-template-columns:38px 78px auto 1fr;column-gap:6px;height:17px;line-height:17px;padding-bottom:3px}
+        .r2{grid-template-columns:46px 78px auto 1fr;column-gap:8px;height:17px;line-height:17px;padding-bottom:3px}
         .r2 span{font-size:0.65em;white-space:nowrap}
         .r2-c1{color:#94a3b8}
         .r2-c2{color:#475569}
         .r2-c3{display:contents}
-        .r2-banco{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;margin-left:4px}
+        .r2-banco{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
         .r2-fecha{color:#b0b8c4;text-align:right}
+        /* Transfer/Conversion: flexible columns for bank names */
+        .op-card.transfer .r2,.op-card.conversion .r2{grid-template-columns:auto 16px 1fr auto;column-gap:6px}
+        .op-card.transfer .r2-c2,.op-card.conversion .r2-c2{text-align:center;color:#94a3b8}
         /* Zebra */
         .op-swipe-wrap:nth-child(even) .op-card{background:#fafbfc}
         /* Swipe infrastructure */
