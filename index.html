@@ -633,7 +633,7 @@ const CONFIG = {
     firebase: {apiKey:"AIzaSyCL2uxQMNIxC0oo35uN-lYQXaOWLxXNg7k",authDomain:"p2p-tracker-dc9cc.firebaseapp.com",projectId:"p2p-tracker-dc9cc",storageBucket:"p2p-tracker-dc9cc.firebasestorage.app",messagingSenderId:"670856094446",appId:"1:670856094446:web:390946887212a97e36c9ff"},
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
-    COOLDOWN_MS: 1000,
+    COOLDOWN_MS: 300,
     BANCOS: [
         {nombre:'Santander',moneda:'UYU',color:'#ec0000'},
         {nombre:'BBVA',moneda:'UYU',color:'#004481'},
@@ -848,9 +848,17 @@ async function cargarHistorialMensual(){
 }
 function ocultarLoading() { $('loadingOverlay')?.classList.add('hidden'); }
 function activarCooldown() {
-    AppState.ui.enCooldown=true; $('cooldownOverlay')?.classList.remove('hidden');
-    setTimeout(()=>{ AppState.ui.enCooldown=false; $('cooldownOverlay')?.classList.add('hidden'); },CONFIG.COOLDOWN_MS);
+    AppState.ui.enCooldown=true;
+    setTimeout(()=>{ AppState.ui.enCooldown=false; },CONFIG.COOLDOWN_MS);
 }
+
+/* ═══ Performance instrumentation ═══ */
+const _perf={enabled:false,log(name,ms){if(this.enabled||ms>100)console.log(`[PERF] ${name}: ${ms.toFixed(1)}ms`)}};
+function perfWrap(name,fn){return function(){const t0=performance.now();const r=fn.apply(this,arguments);_perf.log(name,performance.now()-t0);return r}}
+
+/* ═══ Debounced actualizarVista ═══ */
+let _vistaRAF=0;
+function actualizarVistaDebounced(){if(_vistaRAF)return;_vistaRAF=requestAnimationFrame(()=>{_vistaRAF=0;actualizarVista()})}
 
 /* ═══════════════════════════════════════
    §4 — UTILIDADES PURAS
@@ -1669,7 +1677,9 @@ async function agregarOperacion(){
         recalcularLotesYGanancias();
         agregarTasaReciente(ta,t,mon);
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';$('opSummary').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
-        await guardarDatos();actualizarVista();actualizarColorSelect();activarCooldown();
+        /* Optimistic: render immediately, save in background */
+        actualizarVista();actualizarColorSelect();activarCooldown();
+        guardarDatos().catch(e=>console.error('[P2P] Background save:',e));
     }catch(e){console.error('[P2P] Error guardando operación:',e)}finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect()}
 }
 
@@ -1679,7 +1689,8 @@ async function eliminarOperacion(id){
         const op=AppState.datos.operaciones.find(o=>o.id===id);
         if(op){if(op.tipo==='compra'){if(op.banco&&AppState.datos.bancos[op.banco]){AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo+roundMoney(op.monto+(op.comisionBanco||0)));if(AppState.datos.bancos[op.banco].limiteDiarioUSD>0&&op.tasa>0){const mU=roundMoney(op.monto/op.tasa);AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU))}}}else{if(op.banco&&AppState.datos.bancos[op.banco])AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo-op.monto)}}
         AppState.datos.operaciones=AppState.datos.operaciones.filter(o=>o.id!==id);
-        recalcularLotesYGanancias();await guardarDatos();actualizarVista();
+        recalcularLotesYGanancias();actualizarVista();
+        guardarDatos().catch(e=>console.error('[P2P] Background delete:',e));
     }catch(e){console.error('[P2P] Error eliminando operación:',e)}
 }
 
@@ -1754,8 +1765,8 @@ async function guardarEditarOperacion(){
         }
         /* 4. Recalcular FIFO determinístico + guardar */
         recalcularLotesYGanancias();
-        await guardarDatos();actualizarVista();
-        cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null;
+        actualizarVista();cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null;
+        guardarDatos().catch(e=>console.error('[P2P] Background edit:',e));
     }catch(e){console.error('[P2P] Error editando operación:',e)}finally{btn.disabled=false;btn.textContent='Guardar'}
 }
 
@@ -1813,7 +1824,8 @@ async function guardarMovimiento(){
         AppState.datos.movimientos.unshift(md);
         /* Reconstrucción DETERMINÍSTICA si involucra USDT */
         if(tc==='usdt')recalcularLotesYGanancias();
-        await guardarDatos();actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
+        actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
+        guardarDatos().catch(e=>console.error('[P2P] Background mov save:',e));
     }catch(e){console.error('[P2P] Error guardando movimiento:',e)}finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar'}
 }
 
@@ -1826,7 +1838,8 @@ async function eliminarMovimiento(id){
         }
         AppState.datos.movimientos=AppState.datos.movimientos.filter(m=>m.id!==id);
         recalcularLotesYGanancias();
-        await guardarDatos();actualizarVista();
+        actualizarVista();
+        guardarDatos().catch(e=>console.error('[P2P] Background mov delete:',e));
     }catch(e){console.error('[P2P] Error eliminando movimiento:',e)}
 }
 
@@ -1886,7 +1899,8 @@ async function realizarTransferencia(){
             AppState.datos.conversiones.unshift({id:uid(),origen:o,destino:d,montoOrigen:m,montoDestino:montoRecibido,tasa:t,monedaOrigen:oi.moneda,monedaDestino:di.moneda,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
             AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-m);
             AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+montoRecibido);
-            await guardarDatos();actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
+            actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
+            guardarDatos().catch(e=>console.error('[P2P] Background conv save:',e));
         }catch(e){console.error('[P2P] Error en conversión:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Convertir'}
     }else{
         if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);const dU=roundMoney(AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}}
@@ -1895,7 +1909,8 @@ async function realizarTransferencia(){
             AppState.datos.transferencias.unshift({id:uid(),origen:o,destino:d,monto:m,comision:c,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
             AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-(m+c));AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+m);
             if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,roundMoney((AppState.datos.bancos[o].limiteUsadoUSD||0)+mU))}
-            await guardarDatos();actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
+            actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
+            guardarDatos().catch(e=>console.error('[P2P] Background transf save:',e));
         }catch(e){console.error('[P2P] Error en transferencia:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Transferir'}
     }
 }
@@ -1910,7 +1925,8 @@ async function eliminarTransferencia(id){
             if(bd)bd.saldo=fixNeg(bd.saldo-t.monto);
             if(bo&&bo.limiteDiarioUSD>0){const bi=getBancoInfo(t.origen);let mU=0;if(bi?.moneda==='USD')mU=t.monto+t.comision;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((t.monto+t.comision)/AppState.datos.ultimaTasaCompra);if(mU>0)bo.limiteUsadoUSD=Math.max(0,roundMoney((bo.limiteUsadoUSD||0)-mU))}
         }
-        AppState.datos.transferencias=AppState.datos.transferencias.filter(x=>x.id!==id);await guardarDatos();actualizarVista();
+        AppState.datos.transferencias=AppState.datos.transferencias.filter(x=>x.id!==id);actualizarVista();
+        guardarDatos().catch(e=>console.error('[P2P] Background transf delete:',e));
     }catch(e){console.error('[P2P] Error eliminando transferencia:',e)}
 }
 
@@ -1919,7 +1935,8 @@ async function eliminarConversion(id){
     try{
         const c=AppState.datos.conversiones.find(x=>x.id===id);
         if(c){const bo=AppState.datos.bancos[c.origen],bd=AppState.datos.bancos[c.destino];if(bo)bo.saldo=fixNeg(bo.saldo+c.montoOrigen);if(bd)bd.saldo=fixNeg(bd.saldo-c.montoDestino)}
-        AppState.datos.conversiones=AppState.datos.conversiones.filter(x=>x.id!==id);await guardarDatos();actualizarVista();
+        AppState.datos.conversiones=AppState.datos.conversiones.filter(x=>x.id!==id);actualizarVista();
+        guardarDatos().catch(e=>console.error('[P2P] Background conv delete:',e));
     }catch(e){console.error('[P2P] Error eliminando conversión:',e)}
 }
 
@@ -2162,7 +2179,8 @@ async function guardarLote(){
     try{
         if(AppState.ui.loteEditandoId){const l=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);if(l){l.precioCompra=roundMoney(p,3);l.disponible=truncUsdt(d);l.cantidad=truncUsdt(d);l.fecha=f}}
         else AppState.datos.lotes.push({id:uid(),fecha:f,hora:getUTimeStr(),precioCompra:roundMoney(p,3),cantidad:truncUsdt(d),disponible:truncUsdt(d),moneda:'UYU',manual:true});
-        recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
+        recalcularLotesYGanancias();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
+        guardarDatos().catch(e=>console.error('[P2P] Background lote save:',e));
     }catch(e){console.error('[P2P] Error guardando lote:',e)}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Guardar'}
 }
 async function eliminarLoteActual(){
@@ -2171,7 +2189,8 @@ async function eliminarLoteActual(){
     AppState.ui.guardandoLote=true;const btn=$('btnEliminarLote');btn.disabled=true;btn.textContent='⏳ Eliminando';
     try{
         AppState.datos.lotes=AppState.datos.lotes.filter(l=>l.id!==AppState.ui.loteEditandoId);
-        recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();
+        recalcularLotesYGanancias();actualizarVista();renderizarInventario();
+        guardarDatos().catch(e=>console.error('[P2P] Background lote delete:',e));
         cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
     }catch(e){console.error('[P2P] Error eliminando lote:',e)}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Eliminar'}
 }
@@ -2260,7 +2279,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnCancelTransf').addEventListener('click',()=>cerrarModal('modalTransferencia'));
     $('movMonto').addEventListener('input',actualizarFifoPreview);
     $('btnCancelSaldo').addEventListener('click',()=>{cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
-    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'))}await guardarDatos();actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
+    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'))}actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardarDatos().catch(e=>console.error('[P2P] Background saldo save:',e))});
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
     $('btnRecalcular').addEventListener('click',forzarRecalculo);
     $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));
