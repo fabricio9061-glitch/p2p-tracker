@@ -387,6 +387,16 @@
             .desktop-columns{grid-template-columns:360px 1fr}
             .op-card-body:has(.r1){column-gap:12px}
         }
+        /* ═══ Success confirmation ═══ */
+        .success-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.97);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity 0.3s,visibility 0.3s}
+        .success-overlay.show{opacity:1;visibility:visible}
+        .success-content{text-align:center;padding:40px 30px;max-width:320px;animation:successPop 0.4s ease}
+        @keyframes successPop{from{opacity:0;transform:scale(0.85) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+        .success-icon{width:72px;height:72px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 4px 20px rgba(34,197,94,0.3)}
+        .success-icon svg{width:36px;height:36px}
+        .success-amount{font-size:1.8em;font-weight:800;color:#1e293b;letter-spacing:-0.5px;margin-bottom:6px}
+        .success-msg{font-size:0.95em;color:#475569;line-height:1.4}
+        .success-sub{font-size:0.75em;color:#94a3b8;margin-top:8px}
     </style>
 </head>
 <body>
@@ -610,6 +620,16 @@
     <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px;padding:16px 16px 18px"><div class="modal-header">📊 Resumen Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div style="margin-top:14px"><button class="btn" style="width:100%;background:#f1f5f9;color:#475569;font-size:0.85em;padding:12px" id="btnCerrarHistorial">Cerrar</button></div></div></div>
     <div id="modalEditarOp" class="modal"><div class="modal-content"><div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div><div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div><div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div><div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div><div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div><div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div></div></div>
 
+    <!-- ═══ SUCCESS OVERLAY ═══ -->
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-content">
+            <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+            <div class="success-amount" id="successAmount"></div>
+            <div class="success-msg" id="successMsg"></div>
+            <div class="success-sub" id="successSub"></div>
+        </div>
+    </div>
+
     <!-- ═══ FIREBASE SDK ═══ -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -680,6 +700,19 @@ const setHtml = (id, h) => { const e=$(id); if(e) e.innerHTML=h; };
 
 function abrirModal(id) { $(id)?.classList.add('active'); document.body.style.overflow='hidden'; }
 function cerrarModal(id) { $(id)?.classList.remove('active'); if(!document.querySelector('.modal.active'))document.body.style.overflow=''; }
+
+/* ═══ Success confirmation overlay ═══ */
+let _successTimer=null;
+function showSuccess(opts){
+    const{amount,message,sub}=opts;
+    clearTimeout(_successTimer);
+    const ov=$('successOverlay');if(!ov)return;
+    $('successAmount').textContent=amount||'';
+    $('successMsg').textContent=message||'Operación exitosa';
+    $('successSub').textContent=sub||'';
+    ov.classList.add('show');document.body.style.overflow='hidden';
+    _successTimer=setTimeout(()=>{ov.classList.remove('show');if(!document.querySelector('.modal.active'))document.body.style.overflow=''},1500);
+}
 function setSyncStatus(s,t) {
     const el=$('syncStatus');if(!el)return;
     const labels={online:'En línea',offline:'Desconectado',syncing:'Sincronizando...',reconnecting:'Reconectando...'};
@@ -1694,6 +1727,7 @@ async function agregarOperacion(){
         /* Optimistic: render immediately, save in background */
         actualizarVista();actualizarColorSelect();activarCooldown();
         guardarDatos().catch(e=>console.error('[P2P] Background save:',e));
+        const sy2=mon==='USD'?'US$':'$';showSuccess({amount:sy2+fmtNum(m),message:(t==='compra'?'Comprados ':'Vendidos ')+fmtTrunc(u,2)+' USDT con éxito',sub:'Tasa: '+sy2+fmtNum(ta,mon==='USD'?3:2)+' · '+b});
     }catch(e){console.error('[P2P] Error guardando operación:',e)}finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect()}
 }
 
@@ -1781,6 +1815,7 @@ async function guardarEditarOperacion(){
         recalcularLotesYGanancias();
         actualizarVista();cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null;
         guardarDatos().catch(e=>console.error('[P2P] Background edit:',e));
+        showSuccess({amount:(op.moneda==='USD'?'US$':'$')+fmtNum(newM),message:'Operación actualizada con éxito',sub:op.tipo==='compra'?'Compra editada':'Venta editada'});
     }catch(e){console.error('[P2P] Error editando operación:',e)}finally{btn.disabled=false;btn.textContent='Guardar'}
 }
 
@@ -1840,6 +1875,7 @@ async function guardarMovimiento(){
         if(tc==='usdt')recalcularLotesYGanancias();
         actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
         guardarDatos().catch(e=>console.error('[P2P] Background mov save:',e));
+        const movSy=tc==='usdt'?'':tc==='banco'?getSym(getBancoInfo(b)?.moneda||'UYU'):'';showSuccess({amount:tc==='usdt'?fmtTrunc(mR,2)+' USDT':movSy+fmtNum(mR),message:'Ajuste guardado con éxito',sub:(AppState.ui.tipoMovimiento==='ingreso'?'Ingreso':'Egreso')+(tc==='banco'?' · '+b:'')});
     }catch(e){console.error('[P2P] Error guardando movimiento:',e)}finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar'}
 }
 
@@ -1915,6 +1951,7 @@ async function realizarTransferencia(){
             AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+montoRecibido);
             actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
             guardarDatos().catch(e=>console.error('[P2P] Background conv save:',e));
+            showSuccess({amount:getSym(di.moneda)+fmtNum(montoRecibido),message:'Conversión realizada con éxito',sub:o+' → '+d});
         }catch(e){console.error('[P2P] Error en conversión:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Convertir'}
     }else{
         if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);const dU=roundMoney(AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}}
@@ -1925,6 +1962,7 @@ async function realizarTransferencia(){
             if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,roundMoney((AppState.datos.bancos[o].limiteUsadoUSD||0)+mU))}
             actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
             guardarDatos().catch(e=>console.error('[P2P] Background transf save:',e));
+            const tSy=getSym(getBancoInfo(o)?.moneda||'UYU');showSuccess({amount:tSy+fmtNum(m),message:'Transferencia realizada con éxito',sub:o+' → '+d});
         }catch(e){console.error('[P2P] Error en transferencia:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Transferir'}
     }
 }
