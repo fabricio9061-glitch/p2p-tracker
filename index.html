@@ -933,6 +933,12 @@ function pv(id){
 }
 function getUDate(){const n=new Date(),u=n.getTime()+n.getTimezoneOffset()*60000;return new Date(u-3*3600000)}
 function getUDateStr(){const d=getUDate();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function getMesActivo(){const d=getUDate();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+function filtrarMes(arr){const m=getMesActivo();return arr.filter(x=>x.fecha&&x.fecha.startsWith(m))}
+function opsMes(){return filtrarMes(AppState.datos.operaciones)}
+function movsMes(){return filtrarMes(AppState.datos.movimientos)}
+function transMes(){return filtrarMes(AppState.datos.transferencias)}
+function convMes(){return filtrarMes(AppState.datos.conversiones||[])}
 function getUTimeStr(){const d=getUDate();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function fmtFechaCorta(f){if(!f)return'-';const p=f.split('-');return p.length===3?`${p[2]}/${p[1]}`:f}
 function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
@@ -2064,11 +2070,11 @@ function renderizarCalendario(){
 /* ═══════════════════════════════════════
    §13 — PAGINACIONES (instancias)
    ═══════════════════════════════════════ */
-const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getPag:()=>AppState.ui.paginaOp,setPag:p=>{AppState.ui.paginaOp=p},porPag:CONFIG.POR_PAGINA,
+const pagOp=crearPaginacion({getTotal:()=>opsMes().length,getPag:()=>AppState.ui.paginaOp,setPag:p=>{AppState.ui.paginaOp=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationOp',info:'paginaInfoOp',prev:'btnPrevOp',next:'btnNextOp'},
     renderFn:(ini,fin,total)=>{
         setText('totalOperaciones',total||0);const c=$('tablaContent');
-        const allOps=AppState.datos.operaciones;
+        const allOps=opsMes();
         let sc=0,sv=0,sg=0;allOps.forEach(op=>{if(op.tipo==='compra')sc++;else sv++;sg=roundMoney(sg+(op.ganancia||0))});
         setText('opsSumCompras',sc);setText('opsSumVentas',sv);setText('opsSumTotal',allOps.length);
         const sgE=$('opsSumGanancia');sgE.textContent=(sg>=0?'+':'-')+'$'+fmtNum(Math.abs(sg),0);sgE.style.color=sg>=0?'#16a34a':'#dc2626';
@@ -2104,12 +2110,12 @@ const pagOp=crearPaginacion({getTotal:()=>AppState.datos.operaciones.length,getP
     }
 });
 
-const pagMov=crearPaginacion({getTotal:()=>AppState.datos.movimientos.length,getPag:()=>AppState.ui.paginaMov,setPag:p=>{AppState.ui.paginaMov=p},porPag:CONFIG.POR_PAGINA,
+const pagMov=crearPaginacion({getTotal:()=>movsMes().length,getPag:()=>AppState.ui.paginaMov,setPag:p=>{AppState.ui.paginaMov=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationMov',info:'paginaInfoMov',prev:'btnPrevMov',next:'btnNextMov'},
     renderFn:(ini,fin,total)=>{
         setText('totalMovimientos',total||0);const sec=$('seccionMovimientos');if(!total){sec.style.display='none';return}sec.style.display='block';
         /* Summary */
-        const allMov=AppState.datos.movimientos;
+        const allMov=movsMes();
         let si=0,se=0;allMov.forEach(m=>{if(m.tipoMovimiento==='ingreso')si=roundMoney(si+m.monto);else se=roundMoney(se+m.monto)});
         const bal=roundMoney(si-se);
         setText('movSumIngresos','+$'+fmtNum(si,0));setText('movSumEgresos','-$'+fmtNum(se,0));
@@ -2142,12 +2148,12 @@ const pagMov=crearPaginacion({getTotal:()=>AppState.datos.movimientos.length,get
     }
 });
 
-const pagTrans=crearPaginacion({getTotal:()=>AppState.datos.transferencias.length,getPag:()=>AppState.ui.paginaTrans,setPag:p=>{AppState.ui.paginaTrans=p},porPag:CONFIG.POR_PAGINA,
+const pagTrans=crearPaginacion({getTotal:()=>transMes().length,getPag:()=>AppState.ui.paginaTrans,setPag:p=>{AppState.ui.paginaTrans=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationTrans',info:'paginaInfoTrans',prev:'btnPrevTrans',next:'btnNextTrans'},
     renderFn:(ini,fin,total)=>{
         setText('totalTransferencias',total||0);const sec=$('seccionTransferencias');if(!total){sec.style.display='none';return}sec.style.display='block';
         /* Summary */
-        const allTr=AppState.datos.transferencias;
+        const allTr=transMes();
         let sm=0,sc=0;allTr.forEach(t=>{sm=roundMoney(sm+t.monto);sc=roundMoney(sc+(t.comision||0))});
         setText('transSumMonto','$'+fmtNum(sm,0));setText('transSumCom','$'+fmtNum(sc,0));setText('transSumTotal',allTr.length);
         $('transSummary').style.display=total?'grid':'none';
@@ -2175,11 +2181,11 @@ const pagTrans=crearPaginacion({getTotal:()=>AppState.datos.transferencias.lengt
     }
 });
 
-const pagConv=crearPaginacion({getTotal:()=>(AppState.datos.conversiones||[]).length,getPag:()=>AppState.ui.paginaConv||1,setPag:p=>{AppState.ui.paginaConv=p},porPag:CONFIG.POR_PAGINA,
+const pagConv=crearPaginacion({getTotal:()=>convMes().length,getPag:()=>AppState.ui.paginaConv||1,setPag:p=>{AppState.ui.paginaConv=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationConv',info:'paginaInfoConv',prev:'btnPrevConv',next:'btnNextConv'},
     renderFn:(ini,fin,total)=>{
         setText('totalConversiones',total||0);const sec=$('seccionConversiones');if(!total){sec.style.display='none';return}sec.style.display='block';
-        const cvs=(AppState.datos.conversiones||[]).slice(ini,fin);
+        const cvs=convMes().slice(ini,fin);
         let h='<div class="op-cards">';
         cvs.forEach(c=>{
             const syO=c.monedaOrigen==='USD'?'US$':'$',syD=c.monedaDestino==='USD'?'US$':'$';
@@ -2205,12 +2211,12 @@ const pagConv=crearPaginacion({getTotal:()=>(AppState.datos.conversiones||[]).le
    §14 — DASHBOARD
    ═══════════════════════════════════════ */
 function actualizarVista(){
-    const hoy=getUDate(),mesA=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`,ops=AppState.datos.operaciones.filter(op=>op.fecha&&op.fecha.startsWith(mesA));
+    const hoy=getUDate(),mesA=getMesActivo(),ops=opsMes();
     let tp=0,tr=0,stc=0,stv=0,cc=0,cv=0;
     ops.forEach(op=>{if(op.tipo==='compra'){tp=roundMoney(tp+op.monto+(op.comisionBanco||0));stc=roundMoney(stc+op.tasa);cc++}else{tr=roundMoney(tr+op.monto);stv=roundMoney(stv+op.tasa);cv++}});
     const tpc=cc?roundMoney(stc/cc):0,tpv=cv?roundMoney(stv/cv):0,sp=(cc&&cv)?roundMoney(tpv-tpc):0;
     let tb=0;CONFIG.BANCOS.forEach(b=>{if(AppState.datos.bancos[b.nombre]?.activo&&b.moneda==='UYU')tb+=AppState.datos.bancos[b.nombre].saldo});
-    const hoyStr=getUDateStr(),opsH=AppState.datos.operaciones.filter(o=>o.fecha===hoyStr).length;
+    const hoyStr=getUDateStr(),opsH=ops.filter(o=>o.fecha===hoyStr).length;
     const gH=calcularGananciaDiaria()[hoyStr]||0,ghE=$('gananciaHoy'),cH=$('cardGananciaHoy');
     if(gH>=0){ghE.textContent='+$'+fmtNum(gH);ghE.className='card-value positive';cH.className='card main-card'}
     else{ghE.textContent='-$'+fmtNum(Math.abs(gH));ghE.className='card-value negative';cH.className='card main-card negative'}
@@ -2220,7 +2226,7 @@ function actualizarVista(){
     const tieneUSD=hayBancosUSD(),cardUSD=$('cardGananciaUSD');
     if(tieneUSD){
         cardUSD.style.display='block';
-        const opsUSDHoy=AppState.datos.operaciones.filter(o=>o.fecha===hoyStr&&o.moneda==='USD');
+        const opsUSDHoy=ops.filter(o=>o.fecha===hoyStr&&o.moneda==='USD');
         let gUSD=0;opsUSDHoy.forEach(o=>{if(o.ganancia!==undefined)gUSD=roundMoney(gUSD+o.ganancia)});
         const nUSD=opsUSDHoy.length,geU=$('gananciaHoyUSD');
         if(gUSD>=0){geU.textContent='+US$'+fmtNum(gUSD);geU.className='card-value positive'}
