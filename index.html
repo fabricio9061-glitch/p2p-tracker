@@ -28,6 +28,10 @@
         .sync-status.syncing{background:#fef3c7;color:#d97706}
         .sync-status.reconnecting{background:#e0e7ff;color:#4338ca;animation:pulse-sync 1.5s infinite}
         .sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+        .sync-badge{font-size:0.65em;font-weight:700;min-width:14px;height:14px;line-height:14px;text-align:center;border-radius:7px;display:none;padding:0 3px}
+        .sync-status.syncing .sync-badge,.sync-status.offline .sync-badge{display:inline-block}
+        .sync-status.syncing .sync-badge{background:#fbbf24;color:#78350f}
+        .sync-status.offline .sync-badge{background:#fca5a5;color:#7f1d1d}
         @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:0.4}}
 
         /* ═══ Menu ═══ */
@@ -434,7 +438,7 @@
         <div class="container">
             <div class="header">
                 <h1>💱 Registro P2P</h1>
-                <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span></div>
+                <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
                 <div class="menu-container">
                     <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
                     <div class="menu-dropdown" id="menuDropdown">
@@ -1468,24 +1472,34 @@ function renderizarInventario(){
 function userToEmail(u){return u.toLowerCase().trim()+CONFIG.EMAIL_DOMAIN}
 function emailToUser(e){return e.replace(CONFIG.EMAIL_DOMAIN,'')}
 
-let _guardando=false,_guardarPendiente=false;
+let _guardando=false,_guardarPendiente=false,_syncPending=0,_syncErrors=0,_retryTimer=null,_retryDelay=2000;
+
+/* ─── localStorage safety net ─── */
+function backupToLocal(){try{if(AppState.datos&&AppState.currentUser)localStorage.setItem('p2p_backup_'+AppState.currentUser.uid,JSON.stringify({v:AppState.datos._version||0,ts:Date.now(),datos:AppState.datos}))}catch(e){}}
+function restoreFromLocal(){try{const k='p2p_backup_'+AppState.currentUser?.uid;const raw=localStorage.getItem(k);if(!raw)return null;const b=JSON.parse(raw);if(Date.now()-b.ts>86400000){localStorage.removeItem(k);return null}return b}catch(e){return null}}
+function clearLocalBackup(){try{if(AppState.currentUser)localStorage.removeItem('p2p_backup_'+AppState.currentUser.uid)}catch(e){}}
+
+function updateSyncBadge(){
+    const badge=$('syncBadge');if(!badge)return;
+    const n=_syncPending+_syncErrors;
+    badge.textContent=n>0?n:'';badge.style.display=n>0?'inline-block':'none';
+}
+
 async function guardarDatos(forzar){
     if(!AppState.currentUser)return;
-    /* Bloquear escrituras si datos están marcados como stale (esperando refresh del server) */
     if(AppState._datosStale&&!forzar){
-        console.warn('[P2P] Escritura bloqueada: datos stale, esperando sync del servidor');
         setSyncStatus('syncing','Sincronizando...');return;
     }
     if(_guardando){_guardarPendiente=true;return}
-    _guardando=true;setSyncStatus('syncing');
+    _guardando=true;_syncPending++;updateSyncBadge();
+    setSyncStatus('syncing',_syncPending>1?'Sincronizando '+_syncPending+'…':'Sincronizando…');
+    backupToLocal();
     const ref=AppState.db.collection('users').doc(AppState.currentUser.uid);
     try{
         if(navigator.onLine){
-            /* ONLINE: Transacción con version guard — impide sobrescribir datos más recientes */
             await AppState.db.runTransaction(async tx=>{
                 const doc=await tx.get(ref);
                 const serverVersion=doc.exists?(doc.data()._version||0):0;
-                /* Si el server tiene una versión más nueva que la local, abortar */
                 if(serverVersion>AppState._localVersion){
                     throw{code:'stale-version',serverV:serverVersion,localV:AppState._localVersion};
                 }
@@ -1499,8 +1513,6 @@ async function guardarDatos(forzar){
                 AppState.datos._version=newVersion;
             });
         }else{
-            /* OFFLINE: Escritura directa (Firestore la encola para sync posterior).
-               Incrementa version local; al reconectar el snapshot reconcilia. */
             const nv=(AppState.datos._version||0)+1;
             AppState.datos._version=nv;AppState._localVersion=nv;
             await ref.set({
@@ -1508,18 +1520,24 @@ async function guardarDatos(forzar){
                 ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
             });
         }
-        setSyncStatus('online');
+        _syncPending=Math.max(0,_syncPending-1);_syncErrors=0;_retryDelay=2000;
+        clearTimeout(_retryTimer);
+        if(_syncPending===0&&!_guardarPendiente){setSyncStatus('online');clearLocalBackup()}
+        else setSyncStatus('syncing',_syncPending+' pendiente'+((_syncPending>1)?'s':''));
+        updateSyncBadge();
     }catch(e){
+        _syncPending=Math.max(0,_syncPending-1);
         if(e.code==='stale-version'){
-            console.warn(`[P2P] Version conflict: server=${e.serverV} local=${e.localV}. Esperando snapshot fresco.`);
             AppState._datosStale=true;
-            setSyncStatus('syncing','Sincronizando...');
-            /* El onSnapshot traerá los datos frescos y desbloqueará */
+            setSyncStatus('syncing','Reconciliando…');
         }else{
-            console.error('[P2P] Error guardando:',e.code||e.message);
-            if(e.code==='unavailable'||e.code==='failed-precondition'||!navigator.onLine){
-                setSyncStatus('offline');
-            }else{setSyncStatus('offline','Error: '+(e.code||'desconocido'))}
+            _syncErrors++;updateSyncBadge();
+            const isNet=e.code==='unavailable'||e.code==='failed-precondition'||!navigator.onLine;
+            setSyncStatus('offline',_syncErrors>0?_syncErrors+' error'+((_syncErrors>1)?'es':''):'Error sync');
+            /* Auto-retry with backoff */
+            clearTimeout(_retryTimer);
+            _retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();guardarDatos()},Math.min(_retryDelay,30000));
+            _retryDelay=Math.min(_retryDelay*1.5,30000);
         }
     }finally{
         _guardando=false;
@@ -1553,10 +1571,19 @@ function cargarDatosUsuario(){
             /* Desbloquear escrituras cuando llegan datos frescos del server */
             if(!fromCache&&AppState._datosStale){
                 AppState._datosStale=false;
-                console.log('[P2P] Datos frescos del server recibidos (v'+serverVersion+'), escrituras desbloqueadas');
+                _syncErrors=0;clearTimeout(_retryTimer);updateSyncBadge();
             }
+            if(!fromCache&&!hasPending)clearLocalBackup();
         }else{
-            AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
+            /* Try localStorage backup before creating empty state */
+            const backup=restoreFromLocal();
+            if(backup&&backup.datos&&(backup.datos.operaciones?.length||backup.datos.movimientos?.length)){
+                AppState.datos=backup.datos;AppState._localVersion=backup.v||0;
+                console.log('[P2P] Restored from localStorage backup');
+                guardarDatos();/* Re-persist to Firestore */
+            }else{
+                AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
+            }
         }
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
@@ -2287,7 +2314,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
         else if(a==='historial-mensual')cargarHistorialMensual();
         else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;AppState.auth.signOut()}}
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;clearTimeout(_retryTimer);AppState.auth.signOut()}}
     });
 
     // Toggle sections
