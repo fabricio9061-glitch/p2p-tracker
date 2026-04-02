@@ -1478,7 +1478,11 @@ function renderizarInventario(){
 function userToEmail(u){return u.toLowerCase().trim()+CONFIG.EMAIL_DOMAIN}
 function emailToUser(e){return e.replace(CONFIG.EMAIL_DOMAIN,'')}
 
-let _guardando=false,_guardarPendiente=false,_syncPending=0,_syncErrors=0,_retryTimer=null,_retryDelay=2000;
+let _guardando=false,_guardarPendiente=false,_syncPending=0,_syncErrors=0,_retryTimer=null,_retryDelay=2000,_localDirty=0;
+
+/* ─── Dirty tracking: protects local mutations from snapshot overwrites ─── */
+function markDirty(){_localDirty++}
+function hasPendingLocal(){return _localDirty>0||_guardando||_guardarPendiente}
 
 /* ─── localStorage safety net ─── */
 function backupToLocal(){try{if(AppState.datos&&AppState.currentUser)localStorage.setItem('p2p_backup_'+AppState.currentUser.uid,JSON.stringify({v:AppState.datos._version||0,ts:Date.now(),datos:AppState.datos}))}catch(e){}}
@@ -1493,6 +1497,7 @@ function updateSyncBadge(){
 
 async function guardarDatos(forzar){
     if(!AppState.currentUser)return;
+    markDirty();
     if(AppState._datosStale&&!forzar){
         setSyncStatus('syncing','Sincronizando...');return;
     }
@@ -1528,7 +1533,7 @@ async function guardarDatos(forzar){
         }
         _syncPending=Math.max(0,_syncPending-1);_syncErrors=0;_retryDelay=2000;
         clearTimeout(_retryTimer);
-        if(_syncPending===0&&!_guardarPendiente){setSyncStatus('online');clearLocalBackup()}
+        if(_syncPending===0&&!_guardarPendiente){_localDirty=0;setSyncStatus('online');clearLocalBackup()}
         else setSyncStatus('syncing',_syncPending+' pendiente'+((_syncPending>1)?'s':''));
         updateSyncBadge();
     }catch(e){
@@ -1559,17 +1564,24 @@ function cargarDatosUsuario(){
         const fromCache=doc.metadata.fromCache;
         const hasPending=doc.metadata.hasPendingWrites;
 
-        /* Si es una confirmación de nuestra propia escritura pendiente, ignorar re-render */
+        /* Skip if we have pending local writes — our data is newer than any incoming snapshot.
+           guardarDatos() writes entire AppState.datos so nothing is lost. */
         if(hasPending)return;
+        if(hasPendingLocal()){
+            /* Still process stale-unlock if this is a fresh server snapshot */
+            if(!fromCache&&AppState._datosStale){AppState._datosStale=false;_syncErrors=0;clearTimeout(_retryTimer);updateSyncBadge()}
+            return;
+        }
 
         const ci=$('comisionPlataforma'),cf=document.activeElement===ci,lcU=AppState.datos.comisionPlataforma,lcD=AppState.datos.comisionUSD;
         if(doc.exists){
             const d=doc.data();
             const serverVersion=d._version||0;
 
-            /* Si datos vienen del server (no cache) Y la versión es >= local, actualizar estado */
-            /* Si vienen de cache, aceptar solo si no tenemos datos más nuevos locales */
-            if(!fromCache||serverVersion>=AppState._localVersion){
+            /* Accept remote data ONLY if server version is strictly newer than local,
+               OR if this is the initial load (_localVersion===0).
+               Same-version snapshots are echoes — local state wins. */
+            if(serverVersion>AppState._localVersion||(AppState._localVersion===0&&!fromCache)){
                 AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion};
                 AppState._localVersion=serverVersion;
             }
@@ -2320,7 +2332,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
         else if(a==='historial-mensual')cargarHistorialMensual();
         else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;clearTimeout(_retryTimer);AppState.auth.signOut()}}
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;clearTimeout(_retryTimer);AppState.auth.signOut()}}
     });
 
     // Toggle sections
