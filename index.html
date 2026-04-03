@@ -1604,19 +1604,14 @@ function cargarDatosUsuario(){
                 AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion};
                 AppState._localVersion=serverVersion;
             }
-            /* Branch 2: Remote newer + NO pending → safe full replace */
-            else if(serverVersion>AppState._localVersion&&!pending){
-                AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion};
-                AppState._localVersion=serverVersion;
-            }
-            /* Branch 3: Remote newer + PENDING local → MERGE without dropping local */
-            else if(serverVersion>AppState._localVersion&&pending){
+            /* Branch 2: Remote is newer → ALWAYS merge (never full replace after initial load) */
+            else if(serverVersion>AppState._localVersion){
                 mergeRemoteState(d);
                 AppState._localVersion=serverVersion;
-                /* Re-push merged state to Firestore */
-                guardaOptimista('merge','state','reconcile');
+                /* If we had pending local changes, re-push merged state */
+                if(pending)guardaOptimista('merge','state','reconcile');
             }
-            /* Branch 4: serverVersion <= localVersion → echo of our own write, ignore */
+            /* Branch 3: serverVersion <= localVersion → echo of our own write, ignore */
 
             if(!fromCache&&AppState._datosStale){
                 AppState._datosStale=false;
