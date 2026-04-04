@@ -1307,8 +1307,16 @@ function inicializarBancos(){
             if(bk.limiteDiarioUSD===undefined)bk.limiteDiarioUSD=bk.limiteDiario||0;
             if(bk.limiteUsadoUSD===undefined)bk.limiteUsadoUSD=bk.limiteUsado||0;
             if(bk.ultimoResetLimite===undefined)bk.ultimoResetLimite=null;
+            /* Auto-activate if bank has saldo or historical usage */
+            if(!bk.activo&&(bk.saldo>0||bancoTieneHistorial(b.nombre)))bk.activo=true;
         }
     });
+}
+function bancoTieneHistorial(nombre){
+    return AppState.datos.operaciones.some(o=>o.banco===nombre)||
+        AppState.datos.movimientos.some(m=>m.banco===nombre)||
+        AppState.datos.transferencias.some(t=>t.origen===nombre||t.destino===nombre)||
+        (AppState.datos.conversiones||[]).some(c=>c.origen===nombre||c.destino===nombre);
 }
 
 function verificarResetLimites(){
@@ -1500,7 +1508,37 @@ function mergeRemoteState(d){
         const remoteClean=remote.filter(e=>!delIds.has(e.id));
         AppState.datos[key]=[...localOnly,...remoteClean];
     });
-    /* Scalars: keep local bancos (they reflect pending ops), accept config */
+    /* Bancos: per-bank merge — preserve local saldos (reflect pending ops), accept remote structure/activo */
+    const remoteBancos=d.bancos||{};
+    const localBancos=AppState.datos.bancos||{};
+    const hasPendingBankChanges=_syncQueue.some(a=>a.entity==='bancos');
+    if(!Object.keys(localBancos).length){
+        /* Local bancos empty → accept remote entirely */
+        AppState.datos.bancos=remoteBancos;
+    }else{
+        /* Per-bank merge */
+        Object.keys(remoteBancos).forEach(name=>{
+            const rb=remoteBancos[name];
+            const lb=localBancos[name];
+            if(!lb){
+                /* Bank exists in remote but not local → accept */
+                localBancos[name]=rb;
+            }else if(!hasPendingBankChanges){
+                /* No pending bank changes → accept remote state but keep local saldo if we have pending ops */
+                const hasPendingOps=_syncQueue.some(a=>a.entity==='operaciones'||a.entity==='movimientos'||a.entity==='transferencias'||a.entity==='conversiones');
+                if(hasPendingOps){
+                    /* Keep local saldo (reflects pending ops), accept remote config */
+                    lb.activo=rb.activo;
+                    lb.limiteDiarioUSD=rb.limiteDiarioUSD!==undefined?rb.limiteDiarioUSD:lb.limiteDiarioUSD;
+                }else{
+                    /* No pending anything → accept remote fully */
+                    localBancos[name]=rb;
+                }
+            }
+            /* If hasPendingBankChanges → keep local entirely (pending saldo/activo edit) */
+        });
+    }
+    /* Scalars: accept remote config */
     AppState.datos.tags=d.tags||AppState.datos.tags;
     AppState.datos.tasasRecientes=d.tasasRecientes||AppState.datos.tasasRecientes;
     AppState.datos.comisionPlataforma=d.comisionPlataforma!==undefined?d.comisionPlataforma:AppState.datos.comisionPlataforma;
@@ -1599,8 +1637,8 @@ function cargarDatosUsuario(){
             const serverVersion=d._version||0;
             const pending=hasPendingLocal();
 
-            /* Branch 1: Initial load (no local data yet) → accept entirely */
-            if(AppState._localVersion===0&&!fromCache){
+            /* Branch 1: Initial load (no local data yet) → accept entirely, even from cache */
+            if(AppState._localVersion===0){
                 AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion};
                 AppState._localVersion=serverVersion;
             }
