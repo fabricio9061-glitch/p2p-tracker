@@ -2434,7 +2434,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('movBanco').addEventListener('change',()=>{const v=$('movBanco').value;$('movBanco').style.color=v?getBancoColor(v):'#1e293b';$('movBanco').style.fontWeight=v?'600':'400'});
     $('btnGuardarMov').addEventListener('click',guardarMovimiento);
     $('btnCancelMov').addEventListener('click',()=>cerrarModal('modalMovimiento'));
-    $('btnCerrarBancos').addEventListener('click',()=>{cerrarModal('modalBancos');guardarDatos();actualizarVista()});
+    $('btnCerrarBancos').addEventListener('click',()=>{cerrarModal('modalBancos');actualizarVista();guardaOptimista('update','bancos','close')});
     $('bancoOrigen').addEventListener('change',()=>{const v=$('bancoOrigen').value;$('bancoOrigen').style.color=v?getBancoColor(v):'#1e293b';mostrarSaldoOrigen();actualizarTransfUI()});
     $('bancoDestino').addEventListener('change',()=>{const v=$('bancoDestino').value;$('bancoDestino').style.color=v?getBancoColor(v):'#1e293b';actualizarTransfUI()});
     $('montoTransferencia').addEventListener('input',actualizarTransfPreview);
@@ -2473,7 +2473,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='eliminar-trans')eliminarTransferencia(id);
         else if(a==='eliminar-conv')eliminarConversion(id);
         else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}else{AppState.ui.bancoEditando=banco;$('editarSaldoHeader').innerHTML='Editar '+colorBanco(banco);$('nuevoSaldoBanco').value=fmtNum(AppState.datos.bancos[banco]?.saldo||0);$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=fmtNum(AppState.datos.bancos[banco]?.limiteDiarioUSD||0,0);abrirModal('modalEditarSaldo')}}
-        else if(a==='toggle-banco'){const n=t.dataset.banco;if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;guardarDatos();renderizarListaBancos()}
+        else if(a==='toggle-banco'){const n=t.dataset.banco;if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;renderizarListaBancos();actualizarVista();guardaOptimista('update','bancos',n)}
         else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
         else if(a==='editar-lote')abrirEditarLote(loteId);
         else if(a==='usar-tag'){
