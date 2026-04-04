@@ -141,10 +141,14 @@
         .op-btn-venta:active{background:#b91c1c}
         .op-btn-wrap .btn{padding:12px 20px}
         .op-meta{text-align:center;font-size:0.64em;color:#94a3b8;margin-top:4px}
-        /* Comision inline pill */
-        .com-pill{display:flex;align-items:center;gap:3px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:0.72em}
-        .com-pill input{width:38px;border:none;background:transparent;text-align:center;font-size:13px;font-weight:600;color:#1e293b;padding:0;outline:none}
-        .com-pill span{color:#64748b}
+        /* Commission row */
+        .com-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:6px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px}
+        .com-label{font-size:0.65em;color:#94a3b8;font-weight:500}
+        .com-edit{display:flex;align-items:center;gap:2px}
+        .com-edit input{width:36px;border:none;border-bottom:1.5px dashed #94a3b8;background:transparent;text-align:center;font-size:0.82em;font-weight:700;color:#1e293b;padding:1px 0;outline:none;transition:border-color 0.2s}
+        .com-edit input:focus{border-bottom-color:#2563eb;border-bottom-style:solid}
+        .com-edit span{font-size:0.72em;color:#64748b;font-weight:500}
+        .com-info{display:flex;align-items:center;gap:6px;font-size:0.65em;color:#94a3b8}
 
         /* ═══ Buttons ═══ */
         .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
@@ -350,8 +354,8 @@
             .col-left .op-btn-wrap{margin-top:6px;padding:4px 0 0}
             .col-left .op-btn-wrap .btn{padding:9px 14px;font-size:0.85em}
             .col-left .op-meta{font-size:0.6em}
-            .col-left .com-pill{font-size:0.68em;padding:3px 6px}
-            .col-left .com-pill input{font-size:12px;width:34px}
+            .col-left .com-row{font-size:0.95em;padding:5px 8px}
+            .col-left .com-edit input{font-size:0.78em;width:32px}
             .col-left .toggle-header{padding:8px 10px}
             .col-left .toggle-title{font-size:0.85em}
             .col-left .form-row{gap:6px}
@@ -537,9 +541,9 @@
                         <div id="previewBox" style="display:none"><span id="previewText"></span></div>
 
                         <div class="op-btn-wrap">
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                                <div class="com-pill"><span>Binance</span><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal"><span>%</span></div>
-                                <span class="op-meta" style="margin:0"><strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></span>
+                            <div class="com-row">
+                                <div><div class="com-label">Comisión Binance</div><div class="com-info"><strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></div></div>
+                                <div class="com-edit"><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal"><span>%</span></div>
                             </div>
                             <button class="btn op-btn-compra" id="btnAgregarOp">📥 Comprar USDT</button>
                         </div>
