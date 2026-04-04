@@ -1307,16 +1307,9 @@ function inicializarBancos(){
             if(bk.limiteDiarioUSD===undefined)bk.limiteDiarioUSD=bk.limiteDiario||0;
             if(bk.limiteUsadoUSD===undefined)bk.limiteUsadoUSD=bk.limiteUsado||0;
             if(bk.ultimoResetLimite===undefined)bk.ultimoResetLimite=null;
-            /* Auto-activate if bank has saldo or historical usage */
-            if(!bk.activo&&(bk.saldo>0||bancoTieneHistorial(b.nombre)))bk.activo=true;
+            /* NEVER override activo here — user's choice is the source of truth */
         }
     });
-}
-function bancoTieneHistorial(nombre){
-    return AppState.datos.operaciones.some(o=>o.banco===nombre)||
-        AppState.datos.movimientos.some(m=>m.banco===nombre)||
-        AppState.datos.transferencias.some(t=>t.origen===nombre||t.destino===nombre)||
-        (AppState.datos.conversiones||[]).some(c=>c.origen===nombre||c.destino===nombre);
 }
 
 function verificarResetLimites(){
