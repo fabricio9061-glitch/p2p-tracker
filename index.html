@@ -41,18 +41,30 @@
         .menu-btn.active span:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
         .menu-btn.active span:nth-child(2){opacity:0}
         .menu-btn.active span:nth-child(3){transform:rotate(-45deg) translate(4px,-4px)}
-        .menu-dropdown{position:absolute;top:50px;right:0;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:6px;min-width:210px;box-shadow:0 10px 40px rgba(0,0,0,0.15);opacity:0;visibility:hidden;transform:translateY(-10px);transition:all 0.2s;z-index:100}
-        .menu-dropdown.active{opacity:1;visibility:visible;transform:translateY(0)}
-        .menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:#1e293b;font-size:0.85em;font-weight:500;white-space:nowrap;transition:background 0.12s}
-        .menu-item:hover{background:#f8fafc}
-        .menu-item:active{background:#f1f5f9}
-        .menu-item.danger{color:#dc2626}
-        .menu-item.danger:hover{background:#fef2f2}
-        .menu-sect{padding:4px 12px 2px;font-size:0.56em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
-        .menu-divider{height:1px;background:#f1f5f9;margin:4px 0}
-        .menu-user{padding:10px 12px;border-bottom:1px solid #f1f5f9;margin-bottom:4px}
-        .menu-user-name{font-weight:600;color:#1e293b;font-size:0.88em}
-        .menu-user-email{color:#94a3b8;font-size:0.68em;margin-top:1px}
+        /* Full-screen menu panel (Instagram-style) */
+        .menu-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:1050;opacity:0;visibility:hidden;transition:opacity 0.3s,visibility 0.3s}
+        .menu-backdrop.active{opacity:1;visibility:visible}
+        .menu-panel{position:fixed;top:0;right:0;width:100%;max-width:420px;height:100%;background:#f8fafc;z-index:1100;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,0.12)}
+        .menu-panel.active{transform:translateX(0)}
+        .menu-panel-header{display:flex;align-items:center;gap:10px;padding:14px 14px;background:white;border-bottom:1px solid #e2e8f0;flex-shrink:0}
+        .menu-back{background:none;border:none;font-size:1.5em;cursor:pointer;padding:4px 10px;color:#475569;line-height:1;border-radius:6px;transition:background 0.15s}
+        .menu-back:active{background:#f1f5f9}
+        .menu-panel-title{font-size:1.02em;font-weight:700;color:#1e293b;letter-spacing:-0.2px}
+        .menu-panel-body{flex:1;overflow-y:auto;padding:16px 14px 30px;-webkit-overflow-scrolling:touch}
+        .menu-panel-user{background:white;border-radius:12px;padding:14px 16px;margin-bottom:18px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px}
+        .menu-panel-user-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#4338ca);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1em;flex-shrink:0}
+        .menu-panel-user-info{min-width:0;flex:1}
+        .menu-panel-user-name{font-weight:700;color:#1e293b;font-size:0.98em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .menu-panel-user-email{color:#94a3b8;font-size:0.76em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .menu-group-title{font-size:0.66em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;padding:4px 14px 8px}
+        .menu-group{background:white;border-radius:12px;margin-bottom:18px;border:1px solid #e2e8f0;overflow:hidden}
+        .menu-row{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;border-top:1px solid #f1f5f9;transition:background 0.15s;min-height:52px}
+        .menu-row:first-child{border-top:none}
+        .menu-row:active{background:#f1f5f9}
+        .menu-row-icon{font-size:1.25em;width:26px;text-align:center;flex-shrink:0}
+        .menu-row-label{flex:1;font-size:0.92em;color:#1e293b;font-weight:500}
+        .menu-row-chevron{color:#cbd5e1;font-size:1.1em;font-weight:400}
+        .menu-row.danger .menu-row-label{color:#dc2626}
 
         /* ═══ Cards ═══ */
         .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
@@ -445,23 +457,47 @@
                 <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
                 <div class="menu-container">
                     <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
-                    <div class="menu-dropdown" id="menuDropdown">
-                        <div class="menu-user"><div class="menu-user-name" id="menuUserName">Usuario</div><div class="menu-user-email" id="menuUserEmail">@p2p</div></div>
-                        <div class="menu-sect">Operar</div>
-                        <div class="menu-item" data-action="movimiento"><span>📝</span><span>Ajustes</span></div>
-                        <div class="menu-item" data-action="transferencia"><span>↔️</span><span>Transferir</span></div>
-                        <div class="menu-divider"></div>
-                        <div class="menu-sect">Cuentas</div>
-                        <div class="menu-item" data-action="bancos"><span>🏦</span><span>Cuentas</span></div>
-                        <div class="menu-item" data-action="inventario"><span>📦</span><span>Lotes</span></div>
-                        <div class="menu-divider"></div>
-                        <div class="menu-sect">Control</div>
-                        <div class="menu-item" data-action="gestion-tags"><span>🏷️</span><span>Gastos</span></div>
-                        <div class="menu-item" data-action="calendario"><span>📅</span><span>Calendario</span></div>
-                        <div class="menu-item" data-action="historial-mensual"><span>📊</span><span>Resumen</span></div>
-                        <div class="menu-divider"></div>
-                        <div class="menu-item danger" data-action="borrar-todo"><span>🔄</span><span>Resetear</span></div>
-                        <div class="menu-item" data-action="cerrar-sesion"><span>🚪</span><span>Salir</span></div>
+                </div>
+            </div>
+
+            <!-- Full-screen menu panel -->
+            <div class="menu-backdrop" id="menuBackdrop"></div>
+            <div class="menu-panel" id="menuPanel">
+                <div class="menu-panel-header">
+                    <button class="menu-back" id="menuBack" aria-label="Volver">←</button>
+                    <div class="menu-panel-title">Configuración y herramientas</div>
+                </div>
+                <div class="menu-panel-body">
+                    <div class="menu-panel-user">
+                        <div class="menu-panel-user-avatar" id="menuUserAvatar">U</div>
+                        <div class="menu-panel-user-info">
+                            <div class="menu-panel-user-name" id="menuUserName">Usuario</div>
+                            <div class="menu-panel-user-email" id="menuUserEmail">@p2p</div>
+                        </div>
+                    </div>
+
+                    <div class="menu-group-title">Operar</div>
+                    <div class="menu-group">
+                        <div class="menu-row" data-action="movimiento"><span class="menu-row-icon">📝</span><span class="menu-row-label">Ajustes</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="transferencia"><span class="menu-row-icon">↔️</span><span class="menu-row-label">Transferir</span><span class="menu-row-chevron">›</span></div>
+                    </div>
+
+                    <div class="menu-group-title">Cuentas</div>
+                    <div class="menu-group">
+                        <div class="menu-row" data-action="bancos"><span class="menu-row-icon">🏦</span><span class="menu-row-label">Cuentas bancarias</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="inventario"><span class="menu-row-icon">📦</span><span class="menu-row-label">Lotes USDT</span><span class="menu-row-chevron">›</span></div>
+                    </div>
+
+                    <div class="menu-group-title">Control</div>
+                    <div class="menu-group">
+                        <div class="menu-row" data-action="gestion-tags"><span class="menu-row-icon">🏷️</span><span class="menu-row-label">Gastos</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="calendario"><span class="menu-row-icon">📅</span><span class="menu-row-label">Calendario</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="historial-mensual"><span class="menu-row-icon">📊</span><span class="menu-row-label">Resumen mensual</span><span class="menu-row-chevron">›</span></div>
+                    </div>
+
+                    <div class="menu-group">
+                        <div class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon">🔄</span><span class="menu-row-label">Resetear datos</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon">🚪</span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron">›</span></div>
                     </div>
                 </div>
             </div>
@@ -1692,7 +1728,7 @@ function cargarDatosUsuario(){
     });
 }
 
-function showApp(u){AppState.currentUser=u;setText('menuUserName',emailToUser(u.email));setText('menuUserEmail',u.email);$('authContainer').classList.add('hidden');$('appContainer').classList.add('active');cargarDatosUsuario()}
+function showApp(u){AppState.currentUser=u;const uname=emailToUser(u.email);setText('menuUserName',uname);setText('menuUserEmail',u.email);$('menuUserAvatar').textContent=(uname[0]||'U').toUpperCase();$('authContainer').classList.add('hidden');$('appContainer').classList.add('active');cargarDatosUsuario()}
 function showAuth(){AppState.currentUser=null;$('authContainer')?.classList.remove('hidden');$('appContainer')?.classList.remove('active');['loginBtn','registerBtn'].forEach(id=>{const b=$(id);if(b){b.disabled=false;b.textContent=id==='loginBtn'?'Iniciar Sesión':'Crear Cuenta'}});['loginUser','loginPass','regUser','regPass','regPassConfirm'].forEach(id=>{const e=$(id);if(e)e.value=''});ocultarLoading()}
 
 function inicializarFirebase(){
@@ -2383,10 +2419,26 @@ document.addEventListener('DOMContentLoaded',()=>{
         if(!/^[a-zA-Z0-9_-]{3,20}$/.test(u)){ae.textContent='Usuario inválido';ae.classList.add('show');return}if(p.length<6){ae.textContent='Mínimo 6 caracteres';ae.classList.add('show');return}if(p!==p2){ae.textContent='No coinciden';ae.classList.add('show');return}
         const b=$('registerBtn');b.disabled=true;b.textContent='Creando...';try{await AppState.auth.createUserWithEmailAndPassword(userToEmail(u),p)}catch(er){ae.textContent=er.code==='auth/email-already-in-use'?'Usuario ya existe':'Error';ae.classList.add('show');b.disabled=false;b.textContent='Crear Cuenta'}});
 
-    // Menu
-    $('menuBtn').addEventListener('click',e=>{e.stopPropagation();$('menuBtn').classList.toggle('active');$('menuDropdown').classList.toggle('active')});
-    document.addEventListener('click',e=>{const m=document.querySelector('.menu-container');if(m&&!m.contains(e.target)){$('menuBtn').classList.remove('active');$('menuDropdown').classList.remove('active')}});
-    $('menuDropdown').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;$('menuBtn').classList.remove('active');$('menuDropdown').classList.remove('active');
+    // Menu panel (full-screen)
+    function abrirMenuPanel(){
+        $('menuPanel').classList.add('active');
+        $('menuBackdrop').classList.add('active');
+        $('menuBtn').classList.add('active');
+        document.body.style.overflow='hidden';
+        /* Set avatar initial */
+        const name=$('menuUserName').textContent||'U';
+        $('menuUserAvatar').textContent=(name[0]||'U').toUpperCase();
+    }
+    function cerrarMenuPanel(){
+        $('menuPanel').classList.remove('active');
+        $('menuBackdrop').classList.remove('active');
+        $('menuBtn').classList.remove('active');
+        if(!document.querySelector('.modal.active'))document.body.style.overflow='';
+    }
+    $('menuBtn').addEventListener('click',e=>{e.stopPropagation();if($('menuPanel').classList.contains('active'))cerrarMenuPanel();else abrirMenuPanel()});
+    $('menuBack').addEventListener('click',cerrarMenuPanel);
+    $('menuBackdrop').addEventListener('click',cerrarMenuPanel);
+    $('menuPanel').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;cerrarMenuPanel();
         const a=item.dataset.action;
         if(a==='calendario'){AppState.ui.calendarDate=new Date();renderizarCalendario();abrirModal('modalCalendario')}
         else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
@@ -2524,7 +2576,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
 
     // Escape cierra modales
-    document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.modal.active').forEach(m=>m.classList.remove('active'));document.body.style.overflow='';$('menuBtn')?.classList.remove('active');$('menuDropdown')?.classList.remove('active')}});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.modal.active').forEach(m=>m.classList.remove('active'));document.body.style.overflow='';$('menuPanel')?.classList.remove('active');$('menuBackdrop')?.classList.remove('active');$('menuBtn')?.classList.remove('active')}});
 
     // Init
     actualizarFormulario();actualizarColorSelect();inicializarFirebase();
