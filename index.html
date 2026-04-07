@@ -65,6 +65,8 @@
         .menu-row-label{flex:1;font-size:0.92em;color:#1e293b;font-weight:500}
         .menu-row-chevron{color:#cbd5e1;font-size:1.1em;font-weight:400}
         .menu-row.danger .menu-row-label{color:#dc2626}
+        .menu-version{text-align:center;padding:24px 14px 8px;font-size:0.7em;color:#cbd5e1;font-weight:500;letter-spacing:0.3px}
+        .menu-version-label{color:#94a3b8}
 
         /* ═══ Cards ═══ */
         .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
@@ -499,6 +501,8 @@
                         <div class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon">🔄</span><span class="menu-row-label">Resetear datos</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon">🚪</span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron">›</span></div>
                     </div>
+
+                    <div class="menu-version"><span class="menu-version-label">Versión</span> <span id="menuVersion">—</span></div>
                 </div>
             </div>
 
@@ -695,6 +699,7 @@
    ═══════════════════════════════════════ */
 const CONFIG = {
     firebase: {apiKey:"AIzaSyCL2uxQMNIxC0oo35uN-lYQXaOWLxXNg7k",authDomain:"p2p-tracker-dc9cc.firebaseapp.com",projectId:"p2p-tracker-dc9cc",storageBucket:"p2p-tracker-dc9cc.firebasestorage.app",messagingSenderId:"670856094446",appId:"1:670856094446:web:390946887212a97e36c9ff"},
+    APP_VERSION: '4.2.0',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2438,6 +2443,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('menuBtn').addEventListener('click',e=>{e.stopPropagation();if($('menuPanel').classList.contains('active'))cerrarMenuPanel();else abrirMenuPanel()});
     $('menuBack').addEventListener('click',cerrarMenuPanel);
     $('menuBackdrop').addEventListener('click',cerrarMenuPanel);
+    setText('menuVersion',CONFIG.APP_VERSION);
     $('menuPanel').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;cerrarMenuPanel();
         const a=item.dataset.action;
         if(a==='calendario'){AppState.ui.calendarDate=new Date();renderizarCalendario();abrirModal('modalCalendario')}
