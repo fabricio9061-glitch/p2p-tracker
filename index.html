@@ -13,12 +13,12 @@
     <style>
         /* ═══ Reset & Base ═══ */
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f0ee;min-height:100vh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}
-        .container{max-width:1400px;margin:0 auto;padding:15px;padding-bottom:30px}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f0ee;min-height:100vh;min-height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}
+        .container{max-width:1400px;margin:0 auto;padding:18px 16px 30px;width:100%}
 
         /* ═══ Header ═══ */
-        .header{text-align:center;margin-bottom:12px;padding-top:8px;position:relative;z-index:100}
-        .header h1{color:#1e293b;font-size:1.35em;margin-bottom:0}
+        .header{text-align:center;margin-bottom:18px;padding-top:14px;padding-bottom:6px;position:relative;z-index:100;min-height:64px}
+        .header h1{color:#1e293b;font-size:1.35em;margin-bottom:0;line-height:1.2}
 
         /* ═══ Sync ═══ */
         .sync-status{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;font-size:0.7em;margin-top:5px;cursor:pointer;user-select:none;transition:all 0.2s}
@@ -35,7 +35,7 @@
         @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:0.4}}
 
         /* ═══ Menu ═══ */
-        .menu-container{position:absolute;top:10px;right:0;z-index:100}
+        .menu-container{position:absolute;top:14px;right:0;z-index:100}
         .menu-btn{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
         .menu-btn span{display:block;width:20px;height:2px;background:#475569;border-radius:2px;transition:all 0.3s}
         .menu-btn.active span:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
@@ -379,15 +379,22 @@
         .calendar-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px}
         .calendar-weekday{color:#94a3b8;font-size:0.7em;text-align:center;font-weight:600}
         .calendar-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-        .calendar-day{aspect-ratio:1;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.8em;color:#1e293b;background:#f8fafc;border:1px solid #f1f5f9;min-height:40px}
-        .calendar-day.empty{background:transparent;border-color:transparent}
-        .calendar-day.positive{background:#f0fdf4;border-color:#bbf7d0}
-        .calendar-day.negative{background:#fef2f2;border-color:#fecaca}
-        .calendar-day.today{border:2px solid #3b82f6;background:white}
+        .calendar-day{aspect-ratio:1;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.8em;color:#1e293b;background:#fafbfc;border:1px solid #f1f5f9;min-height:40px;cursor:pointer;transition:transform 0.12s,box-shadow 0.12s}
+        .calendar-day:active{transform:scale(0.94)}
+        .calendar-day.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+        .calendar-day.neutral{background:#fafbfc;border-color:#f1f5f9}
+        .calendar-day.positive-1{background:#f0fdf4;border-color:#dcfce7}
+        .calendar-day.positive-2{background:#dcfce7;border-color:#bbf7d0}
+        .calendar-day.positive-3{background:#bbf7d0;border-color:#86efac}
+        .calendar-day.negative-1{background:#fef2f2;border-color:#fee2e2}
+        .calendar-day.negative-2{background:#fee2e2;border-color:#fecaca}
+        .calendar-day.negative-3{background:#fecaca;border-color:#fca5a5}
+        .calendar-day.today{box-shadow:inset 0 0 0 2px #3b82f6}
+        .calendar-day.selected{box-shadow:inset 0 0 0 2px #1e293b,0 4px 12px rgba(15,23,42,0.18);transform:translateY(-1px)}
         .calendar-day-number{font-weight:600;font-size:0.95em;color:#334155}
         .calendar-day-value{font-size:0.6em;margin-top:1px}
-        .calendar-day-value.pos{color:#16a34a}
-        .calendar-day-value.neg{color:#dc2626}
+        .calendar-day-value.pos{color:#16a34a;font-weight:700}
+        .calendar-day-value.neg{color:#dc2626;font-weight:700}
         .calendar-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
         .calendar-stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center}
         .calendar-stat.full{grid-column:span 2}
@@ -395,6 +402,30 @@
         .calendar-stat-value.positive{color:#16a34a}
         .calendar-stat-value.negative{color:#dc2626}
         .calendar-stat-label{color:#94a3b8;font-size:0.65em;margin-top:2px}
+        /* Calendar month metrics row */
+        .calendar-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
+        .calendar-metric{background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:8px 6px;text-align:center}
+        .calendar-metric-label{font-size:0.55em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.4px}
+        .calendar-metric-value{font-size:0.78em;font-weight:700;color:#1e293b;margin-top:2px;line-height:1.2}
+        .calendar-metric-value.positive{color:#16a34a}
+        .calendar-metric-value.negative{color:#dc2626}
+        .calendar-metric-sub{font-size:0.55em;color:#94a3b8;margin-top:1px}
+        /* Day detail panel */
+        .calendar-day-detail{margin-top:12px;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:14px;animation:dayDetailIn 0.2s ease}
+        @keyframes dayDetailIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .calendar-day-detail-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px}
+        .calendar-day-detail-date{font-size:0.7em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px}
+        .calendar-day-detail-ganancia{font-size:1.4em;font-weight:800;line-height:1.1;letter-spacing:-0.5px;margin-top:2px}
+        .calendar-day-detail-ganancia.positive{color:#16a34a}
+        .calendar-day-detail-ganancia.negative{color:#dc2626}
+        .calendar-day-detail-close{background:#f1f5f9;border:none;color:#64748b;width:28px;height:28px;border-radius:50%;font-size:1.1em;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1}
+        .calendar-day-detail-close:active{background:#e2e8f0}
+        .calendar-day-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;padding-top:10px;border-top:1px solid #f1f5f9}
+        .calendar-day-detail-cell{display:flex;flex-direction:column}
+        .calendar-day-detail-cell-label{font-size:0.6em;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.4px}
+        .calendar-day-detail-cell-value{font-size:0.92em;font-weight:700;color:#1e293b;margin-top:2px}
+        .calendar-day-detail-cell-sub{font-size:0.62em;color:#64748b;margin-top:1px}
+        .calendar-day-detail-empty{text-align:center;padding:14px;color:#94a3b8;font-size:0.8em}
 
         /* ═══ Responsive ═══ */
         @media(min-width:640px){.cards{grid-template-columns:repeat(3,1fr)}.card.main-card{grid-column:span 1}.bancos-grid{grid-template-columns:repeat(3,1fr)}}
@@ -667,27 +698,28 @@
                         </div>
                     </div>
 
-                    <div class="menu-group-title">Operar</div>
+                    <div class="menu-group-title">Operaciones</div>
                     <div class="menu-group">
-                        <div class="menu-row" data-action="movimiento"><span class="menu-row-icon">📝</span><span class="menu-row-label">Ajustes</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row" data-action="transferencia"><span class="menu-row-icon">↔️</span><span class="menu-row-label">Transferir</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="movimiento"><span class="menu-row-icon">📝</span><span class="menu-row-label">Ajustes de saldo</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="transferencia"><span class="menu-row-icon">↔️</span><span class="menu-row-label">Transferencias entre cuentas</span><span class="menu-row-chevron">›</span></div>
                     </div>
 
                     <div class="menu-group-title">Cuentas</div>
                     <div class="menu-group">
-                        <div class="menu-row" data-action="bancos"><span class="menu-row-icon">🏦</span><span class="menu-row-label">Cuentas bancarias</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="bancos"><span class="menu-row-icon">🏦</span><span class="menu-row-label">Cuentas bancarias y billeteras</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="inventario"><span class="menu-row-icon">📦</span><span class="menu-row-label">Lotes USDT</span><span class="menu-row-chevron">›</span></div>
                     </div>
 
-                    <div class="menu-group-title">Control</div>
+                    <div class="menu-group-title">Análisis</div>
                     <div class="menu-group">
-                        <div class="menu-row" data-action="gestion-tags"><span class="menu-row-icon">🏷️</span><span class="menu-row-label">Gastos</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row" data-action="calendario"><span class="menu-row-icon">📅</span><span class="menu-row-label">Calendario</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="gestion-tags"><span class="menu-row-icon">🏷️</span><span class="menu-row-label">Análisis de gastos</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="calendario"><span class="menu-row-icon">📅</span><span class="menu-row-label">Calendario de operaciones</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="historial-mensual"><span class="menu-row-icon">📊</span><span class="menu-row-label">Resumen mensual</span><span class="menu-row-chevron">›</span></div>
                     </div>
 
+                    <div class="menu-group-title">Sistema</div>
                     <div class="menu-group">
-                        <div class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon">🔄</span><span class="menu-row-label">Resetear datos</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon">🔄</span><span class="menu-row-label">Resetear aplicación</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon">🚪</span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron">›</span></div>
                     </div>
 
@@ -839,7 +871,7 @@
     </div>
 
     <!-- ═══ MODALS ═══ -->
-    <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:14px"><div class="modal-header">📅 Calendario</div><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label">💵 Ganancia Total (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
+    <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:14px"><div class="modal-header">📅 Calendario</div><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div id="calendarDayDetail"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label">💵 Ganancia Total (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div><div class="calendar-metrics" id="calMetrics"></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
     <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">📝 Ajuste Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta" class="select-tipo"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco" class="select-banco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="text" inputmode="decimal" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group mov-monto-group"><label id="movMontoLabel">Monto</label><input type="text" inputmode="decimal" id="movMonto" class="mov-monto-input" placeholder="0"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción</label><textarea id="movDescripcion" rows="1" placeholder="Ej: Almuerzo, Uber, etc."></textarea><div id="tagSugerenciasMov"></div></div><div id="movResumen" class="mov-resumen" style="display:none"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Cuentas Bancarias</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
@@ -2704,22 +2736,121 @@ function calcularGananciaTotal(monedaFiltro){
     return g;
 }
 
+function getDayStats(fecha){
+    if(!fecha)return null;
+    const ops=AppState.datos.operaciones.filter(o=>o.fecha===fecha&&o.moneda!=='USD');
+    const movs=AppState.datos.movimientos.filter(m=>m.fecha===fecha);
+    const trans=AppState.datos.transferencias.filter(t=>t.fecha===fecha);
+    let compras=0,ventas=0,montoCompras=0,montoVentas=0,gananciaOps=0,sumTasaC=0,sumTasaV=0;
+    ops.forEach(op=>{
+        if(op.tipo==='compra'){compras++;montoCompras=roundMoney(montoCompras+op.monto);sumTasaC+=op.tasa}
+        else{ventas++;montoVentas=roundMoney(montoVentas+op.monto);sumTasaV+=op.tasa}
+        gananciaOps=roundMoney(gananciaOps+(op.ganancia||0));
+    });
+    const tasaPromC=compras?roundMoney(sumTasaC/compras):0;
+    const tasaPromV=ventas?roundMoney(sumTasaV/ventas):0;
+    const spread=(compras&&ventas)?roundMoney(tasaPromV-tasaPromC):0;
+    const tasaFb=AppState.datos.ultimaTasaCompra||1;
+    let gastos=0;
+    movs.forEach(m=>{if(m.tipoMovimiento==='egreso'){
+        if(m.tipoCuenta==='usdt')gastos=roundMoney(gastos+(m.valorUYU||roundMoney(m.monto*(m.tasaRef||tasaFb))));
+        else{const bi=m.banco?getBancoInfo(m.banco):null;gastos=roundMoney(gastos+(bi&&bi.moneda==='USD'?roundMoney(m.monto*tasaFb):m.monto))}
+    }});
+    const gananciaNeta=roundMoney(gananciaOps-gastos);
+    return{fecha,ops:ops.length,compras,ventas,montoCompras,montoVentas,ajustes:movs.length,transferencias:trans.length,spread,gananciaOps,gastos,gananciaNeta,tasaPromC,tasaPromV};
+}
+function mostrarDetalleDia(fecha){
+    AppState.ui.calSelectedDay=fecha;
+    renderizarCalendario();
+}
+function cerrarDetalleDia(){
+    AppState.ui.calSelectedDay=null;
+    renderizarCalendario();
+}
 function renderizarCalendario(){
     const y=AppState.ui.calendarDate.getFullYear(),mo=AppState.ui.calendarDate.getMonth();
     setText('calendarMonth',`${y}-${String(mo+1).padStart(2,'0')}`);
     const fd=new Date(y,mo,1).getDay(),dm=new Date(y,mo+1,0).getDate(),hoy=getUDate(),g=calcularGananciaDiaria();
-    let h='',tg=0,tp=0;
+    /* Compute max abs value for intensity buckets */
+    let maxAbs=0;
+    for(let d=1;d<=dm;d++){const ds=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const v=Math.abs(g[ds]||0);if(v>maxAbs)maxAbs=v}
+    const sel=AppState.ui.calSelectedDay;
+    let h='',tg=0,tp=0,diasActivos=0,mejor=null,peor=null;
     for(let i=0;i<fd;i++)h+='<div class="calendar-day empty"></div>';
-    for(let d=1;d<=dm;d++){const ds=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,val=g[ds]||0,isH=hoy.getFullYear()===y&&hoy.getMonth()===mo&&hoy.getDate()===d;
-        let cls='calendar-day';if(val>0){cls+=' positive';tg+=val}else if(val<0){cls+=' negative';tp+=Math.abs(val)}if(isH)cls+=' today';
-        const vs=val!==0?(val>0?'+':'')+fmtNum(val,0):'0',vc=val>0?'pos':val<0?'neg':'';
-        h+=`<div class="${cls}"><div class="calendar-day-number">${d}</div><div class="calendar-day-value ${vc}">${vs}</div></div>`}
+    for(let d=1;d<=dm;d++){
+        const ds=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const val=g[ds]||0,isH=hoy.getFullYear()===y&&hoy.getMonth()===mo&&hoy.getDate()===d;
+        const isSel=sel===ds;
+        let cls='calendar-day';
+        if(val===0)cls+=' neutral';
+        else{
+            diasActivos++;
+            const ratio=maxAbs>0?Math.abs(val)/maxAbs:0;
+            const lvl=ratio>0.66?3:(ratio>0.33?2:1);
+            cls+=val>0?' positive-'+lvl:' negative-'+lvl;
+            if(val>0){tg+=val;if(!mejor||val>mejor.val)mejor={dia:d,val,ds}}
+            else{tp+=Math.abs(val);if(!peor||val<peor.val)peor={dia:d,val,ds}}
+        }
+        if(isH)cls+=' today';
+        if(isSel)cls+=' selected';
+        const vs=val!==0?(val>0?'+':'')+fmtNum(val,0):'';
+        const vc=val>0?'pos':val<0?'neg':'';
+        h+=`<div class="${cls}" data-action="cal-day" data-date="${ds}"><div class="calendar-day-number">${d}</div><div class="calendar-day-value ${vc}">${vs}</div></div>`;
+    }
     setHtml('calendarDays',h);
+
+    /* Day detail panel */
+    const det=$('calendarDayDetail');
+    if(det){
+        if(sel){
+            const stats=getDayStats(sel);
+            const p=sel.split('-'),fechaTxt=`${p[2]}/${p[1]}/${p[0]}`;
+            const gn=stats.gananciaNeta,gnCls=gn>=0?'positive':'negative',gnSign=gn>=0?'+':'-';
+            const totalActividad=stats.ops+stats.ajustes+stats.transferencias;
+            if(totalActividad===0){
+                det.innerHTML=`<div class="calendar-day-detail"><div class="calendar-day-detail-header"><div><div class="calendar-day-detail-date">${fechaTxt}</div></div><button class="calendar-day-detail-close" data-action="cal-day-close" aria-label="Cerrar">×</button></div><div class="calendar-day-detail-empty">Sin actividad este día</div></div>`;
+            }else{
+                det.innerHTML=`<div class="calendar-day-detail">
+                    <div class="calendar-day-detail-header">
+                        <div>
+                            <div class="calendar-day-detail-date">${fechaTxt}</div>
+                            <div class="calendar-day-detail-ganancia ${gnCls}">${gnSign}$${fmtNum(Math.abs(gn),0)}</div>
+                            <div style="font-size:0.62em;color:#94a3b8;margin-top:1px">Ganancia neta del día</div>
+                        </div>
+                        <button class="calendar-day-detail-close" data-action="cal-day-close" aria-label="Cerrar">×</button>
+                    </div>
+                    <div class="calendar-day-detail-grid">
+                        <div class="calendar-day-detail-cell"><div class="calendar-day-detail-cell-label">Operaciones</div><div class="calendar-day-detail-cell-value">${stats.ops}</div>${stats.ops>0?`<div class="calendar-day-detail-cell-sub">${stats.compras}C · ${stats.ventas}V</div>`:''}</div>
+                        <div class="calendar-day-detail-cell"><div class="calendar-day-detail-cell-label">Spread promedio</div><div class="calendar-day-detail-cell-value">${stats.spread?'$'+fmtNum(stats.spread,2):'—'}</div></div>
+                        ${stats.compras>0?`<div class="calendar-day-detail-cell"><div class="calendar-day-detail-cell-label">Compras</div><div class="calendar-day-detail-cell-value">${stats.compras}</div><div class="calendar-day-detail-cell-sub">$${fmtNum(stats.montoCompras,0)}</div></div>`:''}
+                        ${stats.ventas>0?`<div class="calendar-day-detail-cell"><div class="calendar-day-detail-cell-label">Ventas</div><div class="calendar-day-detail-cell-value">${stats.ventas}</div><div class="calendar-day-detail-cell-sub">$${fmtNum(stats.montoVentas,0)}</div></div>`:''}
+                        ${stats.ajustes>0?`<div class="calendar-day-detail-cell"><div class="calendar-day-detail-cell-label">Ajustes</div><div class="calendar-day-detail-cell-value">${stats.ajustes}</div></div>`:''}
+                        ${stats.transferencias>0?`<div class="calendar-day-detail-cell"><div class="calendar-day-detail-cell-label">Transferencias</div><div class="calendar-day-detail-cell-value">${stats.transferencias}</div></div>`:''}
+                        ${stats.gastos>0?`<div class="calendar-day-detail-cell"><div class="calendar-day-detail-cell-label">Gastos</div><div class="calendar-day-detail-cell-value" style="color:#dc2626">-$${fmtNum(stats.gastos,0)}</div></div>`:''}
+                        ${stats.gananciaOps!==0?`<div class="calendar-day-detail-cell"><div class="calendar-day-detail-cell-label">Ganancia ops</div><div class="calendar-day-detail-cell-value" style="color:${stats.gananciaOps>=0?'#16a34a':'#dc2626'}">${stats.gananciaOps>=0?'+':'-'}$${fmtNum(Math.abs(stats.gananciaOps),0)}</div></div>`:''}
+                    </div>
+                </div>`;
+            }
+        }else det.innerHTML='';
+    }
+
     const gt=calcularGananciaTotal(),ge=$('calGananciaTotal');ge.textContent=(gt>=0?'+':'-')+'$'+fmtNum(Math.abs(gt),0);ge.className='calendar-stat-value '+(gt>=0?'positive':'negative');
     setText('calGanancias','+$'+fmtNum(tg,0));setText('calPerdidas','-$'+fmtNum(tp,0));
     // USD total
     const calUSDBox=$('calGananciaUSDBox'),calUSD=$('calGananciaUSD');
     if(calUSD&&calUSDBox){if(hayBancosUSD()){const gtU=calcularGananciaTotal('USD');calUSDBox.style.display='';calUSD.textContent=(gtU>=0?'+':'-')+'US$'+fmtNum(Math.abs(gtU),0);calUSD.className='calendar-stat-value '+(gtU>=0?'positive':'negative')}else calUSDBox.style.display='none'}
+
+    /* Month metrics: mejor, peor, promedio diario */
+    const metr=$('calMetrics');
+    if(metr){
+        const promedio=diasActivos>0?roundMoney((tg-tp)/diasActivos):0;
+        const promCls=promedio>=0?'positive':'negative',promSign=promedio>=0?'+':'-';
+        if(diasActivos===0){metr.innerHTML='<div style="grid-column:span 3;text-align:center;padding:8px;color:#94a3b8;font-size:0.7em">Sin actividad este mes</div>'}
+        else{metr.innerHTML=`
+            <div class="calendar-metric"><div class="calendar-metric-label">Mejor día</div><div class="calendar-metric-value positive">${mejor?'+$'+fmtNum(mejor.val,0):'—'}</div><div class="calendar-metric-sub">${mejor?'día '+mejor.dia:''}</div></div>
+            <div class="calendar-metric"><div class="calendar-metric-label">Peor día</div><div class="calendar-metric-value negative">${peor?'-$'+fmtNum(Math.abs(peor.val),0):'—'}</div><div class="calendar-metric-sub">${peor?'día '+peor.dia:''}</div></div>
+            <div class="calendar-metric"><div class="calendar-metric-label">Prom/día</div><div class="calendar-metric-value ${promCls}">${promSign}$${fmtNum(Math.abs(promedio),0)}</div><div class="calendar-metric-sub">${diasActivos} día${diasActivos!==1?'s':''}</div></div>`}
+    }
 }
 
 /* ═══════════════════════════════════════
@@ -2996,7 +3127,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
     $('menuPanel').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;cerrarMenuPanel();
         const a=item.dataset.action;
-        if(a==='calendario'){AppState.ui.calendarDate=new Date();renderizarCalendario();abrirModal('modalCalendario')}
+        if(a==='calendario'){AppState.ui.calendarDate=new Date();AppState.ui.calSelectedDay=null;renderizarCalendario();abrirModal('modalCalendario')}
         else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
         else if(a==='movimiento')abrirModalMovimiento();
         else if(a==='bancos'){renderizarListaBancos();abrirModal('modalBancos')}
@@ -3071,8 +3202,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('editOpBanco').addEventListener('change',()=>{const v=$('editOpBanco').value;$('editOpBanco').style.color=v?getBancoColor(v):'#1e293b';$('editOpBanco').style.fontWeight=v?'600':'400'});
     $('tagSearch').addEventListener('input',renderizarGestionTags);
     $('movDescripcion').addEventListener('input',()=>{AppState.ui._tagShowAll=false;renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov')});
-    $('btnCalPrev').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()-1);renderizarCalendario()});
-    $('btnCalNext').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()+1);renderizarCalendario()});
+    $('btnCalPrev').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()-1);AppState.ui.calSelectedDay=null;renderizarCalendario()});
+    $('btnCalNext').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()+1);AppState.ui.calSelectedDay=null;renderizarCalendario()});
     $('btnCerrarCalendario').addEventListener('click',()=>cerrarModal('modalCalendario'));
 
     // Delegación de eventos para contenido dinámico
@@ -3131,6 +3262,14 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
         else if(a==='tag-view'){
             AppState.ui.tagView=t.dataset.view||'dona';renderizarGestionTags();
+        }
+        else if(a==='cal-day'){
+            const ds=t.dataset.date;if(!ds)return;
+            if(AppState.ui.calSelectedDay===ds)cerrarDetalleDia();
+            else mostrarDetalleDia(ds);
+        }
+        else if(a==='cal-day-close'){
+            cerrarDetalleDia();
         }
         else if(a==='reconnect')reconnectFirebase();
     });
