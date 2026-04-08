@@ -319,6 +319,11 @@
             .modal-content > *:last-child{padding-bottom:24px}
             /* Inner scrollable containers expand on mobile */
             #historialContent,#inventarioContent{max-height:none !important}
+            /* Lotes USDT: more breathing room on mobile */
+            #modalInventario .modal-content > *:not(.modal-header){padding-left:22px;padding-right:22px}
+            #modalInventario .inv-fifo-note{margin-top:18px}
+            #modalInventario .inv-buttons{margin-top:20px;gap:10px}
+            #modalInventario .inv-buttons .btn{padding:14px 8px;font-size:0.88em}
             /* Let buttons row sit at the bottom naturally */
             .modal-buttons{margin-top:auto;padding-top:16px}
             @keyframes modalSlideInRight{
@@ -326,6 +331,12 @@
                 to{transform:translateX(0);opacity:1}
             }
         }
+
+        /* ═══ Inventario (Lotes USDT) ═══ */
+        .inv-list{max-height:50vh;overflow-y:auto;margin:0 -2px;padding:0 2px}
+        .inv-fifo-note{background:#f8fafc;padding:8px 10px;border-radius:8px;margin-top:10px;font-size:0.7em;color:#94a3b8;text-align:center}
+        .inv-buttons{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px}
+        .inv-buttons .btn{padding:12px 8px;font-size:0.85em}
 
         /* ═══ Banco List ═══ */
         .banco-list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;background:#f8fafc}
@@ -877,7 +888,7 @@
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Cuentas Bancarias</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
-    <div id="modalInventario" class="modal"><div class="modal-content" style="padding:16px 16px 18px"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" style="max-height:50vh;overflow-y:auto;margin:0 -2px;padding:0 2px"></div><div style="background:#f8fafc;padding:8px 10px;border-radius:8px;margin-top:10px;font-size:0.7em;color:#94a3b8;text-align:center">FIFO: al vender se consumen los lotes más antiguos</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px"><button class="btn" style="background:#16a34a;padding:12px 8px;font-size:0.85em" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:white;color:#64748b;border:1px solid #e2e8f0;padding:12px 8px;font-size:0.85em" id="btnRecalcular">🔄 Recalcular</button><button class="btn" style="background:#f1f5f9;color:#475569;padding:12px 8px;font-size:0.85em" id="btnCerrarInventario">Cerrar</button></div></div></div>
+    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:white;color:#64748b;border:1px solid #e2e8f0" id="btnRecalcular">🔄 Recalcular</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
@@ -2059,7 +2070,7 @@ function renderizarInventario(){
     let tot=0,h='';
     la.forEach((l,i)=>{tot=roundMoney(tot+l.disponible);const mon=l.moneda||'UYU',sy=mon==='USD'?'US$':'$',v=roundMoney(l.disponible*l.precioCompra,2);
         const tag=l.manual?'<span style="display:inline-block;font-size:0.6em;background:#e0e7ff;color:#4338ca;padding:1px 5px;border-radius:4px;font-weight:600;vertical-align:middle;margin-left:4px;letter-spacing:0.3px">manual</span>':'';
-        h+=`<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 0;${i>0?'border-top:1px solid #f1f5f9':''}">
+        h+=`<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:13px 0;${i>0?'border-top:1px solid #f1f5f9':''}">
             <div style="min-width:0">
                 <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
                     <span style="font-size:0.88em;font-weight:700;color:#2563eb">${fmtTrunc(l.disponible,2)} USDT</span>
@@ -2072,7 +2083,7 @@ function renderizarInventario(){
             </div>
             <button class="btn-edit-small" style="padding:6px 10px;min-height:30px;flex-shrink:0" data-action="editar-lote" data-lote-id="${l.id}">✏️</button>
         </div>`});
-    h+=`<div style="margin-top:8px;padding:10px 12px;background:#f0f9ff;border:1px solid #e0f2fe;border-radius:8px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:0.78em;color:#64748b">Total inventario</span><span style="font-size:1em;font-weight:700;color:#2563eb">${fmtTrunc(tot,2)} USDT</span></div>`;
+    h+=`<div style="margin-top:14px;padding:13px 16px;background:#f0f9ff;border:1px solid #e0f2fe;border-radius:10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:0.78em;color:#64748b">Total inventario</span><span style="font-size:1.05em;font-weight:700;color:#2563eb">${fmtTrunc(tot,2)} USDT</span></div>`;
     setHtml('inventarioContent',h);
 }
 
