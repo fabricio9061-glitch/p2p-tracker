@@ -13,7 +13,7 @@
     <style>
         /* ═══ Reset & Base ═══ */
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f0ee;min-height:100vh}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f0ee;min-height:100vh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}
         .container{max-width:1400px;margin:0 auto;padding:15px;padding-bottom:30px}
 
         /* ═══ Header ═══ */
@@ -289,6 +289,7 @@
             .modal-header{
                 margin:0 !important;
                 padding:16px 16px 14px 48px !important;
+                padding-top:calc(16px + env(safe-area-inset-top,0px)) !important;
                 background:white;
                 border-bottom:1px solid #e2e8f0;
                 font-size:1.05em;
@@ -304,8 +305,7 @@
                 content:'←';
                 position:absolute;
                 left:14px;
-                top:50%;
-                transform:translateY(-50%);
+                bottom:11px;
                 font-size:1.5em;
                 color:#475569;
                 line-height:1;
@@ -576,6 +576,38 @@
         .var-chip.down{background:#dcfce7;color:#15803d}
         .var-chip.flat{background:#f1f5f9;color:#94a3b8}
         .var-chip.new{background:#dbeafe;color:#1d4ed8}
+
+        /* ═══ Merge Tag Modal ═══ */
+        .merge-source{background:linear-gradient(135deg,#fef2f2,#fee2e2);border:1px solid #fecaca;border-radius:12px;padding:14px 16px;margin-bottom:14px}
+        .merge-source-label{font-size:0.62em;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px}
+        .merge-source-name{font-size:1.15em;font-weight:800;color:#7f1d1d;line-height:1.2;margin-bottom:6px;word-break:break-word}
+        .merge-source-stats{display:flex;flex-wrap:wrap;gap:8px;font-size:0.7em;color:#991b1b}
+        .merge-source-stat{display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.6);padding:3px 9px;border-radius:10px;font-weight:600}
+        .merge-help{font-size:0.72em;color:#64748b;margin-bottom:12px;line-height:1.4}
+        .merge-tabs{display:flex;gap:0;background:#f1f5f9;border-radius:10px;padding:3px;margin-bottom:12px}
+        .merge-tab{flex:1;background:transparent;border:none;padding:9px 10px;font-size:0.78em;font-weight:600;color:#94a3b8;cursor:pointer;border-radius:7px;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+        .merge-tab.active{background:white;color:#1e293b;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+        .merge-dest-list{max-height:42vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px}
+        .merge-dest-item{display:flex;align-items:center;gap:10px;padding:11px 13px;background:white;border:1.5px solid #e2e8f0;border-radius:10px;cursor:pointer;transition:all 0.15s;min-height:54px;-webkit-tap-highlight-color:rgba(37,99,235,0.06)}
+        .merge-dest-item:active{background:#f8fafc;transform:scale(0.99)}
+        .merge-dest-item.selected{border-color:#2563eb;background:#eff6ff}
+        .merge-dest-item.suggested{border-color:#fde68a;background:#fffbeb}
+        .merge-dest-item.suggested.selected{border-color:#2563eb;background:#eff6ff}
+        .merge-dest-radio{width:18px;height:18px;border-radius:50%;border:2px solid #cbd5e1;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
+        .merge-dest-item.selected .merge-dest-radio{border-color:#2563eb;background:#2563eb}
+        .merge-dest-item.selected .merge-dest-radio::after{content:'';width:6px;height:6px;border-radius:50%;background:white}
+        .merge-dest-info{flex:1;min-width:0}
+        .merge-dest-name{font-weight:700;color:#1e293b;font-size:0.92em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .merge-dest-meta{font-size:0.66em;color:#94a3b8;margin-top:2px}
+        .merge-dest-badge{font-size:0.58em;font-weight:700;background:#fde68a;color:#854d0e;padding:2px 6px;border-radius:8px;text-transform:uppercase;letter-spacing:0.3px;flex-shrink:0;margin-left:6px}
+        .merge-dest-empty{text-align:center;padding:24px;color:#94a3b8;font-size:0.8em}
+        .merge-new-label{font-size:0.65em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px}
+        .merge-new-input{width:100%;padding:14px 16px;font-size:1.1em;font-weight:700;color:#1e293b;background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;outline:none;transition:border-color 0.2s;box-sizing:border-box}
+        .merge-new-input:focus{border-color:#2563eb;background:white}
+        .merge-new-hint{font-size:0.7em;color:#94a3b8;margin-top:8px;line-height:1.4}
+        .merge-confirm{margin-top:14px;padding:12px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;font-size:0.78em;color:#1e40af;line-height:1.4}
+        .merge-confirm b{color:#1e3a8a;font-weight:700}
+        .merge-confirm-warning{margin-top:6px;font-size:0.7em;color:#92400e;display:flex;align-items:center;gap:5px}
     </style>
 </head>
 <body>
@@ -822,8 +854,33 @@
         </div>
         <input class="tag-search" type="text" id="tagSearch" placeholder="🔍 Buscar categoría...">
         <div id="tagsList" style="max-height:40vh;overflow-y:auto"></div>
-        <div style="background:#f1f5f9;padding:8px 10px;border-radius:8px;margin-top:10px"><div style="font-size:0.7em;color:#64748b">Las categorías se crean desde el formulario de ajuste usando el botón <b style="color:#16a34a">+ nueva</b>. Usá 🔗 para fusionar categorías similares.</div></div>
+        <div style="background:#f1f5f9;padding:8px 10px;border-radius:8px;margin-top:10px"><div style="font-size:0.7em;color:#64748b">Las categorías se generan automáticamente desde las descripciones de tus ajustes. Fusionarlas ayuda a mantener el análisis más limpio y preciso. Usá 🔗 para fusionar.</div></div>
         <div class="modal-buttons"><button class="btn" id="btnCerrarTags">Cerrar</button></div>
+    </div></div>
+
+    <!-- Merge Tag Modal -->
+    <div id="modalMergeTag" class="modal"><div class="modal-content" style="max-width:480px">
+        <div class="modal-header">🔗 Fusionar categoría</div>
+        <div id="mergeSourceCard" class="merge-source"></div>
+        <div class="merge-help">Elegí una categoría destino. Todos los movimientos se moverán y la categoría origen se eliminará.</div>
+        <div class="merge-tabs">
+            <button class="merge-tab active" data-mergetab="existing" id="mergeTabExisting">📂 Usar existente</button>
+            <button class="merge-tab" data-mergetab="new" id="mergeTabNew">✨ Crear nueva</button>
+        </div>
+        <div id="mergePanelExisting">
+            <input type="text" id="mergeSearch" class="tag-search" placeholder="🔍 Buscar destino..." style="margin-bottom:8px">
+            <div id="mergeDestList" class="merge-dest-list"></div>
+        </div>
+        <div id="mergePanelNew" style="display:none">
+            <div class="merge-new-label">Nuevo nombre unificado</div>
+            <input type="text" id="mergeNewName" placeholder="Ej: Comida" class="merge-new-input">
+            <div class="merge-new-hint">Se creará una categoría nueva y los movimientos pasarán a ella.</div>
+        </div>
+        <div id="mergeConfirmBox" class="merge-confirm" style="display:none"></div>
+        <div class="modal-buttons">
+            <button class="btn btn-cancel" id="btnCancelMerge">Cancelar</button>
+            <button class="btn" id="btnConfirmMerge" disabled>Fusionar</button>
+        </div>
     </div></div>
     <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px;padding:16px 16px 18px"><div class="modal-header">📊 Resumen Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div style="margin-top:14px"><button class="btn" style="width:100%;background:#f1f5f9;color:#475569;font-size:0.85em;padding:12px" id="btnCerrarHistorial">Cerrar</button></div></div></div>
     <div id="modalEditarOp" class="modal"><div class="modal-content"><div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div><div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div><div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div><div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div><div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div><div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div></div></div>
@@ -1327,6 +1384,136 @@ function mergeTag(origen,destino){
     });
     AppState.datos.tags=AppState.datos.tags.filter(t=>tagKey(t)!==orKey);
     return true;
+}
+
+/* ─── Tag merge: similarity + smart suggestions ─── */
+function tagSimilarityScore(a,b){
+    const na=stripAccents((a||'').toLowerCase()).trim();
+    const nb=stripAccents((b||'').toLowerCase()).trim();
+    if(!na||!nb)return 0;
+    if(na===nb)return 100;
+    if(na.startsWith(nb)||nb.startsWith(na))return 80;
+    if(na.includes(nb)||nb.includes(na))return 60;
+    if(na.substring(0,3)===nb.substring(0,3))return 40;
+    /* Bigram overlap */
+    const bigrams=s=>{const r=new Set();for(let i=0;i<s.length-1;i++)r.add(s.substring(i,i+2));return r};
+    const ba=bigrams(na),bb=bigrams(nb);
+    if(!ba.size||!bb.size)return 0;
+    let inter=0;ba.forEach(g=>{if(bb.has(g))inter++});
+    const jaccard=inter/(ba.size+bb.size-inter);
+    return Math.round(jaccard*40);
+}
+function abrirModalMergeTag(srcTag){
+    if(!srcTag)return;
+    const tags=AppState.datos.tags||[];
+    const otros=tags.filter(t=>tagKey(t)!==tagKey(srcTag));
+    if(!otros.length){alert('No hay otras categorías para fusionar. Creá una nueva primero.');return}
+    /* Compute source stats */
+    const movs=AppState.datos.movimientos.filter(m=>m.descripcion&&tagKey(m.descripcion)===tagKey(srcTag));
+    const tasaFb=AppState.datos.ultimaTasaCompra||1;
+    let totalUYU=0;
+    movs.forEach(m=>{
+        if(m.tipoCuenta==='usdt')totalUYU=roundMoney(totalUYU+(m.valorUYU>0?m.valorUYU:roundMoney(m.monto*(m.tasaRef||tasaFb))));
+        else{const bi=m.banco?getBancoInfo(m.banco):null;totalUYU=roundMoney(totalUYU+(bi&&bi.moneda==='USD'?roundMoney(m.monto*tasaFb):m.monto))}
+    });
+    AppState.ui.mergeSrcTag=srcTag;
+    AppState.ui.mergeSrcStats={count:movs.length,totalUYU};
+    AppState.ui.mergeSelectedDest=null;
+    AppState.ui.mergeMode='existing';
+    /* Render source card */
+    const card=$('mergeSourceCard');
+    card.innerHTML=`<div class="merge-source-label">Categoría a fusionar</div>
+        <div class="merge-source-name">${escHtml(srcTag)}</div>
+        <div class="merge-source-stats">
+            <span class="merge-source-stat">📋 ${movs.length} movimiento${movs.length!==1?'s':''}</span>
+            ${totalUYU>0?`<span class="merge-source-stat">💸 $${fmtNum(totalUYU,0)}</span>`:''}
+        </div>`;
+    /* Reset UI state */
+    $('mergeSearch').value='';
+    $('mergeNewName').value='';
+    setMergeTab('existing');
+    renderMergeDestinations('');
+    updateMergeConfirmBox();
+    abrirModal('modalMergeTag');
+}
+function setMergeTab(tab){
+    AppState.ui.mergeMode=tab;
+    AppState.ui.mergeSelectedDest=null;
+    $('mergeTabExisting').className='merge-tab'+(tab==='existing'?' active':'');
+    $('mergeTabNew').className='merge-tab'+(tab==='new'?' active':'');
+    $('mergePanelExisting').style.display=tab==='existing'?'block':'none';
+    $('mergePanelNew').style.display=tab==='new'?'block':'none';
+    if(tab==='new')setTimeout(()=>$('mergeNewName').focus(),100);
+    updateMergeConfirmBox();
+}
+function renderMergeDestinations(searchQuery){
+    const cont=$('mergeDestList');if(!cont)return;
+    const srcTag=AppState.ui.mergeSrcTag;if(!srcTag)return;
+    const tags=AppState.datos.tags||[];
+    const otros=tags.filter(t=>tagKey(t)!==tagKey(srcTag));
+    const stats=getTagStats();
+    /* Score each destination */
+    const scored=otros.map(t=>{
+        const sim=tagSimilarityScore(srcTag,t);
+        const usos=stats[tagKey(t)]?.usos||0;
+        /* Boost for high-usage destinations (more "main" categories) */
+        const usageBoost=Math.log(usos+1)*8;
+        return{tag:t,score:sim+usageBoost,sim,usos,suggested:sim>=40};
+    }).sort((a,b)=>b.score-a.score);
+    /* Filter by search */
+    const q=stripAccents((searchQuery||'').toLowerCase()).trim();
+    const filtered=q?scored.filter(s=>stripAccents(s.tag.toLowerCase()).includes(q)):scored;
+    if(!filtered.length){
+        cont.innerHTML='<div class="merge-dest-empty">Sin resultados</div>';
+        return;
+    }
+    const selectedKey=AppState.ui.mergeSelectedDest?tagKey(AppState.ui.mergeSelectedDest):null;
+    cont.innerHTML=filtered.map(s=>{
+        const isSel=selectedKey===tagKey(s.tag);
+        const cls='merge-dest-item'+(s.suggested?' suggested':'')+(isSel?' selected':'');
+        const meta=s.usos>0?`${s.usos} movimiento${s.usos!==1?'s':''}`:'Sin usos';
+        return `<div class="${cls}" data-action="merge-select-dest" data-tag="${escHtml(s.tag)}">
+            <div class="merge-dest-radio"></div>
+            <div class="merge-dest-info">
+                <div class="merge-dest-name">${escHtml(s.tag)}</div>
+                <div class="merge-dest-meta">${meta}</div>
+            </div>
+            ${s.suggested?'<span class="merge-dest-badge">Sugerida</span>':''}
+        </div>`;
+    }).join('');
+}
+function updateMergeConfirmBox(){
+    const box=$('mergeConfirmBox'),btn=$('btnConfirmMerge');
+    const src=AppState.ui.mergeSrcTag,stats=AppState.ui.mergeSrcStats||{count:0,totalUYU:0};
+    let dest=null;
+    if(AppState.ui.mergeMode==='existing')dest=AppState.ui.mergeSelectedDest;
+    else dest=normalizarTag($('mergeNewName').value||'');
+    if(!dest||(src&&tagKey(dest)===tagKey(src))){
+        box.style.display='none';btn.disabled=true;return;
+    }
+    const tags=AppState.datos.tags||[];
+    const isNew=AppState.ui.mergeMode==='new'&&!tags.some(t=>tagKey(t)===tagKey(dest));
+    box.style.display='block';
+    box.innerHTML=`<div>Se moverán <b>${stats.count} movimiento${stats.count!==1?'s':''}</b>${stats.totalUYU>0?` (<b>$${fmtNum(stats.totalUYU,0)}</b>)`:''} de <b>${escHtml(src)}</b> hacia <b>${escHtml(dest)}</b>${isNew?' <span style="font-size:0.7em;background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:6px;font-weight:700">NUEVA</span>':''}.</div>
+        <div class="merge-confirm-warning">⚠️ <span><b>${escHtml(src)}</b> se eliminará y el historial quedará unificado bajo <b>${escHtml(dest)}</b>.</span></div>`;
+    btn.disabled=false;
+}
+function confirmarFusion(){
+    const src=AppState.ui.mergeSrcTag;if(!src)return;
+    let dest=null;
+    if(AppState.ui.mergeMode==='existing')dest=AppState.ui.mergeSelectedDest;
+    else dest=normalizarTag($('mergeNewName').value||'');
+    if(!dest)return;
+    if(tagKey(dest)===tagKey(src))return;
+    const tags=AppState.datos.tags||[];
+    /* Create new tag if needed */
+    if(!tags.some(t=>tagKey(t)===tagKey(dest)))AppState.datos.tags.push(dest);
+    if(mergeTag(src,dest)){
+        AppState.ui.mergeSrcTag=null;AppState.ui.mergeSelectedDest=null;
+        cerrarModal('modalMergeTag');
+        renderizarGestionTags();
+        guardaOptimista('update','tags',dest);
+    }
 }
 /* Conteo de usos y tipo dominante por tag */
 function getTagStats(){
@@ -2869,6 +3056,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
     $('btnGuardarLote').addEventListener('click',guardarLote);
     $('btnCerrarTags').addEventListener('click',()=>cerrarModal('modalGestionTags'));
+    /* Merge tag modal */
+    $('btnCancelMerge').addEventListener('click',()=>cerrarModal('modalMergeTag'));
+    $('btnConfirmMerge').addEventListener('click',confirmarFusion);
+    $('mergeTabExisting').addEventListener('click',()=>setMergeTab('existing'));
+    $('mergeTabNew').addEventListener('click',()=>setMergeTab('new'));
+    $('mergeSearch').addEventListener('input',e=>renderMergeDestinations(e.target.value));
+    $('mergeNewName').addEventListener('input',updateMergeConfirmBox);
     $('btnCerrarHistorial').addEventListener('click',()=>cerrarModal('modalHistorial'));
     $('btnCancelEditOp').addEventListener('click',()=>{cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null});
     $('btnGuardarEditOp').addEventListener('click',guardarEditarOperacion);
@@ -2921,18 +3115,12 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
         else if(a==='merge-tag'){
             const srcTag=t.dataset.tag;if(!srcTag)return;
-            const otros=AppState.datos.tags.filter(x=>tagKey(x)!==tagKey(srcTag));
-            if(!otros.length){alert('No hay otras categorías para fusionar');return}
-            const destino=prompt('Fusionar "'+srcTag+'" con:\n'+otros.join(', ')+'\n\nEscribí el nombre destino:');
-            if(destino!==null){
-                const dk=tagKey(destino);
-                if(!AppState.datos.tags.some(x=>tagKey(x)===dk)){alert('La categoría destino no existe');return}
-                if(tagKey(destino)===tagKey(srcTag)){alert('No podés fusionar una categoría consigo misma');return}
-                const usos=AppState.datos.movimientos.filter(m=>m.descripcion&&tagKey(m.descripcion)===tagKey(srcTag)).length;
-                if(confirm(`¿Fusionar "${srcTag}" (${usos} movimientos) → "${destino}"?\nEsto moverá todos los movimientos y eliminará "${srcTag}".`)){
-                    mergeTag(srcTag,destino);guardarDatos();renderizarGestionTags();
-                }
-            }
+            abrirModalMergeTag(srcTag);
+        }
+        else if(a==='merge-select-dest'){
+            AppState.ui.mergeSelectedDest=t.dataset.tag||null;
+            renderMergeDestinations($('mergeSearch').value||'');
+            updateMergeConfirmBox();
         }
         else if(a==='eliminar-tag'){
             const tag=t.dataset.tag;if(!tag)return;
