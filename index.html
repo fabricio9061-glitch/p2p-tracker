@@ -240,6 +240,61 @@
         .modal-buttons{display:flex;gap:10px;margin-top:18px}
         .modal-buttons .btn{flex:1}
 
+        /* ═══ Mobile: full-screen modal pages (≤767px) ═══ */
+        @media (max-width: 767px) {
+            .modal{padding:0;align-items:stretch;justify-content:stretch;background:white}
+            .modal-content{
+                max-width:100% !important;
+                width:100% !important;
+                max-height:100vh !important;
+                max-height:100dvh !important;
+                height:100vh;
+                height:100dvh;
+                border-radius:0 !important;
+                padding:0 !important;
+                margin:0;
+                animation:modalSlideInRight 0.28s cubic-bezier(0.4,0,0.2,1);
+            }
+            .modal-header{
+                margin:0 !important;
+                padding:16px 16px 14px 48px !important;
+                background:white;
+                border-bottom:1px solid #e2e8f0;
+                font-size:1.05em;
+                font-weight:700;
+                color:#1e293b;
+                position:sticky;
+                top:0;
+                z-index:5;
+                cursor:pointer;
+                -webkit-tap-highlight-color:rgba(0,0,0,0.05);
+            }
+            .modal-header::before{
+                content:'←';
+                position:absolute;
+                left:14px;
+                top:50%;
+                transform:translateY(-50%);
+                font-size:1.5em;
+                color:#475569;
+                line-height:1;
+                font-weight:400;
+            }
+            .modal-header:active{background:#f8fafc}
+            /* Restore inner padding for non-header children */
+            .modal-content > *:not(.modal-header){padding-left:16px;padding-right:16px}
+            .modal-content > .modal-header + *{padding-top:16px}
+            .modal-content > *:last-child{padding-bottom:24px}
+            /* Inner scrollable containers expand on mobile */
+            #historialContent,#inventarioContent{max-height:none !important}
+            /* Let buttons row sit at the bottom naturally */
+            .modal-buttons{margin-top:auto;padding-top:16px}
+            @keyframes modalSlideInRight{
+                from{transform:translateX(100%);opacity:0.7}
+                to{transform:translateX(0);opacity:1}
+            }
+        }
+
         /* ═══ Banco List ═══ */
         .banco-list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;background:#f8fafc}
         .banco-list-actions{display:flex;gap:8px;align-items:center}
@@ -687,7 +742,7 @@
     </div>
 
     <!-- ═══ MODALS ═══ -->
-    <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:14px"><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label">💵 Ganancia Total (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
+    <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:14px"><div class="modal-header">📅 Calendario</div><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Total (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label">💵 Ganancia Total (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
     <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">📝 Ajuste Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="text" inputmode="decimal" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group"><label id="movMontoLabel">Monto</label><input type="text" inputmode="decimal" id="movMonto"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción (opcional)</label><textarea id="movDescripcion" rows="2"></textarea><div id="tagSugerenciasMov"></div></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Cuentas Bancarias</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
@@ -2588,6 +2643,15 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('menuBack').addEventListener('click',cerrarMenuPanel);
     $('menuBackdrop').addEventListener('click',cerrarMenuPanel);
     setText('menuVersion',CONFIG.APP_VERSION);
+
+    // Mobile: tap modal header (back arrow) to close
+    document.addEventListener('click',e=>{
+        if(window.innerWidth>=768)return;
+        const header=e.target.closest('.modal.active .modal-header');
+        if(!header)return;
+        const modal=header.closest('.modal');
+        if(modal&&modal.id)cerrarModal(modal.id);
+    });
     $('menuPanel').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;cerrarMenuPanel();
         const a=item.dataset.action;
         if(a==='calendario'){AppState.ui.calendarDate=new Date();renderizarCalendario();abrirModal('modalCalendario')}
