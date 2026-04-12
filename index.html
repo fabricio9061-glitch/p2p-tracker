@@ -224,13 +224,15 @@
         .r1-monto{font-size:0.88em;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis}
         .r1-gp{font-size:0.88em;font-weight:800;text-align:right;white-space:nowrap}
         /* Row 2: 4-col — tasa·USDT tight, banco left-aligned, fecha right */
-        .r2{grid-template-columns:46px 78px auto 1fr;column-gap:8px;height:17px;line-height:17px;padding-bottom:3px}
+        .r2{grid-template-columns:46px minmax(0,78px) minmax(0,1fr) auto;column-gap:8px;height:17px;line-height:17px;padding-bottom:3px}
         .r2 span{font-size:0.65em;white-space:nowrap}
         .r2-c1{color:#94a3b8}
-        .r2-c2{color:#475569}
+        .r2-c2{color:#475569;overflow:hidden;text-overflow:ellipsis;min-width:0}
         .r2-c3{display:contents}
         .r2-banco{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
         .r2-fecha{color:#b0b8c4;text-align:right}
+        /* Movimientos (ajustes): tag col flexible with ellipsis, banco col reserved */
+        [data-mov-id] .r2{grid-template-columns:56px minmax(0,1fr) minmax(60px,auto) auto;column-gap:8px}
         /* Transfer/Conversion: flexible columns for bank names */
         .op-card.transfer .r2,.op-card.conversion .r2{grid-template-columns:auto 16px 1fr auto;column-gap:6px}
         .op-card.transfer .r2-c2,.op-card.conversion .r2-c2{text-align:center;color:#94a3b8}
@@ -968,7 +970,23 @@
    ═══════════════════════════════════════ */
 const CONFIG = {
     firebase: {apiKey:"AIzaSyCL2uxQMNIxC0oo35uN-lYQXaOWLxXNg7k",authDomain:"p2p-tracker-dc9cc.firebaseapp.com",projectId:"p2p-tracker-dc9cc",storageBucket:"p2p-tracker-dc9cc.firebasestorage.app",messagingSenderId:"670856094446",appId:"1:670856094446:web:390946887212a97e36c9ff"},
-    APP_VERSION: '4.2.0',
+    /* ═══════════════════════════════════════════════════════════════════════
+     * 📌 VERSION BUMP POLICY — REGLA OBLIGATORIA
+     * ═══════════════════════════════════════════════════════════════════════
+     * Toda modificación visible, funcional o estructural DEBE incrementar
+     * APP_VERSION siguiendo semantic versioning (MAJOR.MINOR.PATCH):
+     *
+     *   PATCH (x.x.+1) → fixes de bugs, micro-ajustes de UI, tweaks de texto,
+     *                    ajustes de espaciado, correcciones de cálculo aisladas.
+     *   MINOR (x.+1.0) → features nuevas, nuevos módulos o pantallas,
+     *                    rediseños de UI sustanciales, nuevos flujos.
+     *   MAJOR (+1.0.0) → cambios que rompen datos/estructura en Firebase,
+     *                    migraciones no retrocompatibles, redesign integral.
+     *
+     * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
+     * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
+     * ═══════════════════════════════════════════════════════════════════════ */
+    APP_VERSION: '4.3.0',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -987,6 +1005,32 @@ const CONFIG = {
         {nombre:'Skrill',moneda:'USD',color:'#862165'}
     ]
 };
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * 📜 CHANGELOG — registro de cambios por versión
+ * ═══════════════════════════════════════════════════════════════════════
+ * Mantener esta lista en sync con CONFIG.APP_VERSION. Cada release
+ * debe agregar una entrada al INICIO del array (más reciente primero).
+ * Formato: { version, date (YYYY-MM-DD), changes: [array de strings] }
+ * ═══════════════════════════════════════════════════════════════════════ */
+const CHANGELOG = [
+    {version:'4.3.0', date:'2026-04-12', changes:[
+        'Edición completa de Ajustes (monto, banco, tipo cuenta, descripción)',
+        'Edición completa de Transferencias y Conversiones (incluye cambio de tipo)',
+        'Swipe-right para editar en cards de ajustes/transferencias/conversiones',
+        'Fix overflow: tags largos ya no invaden la columna del banco',
+        'Tag length cap (24 chars) en creación para prevenir overflow',
+        'Establecida regla formal de versionado semántico'
+    ]},
+    {version:'4.2.0', date:'2026-04-10', changes:[
+        'Calendario interactivo con detalle por día y métricas mensuales',
+        'Merge de tags rediseñado como modal guiado con sugerencias',
+        'Menu reorganizado: Operaciones/Cuentas/Análisis/Sistema',
+        'Stepper − / + en input de tasa (paso 0,01)',
+        'Hasta 5 tasas sugeridas (antes 3)',
+        'Layout inicial mobile centrado y con safe-area iOS'
+    ]}
+];
 
 /* ═══════════════════════════════════════
    §2 — ESTADO CENTRALIZADO
@@ -1370,7 +1414,8 @@ function getSym(mon){return mon==='USD'?'US$':'$'}
 function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=roundMoney(AppState.datos.lotes.reduce((s,l)=>roundMoney(s+l.disponible),0))}
 
 /* ═══ Tags ═══ */
-function normalizarTag(t){return(t||'').trim().replace(/\s+/g,' ')}
+const TAG_MAX_LEN=24; /* Cap length to avoid overflow into banco column */
+function normalizarTag(t){return(t||'').trim().replace(/\s+/g,' ').slice(0,TAG_MAX_LEN)}
 function stripAccents(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function tagKey(t){return stripAccents(t).toLowerCase()}
 
@@ -1848,7 +1893,7 @@ function inicializarSwipe(){
         const movId=el.dataset.movId?parseInt(el.dataset.movId):null;
         const transId=el.dataset.transId?parseInt(el.dataset.transId):null;
         const convId=el.dataset.convId?parseInt(el.dataset.convId):null;
-        const hasEdit=!!opId; /* Only operations support edit via swipe right */
+        const hasEdit=!!(opId||movId||transId||convId); /* Edit via swipe-right available for all record types */
 
         el.addEventListener('touchstart',e=>{
             const t=e.touches[0];startX=t.clientX;startY=t.clientY;dx=0;dragging=true;locked=false;
@@ -1873,7 +1918,12 @@ function inicializarSwipe(){
             dragging=false;el.classList.add('animate');
             if(dx>THRESHOLD&&hasEdit){
                 el.style.transform='translateX(0)';wrap.classList.remove('swiping');
-                setTimeout(()=>abrirEditarOperacion(opId),150);
+                setTimeout(()=>{
+                    if(opId)abrirEditarOperacion(opId);
+                    else if(movId)abrirModalMovimiento(movId);
+                    else if(transId)abrirModalTransferencia(transId);
+                    else if(convId)abrirModalTransferencia(convId);
+                },150);
             }else if(dx<-THRESHOLD){
                 el.style.transform=`translateX(-${MAX}px)`;
                 setTimeout(()=>{
@@ -2545,12 +2595,44 @@ async function guardarEditarOperacion(){
 /* ═══════════════════════════════════════
    §10 — MOVIMIENTOS
    ═══════════════════════════════════════ */
-function abrirModalMovimiento(){
-    AppState.ui.guardandoMovimiento=false;AppState.ui.tipoMovimiento='ingreso';AppState.ui._tagShowAll=false;
-    $('tabIngreso').className='tab tab-ingreso active';$('tabEgreso').className='tab tab-egreso';
-    $('movTipoCuenta').value='banco';$('movMonto').value='';$('movTasaRef').value='';$('movDescripcion').value='';$('btnGuardarMov').disabled=false;$('btnGuardarMov').textContent='Guardar';
+function abrirModalMovimiento(editId){
+    AppState.ui.guardandoMovimiento=false;AppState.ui._tagShowAll=false;
+    AppState.ui.movEditandoId=editId||null;
+    const editing=!!editId;
+    const existing=editing?AppState.datos.movimientos.find(m=>m.id===editId):null;
+    if(editing&&!existing){AppState.ui.movEditandoId=null;return}
+    /* Header + button labels */
+    const header=document.querySelector('#modalMovimiento .modal-header');
+    if(header)header.textContent=editing?'✏️ Editar ajuste':'📝 Ajuste Externo';
+    $('btnGuardarMov').textContent=editing?'Guardar cambios':'Guardar';
+    $('btnGuardarMov').disabled=false;
+    /* Populate fields */
+    if(editing){
+        AppState.ui.tipoMovimiento=existing.tipoMovimiento;
+        $('movTipoCuenta').value=existing.tipoCuenta;
+        $('movMonto').value=fmtNum(existing.monto);
+        $('movTasaRef').value=existing.tasaRef?fmtNum(existing.tasaRef):'';
+        $('movDescripcion').value=existing.descripcion||'';
+    }else{
+        AppState.ui.tipoMovimiento='ingreso';
+        $('movTipoCuenta').value='banco';$('movMonto').value='';$('movTasaRef').value='';$('movDescripcion').value='';
+    }
+    $('tabIngreso').className='tab tab-ingreso'+(AppState.ui.tipoMovimiento==='ingreso'?' active':'');
+    $('tabEgreso').className='tab tab-egreso'+(AppState.ui.tipoMovimiento==='egreso'?' active':'');
     const _r=$('movResumen');if(_r)_r.style.display='none';
-    actualizarCuentasMovimiento();renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov');abrirModal('modalMovimiento');
+    actualizarCuentasMovimiento();
+    if(editing&&existing.tipoCuenta==='banco'){
+        /* Select bank after populating options */
+        const sel=$('movBanco');
+        if(existing.banco&&!Array.from(sel.options).some(o=>o.value===existing.banco)){
+            /* Bank may be deactivated — add option temporarily */
+            sel.innerHTML+=`<option value="${existing.banco}" style="color:${getBancoColor(existing.banco)};font-weight:600">${existing.banco}</option>`;
+        }
+        sel.value=existing.banco||'';
+    }
+    renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov');
+    actualizarMovResumen();
+    abrirModal('modalMovimiento');
 }
 function setTipoMovimiento(t){AppState.ui.tipoMovimiento=t;AppState.ui._tagShowAll=false;$('tabIngreso').className='tab tab-ingreso'+(t==='ingreso'?' active':'');$('tabEgreso').className='tab tab-egreso'+(t==='egreso'?' active':'');actualizarCuentasMovimiento();renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov');actualizarMovResumen()}
 function actualizarCuentasMovimiento(){
@@ -2592,29 +2674,69 @@ function actualizarMovResumen(){
 async function guardarMovimiento(){
     if(AppState.ui.guardandoMovimiento||AppState.ui.enCooldown)return;
     const btn=$('btnGuardarMov');if(btn.disabled)return;
-    const tc=$('movTipoCuenta').value,b=$('movBanco').value,m=pv('movMonto'),desc=$('movDescripcion').value,f=getUDateStr(),tRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?pv('movTasaRef'):0;
+    const editId=AppState.ui.movEditandoId;
+    const editing=!!editId;
+    const original=editing?AppState.datos.movimientos.find(m=>m.id===editId):null;
+    if(editing&&!original){AppState.ui.movEditandoId=null;return}
+    const tc=$('movTipoCuenta').value,b=$('movBanco').value,m=pv('movMonto'),desc=$('movDescripcion').value,tRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?pv('movTasaRef'):0;
     if(!m||m<=0)return alert('Monto inválido');if(tc==='banco'&&!b)return alert('Seleccioná un banco');
     if(tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'&&(!tRef||tRef<=0))return alert('Ingresá una tasa de referencia válida');
-    /* Validación pre-operación para egresos USDT */
+    /* Validación pre-operación para egresos USDT (edit: simular revirtiendo original) */
     if(tc==='usdt'&&AppState.ui.tipoMovimiento==='egreso'){
         const mR=truncUsdt(m);
-        if(AppState.datos.saldoUsdt<mR&&!confirm(`Solo tenés ${fmtTrunc(AppState.datos.saldoUsdt,2)} USDT en inventario. ¿Continuar?`))return;
-    }
-    AppState.ui.guardandoMovimiento=true;btn.disabled=true;btn.textContent='Guardando...';
-    try{
-        const mId=uid(),mR=tc==='usdt'?truncUsdt(m):roundMoney(m);
-        /* Actualizar saldo bancario (no FIFO) */
-        if(tc==='banco'){
-            AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?mR:-mR));
+        let saldoDisponible=AppState.datos.saldoUsdt;
+        if(editing&&original.tipoCuenta==='usdt'&&original.tipoMovimiento==='egreso'){
+            /* Al editar, el saldo actual ya tiene descontado el original. Sumarlo para comparar correctamente. */
+            saldoDisponible=roundMoney(saldoDisponible+original.monto,2);
+        }else if(editing&&original.tipoCuenta==='usdt'&&original.tipoMovimiento==='ingreso'){
+            saldoDisponible=roundMoney(saldoDisponible-original.monto,2);
         }
-        /* Insertar movimiento (valorUYU se calcula en recalcular para egresos USDT) */
-        const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:mR,valorUYU:0,tasaRef:tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0,descripcion:desc,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()};
-        AppState.datos.movimientos.unshift(md);
-        if(tc==='usdt')recalcularLotesYGanancias();
-        actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
-        guardaOptimista('create','movimientos',mId);
-        const movSy=tc==='usdt'?'':tc==='banco'?getSym(getBancoInfo(b)?.moneda||'UYU'):'';showSuccess({amount:tc==='usdt'?fmtTrunc(mR,2)+' USDT':movSy+fmtNum(mR),message:'Ajuste guardado con éxito',sub:(AppState.ui.tipoMovimiento==='ingreso'?'Ingreso':'Egreso')+(tc==='banco'?' · '+b:'')});
-    }catch(e){console.error('[P2P] Error guardando movimiento:',e)}finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent='Guardar'}
+        if(saldoDisponible<mR&&!confirm(`Solo tenés ${fmtTrunc(saldoDisponible,2)} USDT en inventario. ¿Continuar?`))return;
+    }
+    AppState.ui.guardandoMovimiento=true;btn.disabled=true;btn.textContent=editing?'Guardando...':'Guardando...';
+    try{
+        const mR=tc==='usdt'?truncUsdt(m):roundMoney(m);
+        if(editing){
+            /* 1. Revertir impacto bancario del movimiento original (si era banco) */
+            if(original.tipoCuenta==='banco'&&original.banco&&AppState.datos.bancos[original.banco]){
+                AppState.datos.bancos[original.banco].saldo=fixNeg(AppState.datos.bancos[original.banco].saldo+(original.tipoMovimiento==='ingreso'?-original.monto:original.monto));
+            }
+            /* 2. Mutar el movimiento en su posición (preserva fecha/hora/timestamp/id) */
+            original.tipoMovimiento=AppState.ui.tipoMovimiento;
+            original.tipoCuenta=tc;
+            original.banco=tc==='banco'?b:null;
+            original.monto=mR;
+            original.tasaRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0;
+            original.descripcion=desc;
+            original.updatedAt=new Date().toISOString();
+            /* valorUYU se recalcula abajo si aplica */
+            original.valorUYU=0;
+            /* 3. Aplicar nuevo impacto bancario */
+            if(tc==='banco'&&AppState.datos.bancos[b]){
+                AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?mR:-mR));
+            }
+            /* 4. Recalcular FIFO si toca USDT (tanto antes como ahora) */
+            if(tc==='usdt'||original.tipoCuenta==='usdt')recalcularLotesYGanancias();
+            actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
+            AppState.ui.movEditandoId=null;
+            guardaOptimista('update','movimientos',editId);
+            const movSy=tc==='usdt'?'':tc==='banco'?getSym(getBancoInfo(b)?.moneda||'UYU'):'';
+            showSuccess({amount:tc==='usdt'?fmtTrunc(mR,2)+' USDT':movSy+fmtNum(mR),message:'Ajuste actualizado con éxito',sub:(AppState.ui.tipoMovimiento==='ingreso'?'Ingreso':'Egreso')+(tc==='banco'?' · '+b:'')});
+        }else{
+            const mId=uid();
+            /* Actualizar saldo bancario (no FIFO) */
+            if(tc==='banco'){
+                AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?mR:-mR));
+            }
+            /* Insertar movimiento (valorUYU se calcula en recalcular para egresos USDT) */
+            const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:mR,valorUYU:0,tasaRef:tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0,descripcion:desc,fecha:getUDateStr(),hora:getUTimeStr(),timestamp:new Date().toISOString()};
+            AppState.datos.movimientos.unshift(md);
+            if(tc==='usdt')recalcularLotesYGanancias();
+            actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
+            guardaOptimista('create','movimientos',mId);
+            const movSy=tc==='usdt'?'':tc==='banco'?getSym(getBancoInfo(b)?.moneda||'UYU'):'';showSuccess({amount:tc==='usdt'?fmtTrunc(mR,2)+' USDT':movSy+fmtNum(mR),message:'Ajuste guardado con éxito',sub:(AppState.ui.tipoMovimiento==='ingreso'?'Ingreso':'Egreso')+(tc==='banco'?' · '+b:'')});
+        }
+    }catch(e){console.error('[P2P] Error guardando movimiento:',e)}finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent=AppState.ui.movEditandoId?'Guardar cambios':'Guardar'}
 }
 
 async function eliminarMovimiento(id){
@@ -2663,18 +2785,114 @@ function actualizarTransfPreview(){
     pvEl.innerHTML=`💱 Debita <b>${getSym(oi.moneda)}${fmtNum(m)}</b> de ${colorBanco(o)} → Recibe <b>${recibe}</b> en ${colorBanco(d)}<div style="margin-top:4px;font-size:0.8em;color:#64748b">Solo mueve saldos · No afecta ganancia</div>`;
 }
 
-function abrirModalTransferencia(){
-    $('montoTransferencia').value='';$('comisionTransferencia').value='0';$('transfTasa').value='';$('transfConvPreview').style.display='none';
+function abrirModalTransferencia(editId){
+    AppState.ui.transEditandoId=editId||null;
+    const editing=!!editId;
+    /* Look up in transferencias OR conversiones (both share this modal) */
+    let existing=null,isConv=false;
+    if(editing){
+        existing=AppState.datos.transferencias.find(t=>t.id===editId);
+        if(!existing){existing=AppState.datos.conversiones.find(c=>c.id===editId);isConv=!!existing}
+        if(!existing){AppState.ui.transEditandoId=null;return}
+    }
+    AppState.ui.transEditandoIsConv=isConv;
     const opts='<option value="">Seleccionar</option>'+getBancosActivos().map(b=>`<option value="${b.nombre}" style="color:${b.color||'#1e293b'};font-weight:600">${b.nombre} (${b.moneda})</option>`).join('');
-    $('bancoOrigen').innerHTML=opts;$('bancoDestino').innerHTML=opts;$('saldoOrigenInfo').textContent='';$('btnTransferir').disabled=false;
-    actualizarTransfUI();abrirModal('modalTransferencia');
+    $('bancoOrigen').innerHTML=opts;$('bancoDestino').innerHTML=opts;
+    if(editing){
+        const orig=isConv?existing.origen:existing.origen;
+        const dest=isConv?existing.destino:existing.destino;
+        /* If banks are now deactivated, add options temporarily */
+        [orig,dest].forEach(bn=>{
+            [$('bancoOrigen'),$('bancoDestino')].forEach(sel=>{
+                if(bn&&!Array.from(sel.options).some(o=>o.value===bn)){
+                    const bi=getBancoInfo(bn);
+                    sel.innerHTML+=`<option value="${bn}" style="color:${getBancoColor(bn)};font-weight:600">${bn}${bi?' ('+bi.moneda+')':''}</option>`;
+                }
+            });
+        });
+        $('bancoOrigen').value=orig;
+        $('bancoDestino').value=dest;
+        $('montoTransferencia').value=fmtNum(isConv?existing.montoOrigen:existing.monto);
+        $('comisionTransferencia').value=fmtNum(isConv?0:(existing.comision||0));
+        $('transfTasa').value=isConv?fmtNum(existing.tasa):'';
+    }else{
+        $('montoTransferencia').value='';$('comisionTransferencia').value='0';$('transfTasa').value='';$('transfConvPreview').style.display='none';
+    }
+    $('saldoOrigenInfo').textContent='';$('btnTransferir').disabled=false;
+    actualizarTransfUI();
+    /* Override button label in edit mode (after actualizarTransfUI sets default) */
+    if(editing){
+        $('btnTransferir').textContent='Guardar cambios';
+    }
+    abrirModal('modalTransferencia');
 }
 
 async function realizarTransferencia(){
     if(AppState.ui.enCooldown||AppState.ui.guardandoTransferencia)return;const btn=$('btnTransferir');if(btn.disabled)return;
+    const editId=AppState.ui.transEditandoId;
+    const editing=!!editId;
+    const origIsConv=AppState.ui.transEditandoIsConv;
+    const original=editing?(origIsConv?AppState.datos.conversiones.find(c=>c.id===editId):AppState.datos.transferencias.find(t=>t.id===editId)):null;
+    if(editing&&!original){AppState.ui.transEditandoId=null;return}
     const o=$('bancoOrigen').value,d=$('bancoDestino').value,m=pv('montoTransferencia'),c=roundMoney(pv('comisionTransferencia')),f=getUDateStr();
     if(!o||!d||o===d)return alert('Seleccioná bancos diferentes');if(!m||m<=0)return alert('Monto inválido');
     const cross=esCrossMoneda();
+    if(editing){
+        const t=cross?pv('transfTasa'):0;
+        if(cross&&(!t||t<=0))return alert('Ingresá una tasa de conversión válida');
+        btn.disabled=true;btn.textContent='Guardando...';AppState.ui.guardandoTransferencia=true;
+        try{
+            /* 1. Revertir impacto del registro original */
+            if(origIsConv){
+                const bo=AppState.datos.bancos[original.origen],bd=AppState.datos.bancos[original.destino];
+                if(bo)bo.saldo=fixNeg(bo.saldo+original.montoOrigen);
+                if(bd)bd.saldo=fixNeg(bd.saldo-original.montoDestino);
+            }else{
+                const bo=AppState.datos.bancos[original.origen],bd=AppState.datos.bancos[original.destino];
+                if(bo)bo.saldo=fixNeg(bo.saldo+(original.monto+(original.comision||0)));
+                if(bd)bd.saldo=fixNeg(bd.saldo-original.monto);
+                if(bo&&bo.limiteDiarioUSD>0){const bi=getBancoInfo(original.origen);let mU=0;if(bi?.moneda==='USD')mU=original.monto+(original.comision||0);else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((original.monto+(original.comision||0))/AppState.datos.ultimaTasaCompra);if(mU>0)bo.limiteUsadoUSD=Math.max(0,roundMoney((bo.limiteUsadoUSD||0)-mU))}
+            }
+            /* 2. Determinar tipo nuevo y aplicar */
+            if(cross){
+                const oi=getBancoInfo(o),di=getBancoInfo(d);
+                const montoRecibido=oi.moneda==='UYU'&&di.moneda==='USD'?roundMoney(m/t):roundMoney(m*t);
+                /* Si era transferencia → remover de transferencias, agregar a conversiones (preservando id/fecha) */
+                if(!origIsConv){
+                    AppState.datos.transferencias=AppState.datos.transferencias.filter(x=>x.id!==editId);
+                    AppState.datos.conversiones.unshift({id:editId,origen:o,destino:d,montoOrigen:m,montoDestino:montoRecibido,tasa:t,monedaOrigen:oi.moneda,monedaDestino:di.moneda,fecha:original.fecha,hora:original.hora,timestamp:original.timestamp,updatedAt:new Date().toISOString()});
+                }else{
+                    original.origen=o;original.destino=d;original.montoOrigen=m;original.montoDestino=montoRecibido;original.tasa=t;original.monedaOrigen=oi.moneda;original.monedaDestino=di.moneda;original.updatedAt=new Date().toISOString();
+                }
+                AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-m);
+                AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+montoRecibido);
+                actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
+                AppState.ui.transEditandoId=null;AppState.ui.transEditandoIsConv=false;
+                guardaOptimista('update','conversiones',editId);
+                if(!origIsConv)guardaOptimista('delete','transferencias',editId);
+                showSuccess({amount:getSym(di.moneda)+fmtNum(montoRecibido),message:'Conversión actualizada con éxito',sub:o+' → '+d});
+            }else{
+                /* Validación límite diario para transferencia editada */
+                if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);const dU=roundMoney(AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Guardar cambios';return}}
+                /* Si era conversión → remover de conversiones, agregar a transferencias */
+                if(origIsConv){
+                    AppState.datos.conversiones=AppState.datos.conversiones.filter(x=>x.id!==editId);
+                    AppState.datos.transferencias.unshift({id:editId,origen:o,destino:d,monto:m,comision:c,fecha:original.fecha,hora:original.hora,timestamp:original.timestamp,updatedAt:new Date().toISOString()});
+                }else{
+                    original.origen=o;original.destino=d;original.monto=m;original.comision=c;original.updatedAt=new Date().toISOString();
+                }
+                AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-(m+c));
+                AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+m);
+                if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,roundMoney((AppState.datos.bancos[o].limiteUsadoUSD||0)+mU))}
+                actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
+                AppState.ui.transEditandoId=null;AppState.ui.transEditandoIsConv=false;
+                guardaOptimista('update','transferencias',editId);
+                if(origIsConv)guardaOptimista('delete','conversiones',editId);
+                const tSy=getSym(getBancoInfo(o)?.moneda||'UYU');showSuccess({amount:tSy+fmtNum(m),message:'Transferencia actualizada con éxito',sub:o+' → '+d});
+            }
+        }catch(e){console.error('[P2P] Error editando transferencia:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent=AppState.ui.transEditandoId?'Guardar cambios':(esCrossMoneda()?'Convertir':'Transferir')}
+        return;
+    }
     if(cross){
         const t=pv('transfTasa');
         if(!t||t<=0)return alert('Ingresá una tasa de conversión válida');
@@ -2937,13 +3155,14 @@ const pagMov=crearPaginacion({getTotal:()=>movsMes().length,getPag:()=>AppState.
             const descTxt=m.descripcion?escHtml(m.descripcion):'';
 
             h+=`<div class="op-swipe-wrap">
+                <div class="op-swipe-bg edit">✏️</div>
                 <div class="op-swipe-bg delete">🗑️</div>
                 <div class="op-swipe-content" data-mov-id="${m.id}">
                     <div class="op-card ${isI?'compra':'venta'}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${sy}${fmtNum(m.monto)}${suf}</span><span class="r1-gp" style="color:${isI?'#16a34a':'#dc2626'}">${isI?'Ingreso':'Egreso'}</span></div>
                             <div class="r2"><span class="r2-c1">${isUsdt?'🪙 USDT':''}</span><span class="r2-c2">${descTxt?'🏷️ '+descTxt:''}</span><span class="r2-c3"><span class="r2-banco" style="color:${isUsdt?'#64748b':getBancoColor(m.banco)}">${isUsdt?'':m.banco||''}</span><span class="r2-fecha">${fmtFechaCorta(m.fecha)}</span></span></div>
-                            <span class="dk-actions"><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></span>
+                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-mov" data-id="${m.id}">✏️</button><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></span>
                         </div>
                     </div>
                 </div>
@@ -2970,13 +3189,14 @@ const pagTrans=crearPaginacion({getTotal:()=>transMes().length,getPag:()=>AppSta
             const oi=getBancoInfo(tr.origen),sy=getSym(oi?.moneda);
 
             h+=`<div class="op-swipe-wrap">
+                <div class="op-swipe-bg edit">✏️</div>
                 <div class="op-swipe-bg delete">🗑️</div>
                 <div class="op-swipe-content" data-trans-id="${tr.id}">
                     <div class="op-card transfer">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${sy}${fmtNum(tr.monto)}</span><span class="r1-gp" style="color:#475569;font-weight:600;font-size:0.78em">${tr.comision>0?'Com: '+sy+fmtNum(tr.comision):''}</span></div>
                             <div class="r2"><span class="r2-c1" style="color:${getBancoColor(tr.origen)}">${tr.origen}</span><span class="r2-c2">→</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(tr.destino)}">${tr.destino}</span><span class="r2-fecha">${fmtFechaCorta(tr.fecha)}</span></span></div>
-                            <span class="dk-actions"><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">🗑️</button></span>
+                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-trans" data-id="${tr.id}">✏️</button><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">🗑️</button></span>
                         </div>
                     </div>
                 </div>
@@ -2996,13 +3216,14 @@ const pagConv=crearPaginacion({getTotal:()=>convMes().length,getPag:()=>AppState
         cvs.forEach(c=>{
             const syO=c.monedaOrigen==='USD'?'US$':'$',syD=c.monedaDestino==='USD'?'US$':'$';
             h+=`<div class="op-swipe-wrap">
+                <div class="op-swipe-bg edit">✏️</div>
                 <div class="op-swipe-bg delete">🗑️</div>
                 <div class="op-swipe-content" data-conv-id="${c.id}">
                     <div class="op-card conversion">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${syO}${fmtNum(c.montoOrigen)} → ${syD}${fmtNum(c.montoDestino)}</span><span class="r1-gp" style="color:#64748b;font-weight:600;font-size:0.72em">T: ${fmtNum(c.tasa)}</span></div>
                             <div class="r2"><span class="r2-c1" style="color:${getBancoColor(c.origen)}">${c.origen}</span><span class="r2-c2">→</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(c.destino)}">${c.destino}</span><span class="r2-fecha">${fmtFechaCorta(c.fecha)}</span></span></div>
-                            <span class="dk-actions"><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">🗑️</button></span>
+                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-conv" data-id="${c.id}">✏️</button><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">🗑️</button></span>
                         </div>
                     </div>
                 </div>
@@ -3189,14 +3410,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('movTipoCuenta').addEventListener('change',()=>{actualizarCuentasMovimiento();actualizarMovResumen()});
     $('movBanco').addEventListener('change',()=>{const v=$('movBanco').value;$('movBanco').style.color=v?getBancoColor(v):'#1e293b';$('movBanco').style.fontWeight=v?'600':'400';actualizarMovResumen()});
     $('btnGuardarMov').addEventListener('click',guardarMovimiento);
-    $('btnCancelMov').addEventListener('click',()=>cerrarModal('modalMovimiento'));
+    $('btnCancelMov').addEventListener('click',()=>{AppState.ui.movEditandoId=null;cerrarModal('modalMovimiento')});
     $('btnCerrarBancos').addEventListener('click',()=>{cerrarModal('modalBancos');actualizarVista();guardaOptimista('update','bancos','close')});
     $('bancoOrigen').addEventListener('change',()=>{const v=$('bancoOrigen').value;$('bancoOrigen').style.color=v?getBancoColor(v):'#1e293b';mostrarSaldoOrigen();actualizarTransfUI()});
     $('bancoDestino').addEventListener('change',()=>{const v=$('bancoDestino').value;$('bancoDestino').style.color=v?getBancoColor(v):'#1e293b';actualizarTransfUI()});
     $('montoTransferencia').addEventListener('input',actualizarTransfPreview);
     $('transfTasa').addEventListener('input',actualizarTransfPreview);
     $('btnTransferir').addEventListener('click',realizarTransferencia);
-    $('btnCancelTransf').addEventListener('click',()=>cerrarModal('modalTransferencia'));
+    $('btnCancelTransf').addEventListener('click',()=>{AppState.ui.transEditandoId=null;AppState.ui.transEditandoIsConv=false;cerrarModal('modalTransferencia')});
     $('movMonto').addEventListener('input',()=>{actualizarFifoPreview();actualizarMovResumen()});
     $('btnCancelSaldo').addEventListener('click',()=>{cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
     $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'))}actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
@@ -3235,6 +3456,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='eliminar-mov')eliminarMovimiento(id);
         else if(a==='eliminar-trans')eliminarTransferencia(id);
         else if(a==='eliminar-conv')eliminarConversion(id);
+        else if(a==='editar-mov')abrirModalMovimiento(id);
+        else if(a==='editar-trans')abrirModalTransferencia(id);
+        else if(a==='editar-conv')abrirModalTransferencia(id);
         else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}else{AppState.ui.bancoEditando=banco;$('editarSaldoHeader').innerHTML='Editar '+colorBanco(banco);$('nuevoSaldoBanco').value=fmtNum(AppState.datos.bancos[banco]?.saldo||0);$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=fmtNum(AppState.datos.bancos[banco]?.limiteDiarioUSD||0,0);abrirModal('modalEditarSaldo')}}
         else if(a==='toggle-banco'){const n=t.dataset.banco;if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;renderizarListaBancos();actualizarVista();guardaOptimista('update','bancos',n)}
         else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
