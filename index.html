@@ -986,7 +986,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.3.0',
+    APP_VERSION: '4.3.2',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1014,6 +1014,20 @@ const CONFIG = {
  * Formato: { version, date (YYYY-MM-DD), changes: [array de strings] }
  * ═══════════════════════════════════════════════════════════════════════ */
 const CHANGELOG = [
+    {version:'4.3.2', date:'2026-04-12', changes:[
+        'Perf: cache memoizado para calcularGananciaDiaria (invalidación por versión)',
+        'BUG #4: comisionBanco preservada defensivamente en replay FIFO',
+        'BUG #8: parsearComision renombrado a parsearComisionPct (clarity)',
+        'BUG #10: edit de ajuste captura tipoCuenta antes de mutar para FIFO recalc correcto'
+    ]},
+    {version:'4.3.1', date:'2026-04-12', changes:[
+        'Auditoría: fix doble incremento de _localDirty en guardaOptimista',
+        'Auditoría: uid() ahora arranca con offset random para evitar colisiones tras reload',
+        'Auditoría: FIFO aísla consumo por moneda (UYU vs USD) — fix de costo/ganancia',
+        'Auditoría: pv() rechaza formatos ambiguos tipo "1.234.5" en vez de silenciosamente perder datos',
+        'Auditoría: total de inventario usa truncar consistente con lotes',
+        'Auditoría: edit de operación bloquea cambio de banco a moneda distinta'
+    ]},
     {version:'4.3.0', date:'2026-04-12', changes:[
         'Edición completa de Ajustes (monto, banco, tipo cuenta, descripción)',
         'Edición completa de Transferencias y Conversiones (incluye cambio de tipo)',
@@ -1368,7 +1382,7 @@ function actualizarVistaDebounced(){if(_vistaRAF)return;_vistaRAF=requestAnimati
    §4 — UTILIDADES PURAS
    ═══════════════════════════════════════ */
 function fixNeg(n){if(Object.is(n,-0))return 0;const r=Number(Math.round(parseFloat(n+'e2'))+'e-2');return isNaN(r)?0:r}
-let _idCounter=0;
+let _idCounter=Math.floor(Math.random()*1000);
 function uid(){return Date.now()*1000+((_idCounter++)%1000)}
 function truncar(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const f=Number(n+'e'+d);return Number(Math.floor(f)+'e-'+d)}
 function roundMoney(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const r=Number(Math.round(parseFloat(n+'e'+d))+'e-'+d);return Object.is(r,-0)?0:r}
@@ -1382,17 +1396,32 @@ function fmtNum(n,d=2){if(!isFinite(n))n=0;return n.toLocaleString('es-UY',{mini
 function fmtTrunc(n,d=2){if(!isFinite(n))n=0;const t=truncar(n,d);return t.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function fmtTasa(n,mon){if(!isFinite(n))return'0';if(mon==='USD'){const s=n.toString(),dec=s.includes('.')?s.split('.')[1].length:0;const d=dec>2?3:2;return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}return n.toLocaleString('es-UY',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function parsearTasa(v){if(!v)return null;const l=v.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,3})?$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<=0?null:n}
-function parsearComision(v){if(!v&&v!==0)return null;const l=v.toString().replace(',','.').trim();if(!l||l==='.')return null;if(!/^\d*\.?\d*$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<0||n>10?null:n}
+function parsearComisionPct(v){if(!v&&v!==0)return null;const l=v.toString().replace(',','.').trim();if(!l||l==='.')return null;if(!/^\d*\.?\d*$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<0||n>10?null:n}
 /* Leer valor numérico de cualquier input (formato es-UY).
    Reglas: coma presente → dots=miles, comma=decimal.
    Sin coma: dot+3dígitos al final (50.000) → miles; dot+1-2dígitos (42.50) → decimal. */
 function pv(id){
     const el=$(id);if(!el)return 0;
     const v=el.value.toString().trim();if(!v)return 0;
-    if(v.includes(','))return parseFloat(v.replace(/\./g,'').replace(',','.'))||0;
+    if(v.includes(',')){
+        /* Coma presente → dots=miles, comma=decimal */
+        const cleaned=v.replace(/\./g,'').replace(',','.');
+        return parseFloat(cleaned)||0;
+    }
     if(v.includes('.')){
-        if(/^[\d.]+$/.test(v)&&v.split('.').slice(1).every(g=>g.length===3))
-            return parseFloat(v.replace(/\./g,''))||0;
+        /* Dots sin coma: 
+           - Todos los grupos tras el primer dot son de 3 dígitos → miles (42.000, 1.234.567)
+           - Un solo dot con 1-2 dígitos al final → decimal (42.50)
+           - Formato mixto ambiguo (1.234.5) → rechazar */
+        const parts=v.split('.');
+        if(parts.length===2){
+            /* Un solo dot */
+            if(parts[1].length===3&&/^\d+$/.test(parts[1]))return parseFloat(v.replace(/\./g,''))||0; /* miles */
+            return parseFloat(v)||0; /* decimal */
+        }
+        /* Múltiples dots → todos deben ser grupos de 3 */
+        if(parts.slice(1).every(g=>g.length===3&&/^\d+$/.test(g)))return parseFloat(v.replace(/\./g,''))||0;
+        return 0; /* Formato ambiguo/inválido — safer than silently losing data */
     }
     return parseFloat(v)||0;
 }
@@ -2061,10 +2090,15 @@ function agregarLote(id,fecha,hora,precio,cant,moneda){
 }
 
 function consumirFIFO(cant,precioVenta,monedaVenta){
-    let rest=truncUsdt(cant),gan=0,costo=0;const lotes=getLotesActivosFIFO(),consumed=[];
+    let rest=truncUsdt(cant),gan=0,costo=0;
+    /* CRITICAL: FIFO must consume only lots of the matching currency.
+       Mixing UYU and USD lots breaks cost basis and profit calculations. */
+    const monedaTarget=monedaVenta||'UYU';
+    const lotes=getLotesActivosFIFO().filter(l=>(l.moneda||'UYU')===monedaTarget);
+    const consumed=[];
     for(const l of lotes){if(rest<=0)break;const c=truncUsdt(Math.min(l.disponible,rest));
         costo=roundMoney(costo+roundMoney(c*l.precioCompra));
-        if(precioVenta!==undefined&&(l.moneda||'UYU')===(monedaVenta||'UYU'))gan=roundMoney(gan+roundMoney(c*(precioVenta-l.precioCompra)));
+        if(precioVenta!==undefined)gan=roundMoney(gan+roundMoney(c*(precioVenta-l.precioCompra)));
         consumed.push({lotId:l.id,amount:c,precio:l.precioCompra});
         l.disponible=truncUsdt(l.disponible-c);if(l.disponible<0.005)l.disponible=0;rest=truncUsdt(rest-c);if(rest<0.005)rest=0}
     return{ganancia:gan,costo,consumed};
@@ -2091,6 +2125,8 @@ function recalcularLotesYGanancias(){
     ev.forEach(e=>{
         if(e.tipo==='op'){
             const op=e.data;if(!op.tasa||op.tasa<=0){op.ganancia=0;op.usdt=0;op.comisionPlataforma=0;return}
+            /* Defensive: normalize comisionBanco to number, preserve through replay */
+            if(typeof op.comisionBanco!=='number'||!isFinite(op.comisionBanco))op.comisionBanco=0;
             const cpct=(op.comisionPct||0.14)/100;
             const uBase=usdtBase(op.monto/op.tasa,op.tipo),cp=truncar(uBase*cpct,2),isU=op.moneda==='USD';
             if(op.tipo==='compra'){
@@ -2120,13 +2156,14 @@ function recalcularLotesYGanancias(){
     AppState.datos.ultimaTasaCompra=utcL;AppState.datos.ultimaTasaCompraUSD=utcUL;
     AppState.datos.ultimaTasaVenta=utvL;AppState.datos.ultimaTasaVentaUSD=utvU;
     sincronizarSaldoUsdt();
+    invalidarGananciaCache();
 }
 
 function renderizarInventario(){
     const la=getLotesActivosFIFO();
     if(!la.length){setHtml('inventarioContent','<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px">📭</div><div>Sin USDT en inventario</div></div>');return}
     let tot=0,h='';
-    la.forEach((l,i)=>{tot=roundMoney(tot+l.disponible);const mon=l.moneda||'UYU',sy=mon==='USD'?'US$':'$',v=roundMoney(l.disponible*l.precioCompra,2);
+    la.forEach((l,i)=>{tot=truncar(tot+l.disponible,2);const mon=l.moneda||'UYU',sy=mon==='USD'?'US$':'$',v=roundMoney(l.disponible*l.precioCompra,2);
         const tag=l.manual?'<span style="display:inline-block;font-size:0.6em;background:#e0e7ff;color:#4338ca;padding:1px 5px;border-radius:4px;font-weight:600;vertical-align:middle;margin-left:4px;letter-spacing:0.3px">manual</span>':'';
         h+=`<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:13px 0;${i>0?'border-top:1px solid #f1f5f9':''}">
             <div style="min-width:0">
@@ -2158,7 +2195,7 @@ const _syncQueue=[];/* [{type:'create'|'delete'|'update',entity:string,id:string
 function enqueueSync(type,entity,id){_syncQueue.push({type,entity,id,ts:Date.now()})}
 function clearSyncQueue(){_syncQueue.length=0;_localDirty=0}
 function hasPendingLocal(){return _syncQueue.length>0||_localDirty>0||_guardando||_guardarPendiente}
-function guardaOptimista(type,entity,id){if(type&&entity&&id)enqueueSync(type,entity,id);_localDirty++;guardarDatos().catch(e=>console.error('[P2P] Sync error:',e))}
+function guardaOptimista(type,entity,id){if(type&&entity&&id)enqueueSync(type,entity,id);guardarDatos().catch(e=>console.error('[P2P] Sync error:',e))}
 
 /* ─── Merge: NEVER drops local-only entities ─── */
 function mergeRemoteState(d){
@@ -2462,7 +2499,7 @@ function calcularPreview(){
 
 function guardarComisionYCalcular(){
     const inp=$('comisionPlataforma'),raw=inp.value.replace(',','.').trim();
-    if(raw!==''&&raw!=='.'){const v=parsearComision(raw);if(v!==null){
+    if(raw!==''&&raw!=='.'){const v=parsearComisionPct(raw);if(v!==null){
         if(getMonedaBanco()==='USD')AppState.datos.comisionUSD=v;else AppState.datos.comisionPlataforma=v;
         setText('comisionPctLabel',fmtNum(v));clearTimeout(AppState.ui.comisionDebounce);AppState.ui.comisionDebounce=setTimeout(()=>guardarDatos(),1200)}}
     calcularPreview();
@@ -2554,6 +2591,9 @@ async function guardarEditarOperacion(){
     if(!newM||newM<=0){alert('Monto inválido');return}
     if(!newTa){alert('Tasa inválida');return}
     if(!newB){alert('Seleccioná un banco');return}
+    /* Guard: no permitir cambio de banco a una moneda distinta — rompería la coherencia de op.moneda/tasa/FIFO */
+    const newBi=getBancoInfo(newB),opMon=op.moneda||'UYU',newMon=newBi?.moneda||'UYU';
+    if(newMon!==opMon){alert(`No podés cambiar el banco a una cuenta ${newMon} cuando la operación está en ${opMon}. Eliminá y recreá la operación.`);return}
     btn.disabled=true;btn.textContent='Guardando...';
     try{
         /* 1. Revertir impacto bancario de la operación original */
@@ -2697,6 +2737,8 @@ async function guardarMovimiento(){
     try{
         const mR=tc==='usdt'?truncUsdt(m):roundMoney(m);
         if(editing){
+            /* Capture pre-mutation state for decisions that depend on it */
+            const wasUsdt=original.tipoCuenta==='usdt';
             /* 1. Revertir impacto bancario del movimiento original (si era banco) */
             if(original.tipoCuenta==='banco'&&original.banco&&AppState.datos.bancos[original.banco]){
                 AppState.datos.bancos[original.banco].saldo=fixNeg(AppState.datos.bancos[original.banco].saldo+(original.tipoMovimiento==='ingreso'?-original.monto:original.monto));
@@ -2709,14 +2751,16 @@ async function guardarMovimiento(){
             original.tasaRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0;
             original.descripcion=desc;
             original.updatedAt=new Date().toISOString();
-            /* valorUYU se recalcula abajo si aplica */
-            original.valorUYU=0;
+            /* valorUYU: solo relevante para egresos USDT — se recalcula en replay. 
+               Limpiar explícitamente para evitar que un valor viejo persista si tc cambió de usdt→banco */
+            if(tc!=='usdt')original.valorUYU=0;
+            else original.valorUYU=0; /* Siempre 0 antes del replay; replay lo recalcula */
             /* 3. Aplicar nuevo impacto bancario */
             if(tc==='banco'&&AppState.datos.bancos[b]){
                 AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?mR:-mR));
             }
-            /* 4. Recalcular FIFO si toca USDT (tanto antes como ahora) */
-            if(tc==='usdt'||original.tipoCuenta==='usdt')recalcularLotesYGanancias();
+            /* 4. Recalcular FIFO si toca USDT (antes O ahora) */
+            if(tc==='usdt'||wasUsdt)recalcularLotesYGanancias();
             actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
             AppState.ui.movEditandoId=null;
             guardaOptimista('update','movimientos',editId);
@@ -2953,7 +2997,19 @@ async function eliminarConversion(id){
 /* ═══════════════════════════════════════
    §12 — CALENDARIO
    ═══════════════════════════════════════ */
+/* Cache for ganancia calculations — invalidated by data version changes.
+   Key: monedaFiltro + '_' + version. Ops/movs array length as secondary key for safety. */
+const _gananciaCache={diaria:null,total:null,key:null};
+function _gananciaCacheKey(monedaFiltro){
+    const v=AppState.datos._version||0;
+    const opsLen=AppState.datos.operaciones.length,movsLen=AppState.datos.movimientos.length;
+    const bump=AppState.ui._cacheBump||0;
+    return (monedaFiltro||'_all')+'|'+v+'|'+opsLen+'|'+movsLen+'|'+bump;
+}
+function invalidarGananciaCache(){_gananciaCache.diaria=null;_gananciaCache.total=null;_gananciaCache.key=null;AppState.ui._cacheBump=(AppState.ui._cacheBump||0)+1}
 function calcularGananciaDiaria(monedaFiltro){
+    const key=_gananciaCacheKey(monedaFiltro);
+    if(_gananciaCache.diaria&&_gananciaCache.key===key)return _gananciaCache.diaria;
     const g={};AppState.datos.operaciones.forEach(op=>{
         if(monedaFiltro&&op.moneda!==monedaFiltro)return;
         if(!monedaFiltro&&op.moneda==='USD')return;
@@ -2961,6 +3017,7 @@ function calcularGananciaDiaria(monedaFiltro){
     if(!monedaFiltro||monedaFiltro==='UYU'){
         AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(!g[mv.fecha])g[mv.fecha]=0;if(mv.tipoCuenta==='usdt'){g[mv.fecha]=roundMoney(g[mv.fecha]-(mv.valorUYU||roundMoney(mv.monto*(AppState.datos.ultimaTasaCompra||1))))}else g[mv.fecha]=roundMoney(g[mv.fecha]-mv.monto)}});
     }
+    _gananciaCache.diaria=g;_gananciaCache.key=key;
     return g;
 }
 function calcularGananciaTotal(monedaFiltro){
