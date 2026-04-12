@@ -3261,10 +3261,12 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
         else if(a==='tasa-step'){
             const mon=getMonedaBanco();
-            const step=mon==='USD'?0.01:0.5;
+            const STEP=0.01;
             const dir=t.dataset.dir==='down'?-1:1;
             const cur=parsearTasa($('tasa').value)||0;
-            const nuevo=Math.max(0,roundMoney(cur+dir*step,mon==='USD'?3:2));
+            /* Integer-cent math to avoid floating-point drift */
+            const cents=Math.round(cur*100)+dir;
+            const nuevo=Math.max(0,cents/100);
             $('tasa').value=fmtTasa(nuevo,mon);
             AppState.ui.tasaManual=true;
             calcularPreview();
