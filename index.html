@@ -168,8 +168,11 @@
         /* Tasa block */
         .tasa-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-bottom:8px;text-align:center}
         .tasa-block label{display:block;font-size:0.65em;color:#94a3b8;font-weight:500;margin-bottom:2px}
-        .tasa-block input{border:none;background:transparent;font-size:22px;font-weight:700;text-align:center;color:#1e293b;width:100%;padding:2px 0;outline:none;letter-spacing:0.5px}
-        .tasa-block .tasa-tags{display:flex;gap:5px;justify-content:center;margin-top:4px;flex-wrap:nowrap;overflow-x:auto}
+        .tasa-block input{border:none;background:transparent;font-size:22px;font-weight:700;text-align:center;color:#1e293b;width:100%;padding:2px 0;outline:none;letter-spacing:0.5px;min-width:0}
+        .tasa-block .tasa-input-row{display:flex;align-items:center;gap:8px}
+        .tasa-block .tasa-step-btn{flex-shrink:0;width:36px;height:36px;border-radius:8px;border:1px solid #e2e8f0;background:white;color:#475569;font-size:1.25em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;transition:all 0.12s;-webkit-tap-highlight-color:transparent;user-select:none}
+        .tasa-block .tasa-step-btn:active{background:#f1f5f9;transform:scale(0.94);border-color:#cbd5e1}
+        .tasa-block .tasa-tags{display:flex;gap:5px;justify-content:center;margin-top:6px;flex-wrap:wrap;row-gap:5px}
         /* Summary card — compact */
         .op-summary{border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-top:8px;transition:all 0.2s}
         .op-summary.modo-compra{background:linear-gradient(135deg,#f7fdf7,#f0fdf4);border-color:#bbf7d0}
@@ -491,6 +494,7 @@
             .col-left .tasa-block{padding:5px 8px;margin-bottom:6px}
             .col-left .tasa-block input{font-size:19px}
             .col-left .tasa-block label{font-size:0.6em}
+            .col-left .tasa-block .tasa-step-btn{width:32px;height:32px;font-size:1.15em}
             .col-left .op-summary{padding:5px 8px;margin-top:6px}
             .col-left .op-summary-row{font-size:0.7em;padding:1px 0}
             .col-left .op-summary-row.main{font-size:0.88em;padding:2px 0}
@@ -782,7 +786,11 @@
 
                         <div class="tasa-block">
                             <label>Tasa por USDT</label>
-                            <input type="text" id="tasa" placeholder="39,50" inputmode="decimal">
+                            <div class="tasa-input-row">
+                                <button type="button" class="tasa-step-btn" data-action="tasa-step" data-dir="down" aria-label="Bajar tasa">−</button>
+                                <input type="text" id="tasa" placeholder="39,50" inputmode="decimal">
+                                <button type="button" class="tasa-step-btn" data-action="tasa-step" data-dir="up" aria-label="Subir tasa">+</button>
+                            </div>
                             <small id="tasaHelp" style="display:none"></small>
                             <div class="tasa-tags" id="tasaTagsContainer"></div>
                         </div>
@@ -1815,13 +1823,13 @@ function agregarTasaReciente(valor,tipo,moneda){
     const idx=arr.findIndex(t=>t.valor===valor&&t.tipo===tipo&&t.moneda===moneda);
     if(idx!==-1)arr.splice(idx,1);
     arr.unshift({valor,tipo,moneda});
-    /* Mantener máx 3 por combo tipo+moneda, máx 20 total */
-    const count={};AppState.datos.tasasRecientes=arr.filter(t=>{const k=t.tipo+'_'+t.moneda;count[k]=(count[k]||0)+1;return count[k]<=3}).slice(0,20);
+    /* Mantener máx 5 por combo tipo+moneda, máx 30 total */
+    const count={};AppState.datos.tasasRecientes=arr.filter(t=>{const k=t.tipo+'_'+t.moneda;count[k]=(count[k]||0)+1;return count[k]<=5}).slice(0,30);
 }
 function renderizarTasasRecientes(){
     const cont=$('tasaTagsContainer');if(!cont)return;
     const tipo=$('tipo').value,mon=getMonedaBanco();
-    const recientes=(AppState.datos.tasasRecientes||[]).filter(t=>t.tipo===tipo&&t.moneda===mon).slice(0,3);
+    const recientes=(AppState.datos.tasasRecientes||[]).filter(t=>t.tipo===tipo&&t.moneda===mon).slice(0,5);
     if(!recientes.length){cont.innerHTML='';return}
     cont.innerHTML=recientes.map(t=>`<span class="tag-pill" data-action="usar-tasa" data-valor="${t.valor}" style="font-size:0.72em;padding:3px 9px;flex-shrink:0">${fmtTasa(t.valor,mon)}</span>`).join('');
 }
@@ -3250,6 +3258,16 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
         else if(a==='usar-tasa'){
             const v=t.dataset.valor;if(v){$('tasa').value=fmtTasa(parseFloat(v),getMonedaBanco());AppState.ui.tasaManual=true;calcularPreview()}
+        }
+        else if(a==='tasa-step'){
+            const mon=getMonedaBanco();
+            const step=mon==='USD'?0.01:0.5;
+            const dir=t.dataset.dir==='down'?-1:1;
+            const cur=parsearTasa($('tasa').value)||0;
+            const nuevo=Math.max(0,roundMoney(cur+dir*step,mon==='USD'?3:2));
+            $('tasa').value=fmtTasa(nuevo,mon);
+            AppState.ui.tasaManual=true;
+            calcularPreview();
         }
         else if(a==='editar-tag'){
             const oldTag=t.dataset.tag;if(!oldTag)return;
