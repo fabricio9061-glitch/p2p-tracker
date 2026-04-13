@@ -232,7 +232,8 @@
         .r2-banco{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
         .r2-fecha{color:#b0b8c4;text-align:right}
         /* Movimientos (ajustes): tag col flexible with ellipsis, banco col reserved */
-        [data-mov-id] .r2{grid-template-columns:56px minmax(0,1fr) minmax(60px,auto) auto;column-gap:8px}
+        [data-mov-id] .r2{grid-template-columns:minmax(72px,auto) minmax(0,1fr) minmax(60px,auto) auto;column-gap:8px}
+        [data-mov-id] .r2-c1{color:#475569;font-weight:600}
         /* Transfer/Conversion: flexible columns for bank names */
         .op-card.transfer .r2,.op-card.conversion .r2{grid-template-columns:auto 16px 1fr auto;column-gap:6px}
         .op-card.transfer .r2-c2,.op-card.conversion .r2-c2{text-align:center;color:#94a3b8}
@@ -986,7 +987,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.3.3',
+    APP_VERSION: '4.3.4',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1014,6 +1015,13 @@ const CONFIG = {
  * Formato: { version, date (YYYY-MM-DD), changes: [array de strings] }
  * ═══════════════════════════════════════════════════════════════════════ */
 const CHANGELOG = [
+    {version:'4.3.4', date:'2026-04-12', changes:[
+        'Helper unificado movimientoValorUYU() como fuente única de conversión a UYU',
+        'Ingresos USDT ahora persisten valorUYU tras replay FIFO (antes solo egresos)',
+        'UI: cards de ajustes USDT muestran equivalente en UYU (≈ $X) usando tasaRef del lote',
+        'Refactor: 5 call-sites consolidados (dashboard, análisis, merge, calendario, resumen mensual)',
+        'Consistencia: todos los cálculos UYU usan la misma lógica sin riesgo de divergencia'
+    ]},
     {version:'4.3.3', date:'2026-04-12', changes:[
         'UX: banco/cuenta se resetea tras guardar operación para evitar reuso accidental'
     ]},
@@ -1206,10 +1214,7 @@ async function verificarCambioMes(){
         tags.forEach(tag=>{
             const tagMovs=egresosMes.filter(m=>m.descripcion&&tagKey(m.descripcion)===tagKey(tag));
             if(!tagMovs.length)return;
-            let uyu=0;tagMovs.forEach(m=>{
-                if(m.tipoCuenta==='usdt')uyu=roundMoney(uyu+(m.valorUYU>0?m.valorUYU:roundMoney(m.monto*(m.tasaRef||tasaFb))));
-                else{const bi=m.banco?getBancoInfo(m.banco):null;uyu=roundMoney(uyu+(bi&&bi.moneda==='USD'?roundMoney(m.monto*tasaFb):m.monto))}
-            });
+            let uyu=0;tagMovs.forEach(m=>{uyu=roundMoney(uyu+movimientoValorUYU(m,tasaFb))});
             totalEgresoUYU=roundMoney(totalEgresoUYU+uyu);
             snapshot.gastosTag[tag]={ops:tagMovs.length,totalUYU:uyu};
         });
@@ -1445,6 +1450,27 @@ function colorBanco(n){return`<span style="color:${getBancoColor(n)};font-weight
 function getSym(mon){return mon==='USD'?'US$':'$'}
 function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=roundMoney(AppState.datos.lotes.reduce((s,l)=>roundMoney(s+l.disponible),0))}
 
+/* ═══ Conversión unificada de movimientos a UYU ═══
+   Fuente única de verdad para convertir cualquier movimiento a UYU.
+   Prioridad:
+     1. m.valorUYU persistido (calculado en replay FIFO)
+     2. m.monto * m.tasaRef (tasa manual del registro)
+     3. m.monto * tasaFallback (última tasa de compra)
+   Para movs en banco: si banco USD → multiplica por tasaFallback; si banco UYU → retorna monto directo.
+   Garantiza consistencia entre dashboard, análisis, resumen mensual y listados. */
+function movimientoValorUYU(m,tasaFallback){
+    if(!m)return 0;
+    const tasaFb=tasaFallback||AppState.datos.ultimaTasaCompra||1;
+    if(m.tipoCuenta==='usdt'){
+        if(typeof m.valorUYU==='number'&&m.valorUYU>0)return m.valorUYU;
+        return roundMoney(m.monto*(m.tasaRef||tasaFb));
+    }
+    /* Banco: respetar moneda */
+    const bi=m.banco?getBancoInfo(m.banco):null;
+    if(bi&&bi.moneda==='USD')return roundMoney(m.monto*tasaFb);
+    return m.monto; /* UYU directo */
+}
+
 /* ═══ Tags ═══ */
 const TAG_MAX_LEN=24; /* Cap length to avoid overflow into banco column */
 function normalizarTag(t){return(t||'').trim().replace(/\s+/g,' ').slice(0,TAG_MAX_LEN)}
@@ -1541,10 +1567,7 @@ function abrirModalMergeTag(srcTag){
     const movs=AppState.datos.movimientos.filter(m=>m.descripcion&&tagKey(m.descripcion)===tagKey(srcTag));
     const tasaFb=AppState.datos.ultimaTasaCompra||1;
     let totalUYU=0;
-    movs.forEach(m=>{
-        if(m.tipoCuenta==='usdt')totalUYU=roundMoney(totalUYU+(m.valorUYU>0?m.valorUYU:roundMoney(m.monto*(m.tasaRef||tasaFb))));
-        else{const bi=m.banco?getBancoInfo(m.banco):null;totalUYU=roundMoney(totalUYU+(bi&&bi.moneda==='USD'?roundMoney(m.monto*tasaFb):m.monto))}
-    });
+    movs.forEach(m=>{totalUYU=roundMoney(totalUYU+movimientoValorUYU(m,tasaFb))});
     AppState.ui.mergeSrcTag=srcTag;
     AppState.ui.mergeSrcStats={count:movs.length,totalUYU};
     AppState.ui.mergeSelectedDest=null;
@@ -1746,16 +1769,7 @@ function renderizarGestionTags(){
     const egresos=movsFiltrados.filter(m=>m.tipoMovimiento==='egreso');
     const egresosPrev=movsPrev.filter(m=>m.tipoMovimiento==='egreso');
     const tasaFallback=AppState.datos.ultimaTasaCompra||1;
-
-    function egresoUYU(m){
-        if(m.tipoCuenta==='usdt'){
-            if(m.valorUYU>0)return m.valorUYU;
-            return roundMoney(m.monto*(m.tasaRef||tasaFallback));
-        }
-        const bi=m.banco?getBancoInfo(m.banco):null;
-        if(bi&&bi.moneda==='USD')return roundMoney(m.monto*tasaFallback);
-        return m.monto;
-    }
+    const egresoUYU=m=>movimientoValorUYU(m,tasaFallback);
 
     const tags=AppState.datos.tags||[],search=($('tagSearch')?.value||'').toLowerCase();
     function buildStats(egresoList){
@@ -2147,7 +2161,13 @@ function recalcularLotesYGanancias(){
                 else{utvL=op.tasa;op.ganancia=roundMoney(fifo.ganancia)}
             }
             op.usdt=uBase;op.comisionPlataforma=cp;
-        }else if(e.tipo==='mi'){const m=e.data,pr=m.tasaRef||utcL||1;agregarLote(m.id,m.fecha,m.hora||'00:00',pr,roundMoney(m.monto),'UYU')}
+        }else if(e.tipo==='mi'){
+            const m=e.data,pr=m.tasaRef||utcL||1;
+            agregarLote(m.id,m.fecha,m.hora||'00:00',pr,roundMoney(m.monto),'UYU');
+            /* Persistir valorUYU también en ingresos USDT para que el helper unificado
+               no tenga que recalcular. tasaRef es la tasa de referencia del lote creado. */
+            m.valorUYU=roundMoney(m.monto*pr);
+        }
         else if(e.tipo==='me'){const r=consumirFIFO(roundMoney(e.data.monto));e.data.valorUYU=r.costo;e.data.consumedLots=r.consumed}
         else if(e.tipo==='lm'){
             const l=e.data;
@@ -3023,7 +3043,8 @@ function calcularGananciaDiaria(monedaFiltro){
         if(!monedaFiltro&&op.moneda==='USD')return;
         if(!g[op.fecha])g[op.fecha]=0;if(op.ganancia!==undefined)g[op.fecha]=roundMoney(g[op.fecha]+op.ganancia)});
     if(!monedaFiltro||monedaFiltro==='UYU'){
-        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(!g[mv.fecha])g[mv.fecha]=0;if(mv.tipoCuenta==='usdt'){g[mv.fecha]=roundMoney(g[mv.fecha]-(mv.valorUYU||roundMoney(mv.monto*(AppState.datos.ultimaTasaCompra||1))))}else g[mv.fecha]=roundMoney(g[mv.fecha]-mv.monto)}});
+        const tasaFb=AppState.datos.ultimaTasaCompra||1;
+        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(!g[mv.fecha])g[mv.fecha]=0;g[mv.fecha]=roundMoney(g[mv.fecha]-movimientoValorUYU(mv,tasaFb))}});
     }
     _gananciaCache.diaria=g;_gananciaCache.key=key;
     return g;
@@ -3034,7 +3055,8 @@ function calcularGananciaTotal(monedaFiltro){
         if(!monedaFiltro&&op.moneda==='USD')return;
         if(op.ganancia!==undefined)g=roundMoney(g+op.ganancia)});
     if(!monedaFiltro||monedaFiltro==='UYU'){
-        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(mv.tipoCuenta==='usdt')g=roundMoney(g-(mv.valorUYU||roundMoney(mv.monto*(AppState.datos.ultimaTasaCompra||1))));else g=roundMoney(g-mv.monto)}});
+        const tasaFb=AppState.datos.ultimaTasaCompra||1;
+        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso')g=roundMoney(g-movimientoValorUYU(mv,tasaFb))});
     }
     return g;
 }
@@ -3055,10 +3077,7 @@ function getDayStats(fecha){
     const spread=(compras&&ventas)?roundMoney(tasaPromV-tasaPromC):0;
     const tasaFb=AppState.datos.ultimaTasaCompra||1;
     let gastos=0;
-    movs.forEach(m=>{if(m.tipoMovimiento==='egreso'){
-        if(m.tipoCuenta==='usdt')gastos=roundMoney(gastos+(m.valorUYU||roundMoney(m.monto*(m.tasaRef||tasaFb))));
-        else{const bi=m.banco?getBancoInfo(m.banco):null;gastos=roundMoney(gastos+(bi&&bi.moneda==='USD'?roundMoney(m.monto*tasaFb):m.monto))}
-    }});
+    movs.forEach(m=>{if(m.tipoMovimiento==='egreso')gastos=roundMoney(gastos+movimientoValorUYU(m,tasaFb))});
     const gananciaNeta=roundMoney(gananciaOps-gastos);
     return{fecha,ops:ops.length,compras,ventas,montoCompras,montoVentas,ajustes:movs.length,transferencias:trans.length,spread,gananciaOps,gastos,gananciaNeta,tasaPromC,tasaPromV};
 }
@@ -3218,6 +3237,10 @@ const pagMov=crearPaginacion({getTotal:()=>movsMes().length,getPag:()=>AppState.
             const isUsdt=m.tipoCuenta==='usdt';
             const sy=isUsdt?'':'$',suf=isUsdt?' USDT':'';
             const descTxt=m.descripcion?escHtml(m.descripcion):'';
+            /* UYU equivalent for USDT adjustments — shows conversion using persisted valorUYU
+               (computed in FIFO replay for both ingreso/egreso) with fallback to live calc */
+            const uyuEq=isUsdt?movimientoValorUYU(m):0;
+            const c1Txt=isUsdt?(uyuEq>0?'≈ $'+fmtNum(uyuEq,0):'🪙 USDT'):'';
 
             h+=`<div class="op-swipe-wrap">
                 <div class="op-swipe-bg edit">✏️</div>
@@ -3226,7 +3249,7 @@ const pagMov=crearPaginacion({getTotal:()=>movsMes().length,getPag:()=>AppState.
                     <div class="op-card ${isI?'compra':'venta'}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${sy}${fmtNum(m.monto)}${suf}</span><span class="r1-gp" style="color:${isI?'#16a34a':'#dc2626'}">${isI?'Ingreso':'Egreso'}</span></div>
-                            <div class="r2"><span class="r2-c1">${isUsdt?'🪙 USDT':''}</span><span class="r2-c2">${descTxt?'🏷️ '+descTxt:''}</span><span class="r2-c3"><span class="r2-banco" style="color:${isUsdt?'#64748b':getBancoColor(m.banco)}">${isUsdt?'':m.banco||''}</span><span class="r2-fecha">${fmtFechaCorta(m.fecha)}</span></span></div>
+                            <div class="r2"><span class="r2-c1">${c1Txt}</span><span class="r2-c2">${descTxt?'🏷️ '+descTxt:''}</span><span class="r2-c3"><span class="r2-banco" style="color:${isUsdt?'#64748b':getBancoColor(m.banco)}">${isUsdt?'':m.banco||''}</span><span class="r2-fecha">${fmtFechaCorta(m.fecha)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-mov" data-id="${m.id}">✏️</button><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></span>
                         </div>
                     </div>
