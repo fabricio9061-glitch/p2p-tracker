@@ -986,7 +986,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.3.2',
+    APP_VERSION: '4.3.3',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1014,6 +1014,9 @@ const CONFIG = {
  * Formato: { version, date (YYYY-MM-DD), changes: [array de strings] }
  * ═══════════════════════════════════════════════════════════════════════ */
 const CHANGELOG = [
+    {version:'4.3.3', date:'2026-04-12', changes:[
+        'UX: banco/cuenta se resetea tras guardar operación para evitar reuso accidental'
+    ]},
     {version:'4.3.2', date:'2026-04-12', changes:[
         'Perf: cache memoizado para calcularGananciaDiaria (invalidación por versión)',
         'BUG #4: comisionBanco preservada defensivamente en replay FIFO',
@@ -2535,6 +2538,11 @@ async function agregarOperacion(){
         recalcularLotesYGanancias();
         agregarTasaReciente(ta,t,mon);
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';$('opSummary').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
+        /* Reset banco selection — prevents accidental reuse of prior bank on next op */
+        $('banco').value='';
+        $('bancoHelp').textContent='';
+        $('saldoBancoInfo').textContent='';
+        actualizarColorBancoSelect();
         actualizarVista();actualizarColorSelect();activarCooldown();
         guardaOptimista('create','operaciones',opId);
         const sy2=mon==='USD'?'US$':'$';showSuccess({amount:sy2+fmtNum(m),message:(t==='compra'?'Comprados ':'Vendidos ')+fmtTrunc(u,2)+' USDT con éxito',sub:'Tasa: '+sy2+fmtNum(ta,mon==='USD'?3:2)+' · '+b});
