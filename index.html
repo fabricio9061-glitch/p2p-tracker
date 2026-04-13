@@ -593,6 +593,48 @@
         .resumen-insights{padding:10px 16px;background:#f8fafc;border-top:1px solid #f1f5f9;font-size:0.7em;color:#64748b}
         .resumen-insight{display:flex;align-items:center;gap:6px;padding:3px 0}
 
+        /* ═══ Collapsible months + Compare + Mini charts ═══ */
+        .resumen-toolbar{display:flex;gap:6px;margin-bottom:12px;padding:3px;background:#f1f5f9;border-radius:10px}
+        .resumen-toolbar-btn{flex:1;background:transparent;border:none;padding:8px 10px;font-size:0.75em;font-weight:600;color:#64748b;cursor:pointer;border-radius:7px;transition:all 0.15s}
+        .resumen-toolbar-btn.active{background:white;color:#1e293b;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+        .resumen-header{cursor:pointer;user-select:none;-webkit-tap-highlight-color:rgba(0,0,0,0.03)}
+        .resumen-header:active{background:linear-gradient(180deg,#f1f5f9,#e2e8f0)}
+        .resumen-header-chevron{font-size:0.8em;color:#94a3b8;transition:transform 0.25s;margin-left:6px;flex-shrink:0}
+        .resumen-mes.collapsed .resumen-header-chevron{transform:rotate(-90deg)}
+        .resumen-mes.collapsed .resumen-body{display:none}
+        .resumen-mes.collapsed .resumen-header{border-bottom:none}
+        .resumen-mes.collapsed .resumen-ganancia-value{font-size:1.1em;margin-top:0}
+        .resumen-mes.collapsed .resumen-ganancia-label{display:none}
+        .resumen-mes.collapsed .resumen-header-inline{display:flex;justify-content:space-between;align-items:center;gap:10px}
+        .resumen-header-inline{display:none}
+        /* Mini chart card inside each month */
+        .resumen-chart-card{margin-top:12px;padding:12px;background:#f8fafc;border:1px solid #f1f5f9;border-radius:10px}
+        .resumen-chart-title{font-size:0.64em;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+        .resumen-chart-tabs{display:flex;gap:3px;background:#e2e8f0;border-radius:6px;padding:2px}
+        .resumen-chart-tab{background:transparent;border:none;padding:3px 8px;font-size:0.9em;font-weight:600;color:#64748b;cursor:pointer;border-radius:5px;text-transform:none;letter-spacing:0}
+        .resumen-chart-tab.active{background:white;color:#1e293b;box-shadow:0 1px 2px rgba(0,0,0,0.08)}
+        .resumen-chart-svg{width:100%;height:auto;display:block}
+        .resumen-chart-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;font-size:0.68em;color:#64748b}
+        .resumen-chart-legend-item{display:flex;align-items:center;gap:5px}
+        .resumen-chart-legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+        /* Compare panel */
+        .compare-panel{background:white;border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:14px}
+        .compare-selectors{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:12px}
+        .compare-selectors select{padding:10px 10px;border:1.5px solid #e2e8f0;border-radius:8px;background:white;font-size:0.85em;font-weight:600;color:#1e293b;cursor:pointer;width:100%}
+        .compare-selectors select:focus{border-color:#2563eb;outline:none}
+        .compare-vs{font-size:0.75em;color:#94a3b8;font-weight:700;text-align:center}
+        .compare-diff-grid{display:flex;flex-direction:column;gap:6px}
+        .compare-diff-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:9px 11px;background:#f8fafc;border-radius:8px;border:1px solid #f1f5f9}
+        .compare-diff-label{font-size:0.72em;color:#475569;font-weight:600}
+        .compare-diff-values{font-size:0.7em;color:#94a3b8;text-align:right;white-space:nowrap}
+        .compare-diff-change{font-size:0.72em;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap;min-width:60px;text-align:center}
+        .compare-diff-change.up{background:#dcfce7;color:#15803d}
+        .compare-diff-change.down{background:#fee2e2;color:#b91c1c}
+        .compare-diff-change.flat{background:#f1f5f9;color:#94a3b8}
+        .compare-diff-change.up-bad{background:#fee2e2;color:#b91c1c}
+        .compare-diff-change.down-good{background:#dcfce7;color:#15803d}
+        .compare-hint{font-size:0.68em;color:#94a3b8;text-align:center;padding:16px;line-height:1.5}
+
         /* ═══ Ajuste Externo: prominent monto + summary preview + differentiated selects ═══ */
         .mov-monto-group{margin-bottom:14px}
         .mov-monto-group label{font-size:0.65em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px}
@@ -987,7 +1029,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.3.4',
+    APP_VERSION: '4.3.5',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1015,6 +1057,12 @@ const CONFIG = {
  * Formato: { version, date (YYYY-MM-DD), changes: [array de strings] }
  * ═══════════════════════════════════════════════════════════════════════ */
 const CHANGELOG = [
+    {version:'4.3.5', date:'2026-04-12', changes:[
+        'Resumen mensual: meses colapsables (tap en header)',
+        'Resumen mensual: gráficos por mes con switch barras / dona de gastos',
+        'Resumen mensual: vista "Comparar" con 2 selectores y diff de 8 métricas',
+        'Resumen mensual: gráfico de evolución mensual (línea/área) en vista compare'
+    ]},
     {version:'4.3.4', date:'2026-04-12', changes:[
         'Helper unificado movimientoValorUYU() como fuente única de conversión a UYU',
         'Ingresos USDT ahora persisten valorUYU tras replay FIFO (antes solo egresos)',
@@ -1232,6 +1280,136 @@ async function verificarCambioMes(){
 }
 
 /* ═══ Resumen Mensual — Cargar y renderizar ═══ */
+/* SVG chart helpers for Resumen Mensual */
+function _chartBar(items,maxH){
+    /* items: [{label,value,color}] — value can be negative */
+    const maxAbs=Math.max(...items.map(i=>Math.abs(i.value||0)),1);
+    const H=maxH||90,W=320,pad=4,barW=(W-pad*2)/items.length-6;
+    let bars='';
+    items.forEach((it,i)=>{
+        const h=Math.abs(it.value)/maxAbs*H*0.85;
+        const x=pad+i*((W-pad*2)/items.length)+3;
+        const y=H-h;
+        bars+=`<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="3" fill="${it.color||'#2563eb'}"/>`;
+        bars+=`<text x="${x+barW/2}" y="${H+12}" text-anchor="middle" fill="#94a3b8" font-size="9">${escHtml(it.label)}</text>`;
+        if(it.value)bars+=`<text x="${x+barW/2}" y="${y-3}" text-anchor="middle" fill="#475569" font-size="9" font-weight="600">${it.valueText||fmtNum(it.value,0)}</text>`;
+    });
+    return `<svg class="resumen-chart-svg" viewBox="0 0 ${W} ${H+18}" preserveAspectRatio="xMidYMid meet">${bars}</svg>`;
+}
+function _chartDona(items,total){
+    /* items: [{label,value,color}] */
+    if(!total||total<=0||!items.length)return '<div style="text-align:center;color:#94a3b8;font-size:0.78em;padding:16px">Sin datos</div>';
+    const r=42,cx=60,cy=60,stroke=16,circ=2*Math.PI*r;
+    let cum=0,svg='';
+    items.forEach(it=>{
+        const pct=it.value/total;if(pct<=0)return;
+        const dash=pct*circ,gap=circ-dash,offset=-cum*circ+circ*0.25;
+        svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${it.color}" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}"/>`;
+        cum+=pct;
+    });
+    svg=`<svg viewBox="0 0 120 120" style="width:110px;height:110px;flex-shrink:0"><text x="${cx}" y="${cy-2}" text-anchor="middle" fill="#1e293b" font-size="11" font-weight="700">$${fmtNum(total,0)}</text><text x="${cx}" y="${cy+10}" text-anchor="middle" fill="#94a3b8" font-size="7">total</text>${svg}</svg>`;
+    const leg=items.filter(i=>i.value>0).map(i=>`<div class="resumen-chart-legend-item"><span class="resumen-chart-legend-dot" style="background:${i.color}"></span>${escHtml(i.label)} · $${fmtNum(i.value,0)}</div>`).join('');
+    return `<div style="display:flex;gap:12px;align-items:center">${svg}<div style="flex:1"><div class="resumen-chart-legend" style="flex-direction:column;gap:4px">${leg}</div></div></div>`;
+}
+function _chartLinea(points,opts){
+    /* points: [{label,value}] */
+    opts=opts||{};
+    if(!points.length)return '<div style="text-align:center;color:#94a3b8;font-size:0.78em;padding:16px">Sin datos</div>';
+    const W=320,H=100,pad=20;
+    const vals=points.map(p=>p.value||0);
+    const min=Math.min(0,...vals),max=Math.max(0,...vals);
+    const range=max-min||1;
+    const xStep=(W-pad*2)/Math.max(1,points.length-1);
+    const yFor=v=>H-pad-((v-min)/range)*(H-pad*2);
+    let path='',area='',dots='';
+    points.forEach((p,i)=>{
+        const x=pad+i*xStep,y=yFor(p.value||0);
+        path+=(i===0?'M':'L')+x.toFixed(1)+' '+y.toFixed(1)+' ';
+        dots+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${(p.value||0)>=0?'#16a34a':'#dc2626'}"/>`;
+        if(i===points.length-1)area=path+`L${x.toFixed(1)} ${(H-pad).toFixed(1)} L${pad} ${(H-pad).toFixed(1)} Z`;
+    });
+    const zeroY=yFor(0);
+    return `<svg class="resumen-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+        <path d="${area}" fill="${opts.areaFill||'rgba(37,99,235,0.1)'}"/>
+        <line x1="${pad}" y1="${zeroY.toFixed(1)}" x2="${W-pad}" y2="${zeroY.toFixed(1)}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2 2"/>
+        <path d="${path}" fill="none" stroke="${opts.lineColor||'#2563eb'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        ${dots}
+        ${points.map((p,i)=>`<text x="${(pad+i*xStep).toFixed(1)}" y="${H-4}" text-anchor="middle" fill="#94a3b8" font-size="9">${escHtml(p.label)}</text>`).join('')}
+    </svg>`;
+}
+function _resumenChartHtml(d,mesesCortos,chartType){
+    const op=d.operaciones||{};
+    if(chartType==='barras'){
+        const items=[
+            {label:'Compras',value:op.compras||0,color:'#16a34a'},
+            {label:'Ventas',value:op.ventas||0,color:'#2563eb'},
+            {label:'Ajustes',value:d.movimientos||0,color:'#f59e0b'},
+            {label:'Transf',value:d.transferencias||0,color:'#8b5cf6'}
+        ];
+        return _chartBar(items);
+    }else if(chartType==='dona'){
+        const gt=d.gastosTag||{};
+        const keys=Object.keys(gt).sort((a,b)=>(gt[b].totalUYU||0)-(gt[a].totalUYU||0)).slice(0,6);
+        const COLORS=['#3b82f6','#16a34a','#f59e0b','#dc2626','#8b5cf6','#ec4899'];
+        const items=keys.map((k,i)=>({label:k,value:gt[k].totalUYU||0,color:COLORS[i%COLORS.length]}));
+        const total=items.reduce((s,i)=>s+i.value,0);
+        return _chartDona(items,total);
+    }
+    return '';
+}
+/* Monthly progression line — receives docs array (reversed: oldest first) */
+function _chartMensual(docs,mesesCortos){
+    const pts=[...docs].reverse().map(d=>{
+        const mn=parseInt(d.mes.split('-')[1])-1;
+        const neta=roundMoney((d.gananciaTotal||0)-(d.totalEgresoUYU||0)-(d.comisionBancariaTotal||0));
+        return{label:mesesCortos[mn],value:neta};
+    });
+    return _chartLinea(pts,{lineColor:'#2563eb',areaFill:'rgba(37,99,235,0.08)'});
+}
+
+/* Compare panel state + rendering */
+function _renderCompareDiff(aDoc,bDoc,mesesCortos){
+    if(!aDoc||!bDoc||aDoc.mes===bDoc.mes)return '<div class="compare-hint">Seleccioná dos meses distintos para ver la comparación.</div>';
+    const parseName=d=>{const p=d.mes.split('-');return mesesCortos[parseInt(p[1])-1]+' '+p[0]};
+    const nameA=parseName(aDoc),nameB=parseName(bDoc);
+    const metric=(label,a,b,opts)=>{
+        opts=opts||{};
+        const diff=roundMoney(b-a);
+        const pct=a!==0?Math.round(Math.abs(diff/a*100)):(b!==0?100:0);
+        const arrow=diff>0?'↑':(diff<0?'↓':'→');
+        const sign=diff>=0?'+':'-';
+        const fmt=opts.fmt||(v=>'$'+fmtNum(v,0));
+        /* higherIsBetter: true → up=green,down=red. false → inverted (e.g. gastos: menos es mejor) */
+        let cls='flat';
+        if(diff>0)cls=opts.higherIsBetter===false?'up-bad':'up';
+        else if(diff<0)cls=opts.higherIsBetter===false?'down-good':'down';
+        return `<div class="compare-diff-row">
+            <div>
+                <div class="compare-diff-label">${label}</div>
+                <div class="compare-diff-values">${fmt(a)} → ${fmt(b)}</div>
+            </div>
+            <div></div>
+            <span class="compare-diff-change ${cls}">${arrow} ${sign}${fmt(Math.abs(diff)).replace('$','$')}${a!==0?' · '+pct+'%':''}</span>
+        </div>`;
+    };
+    const gnA=roundMoney((aDoc.gananciaTotal||0)-(aDoc.totalEgresoUYU||0)-(aDoc.comisionBancariaTotal||0));
+    const gnB=roundMoney((bDoc.gananciaTotal||0)-(bDoc.totalEgresoUYU||0)-(bDoc.comisionBancariaTotal||0));
+    const volA=aDoc.capitalOperado||roundMoney((aDoc.operaciones?.montoCompras||0)+(aDoc.operaciones?.montoVentas||0));
+    const volB=bDoc.capitalOperado||roundMoney((bDoc.operaciones?.montoCompras||0)+(bDoc.operaciones?.montoVentas||0));
+    const opsA=aDoc.operaciones?.total||0,opsB=bDoc.operaciones?.total||0;
+    return `<div style="font-size:0.68em;color:#94a3b8;text-align:center;margin-bottom:10px"><b style="color:#64748b">${nameA}</b> vs <b style="color:#64748b">${nameB}</b></div>
+        <div class="compare-diff-grid">
+            ${metric('Ganancia neta',gnA,gnB)}
+            ${metric('Volumen operado',volA,volB)}
+            ${metric('Ganancia bruta',aDoc.gananciaTotal||0,bDoc.gananciaTotal||0)}
+            ${metric('Gastos',aDoc.totalEgresoUYU||0,bDoc.totalEgresoUYU||0,{higherIsBetter:false})}
+            ${metric('Comisiones banc.',aDoc.comisionBancariaTotal||0,bDoc.comisionBancariaTotal||0,{higherIsBetter:false})}
+            ${metric('Comisión Binance',aDoc.comisionesTotal||0,bDoc.comisionesTotal||0,{higherIsBetter:false,fmt:v=>fmtNum(v,2)+' USDT'})}
+            ${metric('Operaciones',opsA,opsB,{fmt:v=>v+''})}
+            ${metric('Balance USDT',aDoc.saldoUsdt||0,bDoc.saldoUsdt||0,{fmt:v=>fmtTrunc(v,2)+' USDT'})}
+        </div>`;
+}
+
 async function cargarHistorialMensual(){
     const cont=$('historialContent');
     cont.innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div>';
@@ -1246,127 +1424,184 @@ async function cargarHistorialMensual(){
         const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
         const mesesCortos=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
         const docs=[];snap.forEach(doc=>docs.push(doc.data()));
-        let h='';
-        docs.forEach((d,i)=>{
-            const next=docs[i+1];
-            const p=d.mes.split('-'),yr=p[0],mn=parseInt(p[1])-1;
-            const op=d.operaciones||{};
-            const total=op.total||0;
-            const gananciaOperativa=d.gananciaTotal||0;
-            const gastos=d.totalEgresoUYU||0;
-            const comBanc=d.comisionBancariaTotal||0;
-            const gananciaNeta=roundMoney(gananciaOperativa-gastos-comBanc);
-            const gc=gananciaNeta>=0?'positive':'negative',gs=gananciaNeta>=0?'+':'-';
-
-            /* Variation vs previous month */
-            let varHtml='';
-            if(next){
-                const prevOp=next.gananciaTotal||0,prevG=next.totalEgresoUYU||0,prevB=next.comisionBancariaTotal||0;
-                const prevNeta=roundMoney(prevOp-prevG-prevB);
-                const diff=roundMoney(gananciaNeta-prevNeta);
-                let pct='—';
-                if(prevNeta!==0)pct=Math.abs(Math.round(diff/Math.abs(prevNeta)*100))+'%';
-                const cls=diff>0?'up':(diff<0?'down':'flat');
-                const arrow=diff>0?'↑':(diff<0?'↓':'→');
-                const sign=diff>=0?'+':'-';
-                const prevName=mesesCortos[parseInt(next.mes.split('-')[1])-1];
-                varHtml=`<div class="resumen-variation ${cls}">${arrow} ${sign}$${fmtNum(Math.abs(diff),0)} (${pct}) vs ${prevName}</div>`;
-            }
-
-            /* Rentability metrics */
-            const spread=d.spreadPromedio;
-            const gPorOp=total?roundMoney(gananciaNeta/total):0;
-            const diasMes=new Date(parseInt(yr),parseInt(p[1]),0).getDate();
-            const gPorDia=diasMes?roundMoney(gananciaNeta/diasMes):0;
-            const comPlat=d.comisionesTotal||0;
-
-            /* Position */
-            const balUsdt=d.saldoUsdt||0;
-            const lotes=d.lotesAlCierre;
-            const capitalOp=d.capitalOperado||roundMoney((op.montoCompras||0)+(op.montoVentas||0));
-            const banSnap=d.bancosSnapshot||{};
-            let saldoUYU=0,saldoUSD=0;
-            Object.values(banSnap).forEach(b=>{if(b.moneda==='UYU')saldoUYU+=b.saldo||0;else saldoUSD+=b.saldo||0});
-
-            /* Gastos */
-            const gt=d.gastosTag||{};
-            const gtKeys=Object.keys(gt).sort((a,b)=>(gt[b].totalUYU||0)-(gt[a].totalUYU||0));
-            const totalGastos=d.totalEgresoUYU||0;
-            const gastosPctVolumen=capitalOp>0?(Math.round(totalGastos/capitalOp*1000)/10):0;
-
-            /* Insights */
-            const mejorDia=d.mejorDia,peorDia=d.peorDia,bancoMasUsado=d.bancoMasUsado;
-            const insightsHtml=(mejorDia||peorDia||bancoMasUsado)?`<div class="resumen-insights">
-                ${mejorDia?`<div class="resumen-insight">📈 Mejor día: <b style="color:#16a34a;margin-left:auto">${fmtFechaCorta(mejorDia.dia)} · ${mejorDia.ganancia>=0?'+':'-'}$${fmtNum(Math.abs(mejorDia.ganancia),0)}</b></div>`:''}
-                ${peorDia&&peorDia.dia!==mejorDia?.dia?`<div class="resumen-insight">📉 Peor día: <b style="color:#dc2626;margin-left:auto">${fmtFechaCorta(peorDia.dia)} · ${peorDia.ganancia>=0?'+':'-'}$${fmtNum(Math.abs(peorDia.ganancia),0)}</b></div>`:''}
-                ${bancoMasUsado?`<div class="resumen-insight">🏦 Banco más usado: <b style="color:#475569;margin-left:auto">${escHtml(bancoMasUsado.banco)} (${bancoMasUsado.ops} ops)</b></div>`:''}
-            </div>`:'';
-
-            h+=`<div class="resumen-mes">
-              <div class="resumen-header">
-                <div class="resumen-header-top">
-                  <span class="resumen-mes-name">${meses[mn]} ${yr}</span>
-                  ${varHtml}
+        AppState.ui._historialDocs=docs;AppState.ui._historialMesesCortos=mesesCortos;
+        /* Init compare default: two most recent months */
+        if(!AppState.ui._compareA)AppState.ui._compareA=docs[0]?.mes||'';
+        if(!AppState.ui._compareB)AppState.ui._compareB=docs[1]?.mes||docs[0]?.mes||'';
+        const view=AppState.ui._resumenView||'months';
+        /* Toolbar */
+        let h=`<div class="resumen-toolbar">
+            <button class="resumen-toolbar-btn ${view==='months'?'active':''}" data-action="resumen-view" data-view="months">📋 Meses</button>
+            <button class="resumen-toolbar-btn ${view==='compare'?'active':''}" data-action="resumen-view" data-view="compare">⚖️ Comparar</button>
+        </div>`;
+        if(view==='compare'){
+            /* Compare view */
+            const optsA=docs.map(d=>{const p=d.mes.split('-');return `<option value="${d.mes}"${AppState.ui._compareA===d.mes?' selected':''}>${mesesCortos[parseInt(p[1])-1]} ${p[0]}</option>`}).join('');
+            const optsB=docs.map(d=>{const p=d.mes.split('-');return `<option value="${d.mes}"${AppState.ui._compareB===d.mes?' selected':''}>${mesesCortos[parseInt(p[1])-1]} ${p[0]}</option>`}).join('');
+            const aDoc=docs.find(d=>d.mes===AppState.ui._compareA);
+            const bDoc=docs.find(d=>d.mes===AppState.ui._compareB);
+            h+=`<div class="compare-panel">
+                <div class="compare-selectors">
+                    <select id="compareSelA">${optsA}</select>
+                    <span class="compare-vs">VS</span>
+                    <select id="compareSelB">${optsB}</select>
                 </div>
-                <div class="resumen-ganancia-label">Ganancia neta del mes</div>
-                <div class="resumen-ganancia-value ${gc}">${gs}$${fmtNum(Math.abs(gananciaNeta),0)}</div>
-              </div>
-
-              <div class="resumen-section">
-                <div class="resumen-section-title">Actividad</div>
-                <div class="resumen-grid">
-                  <div><div class="resumen-cell-label">Compras</div><div class="resumen-cell-value">${op.compras||0}</div><div class="resumen-cell-sub">$${fmtNum(op.montoCompras||0,0)}</div></div>
-                  <div><div class="resumen-cell-label">Ventas</div><div class="resumen-cell-value">${op.ventas||0}</div><div class="resumen-cell-sub">$${fmtNum(op.montoVentas||0,0)}</div></div>
-                  <div><div class="resumen-cell-label">Ajustes</div><div class="resumen-cell-value">${d.movimientos||0}</div></div>
-                  <div><div class="resumen-cell-label">Transferencias</div><div class="resumen-cell-value">${d.transferencias||0}</div></div>
-                </div>
-              </div>
-
-              <div class="resumen-section">
-                <div class="resumen-section-title">Rentabilidad</div>
-                <div class="resumen-grid">
-                  <div><div class="resumen-cell-label">Spread promedio</div><div class="resumen-cell-value">${spread!==undefined?'$'+fmtNum(spread,2):'—'}</div></div>
-                  <div><div class="resumen-cell-label">Comisión Binance</div><div class="resumen-cell-value">${fmtNum(comPlat,2)} <span style="font-size:0.7em;color:#94a3b8;font-weight:500">USDT</span></div></div>
-                  <div><div class="resumen-cell-label">Ganancia / op</div><div class="resumen-cell-value ${gPorOp>=0?'positive':'negative'}">${gPorOp>=0?'+':'-'}$${fmtNum(Math.abs(gPorOp),0)}</div></div>
-                  <div><div class="resumen-cell-label">Ganancia / día</div><div class="resumen-cell-value ${gPorDia>=0?'positive':'negative'}">${gPorDia>=0?'+':'-'}$${fmtNum(Math.abs(gPorDia),0)}</div></div>
-                </div>
-                <div class="resumen-breakdown">
-                  <div class="resumen-breakdown-row"><span>Ganancia operativa</span><b class="${gananciaOperativa>=0?'positive':'negative'}">${gananciaOperativa>=0?'+':'-'}$${fmtNum(Math.abs(gananciaOperativa),0)}</b></div>
-                  ${comBanc>0?`<div class="resumen-breakdown-row"><span>− Comisiones bancarias</span><b class="negative">-$${fmtNum(comBanc,0)}</b></div>`:''}
-                  <div class="resumen-breakdown-row"><span>− Gastos del mes</span><b class="negative">-$${fmtNum(gastos,0)}</b></div>
-                  <div class="resumen-breakdown-row total"><span>Ganancia neta</span><b class="${gc}">${gs}$${fmtNum(Math.abs(gananciaNeta),0)}</b></div>
-                </div>
-              </div>
-
-              <div class="resumen-section">
-                <div class="resumen-section-title">Posición al cierre</div>
-                <div class="resumen-grid">
-                  <div><div class="resumen-cell-label">Balance USDT</div><div class="resumen-cell-value balance">${fmtTrunc(balUsdt,2)}</div></div>
-                  <div><div class="resumen-cell-label">Lotes activos</div><div class="resumen-cell-value">${lotes!==undefined?lotes:'—'}</div></div>
-                  <div><div class="resumen-cell-label">Saldo UYU</div><div class="resumen-cell-value balance">$${fmtNum(saldoUYU,0)}</div></div>
-                  <div><div class="resumen-cell-label">Capital operado</div><div class="resumen-cell-value">$${fmtNum(capitalOp,0)}</div></div>
-                  ${saldoUSD>0?`<div><div class="resumen-cell-label">Saldo USD</div><div class="resumen-cell-value balance">US$${fmtNum(saldoUSD,0)}</div></div>`:''}
-                </div>
-              </div>
-
-              ${gtKeys.length?`
-              <div class="resumen-section">
-                <div class="resumen-section-title">Gastos · $${fmtNum(totalGastos,0)} <span style="color:#cbd5e1;font-weight:500">·</span> <span style="color:#94a3b8;font-weight:600;text-transform:none;letter-spacing:0">${gastosPctVolumen}% del volumen</span></div>
-                ${gtKeys.slice(0,5).map(k=>{
-                    const v=gt[k].totalUYU||0;
-                    const pct=totalGastos?Math.round(v/totalGastos*100):0;
-                    return `<div class="resumen-gastos-bar">
-                      <span class="resumen-gastos-name">${escHtml(k)}</span>
-                      <div class="resumen-gastos-bar-track"><div class="resumen-gastos-bar-fill" style="width:${pct}%"></div></div>
-                      <span class="resumen-gastos-amount">$${fmtNum(v,0)} · ${pct}%</span>
-                    </div>`;
-                }).join('')}
-              </div>
-              `:''}
-              ${insightsHtml}
+                ${_renderCompareDiff(aDoc,bDoc,mesesCortos)}
             </div>`;
-        });
+            /* Monthly progression chart */
+            if(docs.length>=2){
+                h+=`<div class="resumen-chart-card">
+                    <div class="resumen-chart-title">Evolución mensual · Ganancia neta</div>
+                    ${_chartMensual(docs,mesesCortos)}
+                </div>`;
+            }
+        }else{
+            /* Months list (collapsible) */
+            const collapsed=AppState.ui._collapsedMonths||{};
+            docs.forEach((d,i)=>{
+                const next=docs[i+1];
+                const p=d.mes.split('-'),yr=p[0],mn=parseInt(p[1])-1;
+                const op=d.operaciones||{};
+                const total=op.total||0;
+                const gananciaOperativa=d.gananciaTotal||0;
+                const gastos=d.totalEgresoUYU||0;
+                const comBanc=d.comisionBancariaTotal||0;
+                const gananciaNeta=roundMoney(gananciaOperativa-gastos-comBanc);
+                const gc=gananciaNeta>=0?'positive':'negative',gs=gananciaNeta>=0?'+':'-';
+
+                /* Variation vs previous month */
+                let varHtml='';
+                if(next){
+                    const prevOp=next.gananciaTotal||0,prevG=next.totalEgresoUYU||0,prevB=next.comisionBancariaTotal||0;
+                    const prevNeta=roundMoney(prevOp-prevG-prevB);
+                    const diff=roundMoney(gananciaNeta-prevNeta);
+                    let pct='—';
+                    if(prevNeta!==0)pct=Math.abs(Math.round(diff/Math.abs(prevNeta)*100))+'%';
+                    const cls=diff>0?'up':(diff<0?'down':'flat');
+                    const arrow=diff>0?'↑':(diff<0?'↓':'→');
+                    const sign=diff>=0?'+':'-';
+                    const prevName=mesesCortos[parseInt(next.mes.split('-')[1])-1];
+                    varHtml=`<div class="resumen-variation ${cls}">${arrow} ${sign}$${fmtNum(Math.abs(diff),0)} (${pct}) vs ${prevName}</div>`;
+                }
+
+                /* Rentability metrics */
+                const spread=d.spreadPromedio;
+                const gPorOp=total?roundMoney(gananciaNeta/total):0;
+                const diasMes=new Date(parseInt(yr),parseInt(p[1]),0).getDate();
+                const gPorDia=diasMes?roundMoney(gananciaNeta/diasMes):0;
+                const comPlat=d.comisionesTotal||0;
+
+                /* Position */
+                const balUsdt=d.saldoUsdt||0;
+                const lotes=d.lotesAlCierre;
+                const capitalOp=d.capitalOperado||roundMoney((op.montoCompras||0)+(op.montoVentas||0));
+                const banSnap=d.bancosSnapshot||{};
+                let saldoUYU=0,saldoUSD=0;
+                Object.values(banSnap).forEach(b=>{if(b.moneda==='UYU')saldoUYU+=b.saldo||0;else saldoUSD+=b.saldo||0});
+
+                /* Gastos */
+                const gt=d.gastosTag||{};
+                const gtKeys=Object.keys(gt).sort((a,b)=>(gt[b].totalUYU||0)-(gt[a].totalUYU||0));
+                const totalGastos=d.totalEgresoUYU||0;
+                const gastosPctVolumen=capitalOp>0?(Math.round(totalGastos/capitalOp*1000)/10):0;
+
+                /* Insights */
+                const mejorDia=d.mejorDia,peorDia=d.peorDia,bancoMasUsado=d.bancoMasUsado;
+                const insightsHtml=(mejorDia||peorDia||bancoMasUsado)?`<div class="resumen-insights">
+                    ${mejorDia?`<div class="resumen-insight">📈 Mejor día: <b style="color:#16a34a;margin-left:auto">${fmtFechaCorta(mejorDia.dia)} · ${mejorDia.ganancia>=0?'+':'-'}$${fmtNum(Math.abs(mejorDia.ganancia),0)}</b></div>`:''}
+                    ${peorDia&&peorDia.dia!==mejorDia?.dia?`<div class="resumen-insight">📉 Peor día: <b style="color:#dc2626;margin-left:auto">${fmtFechaCorta(peorDia.dia)} · ${peorDia.ganancia>=0?'+':'-'}$${fmtNum(Math.abs(peorDia.ganancia),0)}</b></div>`:''}
+                    ${bancoMasUsado?`<div class="resumen-insight">🏦 Banco más usado: <b style="color:#475569;margin-left:auto">${escHtml(bancoMasUsado.banco)} (${bancoMasUsado.ops} ops)</b></div>`:''}
+                </div>`:'';
+
+                /* Determine initial collapse state: first month open, rest collapsed by default */
+                const isCollapsed=collapsed[d.mes]!==undefined?collapsed[d.mes]:i>0;
+                const chartType=(AppState.ui._chartTypes&&AppState.ui._chartTypes[d.mes])||'barras';
+
+                h+=`<div class="resumen-mes${isCollapsed?' collapsed':''}" data-mes="${d.mes}">
+                  <div class="resumen-header" data-action="resumen-toggle" data-mes="${d.mes}">
+                    <div class="resumen-header-top">
+                      <span class="resumen-mes-name">${meses[mn]} ${yr}</span>
+                      ${varHtml}
+                      <span class="resumen-header-chevron">▼</span>
+                    </div>
+                    <div class="resumen-ganancia-label">Ganancia neta del mes</div>
+                    <div class="resumen-ganancia-value ${gc}">${gs}$${fmtNum(Math.abs(gananciaNeta),0)}</div>
+                  </div>
+
+                  <div class="resumen-body">
+                  <div class="resumen-section">
+                    <div class="resumen-section-title">Actividad</div>
+                    <div class="resumen-grid">
+                      <div><div class="resumen-cell-label">Compras</div><div class="resumen-cell-value">${op.compras||0}</div><div class="resumen-cell-sub">$${fmtNum(op.montoCompras||0,0)}</div></div>
+                      <div><div class="resumen-cell-label">Ventas</div><div class="resumen-cell-value">${op.ventas||0}</div><div class="resumen-cell-sub">$${fmtNum(op.montoVentas||0,0)}</div></div>
+                      <div><div class="resumen-cell-label">Ajustes</div><div class="resumen-cell-value">${d.movimientos||0}</div></div>
+                      <div><div class="resumen-cell-label">Transferencias</div><div class="resumen-cell-value">${d.transferencias||0}</div></div>
+                    </div>
+                    <div class="resumen-chart-card">
+                      <div class="resumen-chart-title">
+                        <span>Visualización</span>
+                        <span class="resumen-chart-tabs">
+                          <button class="resumen-chart-tab ${chartType==='barras'?'active':''}" data-action="resumen-chart" data-mes="${d.mes}" data-chart="barras">📊 Barras</button>
+                          <button class="resumen-chart-tab ${chartType==='dona'?'active':''}" data-action="resumen-chart" data-mes="${d.mes}" data-chart="dona">🍩 Gastos</button>
+                        </span>
+                      </div>
+                      ${_resumenChartHtml(d,mesesCortos,chartType)}
+                    </div>
+                  </div>
+
+                  <div class="resumen-section">
+                    <div class="resumen-section-title">Rentabilidad</div>
+                    <div class="resumen-grid">
+                      <div><div class="resumen-cell-label">Spread promedio</div><div class="resumen-cell-value">${spread!==undefined?'$'+fmtNum(spread,2):'—'}</div></div>
+                      <div><div class="resumen-cell-label">Comisión Binance</div><div class="resumen-cell-value">${fmtNum(comPlat,2)} <span style="font-size:0.7em;color:#94a3b8;font-weight:500">USDT</span></div></div>
+                      <div><div class="resumen-cell-label">Ganancia / op</div><div class="resumen-cell-value ${gPorOp>=0?'positive':'negative'}">${gPorOp>=0?'+':'-'}$${fmtNum(Math.abs(gPorOp),0)}</div></div>
+                      <div><div class="resumen-cell-label">Ganancia / día</div><div class="resumen-cell-value ${gPorDia>=0?'positive':'negative'}">${gPorDia>=0?'+':'-'}$${fmtNum(Math.abs(gPorDia),0)}</div></div>
+                    </div>
+                    <div class="resumen-breakdown">
+                      <div class="resumen-breakdown-row"><span>Ganancia operativa</span><b class="${gananciaOperativa>=0?'positive':'negative'}">${gananciaOperativa>=0?'+':'-'}$${fmtNum(Math.abs(gananciaOperativa),0)}</b></div>
+                      ${comBanc>0?`<div class="resumen-breakdown-row"><span>− Comisiones bancarias</span><b class="negative">-$${fmtNum(comBanc,0)}</b></div>`:''}
+                      <div class="resumen-breakdown-row"><span>− Gastos del mes</span><b class="negative">-$${fmtNum(gastos,0)}</b></div>
+                      <div class="resumen-breakdown-row total"><span>Ganancia neta</span><b class="${gc}">${gs}$${fmtNum(Math.abs(gananciaNeta),0)}</b></div>
+                    </div>
+                  </div>
+
+                  <div class="resumen-section">
+                    <div class="resumen-section-title">Posición al cierre</div>
+                    <div class="resumen-grid">
+                      <div><div class="resumen-cell-label">Balance USDT</div><div class="resumen-cell-value balance">${fmtTrunc(balUsdt,2)}</div></div>
+                      <div><div class="resumen-cell-label">Lotes activos</div><div class="resumen-cell-value">${lotes!==undefined?lotes:'—'}</div></div>
+                      <div><div class="resumen-cell-label">Saldo UYU</div><div class="resumen-cell-value balance">$${fmtNum(saldoUYU,0)}</div></div>
+                      <div><div class="resumen-cell-label">Capital operado</div><div class="resumen-cell-value">$${fmtNum(capitalOp,0)}</div></div>
+                      ${saldoUSD>0?`<div><div class="resumen-cell-label">Saldo USD</div><div class="resumen-cell-value balance">US$${fmtNum(saldoUSD,0)}</div></div>`:''}
+                    </div>
+                  </div>
+
+                  ${gtKeys.length?`
+                  <div class="resumen-section">
+                    <div class="resumen-section-title">Gastos · $${fmtNum(totalGastos,0)} <span style="color:#cbd5e1;font-weight:500">·</span> <span style="color:#94a3b8;font-weight:600;text-transform:none;letter-spacing:0">${gastosPctVolumen}% del volumen</span></div>
+                    ${gtKeys.slice(0,5).map(k=>{
+                        const v=gt[k].totalUYU||0;
+                        const pct=totalGastos?Math.round(v/totalGastos*100):0;
+                        return `<div class="resumen-gastos-bar">
+                          <span class="resumen-gastos-name">${escHtml(k)}</span>
+                          <div class="resumen-gastos-bar-track"><div class="resumen-gastos-bar-fill" style="width:${pct}%"></div></div>
+                          <span class="resumen-gastos-amount">$${fmtNum(v,0)} · ${pct}%</span>
+                        </div>`;
+                    }).join('')}
+                  </div>
+                  `:''}
+                  ${insightsHtml}
+                  </div>
+                </div>`;
+            });
+        }
         cont.innerHTML=h;
+        /* Wire compare selectors */
+        if(view==='compare'){
+            const selA=$('compareSelA'),selB=$('compareSelB');
+            if(selA)selA.addEventListener('change',e=>{AppState.ui._compareA=e.target.value;cargarHistorialMensual()});
+            if(selB)selB.addEventListener('change',e=>{AppState.ui._compareB=e.target.value;cargarHistorialMensual()});
+        }
     }catch(e){
         console.error('[P2P] Error cargando historial:',e);
         cont.innerHTML='<div style="text-align:center;padding:30px;color:#dc2626"><div style="font-size:2em;margin-bottom:8px">⚠️</div><div>Error al cargar historial</div></div>';
@@ -3547,6 +3782,28 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='editar-mov')abrirModalMovimiento(id);
         else if(a==='editar-trans')abrirModalTransferencia(id);
         else if(a==='editar-conv')abrirModalTransferencia(id);
+        else if(a==='resumen-view'){
+            AppState.ui._resumenView=t.dataset.view||'months';
+            cargarHistorialMensual();
+        }
+        else if(a==='resumen-toggle'){
+            /* Click on month header → toggle collapse. Persist state + update DOM without full re-render. */
+            const mes=t.closest('.resumen-mes')?.dataset.mes;if(!mes)return;
+            AppState.ui._collapsedMonths=AppState.ui._collapsedMonths||{};
+            const mesEl=document.querySelector(`.resumen-mes[data-mes="${mes}"]`);
+            if(mesEl){
+                mesEl.classList.toggle('collapsed');
+                AppState.ui._collapsedMonths[mes]=mesEl.classList.contains('collapsed');
+            }
+        }
+        else if(a==='resumen-chart'){
+            /* Chart tabs live in .resumen-body (sibling of .resumen-header), no bubbling conflict */
+            const mes=t.dataset.mes,chart=t.dataset.chart;if(!mes||!chart)return;
+            AppState.ui._chartTypes=AppState.ui._chartTypes||{};
+            AppState.ui._chartTypes[mes]=chart;
+            /* Re-render: cheap, preserves collapse state via _collapsedMonths */
+            cargarHistorialMensual();
+        }
         else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}else{AppState.ui.bancoEditando=banco;$('editarSaldoHeader').innerHTML='Editar '+colorBanco(banco);$('nuevoSaldoBanco').value=fmtNum(AppState.datos.bancos[banco]?.saldo||0);$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=fmtNum(AppState.datos.bancos[banco]?.limiteDiarioUSD||0,0);abrirModal('modalEditarSaldo')}}
         else if(a==='toggle-banco'){const n=t.dataset.banco;if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;renderizarListaBancos();actualizarVista();guardaOptimista('update','bancos',n)}
         else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
