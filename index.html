@@ -22,8 +22,8 @@
         /* Offset visual leve: compensa el peso de la campanita + menú a la derecha.
            ~48px ≈ mitad del ancho del cluster (bell 42 + gap 8 + menu ~46 = ~96 → mitad 48).
            Mobile only — en desktop el header es left-aligned. */
-        .header h1{color:#1e293b;font-size:1.35em;margin-bottom:0;line-height:1.2;transform:translateX(-24px)}
-        .header .sync-status{transform:translateX(-24px)}
+        .header h1{color:#1e293b;font-size:1.35em;margin-bottom:0;line-height:1.2;transform:translateX(-32px)}
+        .header .sync-status{transform:translateX(-32px)}
 
         /* ═══ Sync ═══ */
         .sync-status{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;font-size:0.7em;margin-top:5px;cursor:pointer;user-select:none;transition:all 0.2s}
@@ -55,7 +55,30 @@
         .news-bell-badge.hidden{display:none;animation:none}
         @keyframes newsPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 
-        /* News modal — full-screen mobile, centered desktop */
+        /* ═══ Split pago: cuando banco principal no alcanza ═══ */
+        .split-panel{background:linear-gradient(180deg,#fef3c7,#fde68a);border:1.5px solid #fbbf24;border-radius:10px;padding:12px;margin-bottom:10px;animation:splitAppear 0.25s ease-out}
+        @keyframes splitAppear{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+        .split-panel-title{font-size:0.72em;font-weight:800;color:#78350f;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+        .split-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;background:white;border-radius:8px;margin-bottom:6px;font-size:0.82em}
+        .split-row-label{color:#64748b;font-weight:600;display:flex;align-items:center;gap:6px;min-width:0}
+        .split-row-label b{color:#1e293b;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .split-row-monto{font-weight:700;color:#1e293b;white-space:nowrap}
+        .split-row.faltante .split-row-label b{color:#b91c1c}
+        .split-row.faltante .split-row-monto{color:#b91c1c}
+        .split-row.aporte .split-row-monto{color:#15803d}
+        .split-row.completo{background:#dcfce7;border:1px solid #86efac}
+        .split-row.completo .split-row-monto{color:#15803d}
+        .split-extra-row{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;margin-bottom:6px}
+        .split-extra-row select{padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;background:white;font-size:0.82em;font-weight:600;color:#1e293b;width:100%;min-width:0}
+        .split-extra-row input{padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;background:white;font-size:0.82em;font-weight:700;color:#1e293b;width:90px;text-align:right}
+        .split-remove{background:#fee2e2;border:none;border-radius:6px;padding:6px 9px;font-size:0.85em;cursor:pointer;line-height:1;color:#b91c1c}
+        .split-remove:active{background:#fecaca}
+        .split-add-btn{width:100%;background:white;border:1.5px dashed #fbbf24;color:#78350f;padding:8px;border-radius:8px;font-size:0.78em;font-weight:700;cursor:pointer;margin-top:4px}
+        .split-add-btn:active{background:#fef3c7}
+        .split-add-btn:disabled{opacity:0.5;cursor:not-allowed}
+        .split-status{text-align:center;font-size:0.75em;font-weight:700;margin-top:8px;padding:6px;border-radius:6px}
+        .split-status.ok{background:#dcfce7;color:#15803d}
+        .split-status.error{background:#fee2e2;color:#b91c1c}
         .news-version{margin-bottom:18px}
         .news-version-header{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;padding:0 4px}
         .news-version-num{font-size:0.95em;font-weight:800;color:#1e293b;letter-spacing:0.3px}
@@ -896,6 +919,8 @@
                             <div class="form-group" id="comisionBancoGroup"><label>Com. banco</label><input type="text" inputmode="decimal" id="comisionBanco" value="0" placeholder="0"></div>
                         </div>
 
+                        <div id="splitPanel" class="split-panel" style="display:none"></div>
+
                         <div class="op-summary modo-compra" id="opSummary" style="display:none">
                             <div class="op-summary-row main">
                                 <span class="op-summary-label" id="opSumTotalLabel">Cantidad total</span>
@@ -1096,7 +1121,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.3.9',
+    APP_VERSION: '4.4.0',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1129,6 +1154,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.4.0', date:'2026-04-13', headline:'Pago dividido: completá una operación con múltiples cuentas cuando una sola no alcanza.', changes:[
+        {type:'feature', title:'Split pago en compras', desc:'Si el banco elegido no tiene saldo suficiente, se activa automáticamente un panel para agregar cuentas adicionales hasta cubrir el total.'},
+        {type:'feature', title:'Trazabilidad de aportes', desc:'Cada aporte se guarda en op.aportes; al eliminar la operación, el saldo vuelve a cada banco correctamente.'},
+        {type:'feature', title:'Indicador visual en listas', desc:'Las operaciones con pago dividido muestran "+N" al lado del banco principal, con tooltip mostrando el detalle.'},
+        {type:'improve', title:'Offset óptico del título', desc:'Se aumentó a -32px para mejor balance visual del header (antes -24px).'}
+    ]},
     {version:'4.3.9', date:'2026-04-13', headline:'Centrado óptico del header con solución simple: offset visual leve.', changes:[
         {type:'fix', title:'Header: offset visual del título', desc:'Solución simple vía transform:translateX(-24px) en mobile para compensar el peso visual de la campanita + menú sin reestructurar el layout.'},
         {type:'improve', title:'Estructura original preservada', desc:'Se revirtió el grid de 3 columnas — la corrección ahora es un ajuste CSS mínimo, sin cambios en el DOM.'}
@@ -3007,6 +3038,135 @@ function guardarComisionYCalcular(){
     calcularPreview();
 }
 
+/* ═══════════════════════════════════════
+   §X — SPLIT PAGO (compra con múltiples cuentas)
+   ═══════════════════════════════════════ */
+/* AppState.ui.splitExtras: [{banco, monto}] — cuentas adicionales más allá del banco principal */
+function _initSplitState(){
+    if(!AppState.ui.splitExtras)AppState.ui.splitExtras=[];
+}
+function _splitDisponible(bancoNombre,excluirBanco){
+    /* Saldo disponible de un banco, restando lo ya aportado por otros slots del split (evita doble conteo) */
+    const bk=AppState.datos.bancos[bancoNombre];
+    if(!bk)return 0;
+    return Math.max(0,bk.saldo);
+}
+function renderSplitPanel(){
+    _initSplitState();
+    const panel=$('splitPanel');if(!panel)return;
+    const t=$('tipo').value;
+    if(t!=='compra'){panel.style.display='none';AppState.ui.splitExtras=[];return}
+    const bancoPrinc=$('banco').value;
+    const monto=pv('monto'),comisionBanco=roundMoney(pv('comisionBanco'));
+    if(!bancoPrinc||!monto||monto<=0){panel.style.display='none';AppState.ui.splitExtras=[];return}
+    const bkPrinc=AppState.datos.bancos[bancoPrinc];
+    if(!bkPrinc){panel.style.display='none';return}
+    const totalNecesario=roundMoney(monto+comisionBanco);
+    const saldoPrinc=bkPrinc.saldo;
+    /* Si el banco principal cubre el total → ocultar panel y limpiar splits */
+    if(saldoPrinc>=totalNecesario){panel.style.display='none';AppState.ui.splitExtras=[];return}
+    /* El principal NO alcanza — activar UI de split */
+    const aporte1=Math.min(saldoPrinc,totalNecesario);
+    let aportadoExtra=0;
+    AppState.ui.splitExtras.forEach(e=>{aportadoExtra=roundMoney(aportadoExtra+(e.monto||0))});
+    const totalAportado=roundMoney(aporte1+aportadoExtra);
+    const faltante=roundMoney(totalNecesario-totalAportado);
+    /* Opciones para banco adicional: activos, distintos del principal y de otros ya elegidos */
+    const usados=new Set([bancoPrinc]);AppState.ui.splitExtras.forEach(e=>{if(e.banco)usados.add(e.banco)});
+    const disponibles=getBancosActivos().filter(b=>!usados.has(b.nombre));
+    const sy=getSym(getBancoInfo(bancoPrinc)?.moneda||'UYU');
+    let h=`<div class="split-panel-title">⚠️ Saldo insuficiente · pago dividido</div>
+        <div class="split-row aporte">
+            <div class="split-row-label"><span style="color:${getBancoColor(bancoPrinc)}">●</span> <b>${escHtml(bancoPrinc)}</b> aporta</div>
+            <div class="split-row-monto">${sy}${fmtNum(aporte1,0)}</div>
+        </div>`;
+    /* Render cuentas adicionales */
+    AppState.ui.splitExtras.forEach((ex,idx)=>{
+        const selOpts='<option value="">Seleccionar…</option>'+disponibles.concat(ex.banco&&AppState.datos.bancos[ex.banco]?[{nombre:ex.banco,color:getBancoColor(ex.banco)}]:[]).map(b=>`<option value="${b.nombre}" style="color:${b.color||'#1e293b'};font-weight:600"${ex.banco===b.nombre?' selected':''}>${b.nombre}</option>`).join('');
+        const disp=ex.banco?_splitDisponible(ex.banco):0;
+        h+=`<div class="split-extra-row">
+            <select data-action="split-set-banco" data-idx="${idx}">${selOpts}</select>
+            <input type="text" inputmode="decimal" data-action="split-set-monto" data-idx="${idx}" value="${ex.monto?fmtNum(ex.monto,0):''}" placeholder="${sy}0" />
+            <button type="button" class="split-remove" data-action="split-remove" data-idx="${idx}" aria-label="Quitar">✕</button>
+        </div>`;
+        if(ex.banco&&disp<(ex.monto||0)){
+            h+=`<div style="font-size:0.68em;color:#b91c1c;margin:-2px 4px 6px">⚠ ${escHtml(ex.banco)} solo tiene ${sy}${fmtNum(disp,0)}</div>`;
+        }
+    });
+    /* Botón agregar cuenta */
+    if(faltante>0&&disponibles.length>0){
+        h+=`<button type="button" class="split-add-btn" data-action="split-add">＋ Agregar cuenta para cubrir ${sy}${fmtNum(faltante,0)}</button>`;
+    }
+    /* Status */
+    if(faltante===0){
+        h+=`<div class="split-status ok">✓ Total cubierto · ${sy}${fmtNum(totalAportado,0)}</div>`;
+    }else if(faltante>0){
+        h+=`<div class="split-status error">Falta ${sy}${fmtNum(faltante,0)} · aportado ${sy}${fmtNum(totalAportado,0)} de ${sy}${fmtNum(totalNecesario,0)}</div>`;
+    }else{
+        h+=`<div class="split-status error">Exceso de ${sy}${fmtNum(Math.abs(faltante),0)} · ajustá los aportes</div>`;
+    }
+    panel.innerHTML=h;panel.style.display='block';
+}
+/* Determinar si hay split activo y válido */
+function splitActivo(){
+    if(!AppState.ui.splitExtras||AppState.ui.splitExtras.length===0)return false;
+    const bancoPrinc=$('banco').value;if(!bancoPrinc)return false;
+    const bk=AppState.datos.bancos[bancoPrinc];if(!bk)return false;
+    const totalNecesario=roundMoney(pv('monto')+roundMoney(pv('comisionBanco')));
+    return bk.saldo<totalNecesario;
+}
+/* Devuelve array de aportes [{banco,monto}] si split activo, null si no */
+function getAportes(){
+    if(!splitActivo())return null;
+    const bancoPrinc=$('banco').value;
+    const bk=AppState.datos.bancos[bancoPrinc];
+    const totalNecesario=roundMoney(pv('monto')+roundMoney(pv('comisionBanco')));
+    const aporte1=Math.min(bk.saldo,totalNecesario);
+    const aportes=[{banco:bancoPrinc,monto:aporte1}];
+    AppState.ui.splitExtras.forEach(ex=>{
+        if(ex.banco&&ex.monto>0)aportes.push({banco:ex.banco,monto:roundMoney(ex.monto)});
+    });
+    return aportes;
+}
+function _updateSplitStatus(){
+    /* Actualiza solo el bloque de status sin re-renderizar todo el panel (preserva foco del input) */
+    const panel=$('splitPanel');if(!panel||panel.style.display==='none')return;
+    const statusEl=panel.querySelector('.split-status');if(!statusEl)return;
+    const bancoPrinc=$('banco').value;if(!bancoPrinc)return;
+    const bk=AppState.datos.bancos[bancoPrinc];if(!bk)return;
+    const totalNecesario=roundMoney(pv('monto')+roundMoney(pv('comisionBanco')));
+    const aporte1=Math.min(bk.saldo,totalNecesario);
+    let aportadoExtra=0;
+    AppState.ui.splitExtras.forEach(e=>{aportadoExtra=roundMoney(aportadoExtra+(e.monto||0))});
+    const totalAportado=roundMoney(aporte1+aportadoExtra);
+    const faltante=roundMoney(totalNecesario-totalAportado);
+    const sy=getSym(getBancoInfo(bancoPrinc)?.moneda||'UYU');
+    if(faltante===0){
+        statusEl.className='split-status ok';
+        statusEl.textContent=`✓ Total cubierto · ${sy}${fmtNum(totalAportado,0)}`;
+    }else if(faltante>0){
+        statusEl.className='split-status error';
+        statusEl.textContent=`Falta ${sy}${fmtNum(faltante,0)} · aportado ${sy}${fmtNum(totalAportado,0)} de ${sy}${fmtNum(totalNecesario,0)}`;
+    }else{
+        statusEl.className='split-status error';
+        statusEl.textContent=`Exceso de ${sy}${fmtNum(Math.abs(faltante),0)} · ajustá los aportes`;
+    }
+}
+/* Validar que aportes cubran totalNecesario exactamente y cada banco tenga saldo */
+function validarAportes(){
+    const aportes=getAportes();
+    if(!aportes)return{ok:true};
+    const totalNecesario=roundMoney(pv('monto')+roundMoney(pv('comisionBanco')));
+    let suma=0;aportes.forEach(a=>suma=roundMoney(suma+a.monto));
+    if(Math.abs(suma-totalNecesario)>0.01)return{ok:false,msg:`Los aportes no cubren el total. Faltan $${fmtNum(totalNecesario-suma,0)}`};
+    for(const a of aportes){
+        const bk=AppState.datos.bancos[a.banco];
+        if(!bk)return{ok:false,msg:`Banco ${a.banco} no existe`};
+        if(bk.saldo<a.monto-0.01)return{ok:false,msg:`${a.banco} solo tiene $${fmtNum(bk.saldo,0)}`};
+    }
+    return{ok:true,aportes};
+}
+
 async function agregarOperacion(){
     if(AppState.ui.enCooldown||AppState.ui.guardandoOperacion)return;const btn=$('btnAgregarOp');if(btn.disabled)return;
     const t=$('tipo').value,m=pv('monto'),ti=$('tasa'),ta=parsearTasa(ti.value),b=$('banco').value,cb=roundMoney(pv('comisionBanco')),f=getUDateStr(),h=getUTimeStr(),mon=getMonedaBanco(),isU=mon==='USD',cpv=getComisionActual(),cp=cpv/100;
@@ -3014,12 +3174,21 @@ async function agregarOperacion(){
     if(!ta){ti.classList.add('error');$('tasaHelp').textContent='Formato inválido';$('tasaHelp').className='error-text';$('tasaHelp').style.display='block';alert('Tasa inválida (ej: '+(isU?'1,025':'39,50')+')');return}
     if(!b){$('bancoHelp').textContent='Seleccioná un banco';$('bancoHelp').className='error-text';$('banco').classList.add('error');alert('Seleccioná un banco');return}
     $('banco').classList.remove('error');
+    /* Split pago: si activo, validar aportes antes de continuar */
+    const isSplit=t==='compra'&&splitActivo();
+    let aportes=null;
+    if(isSplit){
+        const val=validarAportes();
+        if(!val.ok){alert(val.msg);return}
+        aportes=val.aportes;
+    }
     /* monto = UYU directamente */
     const u=usdtBase(m/ta,t),cpl=truncar(u*cp,2);
     if(t==='compra'){
         const bk=AppState.datos.bancos[b];
         if(bk.limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta),dU=roundMoney(bk.limiteDiarioUSD-(bk.limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario. Disponible: US$${fmtNum(dU,0)} (${fmtNum(mU,2)} USD requeridos)`);return}}
-        if(bk.saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return;
+        /* Saldo check solo si NO hay split — con split ya validamos aportes */
+        if(!isSplit&&bk.saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return;
     }else{
         const un=usdtNeto(u,cpl,t);
         if(AppState.datos.saldoUsdt<un&&!confirm(`Solo tenés ${fmtTrunc(AppState.datos.saldoUsdt,2)} USDT. ¿Continuar?`))return;
@@ -3028,12 +3197,22 @@ async function agregarOperacion(){
     try{
         const opId=uid();
         if(t==='compra'){
-            AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));
-            if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta);AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,roundMoney((AppState.datos.bancos[b].limiteUsadoUSD||0)+mU))}
+            if(isSplit){
+                /* Descontar saldo de cada banco aportante */
+                aportes.forEach(a=>{AppState.datos.bancos[a.banco].saldo=fixNeg(AppState.datos.bancos[a.banco].saldo-a.monto)});
+                /* Límite diario solo al banco principal (convención actual) */
+                if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta);AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,roundMoney((AppState.datos.bancos[b].limiteUsadoUSD||0)+mU))}
+            }else{
+                AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));
+                if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta);AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,roundMoney((AppState.datos.bancos[b].limiteUsadoUSD||0)+mU))}
+            }
         }else{
             AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);
         }
-        AppState.datos.operaciones.unshift({id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:0,timestamp:new Date().toISOString()});
+        const opRecord={id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:0,timestamp:new Date().toISOString()};
+        /* Persistir aportes para trazabilidad y reverso correcto en delete/edit */
+        if(isSplit)opRecord.aportes=aportes;
+        AppState.datos.operaciones.unshift(opRecord);
         recalcularLotesYGanancias();
         agregarTasaReciente(ta,t,mon);
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';$('opSummary').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
@@ -3041,10 +3220,14 @@ async function agregarOperacion(){
         $('banco').value='';
         $('bancoHelp').textContent='';
         $('saldoBancoInfo').textContent='';
+        AppState.ui.splitExtras=[];
+        renderSplitPanel();
         actualizarColorBancoSelect();
         actualizarVista();actualizarColorSelect();activarCooldown();
         guardaOptimista('create','operaciones',opId);
-        const sy2=mon==='USD'?'US$':'$';showSuccess({amount:sy2+fmtNum(m),message:(t==='compra'?'Comprados ':'Vendidos ')+fmtTrunc(u,2)+' USDT con éxito',sub:'Tasa: '+sy2+fmtNum(ta,mon==='USD'?3:2)+' · '+b});
+        const sy2=mon==='USD'?'US$':'$';
+        const subMsg=isSplit?`Pago dividido entre ${aportes.length} cuentas`:'Tasa: '+sy2+fmtNum(ta,mon==='USD'?3:2)+' · '+b;
+        showSuccess({amount:sy2+fmtNum(m),message:(t==='compra'?'Comprados ':'Vendidos ')+fmtTrunc(u,2)+' USDT con éxito',sub:subMsg});
     }catch(e){console.error('[P2P] Error guardando operación:',e)}finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect()}
 }
 
@@ -3052,7 +3235,26 @@ async function eliminarOperacion(id){
     if(!confirm('¿Eliminar operación? Se recalcularán los lotes y ganancias.'))return;
     try{
         const op=AppState.datos.operaciones.find(o=>o.id===id);
-        if(op){if(op.tipo==='compra'){if(op.banco&&AppState.datos.bancos[op.banco]){AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo+roundMoney(op.monto+(op.comisionBanco||0)));if(AppState.datos.bancos[op.banco].limiteDiarioUSD>0&&op.tasa>0){const mU=roundMoney(op.monto/op.tasa);AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU))}}}else{if(op.banco&&AppState.datos.bancos[op.banco])AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo-op.monto)}}
+        if(op){
+            if(op.tipo==='compra'){
+                /* Si hay aportes (split pago), revertir cada uno al banco correspondiente */
+                if(Array.isArray(op.aportes)&&op.aportes.length){
+                    op.aportes.forEach(a=>{
+                        if(AppState.datos.bancos[a.banco])AppState.datos.bancos[a.banco].saldo=fixNeg(AppState.datos.bancos[a.banco].saldo+a.monto);
+                    });
+                    /* Límite diario USD solo del banco principal */
+                    if(op.banco&&AppState.datos.bancos[op.banco]&&AppState.datos.bancos[op.banco].limiteDiarioUSD>0&&op.tasa>0){
+                        const mU=roundMoney(op.monto/op.tasa);
+                        AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU));
+                    }
+                }else if(op.banco&&AppState.datos.bancos[op.banco]){
+                    AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo+roundMoney(op.monto+(op.comisionBanco||0)));
+                    if(AppState.datos.bancos[op.banco].limiteDiarioUSD>0&&op.tasa>0){const mU=roundMoney(op.monto/op.tasa);AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU))}
+                }
+            }else{
+                if(op.banco&&AppState.datos.bancos[op.banco])AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo-op.monto);
+            }
+        }
         AppState.datos.operaciones=AppState.datos.operaciones.filter(o=>o.id!==id);
         recalcularLotesYGanancias();actualizarVista();
         guardaOptimista('delete','operaciones',id);
@@ -3061,6 +3263,10 @@ async function eliminarOperacion(id){
 
 function abrirEditarOperacion(id){
     const op=AppState.datos.operaciones.find(o=>o.id===id);if(!op)return;
+    if(Array.isArray(op.aportes)&&op.aportes.length>1){
+        alert('Esta operación se pagó con múltiples cuentas. Por ahora no se puede editar directamente — eliminala y recreala si necesitás cambiarla.');
+        return;
+    }
     AppState.ui.opEditandoId=id;
     const sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
     const badge=op.tipo==='compra'?'📥 Compra':'📤 Venta';
@@ -3685,7 +3891,7 @@ const pagOp=crearPaginacion({getTotal:()=>opsMes().length,getPag:()=>AppState.ui
                     <div class="op-card ${op.tipo}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${sy}${fmtNum(op.monto)}</span><span class="r1-gp" style="color:${gc}">${gt}</span></div>
-                            <div class="r2"><span class="r2-c1">${sy}${fmtNum(op.tasa,td)}</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}">${op.banco||'-'}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
+                            <div class="r2"><span class="r2-c1">${sy}${fmtNum(op.tasa,td)}</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}" title="${Array.isArray(op.aportes)&&op.aportes.length>1?'Pago dividido: '+op.aportes.map(a=>a.banco+' $'+fmtNum(a.monto,0)).join(' · '):''}">${op.banco||'-'}${Array.isArray(op.aportes)&&op.aportes.length>1?' <span style="font-size:0.85em;color:#f59e0b;font-weight:700">+'+(op.aportes.length-1)+'</span>':''}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button></span>
                         </div>
                     </div>
@@ -3953,11 +4159,39 @@ document.addEventListener('DOMContentLoaded',()=>{
     function setTipoOp(v){$('tipo').value=v;AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;actualizarFormulario();actualizarColorSelect()}
     $('opToggleCompra').addEventListener('click',()=>setTipoOp('compra'));
     $('opToggleVenta').addEventListener('click',()=>setTipoOp('venta'));
-    $('tipo').addEventListener('change',()=>{AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;actualizarFormulario();actualizarColorSelect()});
-    $('monto').addEventListener('input',calcularPreview);
+    $('tipo').addEventListener('change',()=>{AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;AppState.ui.splitExtras=[];actualizarFormulario();actualizarColorSelect();renderSplitPanel()});
+    $('monto').addEventListener('input',()=>{calcularPreview();renderSplitPanel()});
     $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview()});
-    $('banco').addEventListener('change',()=>{mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect()});
-    $('comisionBanco').addEventListener('input',calcularPreview);
+    $('banco').addEventListener('change',()=>{AppState.ui.splitExtras=[];mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect();renderSplitPanel()});
+    $('comisionBanco').addEventListener('input',()=>{calcularPreview();renderSplitPanel()});
+    /* Split pago: listeners delegados para select/input internos */
+    $('splitPanel').addEventListener('change',e=>{
+        const el=e.target;const a=el.dataset?.action;
+        if(a==='split-set-banco'){
+            const idx=parseInt(el.dataset.idx);
+            if(isNaN(idx)||!AppState.ui.splitExtras[idx])return;
+            AppState.ui.splitExtras[idx].banco=el.value;
+            renderSplitPanel();
+        }
+    });
+    $('splitPanel').addEventListener('input',e=>{
+        const el=e.target;const a=el.dataset?.action;
+        if(a==='split-set-monto'){
+            const idx=parseInt(el.dataset.idx);
+            if(isNaN(idx)||!AppState.ui.splitExtras[idx])return;
+            /* Parse manteniendo formato es-UY (coma decimal, punto miles) */
+            const raw=el.value.toString().trim();
+            let v=0;
+            if(raw){
+                if(raw.includes(',')){v=parseFloat(raw.replace(/\./g,'').replace(',','.'))||0}
+                else if(raw.includes('.')){const parts=raw.split('.');v=parts.length===2&&parts[1].length<3?parseFloat(raw)||0:parseFloat(raw.replace(/\./g,''))||0}
+                else v=parseFloat(raw)||0;
+            }
+            AppState.ui.splitExtras[idx].monto=v;
+            /* No re-render completo para no perder foco del input; actualizar solo status */
+            _updateSplitStatus();
+        }
+    });
     $('comisionPlataforma').addEventListener('input',guardarComisionYCalcular);
     $('btnAgregarOp').addEventListener('click',agregarOperacion);
 
@@ -4071,6 +4305,17 @@ document.addEventListener('DOMContentLoaded',()=>{
             const target=t.dataset.target;
             AppState.ui._tagShowAll=true;
             if(target)renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'');
+        }
+        else if(a==='split-add'){
+            AppState.ui.splitExtras=AppState.ui.splitExtras||[];
+            AppState.ui.splitExtras.push({banco:'',monto:0});
+            renderSplitPanel();
+        }
+        else if(a==='split-remove'){
+            const idx=parseInt(t.dataset.idx);
+            if(isNaN(idx))return;
+            AppState.ui.splitExtras.splice(idx,1);
+            renderSplitPanel();
         }
         else if(a==='usar-tasa'){
             const v=t.dataset.valor;if(v){$('tasa').value=fmtTasa(parseFloat(v),getMonedaBanco());AppState.ui.tasaManual=true;calcularPreview()}
