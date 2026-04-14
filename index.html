@@ -17,15 +17,13 @@
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f0ee;min-height:100vh;min-height:100dvh}
         .container{max-width:1400px;margin:0 auto;padding:18px 16px 30px;padding-top:max(env(safe-area-inset-top,0px) + 12px,28px);padding-bottom:max(env(safe-area-inset-bottom,0px) + 18px,30px);width:100%}
 
-        /* ═══ Header — 3-column grid for true optical centering ═══
-           [left spacer] [center: title + sync] [right: bell + menu]
-           El spacer izquierdo replica el ancho del cluster derecho para que
-           la columna central quede REALMENTE centrada visualmente. */
-        .header{display:grid;grid-template-columns:auto 1fr auto;align-items:start;column-gap:8px;margin-bottom:18px;padding-top:6px;padding-bottom:6px;position:relative;z-index:100;min-height:64px}
-        .header-spacer{visibility:hidden;pointer-events:none;display:flex;gap:8px}
-        .header-spacer .news-bell,.header-spacer .menu-btn{visibility:hidden}
-        .header-center{text-align:center;min-width:0}
-        .header h1{color:#1e293b;font-size:1.35em;margin-bottom:0;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        /* ═══ Header ═══ */
+        .header{text-align:center;margin-bottom:18px;padding-top:6px;padding-bottom:6px;position:relative;z-index:100;min-height:64px}
+        /* Offset visual leve: compensa el peso de la campanita + menú a la derecha.
+           ~48px ≈ mitad del ancho del cluster (bell 42 + gap 8 + menu ~46 = ~96 → mitad 48).
+           Mobile only — en desktop el header es left-aligned. */
+        .header h1{color:#1e293b;font-size:1.35em;margin-bottom:0;line-height:1.2;transform:translateX(-24px)}
+        .header .sync-status{transform:translateX(-24px)}
 
         /* ═══ Sync ═══ */
         .sync-status{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;font-size:0.7em;margin-top:5px;cursor:pointer;user-select:none;transition:all 0.2s}
@@ -42,7 +40,7 @@
         @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:0.4}}
 
         /* ═══ Menu ═══ */
-        .menu-container{display:flex;gap:8px;align-items:center;z-index:100}
+        .menu-container{position:absolute;top:14px;right:0;z-index:100;display:flex;gap:8px;align-items:center}
         .menu-btn{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
         .menu-btn span{display:block;width:20px;height:2px;background:#475569;border-radius:2px;transition:all 0.3s}
         .menu-btn.active span:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
@@ -517,12 +515,10 @@
         /* ═══ Desktop Responsive (≥768px) ═══ */
         @media(min-width:768px){
             .container{padding:20px 30px}
-            .header{grid-template-columns:1fr auto;text-align:left;align-items:center;gap:12px;margin-bottom:16px;min-height:auto}
-            .header-spacer{display:none}
-            .header-center{text-align:left;display:flex;align-items:center;gap:12px}
-            .header h1{font-size:1.4em;margin-bottom:0}
-            .sync-status{margin-top:0}
-            .menu-container{position:static;transform:none}
+            .header{text-align:left;display:flex;align-items:center;gap:12px;margin-bottom:16px}
+            .header h1{font-size:1.4em;margin-bottom:0;transform:none}
+            .header .sync-status{transform:none;margin-top:0}
+            .menu-container{top:50%;transform:translateY(-50%)}
             /* Cards: ganancia hoy prominent */
             .cards{grid-template-columns:repeat(4,1fr);gap:10px}
             .card{padding:10px}
@@ -787,15 +783,8 @@
     <div class="app-container" id="appContainer">
         <div class="container">
             <div class="header">
-                <!-- Spacer izquierdo: clon estructural del cluster derecho para garantizar centrado óptico -->
-                <div class="header-spacer" aria-hidden="true">
-                    <button class="news-bell" tabindex="-1"><span class="news-bell-icon">🔔</span></button>
-                    <button class="menu-btn" tabindex="-1"><span></span><span></span><span></span></button>
-                </div>
-                <div class="header-center">
-                    <h1>💱 Registro P2P</h1>
-                    <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
-                </div>
+                <h1>💱 Registro P2P</h1>
+                <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
                 <div class="menu-container">
                     <button class="news-bell" id="newsBellBtn" aria-label="Centro de novedades">
                         <span class="news-bell-icon">🔔</span>
@@ -1107,7 +1096,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.3.8',
+    APP_VERSION: '4.3.9',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1140,9 +1129,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
-    {version:'4.3.8', date:'2026-04-13', headline:'Centrado óptico real del título del header — sin más desbalance visual.', changes:[
-        {type:'fix', title:'Header con grid de 3 columnas', desc:'El título ahora se centra ópticamente compensando el peso de la campanita y el menú con un spacer fantasma del mismo ancho.'},
-        {type:'improve', title:'Layout estructural escalable', desc:'Si en el futuro se agregan más íconos al cluster derecho, el centrado se mantiene automáticamente sin offsets manuales.'}
+    {version:'4.3.9', date:'2026-04-13', headline:'Centrado óptico del header con solución simple: offset visual leve.', changes:[
+        {type:'fix', title:'Header: offset visual del título', desc:'Solución simple vía transform:translateX(-24px) en mobile para compensar el peso visual de la campanita + menú sin reestructurar el layout.'},
+        {type:'improve', title:'Estructura original preservada', desc:'Se revirtió el grid de 3 columnas — la corrección ahora es un ajuste CSS mínimo, sin cambios en el DOM.'}
+    ]},
+    {version:'4.3.8', date:'2026-04-13', headline:'(Descartada — reemplazada por solución más simple en 4.3.9).', changes:[
+        {type:'improve', title:'Intento de centrado con grid', desc:'Se probó una estructura de 3 columnas con spacer fantasma pero resultó innecesariamente compleja. Ver 4.3.9.'}
     ]},
     {version:'4.3.7', date:'2026-04-13', headline:'Centro de Novedades: enterate de cada actualización con detalle, tipo y versión.', changes:[
         {type:'feature', title:'Centro de Novedades', desc:'Campanita en el header con badge de novedades no vistas, panel full-screen agrupado por versión.'},
