@@ -22,8 +22,8 @@
         /* Offset visual leve: compensa el peso de la campanita + menú a la derecha.
            ~48px ≈ mitad del ancho del cluster (bell 42 + gap 8 + menu ~46 = ~96 → mitad 48).
            Mobile only — en desktop el header es left-aligned. */
-        .header h1{color:#1e293b;font-size:1.35em;margin-bottom:0;line-height:1.2;transform:translateX(-32px)}
-        .header .sync-status{transform:translateX(-32px)}
+        .header h1{color:#1e293b;font-size:1.35em;margin-bottom:0;line-height:1.2;transform:translateX(-36px)}
+        .header .sync-status{transform:translateX(-36px)}
 
         /* ═══ Sync ═══ */
         .sync-status{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;font-size:0.7em;margin-top:5px;cursor:pointer;user-select:none;transition:all 0.2s}
@@ -96,22 +96,38 @@
         .news-card-title{font-size:0.82em;font-weight:700;color:#1e293b;line-height:1.35;margin-bottom:3px}
         .news-card-desc{font-size:0.74em;color:#64748b;line-height:1.5}
         .news-version-divider{height:1px;background:#e2e8f0;margin:18px 0 0}
+        /* Contenedor scrollable del Centro de Novedades — se adapta según dispositivo */
+        #noticiasContent{max-height:65vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 6px}
+        @media(max-width:767px){
+            /* Mobile full-screen: aprovechar toda la altura útil bajo el header sticky */
+            #noticiasContent{max-height:none;flex:1;padding:8px 4px 24px}
+            #modalNoticias .modal-content{display:flex;flex-direction:column}
+            #modalNoticias .modal-content > *:last-child{padding-bottom:env(safe-area-inset-bottom,0px)}
+            .news-version{margin-bottom:22px}
+            .news-card{padding:13px 14px;margin-bottom:9px}
+        }
 
         /* "What's new" highlight modal */
-        .whatsnew-content{padding:20px 18px;text-align:center}
-        .whatsnew-icon{font-size:2.4em;margin-bottom:8px}
-        .whatsnew-version{font-size:0.7em;color:#94a3b8;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px}
-        .whatsnew-title{font-size:1.15em;font-weight:800;color:#1e293b;margin-bottom:8px}
-        .whatsnew-headline{font-size:0.85em;color:#475569;line-height:1.5;margin-bottom:18px}
-        .whatsnew-changes{text-align:left;background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:18px;max-height:180px;overflow-y:auto}
-        .whatsnew-change{display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:0.78em;color:#475569;line-height:1.4}
-        .whatsnew-change-dot{flex-shrink:0;width:6px;height:6px;border-radius:50%;background:#2563eb;margin-top:6px}
+        .whatsnew-content{padding:28px 18px 22px;text-align:center;padding-top:max(28px,calc(28px + env(safe-area-inset-top,0px)))}
+        .whatsnew-icon{font-size:2.6em;margin-bottom:10px}
+        .whatsnew-version{font-size:0.72em;color:#94a3b8;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px}
+        .whatsnew-title{font-size:1.2em;font-weight:800;color:#1e293b;margin-bottom:10px}
+        .whatsnew-headline{font-size:0.88em;color:#475569;line-height:1.55;margin-bottom:20px;padding:0 4px}
+        .whatsnew-changes{text-align:left;background:#f8fafc;border-radius:12px;padding:14px 14px;margin-bottom:18px;max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid #f1f5f9}
+        .whatsnew-change{display:flex;gap:10px;align-items:flex-start;padding:7px 0;font-size:0.82em;color:#475569;line-height:1.5}
+        .whatsnew-change-dot{flex-shrink:0;width:7px;height:7px;border-radius:50%;background:#2563eb;margin-top:7px}
         .whatsnew-change.feature .whatsnew-change-dot{background:#2563eb}
         .whatsnew-change.improve .whatsnew-change-dot{background:#f59e0b}
         .whatsnew-change.fix .whatsnew-change-dot{background:#dc2626}
         .whatsnew-change.perf .whatsnew-change-dot{background:#16a34a}
-        .whatsnew-buttons{display:flex;gap:8px}
+        .whatsnew-buttons{display:flex;gap:8px;padding-bottom:env(safe-area-inset-bottom,0px)}
         .whatsnew-buttons .btn{flex:1}
+        /* Mobile: whatsnew ocupa más espacio con más breathing room */
+        @media(max-width:767px){
+            #modalWhatsNew.modal.active{align-items:flex-start}
+            #modalWhatsNew .modal-content{margin-top:max(40px,env(safe-area-inset-top,0px));max-width:calc(100vw - 24px);border-radius:16px !important}
+            .whatsnew-changes{max-height:50vh}
+        }
         /* Full-screen menu panel (Instagram-style) */
         .menu-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:1050;opacity:0;visibility:hidden;transition:opacity 0.3s,visibility 0.3s}
         .menu-backdrop.active{opacity:1;visibility:visible}
@@ -1061,7 +1077,7 @@
     <div id="modalNoticias" class="modal">
         <div class="modal-content" style="max-width:520px;padding:16px 14px 18px">
             <div class="modal-header">🔔 Centro de Novedades</div>
-            <div id="noticiasContent" style="max-height:65vh;overflow-y:auto;padding:0 4px"></div>
+            <div id="noticiasContent"></div>
             <div style="margin-top:14px"><button class="btn" style="width:100%;background:#f1f5f9;color:#475569;font-size:0.85em;padding:12px" id="btnCerrarNoticias">Cerrar</button></div>
         </div>
     </div>
@@ -1121,7 +1137,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.4.0',
+    APP_VERSION: '4.4.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1154,6 +1170,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.4.1', date:'2026-04-13', headline:'Split pago blindado solo para compras + mejoras UX en Novedades + offset del header.', changes:[
+        {type:'fix', title:'Split pago solo en compras', desc:'Se blindó splitActivo() con guard explícito: imposible que el pago dividido se active en ventas (donde el usuario recibe UYU, no paga).'},
+        {type:'improve', title:'Mensaje claro de saldo insuficiente', desc:'Al detectar faltante, el panel ahora muestra "Saldo insuficiente · faltan $X" con subtexto guía, en vez del título genérico.'},
+        {type:'improve', title:'Novedades: safe-area iOS', desc:'Modal "Qué hay nuevo" respeta env(safe-area-inset-top) — el contenido ya no se solapa con la isla dinámica.'},
+        {type:'improve', title:'Novedades: scroll más cómodo', desc:'Centro de Novedades usa toda la altura disponible en mobile (antes limitado a 65vh). Cards con más espaciado vertical.'},
+        {type:'improve', title:'Header: offset refinado', desc:'Ajuste del translateX a -36px para mejor balance óptico con cluster derecho (campanita + menú).'}
+    ]},
     {version:'4.4.0', date:'2026-04-13', headline:'Pago dividido: completá una operación con múltiples cuentas cuando una sola no alcanza.', changes:[
         {type:'feature', title:'Split pago en compras', desc:'Si el banco elegido no tiene saldo suficiente, se activa automáticamente un panel para agregar cuentas adicionales hasta cubrir el total.'},
         {type:'feature', title:'Trazabilidad de aportes', desc:'Cada aporte se guarda en op.aportes; al eliminar la operación, el saldo vuelve a cada banco correctamente.'},
@@ -3075,7 +3098,9 @@ function renderSplitPanel(){
     const usados=new Set([bancoPrinc]);AppState.ui.splitExtras.forEach(e=>{if(e.banco)usados.add(e.banco)});
     const disponibles=getBancosActivos().filter(b=>!usados.has(b.nombre));
     const sy=getSym(getBancoInfo(bancoPrinc)?.moneda||'UYU');
-    let h=`<div class="split-panel-title">⚠️ Saldo insuficiente · pago dividido</div>
+    const faltanteInicial=roundMoney(totalNecesario-aporte1);
+    let h=`<div class="split-panel-title">⚠️ Saldo insuficiente · faltan ${sy}${fmtNum(faltanteInicial,0)}</div>
+        <div style="font-size:0.7em;color:#78350f;margin-bottom:10px;line-height:1.4">Completá el pago con una o más cuentas adicionales hasta cubrir el total.</div>
         <div class="split-row aporte">
             <div class="split-row-label"><span style="color:${getBancoColor(bancoPrinc)}">●</span> <b>${escHtml(bancoPrinc)}</b> aporta</div>
             <div class="split-row-monto">${sy}${fmtNum(aporte1,0)}</div>
@@ -3109,6 +3134,9 @@ function renderSplitPanel(){
 }
 /* Determinar si hay split activo y válido */
 function splitActivo(){
+    /* GUARD: split pago solo aplica a COMPRAS — en ventas el usuario recibe UYU,
+       no paga, por lo que no hay validación de saldo que justifique split. */
+    if($('tipo').value!=='compra')return false;
     if(!AppState.ui.splitExtras||AppState.ui.splitExtras.length===0)return false;
     const bancoPrinc=$('banco').value;if(!bancoPrinc)return false;
     const bk=AppState.datos.bancos[bancoPrinc];if(!bk)return false;
