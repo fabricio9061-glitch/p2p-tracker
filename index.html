@@ -42,6 +42,50 @@
         .menu-btn.active span:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
         .menu-btn.active span:nth-child(2){opacity:0}
         .menu-btn.active span:nth-child(3){transform:rotate(-45deg) translate(4px,-4px)}
+
+        /* ═══ NEWS CENTER (campanita) ═══ */
+        .news-bell{position:relative;background:white;border:1px solid #e2e8f0;border-radius:10px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+        .news-bell:active{background:#f1f5f9;transform:scale(0.95)}
+        .news-bell-icon{font-size:1.05em;line-height:1}
+        .news-bell-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:#dc2626;color:white;font-size:0.62em;font-weight:800;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid white;box-shadow:0 1px 3px rgba(220,38,38,0.4);animation:newsPulse 1.6s ease-in-out infinite}
+        .news-bell-badge.hidden{display:none;animation:none}
+        @keyframes newsPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+        .menu-container{display:flex;gap:8px;align-items:center}
+
+        /* News modal — full-screen mobile, centered desktop */
+        .news-version{margin-bottom:18px}
+        .news-version-header{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;padding:0 4px}
+        .news-version-num{font-size:0.95em;font-weight:800;color:#1e293b;letter-spacing:0.3px}
+        .news-version-date{font-size:0.7em;color:#94a3b8;font-weight:600}
+        .news-version-badge{font-size:0.6em;font-weight:700;background:#dc2626;color:white;padding:2px 7px;border-radius:8px;text-transform:uppercase;letter-spacing:0.5px;margin-left:auto}
+        .news-version-badge.seen{display:none}
+        .news-version-headline{font-size:0.78em;color:#475569;line-height:1.5;padding:0 4px;margin-bottom:10px;font-style:italic}
+        .news-card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
+        .news-card-tag{flex-shrink:0;font-size:0.55em;font-weight:800;padding:3px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:0.5px;line-height:1.4}
+        .news-card-tag.feature{background:#dbeafe;color:#1d4ed8}
+        .news-card-tag.improve{background:#fef3c7;color:#92400e}
+        .news-card-tag.fix{background:#fee2e2;color:#b91c1c}
+        .news-card-tag.perf{background:#dcfce7;color:#15803d}
+        .news-card-body{flex:1;min-width:0}
+        .news-card-title{font-size:0.82em;font-weight:700;color:#1e293b;line-height:1.35;margin-bottom:3px}
+        .news-card-desc{font-size:0.74em;color:#64748b;line-height:1.5}
+        .news-version-divider{height:1px;background:#e2e8f0;margin:18px 0 0}
+
+        /* "What's new" highlight modal */
+        .whatsnew-content{padding:20px 18px;text-align:center}
+        .whatsnew-icon{font-size:2.4em;margin-bottom:8px}
+        .whatsnew-version{font-size:0.7em;color:#94a3b8;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px}
+        .whatsnew-title{font-size:1.15em;font-weight:800;color:#1e293b;margin-bottom:8px}
+        .whatsnew-headline{font-size:0.85em;color:#475569;line-height:1.5;margin-bottom:18px}
+        .whatsnew-changes{text-align:left;background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:18px;max-height:180px;overflow-y:auto}
+        .whatsnew-change{display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:0.78em;color:#475569;line-height:1.4}
+        .whatsnew-change-dot{flex-shrink:0;width:6px;height:6px;border-radius:50%;background:#2563eb;margin-top:6px}
+        .whatsnew-change.feature .whatsnew-change-dot{background:#2563eb}
+        .whatsnew-change.improve .whatsnew-change-dot{background:#f59e0b}
+        .whatsnew-change.fix .whatsnew-change-dot{background:#dc2626}
+        .whatsnew-change.perf .whatsnew-change-dot{background:#16a34a}
+        .whatsnew-buttons{display:flex;gap:8px}
+        .whatsnew-buttons .btn{flex:1}
         /* Full-screen menu panel (Instagram-style) */
         .menu-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:1050;opacity:0;visibility:hidden;transition:opacity 0.3s,visibility 0.3s}
         .menu-backdrop.active{opacity:1;visibility:visible}
@@ -739,6 +783,10 @@
                 <h1>💱 Registro P2P</h1>
                 <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
                 <div class="menu-container">
+                    <button class="news-bell" id="newsBellBtn" aria-label="Centro de novedades">
+                        <span class="news-bell-icon">🔔</span>
+                        <span class="news-bell-badge hidden" id="newsBellBadge">0</span>
+                    </button>
                     <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
                 </div>
             </div>
@@ -980,6 +1028,22 @@
         </div>
     </div></div>
     <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px;padding:16px 16px 18px"><div class="modal-header">📊 Resumen Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div style="margin-top:14px"><button class="btn" style="width:100%;background:#f1f5f9;color:#475569;font-size:0.85em;padding:12px" id="btnCerrarHistorial">Cerrar</button></div></div></div>
+
+    <!-- ═══ Centro de Novedades ═══ -->
+    <div id="modalNoticias" class="modal">
+        <div class="modal-content" style="max-width:520px;padding:16px 14px 18px">
+            <div class="modal-header">🔔 Centro de Novedades</div>
+            <div id="noticiasContent" style="max-height:65vh;overflow-y:auto;padding:0 4px"></div>
+            <div style="margin-top:14px"><button class="btn" style="width:100%;background:#f1f5f9;color:#475569;font-size:0.85em;padding:12px" id="btnCerrarNoticias">Cerrar</button></div>
+        </div>
+    </div>
+
+    <!-- ═══ "Qué hay nuevo" — modal automático en versión nueva ═══ -->
+    <div id="modalWhatsNew" class="modal">
+        <div class="modal-content" style="max-width:420px;padding:0;overflow:hidden">
+            <div class="whatsnew-content" id="whatsNewContent"></div>
+        </div>
+    </div>
     <div id="modalEditarOp" class="modal"><div class="modal-content"><div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div><div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div><div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div><div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div><div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div><div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div></div></div>
 
     <!-- ═══ SUCCESS OVERLAY ═══ -->
@@ -1029,7 +1093,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.3.6',
+    APP_VERSION: '4.3.7',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1056,59 +1120,79 @@ const CONFIG = {
  * debe agregar una entrada al INICIO del array (más reciente primero).
  * Formato: { version, date (YYYY-MM-DD), changes: [array de strings] }
  * ═══════════════════════════════════════════════════════════════════════ */
+/* CHANGELOG schema:
+ * { version, date, headline (resumen corto p/ modal "qué hay nuevo"), changes: [{type,title,desc?}] }
+ * type: 'feature' | 'improve' | 'fix' | 'perf'
+ * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
+ */
 const CHANGELOG = [
-    {version:'4.3.6', date:'2026-04-13', changes:[
-        'Listas: cada registro muestra fecha + hora (13/04 · 21:10) en ops, ajustes, transferencias y conversiones',
-        'Fallback para registros antiguos: hora derivada del timestamp ISO con offset UY',
-        'Helper unificado fmtFechaHora() reutilizable desde cualquier punto'
+    {version:'4.3.7', date:'2026-04-13', headline:'Centro de Novedades: enterate de cada actualización con detalle, tipo y versión.', changes:[
+        {type:'feature', title:'Centro de Novedades', desc:'Campanita en el header con badge de novedades no vistas, panel full-screen agrupado por versión.'},
+        {type:'feature', title:'Modal "Qué hay nuevo"', desc:'Al detectar versión nueva se muestra automáticamente un resumen de las novedades una sola vez.'},
+        {type:'improve', title:'Changelog estructurado', desc:'Cada entrada ahora tiene tipo (feature/mejora/fix/perf), título y descripción para mejor legibilidad.'}
     ]},
-    {version:'4.3.5', date:'2026-04-12', changes:[
-        'Resumen mensual: meses colapsables (tap en header)',
-        'Resumen mensual: gráficos por mes con switch barras / dona de gastos',
-        'Resumen mensual: vista "Comparar" con 2 selectores y diff de 8 métricas',
-        'Resumen mensual: gráfico de evolución mensual (línea/área) en vista compare'
+    {version:'4.3.6', date:'2026-04-13', headline:'Cada operación, ajuste y transferencia ahora muestra hora exacta.', changes:[
+        {type:'feature', title:'Hora visible en listas', desc:'Cada registro muestra fecha + hora (ej: 13/04 · 21:10) en operaciones, ajustes, transferencias y conversiones.'},
+        {type:'improve', title:'Compatible con datos viejos', desc:'Registros antiguos sin campo hora derivan la hora del timestamp ISO con offset UY.'}
     ]},
-    {version:'4.3.4', date:'2026-04-12', changes:[
-        'Helper unificado movimientoValorUYU() como fuente única de conversión a UYU',
-        'Ingresos USDT ahora persisten valorUYU tras replay FIFO (antes solo egresos)',
-        'UI: cards de ajustes USDT muestran equivalente en UYU (≈ $X) usando tasaRef del lote',
-        'Refactor: 5 call-sites consolidados (dashboard, análisis, merge, calendario, resumen mensual)',
-        'Consistencia: todos los cálculos UYU usan la misma lógica sin riesgo de divergencia'
+    {version:'4.3.5', date:'2026-04-12', headline:'Resumen Mensual rediseñado con gráficos interactivos y comparación entre meses.', changes:[
+        {type:'feature', title:'Meses colapsables', desc:'Cada mes funciona como bloque expandible — tap en el header para abrir/cerrar.'},
+        {type:'feature', title:'Gráficos por mes', desc:'Switch entre vista de barras (actividad) y dona (distribución de gastos).'},
+        {type:'feature', title:'Vista Comparar', desc:'Seleccioná dos meses y ve el diff de 8 métricas clave: ganancia neta, volumen, gastos, comisiones, ops, balance USDT.'},
+        {type:'feature', title:'Evolución mensual', desc:'Gráfico de línea/área que muestra la progresión de ganancia neta a lo largo de los meses.'}
     ]},
-    {version:'4.3.3', date:'2026-04-12', changes:[
-        'UX: banco/cuenta se resetea tras guardar operación para evitar reuso accidental'
+    {version:'4.3.4', date:'2026-04-12', headline:'Conversión a UYU consistente en toda la app, con visualización en cards de ajustes USDT.', changes:[
+        {type:'improve', title:'Conversión UYU unificada', desc:'Helper único movimientoValorUYU() centraliza la lógica de conversión en toda la app.'},
+        {type:'feature', title:'Equivalente UYU en ajustes USDT', desc:'Cada card de ajuste en USDT muestra ≈ $X usando la tasa del lote correspondiente.'},
+        {type:'perf', title:'Persistencia valorUYU', desc:'Ingresos USDT ahora persisten valorUYU tras el replay FIFO — evita recálculos en cada render.'}
     ]},
-    {version:'4.3.2', date:'2026-04-12', changes:[
-        'Perf: cache memoizado para calcularGananciaDiaria (invalidación por versión)',
-        'BUG #4: comisionBanco preservada defensivamente en replay FIFO',
-        'BUG #8: parsearComision renombrado a parsearComisionPct (clarity)',
-        'BUG #10: edit de ajuste captura tipoCuenta antes de mutar para FIFO recalc correcto'
+    {version:'4.3.3', date:'2026-04-12', headline:'Reset de banco al guardar operación para evitar errores por descuido.', changes:[
+        {type:'improve', title:'Reset automático del banco', desc:'Tras guardar una operación, el campo banco vuelve a vacío para forzar selección consciente en la siguiente.'}
     ]},
-    {version:'4.3.1', date:'2026-04-12', changes:[
-        'Auditoría: fix doble incremento de _localDirty en guardaOptimista',
-        'Auditoría: uid() ahora arranca con offset random para evitar colisiones tras reload',
-        'Auditoría: FIFO aísla consumo por moneda (UYU vs USD) — fix de costo/ganancia',
-        'Auditoría: pv() rechaza formatos ambiguos tipo "1.234.5" en vez de silenciosamente perder datos',
-        'Auditoría: total de inventario usa truncar consistente con lotes',
-        'Auditoría: edit de operación bloquea cambio de banco a moneda distinta'
+    {version:'4.3.2', date:'2026-04-12', headline:'Cache de ganancia + 3 fixes latentes detectados en auditoría.', changes:[
+        {type:'perf', title:'Cache de ganancia diaria', desc:'calcularGananciaDiaria memoizado con invalidación por versión — dashboard mucho más rápido.'},
+        {type:'fix', title:'Comisión bancaria preservada', desc:'comisionBanco normalizada defensivamente en replay FIFO para evitar undefined drift.'},
+        {type:'fix', title:'Edit de ajuste consistente', desc:'Captura tipoCuenta antes de mutar — el FIFO recalc se dispara correctamente al cambiar entre banco/USDT.'}
     ]},
-    {version:'4.3.0', date:'2026-04-12', changes:[
-        'Edición completa de Ajustes (monto, banco, tipo cuenta, descripción)',
-        'Edición completa de Transferencias y Conversiones (incluye cambio de tipo)',
-        'Swipe-right para editar en cards de ajustes/transferencias/conversiones',
-        'Fix overflow: tags largos ya no invaden la columna del banco',
-        'Tag length cap (24 chars) en creación para prevenir overflow',
-        'Establecida regla formal de versionado semántico'
+    {version:'4.3.1', date:'2026-04-12', headline:'Auditoría completa: 6 fixes críticos en sincronización, FIFO y parsers.', changes:[
+        {type:'fix', title:'FIFO segregado por moneda', desc:'consumirFIFO ahora aísla lotes UYU y USD — fix crítico de costo y ganancia en operaciones cross-currency.'},
+        {type:'fix', title:'IDs únicos garantizados', desc:'uid() arranca con offset random para evitar colisiones tras reload del navegador.'},
+        {type:'fix', title:'Parser de inputs robusto', desc:'pv() ahora rechaza formatos ambiguos como "1.234.5" en vez de silenciosamente perder datos.'},
+        {type:'fix', title:'Edit op: guard de moneda', desc:'No permite cambiar el banco de una operación a uno de moneda distinta — evitaría corrupción de datos.'},
+        {type:'fix', title:'Sync counter normalizado', desc:'Eliminado doble incremento de _localDirty en guardaOptimista.'},
+        {type:'fix', title:'Inventario sin drift', desc:'Total de inventario usa truncar consistente con la precisión de los lotes.'}
     ]},
-    {version:'4.2.0', date:'2026-04-10', changes:[
-        'Calendario interactivo con detalle por día y métricas mensuales',
-        'Merge de tags rediseñado como modal guiado con sugerencias',
-        'Menu reorganizado: Operaciones/Cuentas/Análisis/Sistema',
-        'Stepper − / + en input de tasa (paso 0,01)',
-        'Hasta 5 tasas sugeridas (antes 3)',
-        'Layout inicial mobile centrado y con safe-area iOS'
+    {version:'4.3.0', date:'2026-04-12', headline:'Edición de ajustes y transferencias + fix de overflow de tags.', changes:[
+        {type:'feature', title:'Editar ajustes y transferencias', desc:'Swipe-right o botón ✏️ permite editar registros existentes en lugar de eliminar y recrear.'},
+        {type:'fix', title:'Tags ya no invaden el banco', desc:'Combinación de cap de longitud (24 chars) + ellipsis visual para tags antiguos.'},
+        {type:'improve', title:'Versionado semántico formal', desc:'Regla establecida en código: cada release debe bumpear APP_VERSION y agregar entry al CHANGELOG.'}
+    ]},
+    {version:'4.2.0', date:'2026-04-10', headline:'Calendario interactivo, merge de tags rediseñado y mejoras de UX en mobile.', changes:[
+        {type:'feature', title:'Calendario interactivo', desc:'Tap en cualquier día muestra detalle completo: ops, ganancia, gastos y métricas mensuales.'},
+        {type:'feature', title:'Merge de tags guiado', desc:'Modal con búsqueda, sugerencias automáticas por similitud y confirmación clara.'},
+        {type:'feature', title:'Stepper de tasa', desc:'Botones − / + para ajustar la tasa con paso fino de 0,01.'},
+        {type:'improve', title:'Hasta 5 tasas sugeridas', desc:'Las tasas más usadas aparecen como pills clickeables (antes solo 3).'},
+        {type:'improve', title:'Mobile: safe-area iOS', desc:'Header y modales respetan el notch y la barra inferior en dispositivos Apple.'}
     ]}
 ];
+function normalizarChangelog(){
+    /* Convierte entradas legacy con changes:[string] al formato {type,title,desc}.
+       Detecta type por keywords; default 'improve'. */
+    return CHANGELOG.map(entry=>{
+        if(!entry.changes)return entry;
+        const norm=entry.changes.map(ch=>{
+            if(typeof ch==='object'&&ch.title)return ch;
+            const s=String(ch);
+            const lower=s.toLowerCase();
+            let type='improve';
+            if(/^(fix|bug|auditor[ií]a)\b/i.test(s)||lower.includes(' fix ')||lower.startsWith('fix:'))type='fix';
+            else if(/^(perf|cache|optim)/i.test(s)||lower.includes('perf:'))type='perf';
+            else if(/^(nuev[oa]|agreg|implement|edici[oó]n)/i.test(s)||lower.includes('feature'))type='feature';
+            return{type,title:s,desc:''};
+        });
+        return{...entry,changes:norm};
+    });
+}
 
 /* ═══════════════════════════════════════
    §2 — ESTADO CENTRALIZADO
@@ -1127,7 +1211,8 @@ const AppState = {
 function crearDatosVacios() {
     return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],tags:[],tasasRecientes:[],
             saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,
-            ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14,ultimoMesProcesado:'',_version:0};
+            ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14,ultimoMesProcesado:'',_version:0,
+            lastSeenVersion:''};
 }
 AppState.datos = crearDatosVacios();
 
@@ -1413,6 +1498,122 @@ function _renderCompareDiff(aDoc,bDoc,mesesCortos){
             ${metric('Operaciones',opsA,opsB,{fmt:v=>v+''})}
             ${metric('Balance USDT',aDoc.saldoUsdt||0,bDoc.saldoUsdt||0,{fmt:v=>fmtTrunc(v,2)+' USDT'})}
         </div>`;
+}
+
+/* ═══════════════════════════════════════
+   §X — CENTRO DE NOVEDADES (changelog visual)
+   ═══════════════════════════════════════ */
+const TYPE_LABELS={feature:'Nueva función',improve:'Mejora',fix:'Fix',perf:'Rendimiento'};
+
+/* Comparar versiones semver: devuelve >0 si a>b, <0 si a<b, 0 si iguales */
+function cmpVersion(a,b){
+    if(!a)return -1;if(!b)return 1;
+    const pa=a.split('.').map(n=>parseInt(n)||0),pb=b.split('.').map(n=>parseInt(n)||0);
+    for(let i=0;i<Math.max(pa.length,pb.length);i++){
+        const da=pa[i]||0,db=pb[i]||0;
+        if(da!==db)return da-db;
+    }
+    return 0;
+}
+/* Cantidad de versiones nuevas vs lo último visto por el usuario */
+function getNoticiasNoVistas(){
+    const last=AppState.datos?.lastSeenVersion||'';
+    const log=normalizarChangelog();
+    return log.filter(e=>cmpVersion(e.version,last)>0);
+}
+function actualizarBadgeNoticias(){
+    const badge=$('newsBellBadge');if(!badge)return;
+    const n=getNoticiasNoVistas().length;
+    if(n>0){badge.textContent=n>9?'9+':String(n);badge.classList.remove('hidden')}
+    else badge.classList.add('hidden');
+}
+function abrirCentroNoticias(){
+    renderizarCentroNoticias();
+    abrirModal('modalNoticias');
+    /* Marcar la versión más reciente como vista (el usuario abrió el centro) */
+    marcarVersionVista();
+}
+function renderizarCentroNoticias(){
+    const log=normalizarChangelog();
+    const last=AppState.datos?.lastSeenVersion||'';
+    let h='';
+    log.forEach(entry=>{
+        const isNew=cmpVersion(entry.version,last)>0;
+        const badge=isNew?'<span class="news-version-badge">Nuevo</span>':'';
+        h+=`<div class="news-version">
+            <div class="news-version-header">
+                <span class="news-version-num">Versión ${escHtml(entry.version)}</span>
+                <span class="news-version-date">${escHtml(entry.date||'')}</span>
+                ${badge}
+            </div>
+            ${entry.headline?`<div class="news-version-headline">${escHtml(entry.headline)}</div>`:''}
+            ${entry.changes.map(ch=>{
+                const t=ch.type||'improve';
+                const lbl=TYPE_LABELS[t]||'Mejora';
+                return `<div class="news-card">
+                    <span class="news-card-tag ${t}">${lbl}</span>
+                    <div class="news-card-body">
+                        <div class="news-card-title">${escHtml(ch.title||'')}</div>
+                        ${ch.desc?`<div class="news-card-desc">${escHtml(ch.desc)}</div>`:''}
+                    </div>
+                </div>`;
+            }).join('')}
+            <div class="news-version-divider"></div>
+        </div>`;
+    });
+    if(!h)h='<div style="text-align:center;padding:30px;color:#94a3b8">Sin novedades aún</div>';
+    setHtml('noticiasContent',h);
+}
+function marcarVersionVista(){
+    const log=normalizarChangelog();
+    if(!log.length)return;
+    const latest=log[0].version; /* primer entry = más reciente */
+    const cur=AppState.datos?.lastSeenVersion||'';
+    if(cmpVersion(latest,cur)>0){
+        AppState.datos.lastSeenVersion=latest;
+        actualizarBadgeNoticias();
+        guardaOptimista('update','config','lastSeenVersion');
+    }
+}
+function abrirWhatsNew(entry){
+    if(!entry)return;
+    const cont=$('whatsNewContent');
+    if(!cont)return;
+    const changesHtml=entry.changes.slice(0,5).map(ch=>{
+        const t=ch.type||'improve';
+        return `<div class="whatsnew-change ${t}">
+            <span class="whatsnew-change-dot"></span>
+            <span><b>${escHtml(ch.title||'')}</b>${ch.desc?' — '+escHtml(ch.desc):''}</span>
+        </div>`;
+    }).join('');
+    cont.innerHTML=`<div class="whatsnew-icon">🎉</div>
+        <div class="whatsnew-version">Versión ${escHtml(entry.version)}</div>
+        <div class="whatsnew-title">¡Nueva actualización!</div>
+        ${entry.headline?`<div class="whatsnew-headline">${escHtml(entry.headline)}</div>`:''}
+        <div class="whatsnew-changes">${changesHtml}</div>
+        <div class="whatsnew-buttons">
+            <button class="btn" style="background:#f1f5f9;color:#475569" id="btnWhatsNewLater">Después</button>
+            <button class="btn" id="btnWhatsNewDetails">Ver detalles</button>
+        </div>`;
+    abrirModal('modalWhatsNew');
+    /* Wire buttons (re-bind cada apertura porque innerHTML los recrea) */
+    $('btnWhatsNewLater').onclick=()=>{cerrarModal('modalWhatsNew');marcarVersionVista()};
+    $('btnWhatsNewDetails').onclick=()=>{cerrarModal('modalWhatsNew');abrirCentroNoticias()};
+}
+function chequearWhatsNewAlInicio(){
+    /* Mostrar UNA sola vez tras detectar versión nueva */
+    const log=normalizarChangelog();
+    if(!log.length)return;
+    const latest=log[0];
+    const cur=AppState.datos?.lastSeenVersion||'';
+    /* Solo mostrar modal si ya había datos previos (no es primera vez) y hay versión nueva */
+    if(cur&&cmpVersion(latest.version,cur)>0){
+        setTimeout(()=>abrirWhatsNew(latest),800);
+    }else if(!cur){
+        /* Primera vez en la app — silenciosamente marcar como visto sin modal intrusivo */
+        AppState.datos.lastSeenVersion=latest.version;
+        actualizarBadgeNoticias();
+    }
 }
 
 async function cargarHistorialMensual(){
@@ -2527,6 +2728,10 @@ function mergeRemoteState(d){
     AppState.datos.comisionPlataforma=d.comisionPlataforma!==undefined?d.comisionPlataforma:AppState.datos.comisionPlataforma;
     AppState.datos.comisionUSD=d.comisionUSD!==undefined?d.comisionUSD:AppState.datos.comisionUSD;
     AppState.datos.ultimoMesProcesado=d.ultimoMesProcesado||AppState.datos.ultimoMesProcesado;
+    /* lastSeenVersion: aceptar el más alto entre local y remoto (multi-device sync) */
+    const remoteSeen=d.lastSeenVersion||'';
+    const localSeen=AppState.datos.lastSeenVersion||'';
+    if(cmpVersion(remoteSeen,localSeen)>0)AppState.datos.lastSeenVersion=remoteSeen;
     AppState.datos._version=d._version||AppState.datos._version;
     recalcularLotesYGanancias();
 }
@@ -2622,7 +2827,7 @@ function cargarDatosUsuario(){
 
             /* Branch 1: Initial load (no local data yet) → accept entirely, even from cache */
             if(AppState._localVersion===0){
-                AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion};
+                AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||''};
                 AppState._localVersion=serverVersion;
             }
             /* Branch 2: Remote is newer → ALWAYS merge (never full replace after initial load) */
@@ -2670,6 +2875,12 @@ function cargarDatosUsuario(){
         if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=fmtNum(cv);setText('comisionPctLabel',fmtNum(cv))}
         actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();
         setSyncStatus(fromCache?'syncing':'online',fromCache?'Caché local':undefined);
+        /* Centro de Novedades — actualizar badge en cada snapshot, mostrar whatsnew solo 1 vez */
+        actualizarBadgeNoticias();
+        if(!AppState.ui._noticiasInicializadas){
+            AppState.ui._noticiasInicializadas=true;
+            chequearWhatsNewAlInicio();
+        }
         /* Verificar cambio de mes para snapshot automático */
         if(!fromCache)verificarCambioMes();
     },err=>{
@@ -3782,6 +3993,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('mergeSearch').addEventListener('input',e=>renderMergeDestinations(e.target.value));
     $('mergeNewName').addEventListener('input',updateMergeConfirmBox);
     $('btnCerrarHistorial').addEventListener('click',()=>cerrarModal('modalHistorial'));
+    /* Centro de novedades */
+    $('newsBellBtn').addEventListener('click',e=>{e.stopPropagation();abrirCentroNoticias()});
+    $('btnCerrarNoticias').addEventListener('click',()=>cerrarModal('modalNoticias'));
     $('btnCancelEditOp').addEventListener('click',()=>{cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null});
     $('btnGuardarEditOp').addEventListener('click',guardarEditarOperacion);
     $('editOpMonto').addEventListener('input',calcularEditOpPreview);
