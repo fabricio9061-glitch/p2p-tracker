@@ -1137,7 +1137,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.4.1',
+    APP_VERSION: '4.4.2',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1170,6 +1170,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.4.2', date:'2026-04-13', headline:'Fix de precisión en split pago: el faltante real se muestra al centésimo, sin más "Faltan $0".', changes:[
+        {type:'fix', title:'Precisión decimal del faltante', desc:'Si quedan $0,47 sin cubrir, ahora se muestra "$0,47" exacto. Antes fmtNum lo redondeaba a "0" y parecía que estaba completo.'},
+        {type:'fix', title:'Fuente única de verdad', desc:'Nuevo helper _computeSplitState() centraliza el cálculo. Render, status, validación y persistencia usan el mismo objeto — imposible que diverjan.'},
+        {type:'improve', title:'Tolerancia explícita SPLIT_EPSILON', desc:'Comparaciones usan ±0,005 como umbral de ruido FP, consistente en todo el módulo. Anything ≥ 0,005 es faltante real.'},
+        {type:'improve', title:'Formato monetario inteligente', desc:'fmtMonto() muestra 0 decimales si el valor es entero, 2 decimales si tiene centésimos significativos. Sin más "Faltan $0" engañoso.'}
+    ]},
     {version:'4.4.1', date:'2026-04-13', headline:'Split pago blindado solo para compras + mejoras UX en Novedades + offset del header.', changes:[
         {type:'fix', title:'Split pago solo en compras', desc:'Se blindó splitActivo() con guard explícito: imposible que el pago dividido se active en ventas (donde el usuario recibe UYU, no paga).'},
         {type:'improve', title:'Mensaje claro de saldo insuficiente', desc:'Al detectar faltante, el panel ahora muestra "Saldo insuficiente · faltan $X" con subtexto guía, en vez del título genérico.'},
@@ -3065,45 +3071,91 @@ function guardarComisionYCalcular(){
    §X — SPLIT PAGO (compra con múltiples cuentas)
    ═══════════════════════════════════════ */
 /* AppState.ui.splitExtras: [{banco, monto}] — cuentas adicionales más allá del banco principal */
+/* Tolerancia única para comparaciones de faltante: medio centésimo.
+   Por debajo de esto se considera "completo" (ruido de redondeo). */
+const SPLIT_EPSILON=0.005;
 function _initSplitState(){
     if(!AppState.ui.splitExtras)AppState.ui.splitExtras=[];
 }
 function _splitDisponible(bancoNombre,excluirBanco){
-    /* Saldo disponible de un banco, restando lo ya aportado por otros slots del split (evita doble conteo) */
     const bk=AppState.datos.bancos[bancoNombre];
     if(!bk)return 0;
     return Math.max(0,bk.saldo);
 }
+/* ═══ Fuente única de verdad para el estado del split ═══
+   Devuelve null si el contexto no aplica (no compra, sin banco, etc.).
+   Todos los renders + validación usan este mismo objeto. Garantiza que
+   el botón, el resumen, el monto y la persistencia coincidan al centésimo. */
+function _computeSplitState(){
+    if($('tipo').value!=='compra')return null;
+    const bancoPrinc=$('banco').value;if(!bancoPrinc)return null;
+    const bk=AppState.datos.bancos[bancoPrinc];if(!bk)return null;
+    const monto=pv('monto'),comisionBanco=roundMoney(pv('comisionBanco'));
+    if(!monto||monto<=0)return null;
+    const totalNecesario=roundMoney(monto+comisionBanco);
+    const saldoPrinc=roundMoney(bk.saldo);
+    /* Si el principal cubre todo, no hay split */
+    if(saldoPrinc>=totalNecesario-SPLIT_EPSILON){
+        return{aplicaSplit:false,totalNecesario,saldoPrinc,bancoPrinc,bk};
+    }
+    /* Aporte del banco principal: lo que tenga, capeado al total */
+    const aporte1=roundMoney(Math.min(saldoPrinc,totalNecesario));
+    /* Suma de aportes extra (filtrando inválidos) */
+    _initSplitState();
+    let aportadoExtra=0;
+    AppState.ui.splitExtras.forEach(e=>{
+        const m=roundMoney(e.monto||0);
+        if(m>0)aportadoExtra=roundMoney(aportadoExtra+m);
+    });
+    const totalAportado=roundMoney(aporte1+aportadoExtra);
+    const faltante=roundMoney(totalNecesario-totalAportado);
+    /* Estado normalizado */
+    const cubierto=Math.abs(faltante)<SPLIT_EPSILON;
+    const exceso=faltante<-SPLIT_EPSILON;
+    return{
+        aplicaSplit:true,
+        bancoPrinc,bk,
+        monto,comisionBanco,totalNecesario,
+        saldoPrinc,aporte1,aportadoExtra,totalAportado,
+        faltante,
+        cubierto,
+        exceso,
+        falta:!cubierto&&!exceso
+    };
+}
+/* Formato monetario inteligente: si el monto tiene centésimos significativos,
+   muestra 2 decimales; si es entero, muestra 0 decimales. Evita "Faltan $0"
+   cuando en realidad faltan $0,47. */
+function fmtMonto(n){
+    const abs=Math.abs(n);
+    if(abs<SPLIT_EPSILON)return fmtNum(0,0);
+    /* Si el redondeo a entero coincide exactamente con el valor → mostrar entero */
+    const entero=Math.round(n);
+    if(Math.abs(n-entero)<SPLIT_EPSILON)return fmtNum(entero,0);
+    /* Hay centésimos significativos → 2 decimales */
+    return fmtNum(n,2);
+}
 function renderSplitPanel(){
     _initSplitState();
     const panel=$('splitPanel');if(!panel)return;
-    const t=$('tipo').value;
-    if(t!=='compra'){panel.style.display='none';AppState.ui.splitExtras=[];return}
-    const bancoPrinc=$('banco').value;
-    const monto=pv('monto'),comisionBanco=roundMoney(pv('comisionBanco'));
-    if(!bancoPrinc||!monto||monto<=0){panel.style.display='none';AppState.ui.splitExtras=[];return}
-    const bkPrinc=AppState.datos.bancos[bancoPrinc];
-    if(!bkPrinc){panel.style.display='none';return}
-    const totalNecesario=roundMoney(monto+comisionBanco);
-    const saldoPrinc=bkPrinc.saldo;
-    /* Si el banco principal cubre el total → ocultar panel y limpiar splits */
-    if(saldoPrinc>=totalNecesario){panel.style.display='none';AppState.ui.splitExtras=[];return}
-    /* El principal NO alcanza — activar UI de split */
-    const aporte1=Math.min(saldoPrinc,totalNecesario);
-    let aportadoExtra=0;
-    AppState.ui.splitExtras.forEach(e=>{aportadoExtra=roundMoney(aportadoExtra+(e.monto||0))});
-    const totalAportado=roundMoney(aporte1+aportadoExtra);
-    const faltante=roundMoney(totalNecesario-totalAportado);
+    const state=_computeSplitState();
+    /* No aplica split (otro tipo, sin banco, monto inválido, o saldo cubre todo) */
+    if(!state||!state.aplicaSplit){
+        panel.style.display='none';
+        if($('tipo').value!=='compra'||(state&&state.aplicaSplit===false))AppState.ui.splitExtras=[];
+        return;
+    }
+    const{bancoPrinc,totalNecesario,aporte1,totalAportado,faltante,cubierto,exceso}=state;
     /* Opciones para banco adicional: activos, distintos del principal y de otros ya elegidos */
     const usados=new Set([bancoPrinc]);AppState.ui.splitExtras.forEach(e=>{if(e.banco)usados.add(e.banco)});
     const disponibles=getBancosActivos().filter(b=>!usados.has(b.nombre));
     const sy=getSym(getBancoInfo(bancoPrinc)?.moneda||'UYU');
     const faltanteInicial=roundMoney(totalNecesario-aporte1);
-    let h=`<div class="split-panel-title">⚠️ Saldo insuficiente · faltan ${sy}${fmtNum(faltanteInicial,0)}</div>
+    let h=`<div class="split-panel-title">⚠️ Saldo insuficiente · faltan ${sy}${fmtMonto(faltanteInicial)}</div>
         <div style="font-size:0.7em;color:#78350f;margin-bottom:10px;line-height:1.4">Completá el pago con una o más cuentas adicionales hasta cubrir el total.</div>
         <div class="split-row aporte">
             <div class="split-row-label"><span style="color:${getBancoColor(bancoPrinc)}">●</span> <b>${escHtml(bancoPrinc)}</b> aporta</div>
-            <div class="split-row-monto">${sy}${fmtNum(aporte1,0)}</div>
+            <div class="split-row-monto">${sy}${fmtMonto(aporte1)}</div>
         </div>`;
     /* Render cuentas adicionales */
     AppState.ui.splitExtras.forEach((ex,idx)=>{
@@ -3111,24 +3163,24 @@ function renderSplitPanel(){
         const disp=ex.banco?_splitDisponible(ex.banco):0;
         h+=`<div class="split-extra-row">
             <select data-action="split-set-banco" data-idx="${idx}">${selOpts}</select>
-            <input type="text" inputmode="decimal" data-action="split-set-monto" data-idx="${idx}" value="${ex.monto?fmtNum(ex.monto,0):''}" placeholder="${sy}0" />
+            <input type="text" inputmode="decimal" data-action="split-set-monto" data-idx="${idx}" value="${ex.monto?fmtMonto(ex.monto):''}" placeholder="${sy}0" />
             <button type="button" class="split-remove" data-action="split-remove" data-idx="${idx}" aria-label="Quitar">✕</button>
         </div>`;
-        if(ex.banco&&disp<(ex.monto||0)){
-            h+=`<div style="font-size:0.68em;color:#b91c1c;margin:-2px 4px 6px">⚠ ${escHtml(ex.banco)} solo tiene ${sy}${fmtNum(disp,0)}</div>`;
+        if(ex.banco&&disp<(ex.monto||0)-SPLIT_EPSILON){
+            h+=`<div style="font-size:0.68em;color:#b91c1c;margin:-2px 4px 6px">⚠ ${escHtml(ex.banco)} solo tiene ${sy}${fmtMonto(disp)}</div>`;
         }
     });
-    /* Botón agregar cuenta */
-    if(faltante>0&&disponibles.length>0){
-        h+=`<button type="button" class="split-add-btn" data-action="split-add">＋ Agregar cuenta para cubrir ${sy}${fmtNum(faltante,0)}</button>`;
+    /* Botón agregar cuenta — solo si hay faltante real (>= EPSILON) */
+    if(faltante>=SPLIT_EPSILON&&disponibles.length>0){
+        h+=`<button type="button" class="split-add-btn" data-action="split-add">＋ Agregar cuenta para cubrir ${sy}${fmtMonto(faltante)}</button>`;
     }
-    /* Status */
-    if(faltante===0){
-        h+=`<div class="split-status ok">✓ Total cubierto · ${sy}${fmtNum(totalAportado,0)}</div>`;
-    }else if(faltante>0){
-        h+=`<div class="split-status error">Falta ${sy}${fmtNum(faltante,0)} · aportado ${sy}${fmtNum(totalAportado,0)} de ${sy}${fmtNum(totalNecesario,0)}</div>`;
+    /* Status — usa estado normalizado, sin re-comparar con 0 */
+    if(cubierto){
+        h+=`<div class="split-status ok">✓ Total cubierto · ${sy}${fmtMonto(totalAportado)}</div>`;
+    }else if(exceso){
+        h+=`<div class="split-status error">Exceso de ${sy}${fmtMonto(Math.abs(faltante))} · ajustá los aportes</div>`;
     }else{
-        h+=`<div class="split-status error">Exceso de ${sy}${fmtNum(Math.abs(faltante),0)} · ajustá los aportes</div>`;
+        h+=`<div class="split-status error">Falta ${sy}${fmtMonto(faltante)} · aportado ${sy}${fmtMonto(totalAportado)} de ${sy}${fmtMonto(totalNecesario)}</div>`;
     }
     panel.innerHTML=h;panel.style.display='block';
 }
@@ -3138,59 +3190,68 @@ function splitActivo(){
        no paga, por lo que no hay validación de saldo que justifique split. */
     if($('tipo').value!=='compra')return false;
     if(!AppState.ui.splitExtras||AppState.ui.splitExtras.length===0)return false;
-    const bancoPrinc=$('banco').value;if(!bancoPrinc)return false;
-    const bk=AppState.datos.bancos[bancoPrinc];if(!bk)return false;
-    const totalNecesario=roundMoney(pv('monto')+roundMoney(pv('comisionBanco')));
-    return bk.saldo<totalNecesario;
+    const state=_computeSplitState();
+    return!!(state&&state.aplicaSplit);
 }
 /* Devuelve array de aportes [{banco,monto}] si split activo, null si no */
 function getAportes(){
     if(!splitActivo())return null;
-    const bancoPrinc=$('banco').value;
-    const bk=AppState.datos.bancos[bancoPrinc];
-    const totalNecesario=roundMoney(pv('monto')+roundMoney(pv('comisionBanco')));
-    const aporte1=Math.min(bk.saldo,totalNecesario);
-    const aportes=[{banco:bancoPrinc,monto:aporte1}];
+    const state=_computeSplitState();
+    if(!state||!state.aplicaSplit)return null;
+    const aportes=[{banco:state.bancoPrinc,monto:state.aporte1}];
     AppState.ui.splitExtras.forEach(ex=>{
-        if(ex.banco&&ex.monto>0)aportes.push({banco:ex.banco,monto:roundMoney(ex.monto)});
+        const m=roundMoney(ex.monto||0);
+        if(ex.banco&&m>0)aportes.push({banco:ex.banco,monto:m});
     });
     return aportes;
 }
 function _updateSplitStatus(){
-    /* Actualiza solo el bloque de status sin re-renderizar todo el panel (preserva foco del input) */
+    /* Re-render parcial del status sin tocar inputs (preserva foco) */
     const panel=$('splitPanel');if(!panel||panel.style.display==='none')return;
     const statusEl=panel.querySelector('.split-status');if(!statusEl)return;
-    const bancoPrinc=$('banco').value;if(!bancoPrinc)return;
-    const bk=AppState.datos.bancos[bancoPrinc];if(!bk)return;
-    const totalNecesario=roundMoney(pv('monto')+roundMoney(pv('comisionBanco')));
-    const aporte1=Math.min(bk.saldo,totalNecesario);
-    let aportadoExtra=0;
-    AppState.ui.splitExtras.forEach(e=>{aportadoExtra=roundMoney(aportadoExtra+(e.monto||0))});
-    const totalAportado=roundMoney(aporte1+aportadoExtra);
-    const faltante=roundMoney(totalNecesario-totalAportado);
+    const state=_computeSplitState();if(!state||!state.aplicaSplit)return;
+    const{bancoPrinc,totalNecesario,totalAportado,faltante,cubierto,exceso}=state;
     const sy=getSym(getBancoInfo(bancoPrinc)?.moneda||'UYU');
-    if(faltante===0){
+    if(cubierto){
         statusEl.className='split-status ok';
-        statusEl.textContent=`✓ Total cubierto · ${sy}${fmtNum(totalAportado,0)}`;
-    }else if(faltante>0){
+        statusEl.textContent=`✓ Total cubierto · ${sy}${fmtMonto(totalAportado)}`;
+    }else if(exceso){
         statusEl.className='split-status error';
-        statusEl.textContent=`Falta ${sy}${fmtNum(faltante,0)} · aportado ${sy}${fmtNum(totalAportado,0)} de ${sy}${fmtNum(totalNecesario,0)}`;
+        statusEl.textContent=`Exceso de ${sy}${fmtMonto(Math.abs(faltante))} · ajustá los aportes`;
     }else{
         statusEl.className='split-status error';
-        statusEl.textContent=`Exceso de ${sy}${fmtNum(Math.abs(faltante),0)} · ajustá los aportes`;
+        statusEl.textContent=`Falta ${sy}${fmtMonto(faltante)} · aportado ${sy}${fmtMonto(totalAportado)} de ${sy}${fmtMonto(totalNecesario)}`;
+    }
+    /* Actualizar también el botón "Agregar cuenta para cubrir $X" si está presente */
+    const addBtn=panel.querySelector('[data-action="split-add"]');
+    if(addBtn){
+        if(faltante>=SPLIT_EPSILON){
+            addBtn.textContent=`＋ Agregar cuenta para cubrir ${sy}${fmtMonto(faltante)}`;
+            addBtn.style.display='';
+        }else{
+            addBtn.style.display='none';
+        }
     }
 }
 /* Validar que aportes cubran totalNecesario exactamente y cada banco tenga saldo */
 function validarAportes(){
     const aportes=getAportes();
     if(!aportes)return{ok:true};
-    const totalNecesario=roundMoney(pv('monto')+roundMoney(pv('comisionBanco')));
-    let suma=0;aportes.forEach(a=>suma=roundMoney(suma+a.monto));
-    if(Math.abs(suma-totalNecesario)>0.01)return{ok:false,msg:`Los aportes no cubren el total. Faltan $${fmtNum(totalNecesario-suma,0)}`};
+    const state=_computeSplitState();
+    if(!state||!state.aplicaSplit)return{ok:true};
+    const sy=getSym(getBancoInfo(state.bancoPrinc)?.moneda||'UYU');
+    /* Usar el faltante normalizado del estado — misma fuente de verdad que la UI */
+    if(!state.cubierto){
+        if(state.exceso){
+            return{ok:false,msg:`Los aportes exceden el total por ${sy}${fmtMonto(Math.abs(state.faltante))}. Ajustá los montos.`};
+        }
+        return{ok:false,msg:`Faltan ${sy}${fmtMonto(state.faltante)} para cubrir el total. Agregá una cuenta o ajustá los montos.`};
+    }
+    /* Validar saldos individuales con tolerancia consistente */
     for(const a of aportes){
         const bk=AppState.datos.bancos[a.banco];
-        if(!bk)return{ok:false,msg:`Banco ${a.banco} no existe`};
-        if(bk.saldo<a.monto-0.01)return{ok:false,msg:`${a.banco} solo tiene $${fmtNum(bk.saldo,0)}`};
+        if(!bk)return{ok:false,msg:`El banco ${a.banco} no existe`};
+        if(bk.saldo<a.monto-SPLIT_EPSILON)return{ok:false,msg:`${a.banco} solo tiene ${sy}${fmtMonto(bk.saldo)}`};
     }
     return{ok:true,aportes};
 }
