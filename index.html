@@ -230,7 +230,7 @@
         .r2-c2{color:#475569;overflow:hidden;text-overflow:ellipsis;min-width:0}
         .r2-c3{display:contents}
         .r2-banco{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-        .r2-fecha{color:#b0b8c4;text-align:right}
+        .r2-fecha{color:#b0b8c4;text-align:right;min-width:64px;flex-shrink:0}
         /* Movimientos (ajustes): tag col flexible with ellipsis, banco col reserved */
         [data-mov-id] .r2{grid-template-columns:minmax(72px,auto) minmax(0,1fr) minmax(60px,auto) auto;column-gap:8px}
         [data-mov-id] .r2-c1{color:#475569;font-weight:600}
@@ -1029,7 +1029,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.3.5',
+    APP_VERSION: '4.3.6',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1057,6 +1057,11 @@ const CONFIG = {
  * Formato: { version, date (YYYY-MM-DD), changes: [array de strings] }
  * ═══════════════════════════════════════════════════════════════════════ */
 const CHANGELOG = [
+    {version:'4.3.6', date:'2026-04-13', changes:[
+        'Listas: cada registro muestra fecha + hora (13/04 · 21:10) en ops, ajustes, transferencias y conversiones',
+        'Fallback para registros antiguos: hora derivada del timestamp ISO con offset UY',
+        'Helper unificado fmtFechaHora() reutilizable desde cualquier punto'
+    ]},
     {version:'4.3.5', date:'2026-04-12', changes:[
         'Resumen mensual: meses colapsables (tap en header)',
         'Resumen mensual: gráficos por mes con switch barras / dona de gastos',
@@ -1678,6 +1683,24 @@ function transMes(){return filtrarMes(AppState.datos.transferencias)}
 function convMes(){return filtrarMes(AppState.datos.conversiones||[])}
 function getUTimeStr(){const d=getUDate();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function fmtFechaCorta(f){if(!f)return'-';const p=f.split('-');return p.length===3?`${p[2]}/${p[1]}`:f}
+/* Fecha + hora para listas: "13/04 · 21:10". Fallback: extraer hora de timestamp ISO si hora falta. */
+function fmtFechaHora(fecha,hora,timestamp){
+    const fc=fmtFechaCorta(fecha);
+    let h=hora;
+    if(!h&&timestamp){
+        /* Old records without explicit hora — derive from ISO timestamp.
+           Note: timestamp is UTC, fecha is Uruguay-local. Apply UY offset (-3). */
+        try{
+            const d=new Date(timestamp);
+            if(!isNaN(d.getTime())){
+                const uyMs=d.getTime()-3*3600000+d.getTimezoneOffset()*60000;
+                const uy=new Date(uyMs);
+                h=`${String(uy.getHours()).padStart(2,'0')}:${String(uy.getMinutes()).padStart(2,'0')}`;
+            }
+        }catch(_){}
+    }
+    return h?`${fc} · ${h}`:fc;
+}
 function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
 function getBancoColor(n){const b=getBancoInfo(n);return b?.color||'#1e293b'}
 function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
@@ -3441,7 +3464,7 @@ const pagOp=crearPaginacion({getTotal:()=>opsMes().length,getPag:()=>AppState.ui
                     <div class="op-card ${op.tipo}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${sy}${fmtNum(op.monto)}</span><span class="r1-gp" style="color:${gc}">${gt}</span></div>
-                            <div class="r2"><span class="r2-c1">${sy}${fmtNum(op.tasa,td)}</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}">${op.banco||'-'}</span><span class="r2-fecha">${fmtFechaCorta(op.fecha)}</span></span></div>
+                            <div class="r2"><span class="r2-c1">${sy}${fmtNum(op.tasa,td)}</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}">${op.banco||'-'}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button></span>
                         </div>
                     </div>
@@ -3484,7 +3507,7 @@ const pagMov=crearPaginacion({getTotal:()=>movsMes().length,getPag:()=>AppState.
                     <div class="op-card ${isI?'compra':'venta'}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${sy}${fmtNum(m.monto)}${suf}</span><span class="r1-gp" style="color:${isI?'#16a34a':'#dc2626'}">${isI?'Ingreso':'Egreso'}</span></div>
-                            <div class="r2"><span class="r2-c1">${c1Txt}</span><span class="r2-c2">${descTxt?'🏷️ '+descTxt:''}</span><span class="r2-c3"><span class="r2-banco" style="color:${isUsdt?'#64748b':getBancoColor(m.banco)}">${isUsdt?'':m.banco||''}</span><span class="r2-fecha">${fmtFechaCorta(m.fecha)}</span></span></div>
+                            <div class="r2"><span class="r2-c1">${c1Txt}</span><span class="r2-c2">${descTxt?'🏷️ '+descTxt:''}</span><span class="r2-c3"><span class="r2-banco" style="color:${isUsdt?'#64748b':getBancoColor(m.banco)}">${isUsdt?'':m.banco||''}</span><span class="r2-fecha">${fmtFechaHora(m.fecha,m.hora,m.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-mov" data-id="${m.id}">✏️</button><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></span>
                         </div>
                     </div>
@@ -3518,7 +3541,7 @@ const pagTrans=crearPaginacion({getTotal:()=>transMes().length,getPag:()=>AppSta
                     <div class="op-card transfer">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${sy}${fmtNum(tr.monto)}</span><span class="r1-gp" style="color:#475569;font-weight:600;font-size:0.78em">${tr.comision>0?'Com: '+sy+fmtNum(tr.comision):''}</span></div>
-                            <div class="r2"><span class="r2-c1" style="color:${getBancoColor(tr.origen)}">${tr.origen}</span><span class="r2-c2">→</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(tr.destino)}">${tr.destino}</span><span class="r2-fecha">${fmtFechaCorta(tr.fecha)}</span></span></div>
+                            <div class="r2"><span class="r2-c1" style="color:${getBancoColor(tr.origen)}">${tr.origen}</span><span class="r2-c2">→</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(tr.destino)}">${tr.destino}</span><span class="r2-fecha">${fmtFechaHora(tr.fecha,tr.hora,tr.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-trans" data-id="${tr.id}">✏️</button><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">🗑️</button></span>
                         </div>
                     </div>
@@ -3545,7 +3568,7 @@ const pagConv=crearPaginacion({getTotal:()=>convMes().length,getPag:()=>AppState
                     <div class="op-card conversion">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${syO}${fmtNum(c.montoOrigen)} → ${syD}${fmtNum(c.montoDestino)}</span><span class="r1-gp" style="color:#64748b;font-weight:600;font-size:0.72em">T: ${fmtNum(c.tasa)}</span></div>
-                            <div class="r2"><span class="r2-c1" style="color:${getBancoColor(c.origen)}">${c.origen}</span><span class="r2-c2">→</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(c.destino)}">${c.destino}</span><span class="r2-fecha">${fmtFechaCorta(c.fecha)}</span></span></div>
+                            <div class="r2"><span class="r2-c1" style="color:${getBancoColor(c.origen)}">${c.origen}</span><span class="r2-c2">→</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(c.destino)}">${c.destino}</span><span class="r2-fecha">${fmtFechaHora(c.fecha,c.hora,c.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-conv" data-id="${c.id}">✏️</button><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">🗑️</button></span>
                         </div>
                     </div>
