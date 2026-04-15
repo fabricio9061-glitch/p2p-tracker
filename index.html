@@ -206,13 +206,17 @@
         .section-title{color:#1e293b;font-size:1em;font-weight:600;margin-bottom:12px}
 
         /* ═══ Bancos Grid ═══ */
-        .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px}
+        .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
         .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer}
-        /* Totales consolidados bajo el grid de saldos */
-        .saldos-totales{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:space-between;font-size:0.78em}
-        .saldos-totales-item{display:flex;align-items:baseline;gap:6px}
-        .saldos-totales-label{color:#64748b;font-weight:600}
-        .saldos-totales-value{font-weight:800;color:#1e293b;font-size:1.1em}
+        /* Hero card: total patrimonial consolidado */
+        .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:10px;text-align:center}
+        .saldos-hero-label{font-size:0.7em;color:#64748b;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;margin-bottom:4px}
+        .saldos-hero-value{font-size:1.55em;font-weight:800;color:#1e293b;line-height:1.2}
+        .saldos-hero-detail{font-size:0.68em;color:#94a3b8;margin-top:6px;line-height:1.5}
+        .saldos-hero-detail b{color:#64748b;font-weight:700}
+        .saldos-hero-row{display:flex;justify-content:center;gap:16px;margin-top:8px;flex-wrap:wrap}
+        .saldos-hero-sub{font-size:0.75em;color:#64748b;font-weight:600;display:flex;align-items:baseline;gap:5px}
+        .saldos-hero-sub span{font-weight:800;font-size:1.08em}
         /* Grid de actividad operativa (compras/ventas) */
         .cards-actividad{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
         .banco-nombre{font-weight:600;color:#1e293b;font-size:0.8em;margin-bottom:2px}
@@ -572,7 +576,7 @@
             .cards-actividad{grid-template-columns:repeat(2,1fr)}
             .card-title{font-size:0.65em}
             .bancos-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
-            .saldos-totales{font-size:0.75em;gap:6px 20px}
+            .saldos-hero{padding:12px 20px}
             .banco-mini-card{padding:7px}
             .banco-nombre{font-size:0.72em}
             .banco-saldo{font-size:0.95em}
@@ -896,8 +900,8 @@
             </div>
 
             <div class="section-title">💰 Mis Saldos</div>
+            <div class="saldos-hero" id="saldosTotales"></div>
             <div class="bancos-grid" id="bancosGrid"></div>
-            <div class="saldos-totales" id="saldosTotales"></div>
 
             <div class="section-title">📊 Actividad del período</div>
             <div class="cards cards-actividad">
@@ -1146,7 +1150,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.5.1',
+    APP_VERSION: '4.5.2',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1179,6 +1183,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.5.2', date:'2026-04-15', headline:'Mis Saldos: total consolidado como hero card con valorización USDT→UYU, desglose debajo.', changes:[
+        {type:'improve', title:'Total patrimonial arriba', desc:'La tarjeta de total consolidado ahora es lo primero que se ve bajo "Mis Saldos". Muestra el patrimonio en UYU incluyendo USDT valorizado a la última tasa de compra.'},
+        {type:'improve', title:'Sin duplicación de USDT', desc:'El saldo USDT ya no aparece duplicado en la tarjeta de total — solo se muestra en su propia mini-card de desglose. El total UYU incluye la conversión detallada.'},
+        {type:'improve', title:'Desglose debajo del total', desc:'Las tarjetas individuales (USDT, Itaú, Mercado Pago, etc.) aparecen debajo del total como composición detallada, manteniendo su funcionalidad original.'},
+        {type:'fix', title:'Precisión exacta en total', desc:'El total se calcula como suma de saldos UYU + (USDT × tasa), con 2 decimales exactos. La fórmula de composición se muestra como subtexto.'}
+    ]},
     {version:'4.5.1', date:'2026-04-15', headline:'Dashboard reorganizado: saldos consolidados + precisión decimal exacta en todos los montos.', changes:[
         {type:'improve', title:'Saldos consolidados', desc:'Nueva sección "Mis Saldos" unifica USDT + cuentas bancarias individuales + barra de totales (Total UYU, Total USD, USDT). Se eliminó la tarjeta independiente "Cuentas Bancarias".'},
         {type:'improve', title:'Actividad separada', desc:'Las tarjetas de Compras y Ventas se reubicaron bajo su propia sección "Actividad del período", separando estado patrimonial de métricas operativas.'},
@@ -2712,23 +2722,47 @@ function mostrarSaldoBanco(){
 
 function actualizarBancosGrid(){
     const la=AppState.datos.lotes.filter(l=>l.disponible>0).length;
-    let h=`<div class="banco-mini-card usdt-card" data-action="inventario"><div class="banco-nombre">🪙 <b style="color:#1e293b">USDT</b></div><div class="banco-saldo">${fmtTrunc(Math.max(0,AppState.datos.saldoUsdt),2)}</div><div class="banco-moneda">${la} lotes</div></div>`;
+    const saldoUsdt=Math.max(0,AppState.datos.saldoUsdt);
+    /* Computar totales por moneda */
     let totalUYU=0,totalUSD=0;
     CONFIG.BANCOS.forEach(b=>{
         if(!AppState.datos.bancos[b.nombre]?.activo)return;
-        const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
+        const s=AppState.datos.bancos[b.nombre].saldo;
         if(b.moneda==='USD')totalUSD=roundMoney(totalUSD+s);else totalUYU=roundMoney(totalUYU+s);
+    });
+    /* Valorización USDT → UYU usando última tasa de compra como referencia.
+       Si hay lotes en USD, su valor se convierte también usando la tasa USD→UYU
+       (ultimaTasaCompra es UYU per USDT, que es la referencia más confiable). */
+    const tasaRef=AppState.datos.ultimaTasaCompra||0;
+    const usdtEnUYU=tasaRef>0?roundMoney(saldoUsdt*tasaRef):0;
+    const totalConsolidado=roundMoney(totalUYU+usdtEnUYU);
+
+    /* ═══ Hero card: total patrimonial ═══ */
+    let heroH=`<div class="saldos-hero-label">Patrimonio total en UYU</div>
+        <div class="saldos-hero-value" style="color:${totalConsolidado>=0?'#16a34a':'#dc2626'}">$${fmtNum(totalConsolidado,2)}</div>`;
+    /* Detalle de composición */
+    let detParts=[];
+    detParts.push(`Bancos <b>$${fmtNum(totalUYU,2)}</b>`);
+    if(saldoUsdt>0&&tasaRef>0)detParts.push(`USDT <b>$${fmtNum(usdtEnUYU,2)}</b> <span style="font-size:0.88em">(${fmtTrunc(saldoUsdt,2)} × $${fmtNum(tasaRef,2)})</span>`);
+    else if(saldoUsdt>0)detParts.push(`USDT <b>${fmtTrunc(saldoUsdt,2)}</b> <span style="font-size:0.88em">(sin tasa ref.)</span>`);
+    heroH+=`<div class="saldos-hero-detail">${detParts.join(' + ')}</div>`;
+    /* Fila secundaria: USD si aplica */
+    if(totalUSD!==0||hayBancosUSD()){
+        heroH+=`<div class="saldos-hero-row"><div class="saldos-hero-sub">💵 Total USD <span style="color:#3b82f6">US$${fmtNum(totalUSD,2)}</span></div></div>`;
+    }
+    setHtml('saldosTotales',heroH);
+
+    /* ═══ Grid de desglose: cada cuenta individual ═══ */
+    let h=`<div class="banco-mini-card usdt-card" data-action="inventario"><div class="banco-nombre">🪙 <b style="color:#1e293b">USDT</b></div><div class="banco-saldo">${fmtTrunc(saldoUsdt,2)}</div><div class="banco-moneda">${la} lotes</div></div>`;
+    CONFIG.BANCOS.forEach(b=>{
+        if(!AppState.datos.bancos[b.nombre]?.activo)return;
+        const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
         let lh='';
         if(lim>0){const disp=Math.max(0,lim-us),pct=Math.min(100,(us/lim)*100);let fc='';if(pct>=90)fc='danger';else if(pct>=70)fc='warning';
             lh=`<div class="banco-limite">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div><div class="banco-limite-bar"><div class="banco-limite-fill ${fc}" style="width:${pct}%"></div></div>`}
         h+=`<div class="banco-mini-card" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${lh}</div>`;
     });
     setHtml('bancosGrid',h);
-    /* Totales consolidados */
-    let totH='<div class="saldos-totales-item"><span class="saldos-totales-label">🏦 Total UYU</span><span class="saldos-totales-value" style="color:#16a34a">$'+fmtNum(totalUYU,2)+'</span></div>';
-    if(totalUSD!==0||hayBancosUSD())totH+='<div class="saldos-totales-item"><span class="saldos-totales-label">💵 Total USD</span><span class="saldos-totales-value" style="color:#3b82f6">US$'+fmtNum(totalUSD,2)+'</span></div>';
-    totH+='<div class="saldos-totales-item"><span class="saldos-totales-label">🪙 USDT</span><span class="saldos-totales-value">'+fmtTrunc(Math.max(0,AppState.datos.saldoUsdt),2)+'</span></div>';
-    setHtml('saldosTotales',totH);
 }
 
 function renderizarListaBancos(){
