@@ -1150,7 +1150,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.5.2',
+    APP_VERSION: '4.5.3',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1183,6 +1183,10 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.5.3', date:'2026-04-15', headline:'Total Bancos limpio: solo dinero fiat real, USDT en su propia tarjeta.', changes:[
+        {type:'improve', title:'Total solo fiat', desc:'La tarjeta principal ahora muestra "Total en cuentas bancarias" sumando exclusivamente saldos UYU reales. Sin conversiones de USDT que mezclen conceptos.'},
+        {type:'improve', title:'USDT independiente', desc:'El saldo USDT se muestra únicamente en su tarjeta propia dentro del desglose, con su cantidad exacta y número de lotes.'}
+    ]},
     {version:'4.5.2', date:'2026-04-15', headline:'Mis Saldos: total consolidado como hero card con valorización USDT→UYU, desglose debajo.', changes:[
         {type:'improve', title:'Total patrimonial arriba', desc:'La tarjeta de total consolidado ahora es lo primero que se ve bajo "Mis Saldos". Muestra el patrimonio en UYU incluyendo USDT valorizado a la última tasa de compra.'},
         {type:'improve', title:'Sin duplicación de USDT', desc:'El saldo USDT ya no aparece duplicado en la tarjeta de total — solo se muestra en su propia mini-card de desglose. El total UYU incluye la conversión detallada.'},
@@ -2723,32 +2727,21 @@ function mostrarSaldoBanco(){
 function actualizarBancosGrid(){
     const la=AppState.datos.lotes.filter(l=>l.disponible>0).length;
     const saldoUsdt=Math.max(0,AppState.datos.saldoUsdt);
-    /* Computar totales por moneda */
-    let totalUYU=0,totalUSD=0;
+    /* Computar totales por moneda — solo cuentas bancarias reales */
+    let totalUYU=0,totalUSD=0,cuentasUYU=0;
     CONFIG.BANCOS.forEach(b=>{
         if(!AppState.datos.bancos[b.nombre]?.activo)return;
         const s=AppState.datos.bancos[b.nombre].saldo;
-        if(b.moneda==='USD')totalUSD=roundMoney(totalUSD+s);else totalUYU=roundMoney(totalUYU+s);
+        if(b.moneda==='USD')totalUSD=roundMoney(totalUSD+s);
+        else{totalUYU=roundMoney(totalUYU+s);cuentasUYU++}
     });
-    /* Valorización USDT → UYU usando última tasa de compra como referencia.
-       Si hay lotes en USD, su valor se convierte también usando la tasa USD→UYU
-       (ultimaTasaCompra es UYU per USDT, que es la referencia más confiable). */
-    const tasaRef=AppState.datos.ultimaTasaCompra||0;
-    const usdtEnUYU=tasaRef>0?roundMoney(saldoUsdt*tasaRef):0;
-    const totalConsolidado=roundMoney(totalUYU+usdtEnUYU);
 
-    /* ═══ Hero card: total patrimonial ═══ */
-    let heroH=`<div class="saldos-hero-label">Patrimonio total en UYU</div>
-        <div class="saldos-hero-value" style="color:${totalConsolidado>=0?'#16a34a':'#dc2626'}">$${fmtNum(totalConsolidado,2)}</div>`;
-    /* Detalle de composición */
-    let detParts=[];
-    detParts.push(`Bancos <b>$${fmtNum(totalUYU,2)}</b>`);
-    if(saldoUsdt>0&&tasaRef>0)detParts.push(`USDT <b>$${fmtNum(usdtEnUYU,2)}</b> <span style="font-size:0.88em">(${fmtTrunc(saldoUsdt,2)} × $${fmtNum(tasaRef,2)})</span>`);
-    else if(saldoUsdt>0)detParts.push(`USDT <b>${fmtTrunc(saldoUsdt,2)}</b> <span style="font-size:0.88em">(sin tasa ref.)</span>`);
-    heroH+=`<div class="saldos-hero-detail">${detParts.join(' + ')}</div>`;
-    /* Fila secundaria: USD si aplica */
+    /* ═══ Hero card: Total Bancos UYU — dinero fiat real, sin mezcla con USDT ═══ */
+    let heroH=`<div class="saldos-hero-label">🏦 Total en cuentas bancarias</div>
+        <div class="saldos-hero-value" style="color:${totalUYU>=0?'#16a34a':'#dc2626'}">$${fmtNum(totalUYU,2)}</div>
+        <div class="saldos-hero-detail">${cuentasUYU} cuenta${cuentasUYU!==1?'s':''} en UYU</div>`;
     if(totalUSD!==0||hayBancosUSD()){
-        heroH+=`<div class="saldos-hero-row"><div class="saldos-hero-sub">💵 Total USD <span style="color:#3b82f6">US$${fmtNum(totalUSD,2)}</span></div></div>`;
+        heroH+=`<div class="saldos-hero-row"><div class="saldos-hero-sub">💵 USD <span style="color:#3b82f6">US$${fmtNum(totalUSD,2)}</span></div></div>`;
     }
     setHtml('saldosTotales',heroH);
 
