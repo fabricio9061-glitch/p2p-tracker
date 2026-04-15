@@ -197,7 +197,6 @@
         .positive{color:#16a34a}.negative{color:#dc2626}
         .card-compra{border-left:3px solid #16a34a}
         .card-venta{border-left:3px solid #dc2626}
-        .card-bancos{grid-column:span 2}
 
         /* ═══ Desktop Columns ═══ */
         .desktop-columns{}
@@ -207,8 +206,15 @@
         .section-title{color:#1e293b;font-size:1em;font-weight:600;margin-bottom:12px}
 
         /* ═══ Bancos Grid ═══ */
-        .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
+        .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px}
         .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer}
+        /* Totales consolidados bajo el grid de saldos */
+        .saldos-totales{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:space-between;font-size:0.78em}
+        .saldos-totales-item{display:flex;align-items:baseline;gap:6px}
+        .saldos-totales-label{color:#64748b;font-weight:600}
+        .saldos-totales-value{font-weight:800;color:#1e293b;font-size:1.1em}
+        /* Grid de actividad operativa (compras/ventas) */
+        .cards-actividad{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
         .banco-nombre{font-weight:600;color:#1e293b;font-size:0.8em;margin-bottom:2px}
         .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
         .banco-moneda{font-size:0.65em;color:#94a3b8}
@@ -532,7 +538,7 @@
         .calendar-day-detail-empty{text-align:center;padding:14px;color:#94a3b8;font-size:0.8em}
 
         /* ═══ Responsive ═══ */
-        @media(min-width:640px){.cards{grid-template-columns:repeat(3,1fr)}.card.main-card{grid-column:span 1}.bancos-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(min-width:640px){.cards{grid-template-columns:repeat(2,1fr)}.card.main-card{grid-column:span 1}.bancos-grid{grid-template-columns:repeat(3,1fr)}.cards-actividad{grid-template-columns:repeat(2,1fr)}}
 
         /* ═══ Tags ═══ */
         .tags-container{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:0}
@@ -559,13 +565,14 @@
             .header .sync-status{transform:none;margin-top:0}
             .menu-container{top:50%;transform:translateY(-50%)}
             /* Cards: ganancia hoy prominent */
-            .cards{grid-template-columns:repeat(4,1fr);gap:10px}
+            .cards{grid-template-columns:repeat(2,1fr);gap:10px}
             .card{padding:10px}
             .card.main-card{grid-column:span 1}
             .card.main-card .card-value{font-size:1.3em}
-            .card-bancos{grid-column:span 1}
+            .cards-actividad{grid-template-columns:repeat(2,1fr)}
             .card-title{font-size:0.65em}
             .bancos-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+            .saldos-totales{font-size:0.75em;gap:6px 20px}
             .banco-mini-card{padding:7px}
             .banco-nombre{font-size:0.72em}
             .banco-saldo{font-size:0.95em}
@@ -883,13 +890,17 @@
                     <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title">📈 Ganancia Hoy</div><span style="font-size:0.65em;color:#64748b" id="fechaHoy">--</span></div>
                     <div class="card-value positive" id="gananciaHoy">$0</div>
                     <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span>Spread <b style="color:#0284c7" id="spreadPromedio">$0</b></span></div>
-                    <div id="cardIngresosExt" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;font-size:0.68em;color:#64748b;display:flex;justify-content:space-between;align-items:center"><span>💵 Otros ingresos</span><span style="font-weight:700;color:#475569" id="ingresosExtHoy">$0</span></div>
+                    <div id="cardIngresosExt" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;font-size:0.68em;color:#64748b;justify-content:space-between;align-items:center"><span>💵 Otros ingresos</span><span style="font-weight:700;color:#475569" id="ingresosExtHoy">$0</span></div>
                 </div>
                 <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
-                <div class="card card-bancos" style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
-                    <span style="font-size:0.75em;color:#64748b;font-weight:600">🏦 Cuentas Bancarias</span>
-                    <span style="font-size:1.1em;font-weight:700;color:#16a34a" id="totalBancos">$0</span>
-                </div>
+            </div>
+
+            <div class="section-title">💰 Mis Saldos</div>
+            <div class="bancos-grid" id="bancosGrid"></div>
+            <div class="saldos-totales" id="saldosTotales"></div>
+
+            <div class="section-title">📊 Actividad del período</div>
+            <div class="cards cards-actividad">
                 <div class="card card-compra">
                     <div class="card-title" style="color:#16a34a">📥 Compras <span id="mesCompras" style="color:#86efac;font-weight:400;text-transform:none"></span></div>
                     <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalPagado">$0</div>
@@ -901,9 +912,6 @@
                     <div style="font-size:0.6em;color:#94a3b8" id="statsVenta">--</div>
                 </div>
             </div>
-
-            <div class="section-title">💼 Mis Saldos</div>
-            <div class="bancos-grid" id="bancosGrid"></div>
 
             <div class="desktop-columns">
             <div class="col-left">
@@ -1138,7 +1146,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.5.0',
+    APP_VERSION: '4.5.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1171,6 +1179,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.5.1', date:'2026-04-15', headline:'Dashboard reorganizado: saldos consolidados + precisión decimal exacta en todos los montos.', changes:[
+        {type:'improve', title:'Saldos consolidados', desc:'Nueva sección "Mis Saldos" unifica USDT + cuentas bancarias individuales + barra de totales (Total UYU, Total USD, USDT). Se eliminó la tarjeta independiente "Cuentas Bancarias".'},
+        {type:'improve', title:'Actividad separada', desc:'Las tarjetas de Compras y Ventas se reubicaron bajo su propia sección "Actividad del período", separando estado patrimonial de métricas operativas.'},
+        {type:'fix', title:'Precisión decimal exacta', desc:'Todos los montos UYU en el dashboard ahora muestran 2 decimales exactos. Se corrigió "Otros ingresos", totales de compras/ventas y saldos de banco que antes truncaban a 0 decimales.'},
+        {type:'fix', title:'Otros ingresos: display fix', desc:'Se corrigió el bug de doble propiedad display en el div de ingresos externos que impedía la animación de mostrar/ocultar.'}
+    ]},
     {version:'4.5.0', date:'2026-04-13', headline:'Integridad financiera: validaciones duras + ingresos externos separados de la ganancia P2P.', changes:[
         {type:'feature', title:'Capa central de integridad', desc:'Nueva función validarDeltas() que bloquea cualquier mutación que dejaría saldos negativos. Aplicada a creación, edición y eliminación de operaciones, ajustes, transferencias y conversiones.'},
         {type:'fix', title:'Sin más confirmaciones inseguras', desc:'Reemplazadas las confirmaciones "¿Continuar?" en saldo insuficiente por bloqueos duros con mensajes claros que explican por qué no se puede.'},
@@ -2699,15 +2713,22 @@ function mostrarSaldoBanco(){
 function actualizarBancosGrid(){
     const la=AppState.datos.lotes.filter(l=>l.disponible>0).length;
     let h=`<div class="banco-mini-card usdt-card" data-action="inventario"><div class="banco-nombre">🪙 <b style="color:#1e293b">USDT</b></div><div class="banco-saldo">${fmtTrunc(Math.max(0,AppState.datos.saldoUsdt),2)}</div><div class="banco-moneda">${la} lotes</div></div>`;
+    let totalUYU=0,totalUSD=0;
     CONFIG.BANCOS.forEach(b=>{
         if(!AppState.datos.bancos[b.nombre]?.activo)return;
         const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
+        if(b.moneda==='USD')totalUSD=roundMoney(totalUSD+s);else totalUYU=roundMoney(totalUYU+s);
         let lh='';
         if(lim>0){const disp=Math.max(0,lim-us),pct=Math.min(100,(us/lim)*100);let fc='';if(pct>=90)fc='danger';else if(pct>=70)fc='warning';
             lh=`<div class="banco-limite">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div><div class="banco-limite-bar"><div class="banco-limite-fill ${fc}" style="width:${pct}%"></div></div>`}
-        h+=`<div class="banco-mini-card" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s)}</div><div class="banco-moneda">${b.moneda}</div>${lh}</div>`;
+        h+=`<div class="banco-mini-card" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${lh}</div>`;
     });
     setHtml('bancosGrid',h);
+    /* Totales consolidados */
+    let totH='<div class="saldos-totales-item"><span class="saldos-totales-label">🏦 Total UYU</span><span class="saldos-totales-value" style="color:#16a34a">$'+fmtNum(totalUYU,2)+'</span></div>';
+    if(totalUSD!==0||hayBancosUSD())totH+='<div class="saldos-totales-item"><span class="saldos-totales-label">💵 Total USD</span><span class="saldos-totales-value" style="color:#3b82f6">US$'+fmtNum(totalUSD,2)+'</span></div>';
+    totH+='<div class="saldos-totales-item"><span class="saldos-totales-label">🪙 USDT</span><span class="saldos-totales-value">'+fmtTrunc(Math.max(0,AppState.datos.saldoUsdt),2)+'</span></div>';
+    setHtml('saldosTotales',totH);
 }
 
 function renderizarListaBancos(){
@@ -4304,7 +4325,6 @@ function actualizarVista(){
     let tp=0,tr=0,stc=0,stv=0,cc=0,cv=0;
     ops.forEach(op=>{if(op.tipo==='compra'){tp=roundMoney(tp+op.monto+(op.comisionBanco||0));stc=roundMoney(stc+op.tasa);cc++}else{tr=roundMoney(tr+op.monto);stv=roundMoney(stv+op.tasa);cv++}});
     const tpc=cc?roundMoney(stc/cc):0,tpv=cv?roundMoney(stv/cv):0,sp=(cc&&cv)?roundMoney(tpv-tpc):0;
-    let tb=0;CONFIG.BANCOS.forEach(b=>{if(AppState.datos.bancos[b.nombre]?.activo&&b.moneda==='UYU')tb+=AppState.datos.bancos[b.nombre].saldo});
     const hoyStr=getUDateStr(),opsH=ops.filter(o=>o.fecha===hoyStr).length;
     const gH=calcularGananciaDiaria()[hoyStr]||0,ghE=$('gananciaHoy'),cH=$('cardGananciaHoy');
     if(gH>=0){ghE.textContent='+$'+fmtNum(gH);ghE.className='card-value positive';cH.className='card main-card'}
@@ -4317,7 +4337,7 @@ function actualizarVista(){
     if(cardIE){
         if(ingExt>0.005){
             cardIE.style.display='flex';
-            if(ieEl)ieEl.textContent='+$'+fmtNum(ingExt,0);
+            if(ieEl)ieEl.textContent='+$'+fmtNum(ingExt,2);
         }else{
             cardIE.style.display='none';
         }
@@ -4333,9 +4353,9 @@ function actualizarVista(){
         else{geU.textContent='-US$'+fmtNum(Math.abs(gUSD));geU.className='card-value negative'}
         setText('opsHoyUSD',nUSD+' ops USD hoy');
     }else cardUSD.style.display='none';
-    setText('totalBancos','$'+fmtNum(tb,0));
-    setText('totalPagado','$'+fmtNum(tp,0));
-    setText('totalRecibido','$'+fmtNum(tr,0));
+    /* Precision: usar 2 decimales para montos UYU en dashboard */
+    setText('totalPagado','$'+fmtNum(tp,2));
+    setText('totalRecibido','$'+fmtNum(tr,2));
     const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],mn=parseInt(mesA.split('-')[1])-1;
     setText('mesCompras','('+meses[mn]+')');setText('mesVentas','('+meses[mn]+')');
     const la=AppState.datos.lotes.filter(l=>l.disponible>0);
