@@ -1041,7 +1041,7 @@
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Cuentas Bancarias</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
-    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:white;color:#64748b;border:1px solid #e2e8f0" id="btnRecalcular">🔄 Recalcular</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
+    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
@@ -1145,7 +1145,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.5.4',
+    APP_VERSION: '4.5.5',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1178,6 +1178,11 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.5.5', date:'2026-04-15', headline:'Lotes USDT: solo manuales editables, botón Recalcular eliminado.', changes:[
+        {type:'fix', title:'Lotes automáticos bloqueados', desc:'Los lotes generados por compras quedaron protegidos contra edición y eliminación. Solo los marcados como "manual" muestran el botón ✏️.'},
+        {type:'improve', title:'Validación dura en backend', desc:'Aunque alguien fuerce la edición desde el DOM, abrirEditarLote, guardarLote y eliminarLoteActual rechazan lotes no manuales con mensaje explicativo.'},
+        {type:'improve', title:'Botón Recalcular eliminado', desc:'Removido del modal Lotes USDT. La función forzarRecalculo y su listener también se eliminaron — el sistema recalcula automáticamente en cada mutación.'}
+    ]},
     {version:'4.5.4', date:'2026-04-15', headline:'Total Bancos compacto: barra horizontal limpia sin ruido visual.', changes:[
         {type:'improve', title:'Barra compacta', desc:'El total bancario ahora es una línea horizontal con label y monto alineados, sin texto secundario ni padding excesivo. No compite con Ganancia Hoy.'}
     ]},
@@ -2874,7 +2879,7 @@ function renderizarInventario(){
                     <span>Valor: <b style="color:#475569">${sy}${fmtNum(v,2)}</b></span>
                 </div>
             </div>
-            <button class="btn-edit-small" style="padding:6px 10px;min-height:30px;flex-shrink:0" data-action="editar-lote" data-lote-id="${l.id}">✏️</button>
+            ${l.manual?`<button class="btn-edit-small" style="padding:6px 10px;min-height:30px;flex-shrink:0" data-action="editar-lote" data-lote-id="${l.id}">✏️</button>`:''}
         </div>`});
     h+=`<div style="margin-top:14px;padding:13px 16px;background:#f0f9ff;border:1px solid #e0f2fe;border-radius:10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:0.78em;color:#64748b">Total inventario</span><span style="font-size:1.05em;font-weight:700;color:#2563eb">${fmtTrunc(tot,2)} USDT</span></div>`;
     setHtml('inventarioContent',h);
@@ -4391,6 +4396,13 @@ function actualizarVista(){
    ═══════════════════════════════════════ */
 function abrirEditarLote(id){
     AppState.ui.loteEditandoId=id;const l=id?AppState.datos.lotes.find(x=>x.id===id):null;
+    /* INTEGRIDAD: solo lotes manuales son editables. Los automáticos provienen de
+       compras reales y editarlos rompería trazabilidad y FIFO. */
+    if(l&&!l.manual){
+        alert('🔒 Este lote fue generado automáticamente por una operación de compra. No se puede editar para preservar la trazabilidad y la consistencia FIFO.\n\nPara modificarlo, editá o eliminá la operación que lo originó.');
+        AppState.ui.loteEditandoId=null;
+        return;
+    }
     if(l){setText('editarLoteHeader','✏️ Editar Lote');$('lotePrecio').value=fmtNum(l.precioCompra,l.moneda==='USD'?3:2);$('loteDisponible').value=fmtNum(l.disponible);$('loteFecha').value=l.fecha||'';$('btnEliminarLote').style.display='';$('loteButtons').style.gridTemplateColumns='1fr 1fr 1fr'}
     else{setText('editarLoteHeader','➕ Agregar Lote');$('lotePrecio').value=AppState.datos.ultimaTasaCompra?fmtNum(AppState.datos.ultimaTasaCompra):'';$('loteDisponible').value='';$('loteFecha').value=getUDateStr();$('btnEliminarLote').style.display='none';$('loteButtons').style.gridTemplateColumns='1fr 1fr'}
     abrirModal('modalEditarLote');
@@ -4400,10 +4412,19 @@ async function guardarLote(){
     const btn=$('btnGuardarLote');if(btn.disabled)return;
     const p=pv('lotePrecio'),d=pv('loteDisponible');const f=$('loteFecha').value||getUDateStr();
     if(!p||p<=0||isNaN(p)){alert('Ingresá un precio válido');return}if(d===undefined||d<0||isNaN(d)){alert('Ingresá una cantidad válida');return}
+    /* INTEGRIDAD: re-validar al guardar — defensa en profundidad contra DOM forzado */
+    if(AppState.ui.loteEditandoId){
+        const lExist=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);
+        if(lExist&&!lExist.manual){
+            alert('🔒 Este lote fue generado automáticamente. No se puede modificar.');
+            cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
+            return;
+        }
+    }
     AppState.ui.guardandoLote=true;btn.disabled=true;btn.textContent='⏳ Guardando';
     try{
         let loteId=AppState.ui.loteEditandoId;
-        if(loteId){const l=AppState.datos.lotes.find(x=>x.id===loteId);if(l){l.precioCompra=roundMoney(p,3);l.disponible=truncUsdt(d);l.cantidad=truncUsdt(d);l.fecha=f}}
+        if(loteId){const l=AppState.datos.lotes.find(x=>x.id===loteId);if(l&&l.manual){l.precioCompra=roundMoney(p,3);l.disponible=truncUsdt(d);l.cantidad=truncUsdt(d);l.fecha=f}}
         else{loteId=uid();AppState.datos.lotes.push({id:loteId,fecha:f,hora:getUTimeStr(),precioCompra:roundMoney(p,3),cantidad:truncUsdt(d),disponible:truncUsdt(d),moneda:'UYU',manual:true})}
         const isEdit=!!AppState.ui.loteEditandoId;
         recalcularLotesYGanancias();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
@@ -4412,6 +4433,12 @@ async function guardarLote(){
 }
 async function eliminarLoteActual(){
     if(!AppState.ui.loteEditandoId||AppState.ui.guardandoLote)return;
+    /* INTEGRIDAD: solo se pueden eliminar lotes manuales */
+    const lExist=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);
+    if(lExist&&!lExist.manual){
+        alert('🔒 No se puede eliminar un lote generado automáticamente.');
+        return;
+    }
     if(!confirm('¿Eliminar este lote del inventario?'))return;
     AppState.ui.guardandoLote=true;const btn=$('btnEliminarLote');btn.disabled=true;btn.textContent='⏳ Eliminando';
     try{
@@ -4422,7 +4449,6 @@ async function eliminarLoteActual(){
         cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
     }catch(e){console.error('[P2P] Error eliminando lote:',e)}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Eliminar'}
 }
-async function forzarRecalculo(){if(!confirm('¿Recalcular todos los lotes y ganancias?\nLos lotes manuales se preservan.'))return;try{recalcularLotesYGanancias();await guardarDatos();actualizarVista();renderizarInventario();alert('✅ Recálculo completado.')}catch(e){console.error('[P2P] Error en recálculo:',e)}}
 
 /* ═══════════════════════════════════════
    §16 — REINICIAR DATOS
@@ -4563,7 +4589,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnCancelSaldo').addEventListener('click',()=>{cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
     $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'))}actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
-    $('btnRecalcular').addEventListener('click',forzarRecalculo);
     $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
