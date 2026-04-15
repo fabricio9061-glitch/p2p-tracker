@@ -208,15 +208,10 @@
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
         .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer}
-        /* Hero card: total patrimonial consolidado */
-        .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:10px;text-align:center}
-        .saldos-hero-label{font-size:0.7em;color:#64748b;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;margin-bottom:4px}
-        .saldos-hero-value{font-size:1.55em;font-weight:800;color:#1e293b;line-height:1.2}
-        .saldos-hero-detail{font-size:0.68em;color:#94a3b8;margin-top:6px;line-height:1.5}
-        .saldos-hero-detail b{color:#64748b;font-weight:700}
-        .saldos-hero-row{display:flex;justify-content:center;gap:16px;margin-top:8px;flex-wrap:wrap}
-        .saldos-hero-sub{font-size:0.75em;color:#64748b;font-weight:600;display:flex;align-items:baseline;gap:5px}
-        .saldos-hero-sub span{font-weight:800;font-size:1.08em}
+        /* Barra compacta: total bancario */
+        .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
+        .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
+        .saldos-hero-value{font-size:1.1em;font-weight:800;line-height:1.2}
         /* Grid de actividad operativa (compras/ventas) */
         .cards-actividad{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
         .banco-nombre{font-weight:600;color:#1e293b;font-size:0.8em;margin-bottom:2px}
@@ -1150,7 +1145,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.5.3',
+    APP_VERSION: '4.5.4',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1183,6 +1178,9 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.5.4', date:'2026-04-15', headline:'Total Bancos compacto: barra horizontal limpia sin ruido visual.', changes:[
+        {type:'improve', title:'Barra compacta', desc:'El total bancario ahora es una línea horizontal con label y monto alineados, sin texto secundario ni padding excesivo. No compite con Ganancia Hoy.'}
+    ]},
     {version:'4.5.3', date:'2026-04-15', headline:'Total Bancos limpio: solo dinero fiat real, USDT en su propia tarjeta.', changes:[
         {type:'improve', title:'Total solo fiat', desc:'La tarjeta principal ahora muestra "Total en cuentas bancarias" sumando exclusivamente saldos UYU reales. Sin conversiones de USDT que mezclen conceptos.'},
         {type:'improve', title:'USDT independiente', desc:'El saldo USDT se muestra únicamente en su tarjeta propia dentro del desglose, con su cantidad exacta y número de lotes.'}
@@ -2728,21 +2726,16 @@ function actualizarBancosGrid(){
     const la=AppState.datos.lotes.filter(l=>l.disponible>0).length;
     const saldoUsdt=Math.max(0,AppState.datos.saldoUsdt);
     /* Computar totales por moneda — solo cuentas bancarias reales */
-    let totalUYU=0,totalUSD=0,cuentasUYU=0;
+    let totalUYU=0,totalUSD=0;
     CONFIG.BANCOS.forEach(b=>{
         if(!AppState.datos.bancos[b.nombre]?.activo)return;
         const s=AppState.datos.bancos[b.nombre].saldo;
-        if(b.moneda==='USD')totalUSD=roundMoney(totalUSD+s);
-        else{totalUYU=roundMoney(totalUYU+s);cuentasUYU++}
+        if(b.moneda==='USD')totalUSD=roundMoney(totalUSD+s);else totalUYU=roundMoney(totalUYU+s);
     });
 
-    /* ═══ Hero card: Total Bancos UYU — dinero fiat real, sin mezcla con USDT ═══ */
-    let heroH=`<div class="saldos-hero-label">🏦 Total en cuentas bancarias</div>
-        <div class="saldos-hero-value" style="color:${totalUYU>=0?'#16a34a':'#dc2626'}">$${fmtNum(totalUYU,2)}</div>
-        <div class="saldos-hero-detail">${cuentasUYU} cuenta${cuentasUYU!==1?'s':''} en UYU</div>`;
-    if(totalUSD!==0||hayBancosUSD()){
-        heroH+=`<div class="saldos-hero-row"><div class="saldos-hero-sub">💵 USD <span style="color:#3b82f6">US$${fmtNum(totalUSD,2)}</span></div></div>`;
-    }
+    /* ═══ Barra compacta: Total Bancos — una línea, sin ruido ═══ */
+    let heroH=`<span class="saldos-hero-label">🏦 Total Bancos (UYU)</span><span class="saldos-hero-value" style="color:${totalUYU>=0?'#16a34a':'#dc2626'}">$${fmtNum(totalUYU,2)}</span>`;
+    if(totalUSD!==0||hayBancosUSD())heroH+=`<span class="saldos-hero-label" style="margin-left:auto">💵 USD</span><span class="saldos-hero-value" style="color:#3b82f6">US$${fmtNum(totalUSD,2)}</span>`;
     setHtml('saldosTotales',heroH);
 
     /* ═══ Grid de desglose: cada cuenta individual ═══ */
