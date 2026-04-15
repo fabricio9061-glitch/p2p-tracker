@@ -883,6 +883,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title">📈 Ganancia Hoy</div><span style="font-size:0.65em;color:#64748b" id="fechaHoy">--</span></div>
                     <div class="card-value positive" id="gananciaHoy">$0</div>
                     <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span>Spread <b style="color:#0284c7" id="spreadPromedio">$0</b></span></div>
+                    <div id="cardIngresosExt" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;font-size:0.68em;color:#64748b;display:flex;justify-content:space-between;align-items:center"><span>💵 Otros ingresos</span><span style="font-weight:700;color:#475569" id="ingresosExtHoy">$0</span></div>
                 </div>
                 <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
                 <div class="card card-bancos" style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
@@ -1137,7 +1138,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.4.2',
+    APP_VERSION: '4.5.0',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1170,6 +1171,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.5.0', date:'2026-04-13', headline:'Integridad financiera: validaciones duras + ingresos externos separados de la ganancia P2P.', changes:[
+        {type:'feature', title:'Capa central de integridad', desc:'Nueva función validarDeltas() que bloquea cualquier mutación que dejaría saldos negativos. Aplicada a creación, edición y eliminación de operaciones, ajustes, transferencias y conversiones.'},
+        {type:'fix', title:'Sin más confirmaciones inseguras', desc:'Reemplazadas las confirmaciones "¿Continuar?" en saldo insuficiente por bloqueos duros con mensajes claros que explican por qué no se puede.'},
+        {type:'fix', title:'Eliminar protege saldos', desc:'No podés eliminar una operación, ajuste o transferencia si el rollback dejaría una cuenta negativa. Mensaje guía: "Eliminá primero las operaciones posteriores que consumieron los fondos".'},
+        {type:'fix', title:'Validación FIFO por moneda', desc:'No podés vender más USDT del disponible en lotes activos de la moneda elegida. Antes solo se chequeaba el total general.'},
+        {type:'feature', title:'Ingresos externos separados', desc:'Los ingresos registrados desde Ajustes ya no se mezclan con la ganancia P2P. Aparecen como métrica paralela en la card de Ganancia Hoy ("💵 Otros ingresos") y en el Resumen Mensual con su propia sección + Resultado total del mes.'},
+        {type:'improve', title:'Edición con deltas netos', desc:'Editar una operación o ajuste calcula el cambio neto (revertir + aplicar nuevo) en una sola validación atómica, evitando estados intermedios inválidos.'}
+    ]},
     {version:'4.4.2', date:'2026-04-13', headline:'Fix de precisión en split pago: el faltante real se muestra al centésimo, sin más "Faltan $0".', changes:[
         {type:'fix', title:'Precisión decimal del faltante', desc:'Si quedan $0,47 sin cubrir, ahora se muestra "$0,47" exacto. Antes fmtNum lo redondeaba a "0" y parecía que estaba completo.'},
         {type:'fix', title:'Fuente única de verdad', desc:'Nuevo helper _computeSplitState() centraliza el cálculo. Render, status, validación y persistencia usan el mismo objeto — imposible que diverjan.'},
@@ -1427,6 +1436,12 @@ async function verificarCambioMes(){
             snapshot.gastosTag[tag]={ops:tagMovs.length,totalUYU:uyu};
         });
         snapshot.totalEgresoUYU=totalEgresoUYU;
+        /* Ingresos externos del mes — separados de la ganancia P2P */
+        let ingresosExternosTotal=0;
+        movs.filter(m=>m.tipoMovimiento==='ingreso').forEach(m=>{
+            ingresosExternosTotal=roundMoney(ingresosExternosTotal+movimientoValorUYU(m,tasaFb));
+        });
+        snapshot.ingresosExternosTotal=ingresosExternosTotal;
         /* Batch write atómico: snapshot + actualizar mes procesado */
         const batch=AppState.db.batch();
         const userRef=AppState.db.collection('users').doc(AppState.currentUser.uid);
@@ -1742,7 +1757,11 @@ async function cargarHistorialMensual(){
                 const gananciaOperativa=d.gananciaTotal||0;
                 const gastos=d.totalEgresoUYU||0;
                 const comBanc=d.comisionBancariaTotal||0;
+                const ingresosExternos=d.ingresosExternosTotal||0;
                 const gananciaNeta=roundMoney(gananciaOperativa-gastos-comBanc);
+                /* Resultado total = ganancia P2P neta + ingresos externos.
+                   Útil para ver la posición económica real del mes. */
+                const resultadoTotal=roundMoney(gananciaNeta+ingresosExternos);
                 const gc=gananciaNeta>=0?'positive':'negative',gs=gananciaNeta>=0?'+':'-';
 
                 /* Variation vs previous month */
@@ -1834,10 +1853,12 @@ async function cargarHistorialMensual(){
                       <div><div class="resumen-cell-label">Ganancia / día</div><div class="resumen-cell-value ${gPorDia>=0?'positive':'negative'}">${gPorDia>=0?'+':'-'}$${fmtNum(Math.abs(gPorDia),0)}</div></div>
                     </div>
                     <div class="resumen-breakdown">
-                      <div class="resumen-breakdown-row"><span>Ganancia operativa</span><b class="${gananciaOperativa>=0?'positive':'negative'}">${gananciaOperativa>=0?'+':'-'}$${fmtNum(Math.abs(gananciaOperativa),0)}</b></div>
+                      <div class="resumen-breakdown-row"><span>Ganancia operativa P2P</span><b class="${gananciaOperativa>=0?'positive':'negative'}">${gananciaOperativa>=0?'+':'-'}$${fmtNum(Math.abs(gananciaOperativa),0)}</b></div>
                       ${comBanc>0?`<div class="resumen-breakdown-row"><span>− Comisiones bancarias</span><b class="negative">-$${fmtNum(comBanc,0)}</b></div>`:''}
                       <div class="resumen-breakdown-row"><span>− Gastos del mes</span><b class="negative">-$${fmtNum(gastos,0)}</b></div>
-                      <div class="resumen-breakdown-row total"><span>Ganancia neta</span><b class="${gc}">${gs}$${fmtNum(Math.abs(gananciaNeta),0)}</b></div>
+                      <div class="resumen-breakdown-row total"><span>Ganancia neta P2P</span><b class="${gc}">${gs}$${fmtNum(Math.abs(gananciaNeta),0)}</b></div>
+                      ${ingresosExternos>0.005?`<div class="resumen-breakdown-row" style="margin-top:8px;padding-top:8px;border-top:1px dashed #cbd5e1"><span>+ Ingresos externos</span><b class="positive">+$${fmtNum(ingresosExternos,0)}</b></div>
+                      <div class="resumen-breakdown-row total"><span>Resultado total del mes</span><b class="${resultadoTotal>=0?'positive':'negative'}">${resultadoTotal>=0?'+':'-'}$${fmtNum(Math.abs(resultadoTotal),0)}</b></div>`:''}
                     </div>
                   </div>
 
@@ -1978,6 +1999,90 @@ function escHtml(s){const d=document.createElement('div');d.textContent=s;return
 function colorBanco(n){return`<span style="color:${getBancoColor(n)};font-weight:600">${n}</span>`}
 function getSym(mon){return mon==='USD'?'US$':'$'}
 function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=roundMoney(AppState.datos.lotes.reduce((s,l)=>roundMoney(s+l.disponible),0))}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §IG — INTEGRIDAD FINANCIERA (capa central de validación)
+   Reglas duras: ningún saldo bancario o lote puede quedar negativo.
+   Toda mutación de saldo debe pasar por aplicarDeltaBanco() para garantía.
+   ═══════════════════════════════════════════════════════════════════════ */
+const INTEG_EPSILON=0.005; /* tolerancia uniforme para comparaciones de saldo */
+
+/* Verifica si una operación puede aplicarse SIN ejecutarla.
+   Devuelve {ok, reason?}. Acepta un objeto con deltas planificados:
+     { bancos: {Itau: -80000, BBVA: +5000}, usdt: -100 }
+   Aplica todos los deltas en una "vista simulada" y verifica que ninguno
+   quede negativo (más allá del epsilon). */
+function validarDeltas(deltas){
+    deltas=deltas||{};
+    const errs=[];
+    /* Bancos */
+    if(deltas.bancos){
+        for(const [nombre,delta] of Object.entries(deltas.bancos)){
+            if(typeof delta!=='number'||!isFinite(delta))continue;
+            const bk=AppState.datos.bancos[nombre];
+            if(!bk){errs.push(`Banco ${nombre} no existe`);continue}
+            const nuevoSaldo=roundMoney(bk.saldo+delta);
+            if(nuevoSaldo<-INTEG_EPSILON){
+                errs.push(`${nombre} quedaría con saldo negativo: ${getSym(getBancoInfo(nombre)?.moneda)}${fmtNum(nuevoSaldo,2)} (saldo actual ${getSym(getBancoInfo(nombre)?.moneda)}${fmtNum(bk.saldo,2)}, requeridos ${getSym(getBancoInfo(nombre)?.moneda)}${fmtNum(Math.abs(delta),2)})`);
+            }
+        }
+    }
+    /* USDT total disponible */
+    if(deltas.usdt&&typeof deltas.usdt==='number'&&isFinite(deltas.usdt)){
+        const nuevo=roundMoney(AppState.datos.saldoUsdt+deltas.usdt);
+        if(nuevo<-INTEG_EPSILON){
+            errs.push(`Inventario USDT quedaría negativo: ${fmtTrunc(nuevo,2)} USDT (disponible ${fmtTrunc(AppState.datos.saldoUsdt,2)}, requeridos ${fmtTrunc(Math.abs(deltas.usdt),2)})`);
+        }
+        /* Validación FIFO por moneda — solo si es egreso de USDT que va contra inventario */
+        if(deltas.usdt<0&&deltas.usdtMoneda){
+            const requerido=Math.abs(deltas.usdt);
+            const disponibleEnMoneda=AppState.datos.lotes
+                .filter(l=>(l.moneda||'UYU')===deltas.usdtMoneda&&l.disponible>0)
+                .reduce((s,l)=>roundMoney(s+l.disponible),0);
+            if(requerido>disponibleEnMoneda+INTEG_EPSILON){
+                errs.push(`Inventario USDT en ${deltas.usdtMoneda} insuficiente: ${fmtTrunc(disponibleEnMoneda,2)} disponible, ${fmtTrunc(requerido,2)} requerido`);
+            }
+        }
+    }
+    /* Aportes (split pago): cada banco debe poder cubrir su parte */
+    if(Array.isArray(deltas.aportes)){
+        for(const a of deltas.aportes){
+            const bk=AppState.datos.bancos[a.banco];
+            if(!bk){errs.push(`Banco ${a.banco} no existe`);continue}
+            if(bk.saldo<a.monto-INTEG_EPSILON){
+                errs.push(`${a.banco} no tiene saldo suficiente: ${getSym(getBancoInfo(a.banco)?.moneda)}${fmtNum(bk.saldo,2)} disponible, ${getSym(getBancoInfo(a.banco)?.moneda)}${fmtNum(a.monto,2)} requerido`);
+            }
+        }
+    }
+    return errs.length?{ok:false,reason:errs[0],all:errs}:{ok:true};
+}
+
+/* Verifica integridad post-mutación: ningún banco/lote quedó negativo.
+   Llamado al final de operaciones críticas como red de seguridad. */
+function verificarIntegridadGlobal(){
+    const errs=[];
+    Object.entries(AppState.datos.bancos||{}).forEach(([n,bk])=>{
+        if(bk&&bk.saldo<-INTEG_EPSILON)errs.push(`${n}: ${fmtNum(bk.saldo,2)}`);
+    });
+    (AppState.datos.lotes||[]).forEach(l=>{
+        if(l.disponible<-INTEG_EPSILON)errs.push(`Lote ${l.id}: ${fmtTrunc(l.disponible,2)} USDT`);
+    });
+    if(errs.length)console.error('[INTEGRIDAD] Saldos negativos detectados tras mutación:',errs);
+    return errs;
+}
+
+/* Aplica los deltas a los saldos. Asume que ya pasaron validarDeltas().
+   Tras aplicar, fixNeg() es safety net contra -0 epsilon. */
+function aplicarDeltas(deltas){
+    deltas=deltas||{};
+    if(deltas.bancos){
+        for(const [nombre,delta] of Object.entries(deltas.bancos)){
+            const bk=AppState.datos.bancos[nombre];
+            if(!bk)continue;
+            bk.saldo=fixNeg(roundMoney(bk.saldo+delta));
+        }
+    }
+}
 
 /* ═══ Conversión unificada de movimientos a UYU ═══
    Fuente única de verdad para convertir cualquier movimiento a UYU.
@@ -3276,11 +3381,19 @@ async function agregarOperacion(){
     if(t==='compra'){
         const bk=AppState.datos.bancos[b];
         if(bk.limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta),dU=roundMoney(bk.limiteDiarioUSD-(bk.limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario. Disponible: US$${fmtNum(dU,0)} (${fmtNum(mU,2)} USD requeridos)`);return}}
-        /* Saldo check solo si NO hay split — con split ya validamos aportes */
-        if(!isSplit&&bk.saldo<m+cb&&!confirm('Saldo insuficiente en '+b+'. ¿Continuar?'))return;
+        /* INTEGRIDAD: validación dura — no se permite saldo negativo bajo ninguna circunstancia */
+        if(isSplit){
+            const valI=validarDeltas({aportes});
+            if(!valI.ok){alert('🚫 No se puede guardar:\n\n'+valI.reason);return}
+        }else{
+            const valI=validarDeltas({bancos:{[b]:-(m+cb)}});
+            if(!valI.ok){alert('🚫 No se puede comprar:\n\n'+valI.reason);return}
+        }
     }else{
+        /* INTEGRIDAD: no se puede vender más USDT del disponible en lotes activos de la moneda */
         const un=usdtNeto(u,cpl,t);
-        if(AppState.datos.saldoUsdt<un&&!confirm(`Solo tenés ${fmtTrunc(AppState.datos.saldoUsdt,2)} USDT. ¿Continuar?`))return;
+        const valI=validarDeltas({usdt:-un,usdtMoneda:mon||'UYU'});
+        if(!valI.ok){alert('🚫 No se puede vender:\n\n'+valI.reason);return}
     }
     AppState.ui.guardandoOperacion=true;btn.disabled=true;btn.textContent='Guardando...';
     try{
@@ -3321,31 +3434,45 @@ async function agregarOperacion(){
 }
 
 async function eliminarOperacion(id){
+    const op=AppState.datos.operaciones.find(o=>o.id===id);if(!op)return;
+    /* INTEGRIDAD: pre-validar que el rollback no deje saldos negativos */
+    const deltas={bancos:{}};
+    if(op.tipo==='compra'){
+        if(Array.isArray(op.aportes)&&op.aportes.length){
+            op.aportes.forEach(a=>{deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)+a.monto});
+        }else if(op.banco){
+            deltas.bancos[op.banco]=roundMoney(op.monto+(op.comisionBanco||0));
+        }
+    }else{
+        /* Venta: revertir suma positiva al banco → restar. Si banco ya gastó esos UYU, queda negativo. */
+        if(op.banco)deltas.bancos[op.banco]=-op.monto;
+    }
+    const valI=validarDeltas(deltas);
+    if(!valI.ok){
+        alert('🚫 No se puede eliminar esta operación:\n\n'+valI.reason+'\n\nProbablemente ya gastaste los fondos generados. Eliminá primero las operaciones posteriores que los consumen.');
+        return;
+    }
     if(!confirm('¿Eliminar operación? Se recalcularán los lotes y ganancias.'))return;
     try{
-        const op=AppState.datos.operaciones.find(o=>o.id===id);
-        if(op){
-            if(op.tipo==='compra'){
-                /* Si hay aportes (split pago), revertir cada uno al banco correspondiente */
-                if(Array.isArray(op.aportes)&&op.aportes.length){
-                    op.aportes.forEach(a=>{
-                        if(AppState.datos.bancos[a.banco])AppState.datos.bancos[a.banco].saldo=fixNeg(AppState.datos.bancos[a.banco].saldo+a.monto);
-                    });
-                    /* Límite diario USD solo del banco principal */
-                    if(op.banco&&AppState.datos.bancos[op.banco]&&AppState.datos.bancos[op.banco].limiteDiarioUSD>0&&op.tasa>0){
-                        const mU=roundMoney(op.monto/op.tasa);
-                        AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU));
-                    }
-                }else if(op.banco&&AppState.datos.bancos[op.banco]){
-                    AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo+roundMoney(op.monto+(op.comisionBanco||0)));
-                    if(AppState.datos.bancos[op.banco].limiteDiarioUSD>0&&op.tasa>0){const mU=roundMoney(op.monto/op.tasa);AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU))}
+        if(op.tipo==='compra'){
+            if(Array.isArray(op.aportes)&&op.aportes.length){
+                op.aportes.forEach(a=>{
+                    if(AppState.datos.bancos[a.banco])AppState.datos.bancos[a.banco].saldo=fixNeg(AppState.datos.bancos[a.banco].saldo+a.monto);
+                });
+                if(op.banco&&AppState.datos.bancos[op.banco]&&AppState.datos.bancos[op.banco].limiteDiarioUSD>0&&op.tasa>0){
+                    const mU=roundMoney(op.monto/op.tasa);
+                    AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU));
                 }
-            }else{
-                if(op.banco&&AppState.datos.bancos[op.banco])AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo-op.monto);
+            }else if(op.banco&&AppState.datos.bancos[op.banco]){
+                AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo+roundMoney(op.monto+(op.comisionBanco||0)));
+                if(AppState.datos.bancos[op.banco].limiteDiarioUSD>0&&op.tasa>0){const mU=roundMoney(op.monto/op.tasa);AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU))}
             }
+        }else{
+            if(op.banco&&AppState.datos.bancos[op.banco])AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo-op.monto);
         }
         AppState.datos.operaciones=AppState.datos.operaciones.filter(o=>o.id!==id);
         recalcularLotesYGanancias();actualizarVista();
+        verificarIntegridadGlobal();
         guardaOptimista('delete','operaciones',id);
     }catch(e){console.error('[P2P] Error eliminando operación:',e)}
 }
@@ -3396,10 +3523,21 @@ async function guardarEditarOperacion(){
     /* Guard: no permitir cambio de banco a una moneda distinta — rompería la coherencia de op.moneda/tasa/FIFO */
     const newBi=getBancoInfo(newB),opMon=op.moneda||'UYU',newMon=newBi?.moneda||'UYU';
     if(newMon!==opMon){alert(`No podés cambiar el banco a una cuenta ${newMon} cuando la operación está en ${opMon}. Eliminá y recreá la operación.`);return}
+    /* INTEGRIDAD: validar deltas netos (revertir original + aplicar nuevo) */
+    const oldB=op.banco,oldM=op.monto,oldCb=op.comisionBanco||0;
+    const deltas={bancos:{}};
+    if(op.tipo==='compra'){
+        if(oldB)deltas.bancos[oldB]=(deltas.bancos[oldB]||0)+roundMoney(oldM+oldCb);
+        deltas.bancos[newB]=(deltas.bancos[newB]||0)-roundMoney(newM+oldCb);
+    }else{
+        if(oldB)deltas.bancos[oldB]=(deltas.bancos[oldB]||0)-oldM;
+        deltas.bancos[newB]=(deltas.bancos[newB]||0)+newM;
+    }
+    const valI=validarDeltas(deltas);
+    if(!valI.ok){alert('🚫 No se puede guardar este cambio:\n\n'+valI.reason);return}
     btn.disabled=true;btn.textContent='Guardando...';
     try{
         /* 1. Revertir impacto bancario de la operación original */
-        const oldB=op.banco,oldM=op.monto,oldCb=op.comisionBanco||0;
         if(oldB&&AppState.datos.bancos[oldB]){
             if(op.tipo==='compra'){
                 AppState.datos.bancos[oldB].saldo=fixNeg(AppState.datos.bancos[oldB].saldo+roundMoney(oldM+oldCb));
@@ -3523,21 +3661,31 @@ async function guardarMovimiento(){
     const tc=$('movTipoCuenta').value,b=$('movBanco').value,m=pv('movMonto'),desc=$('movDescripcion').value,tRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?pv('movTasaRef'):0;
     if(!m||m<=0)return alert('Monto inválido');if(tc==='banco'&&!b)return alert('Seleccioná un banco');
     if(tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'&&(!tRef||tRef<=0))return alert('Ingresá una tasa de referencia válida');
-    /* Validación pre-operación para egresos USDT (edit: simular revirtiendo original) */
-    if(tc==='usdt'&&AppState.ui.tipoMovimiento==='egreso'){
-        const mR=truncUsdt(m);
-        let saldoDisponible=AppState.datos.saldoUsdt;
-        if(editing&&original.tipoCuenta==='usdt'&&original.tipoMovimiento==='egreso'){
-            /* Al editar, el saldo actual ya tiene descontado el original. Sumarlo para comparar correctamente. */
-            saldoDisponible=roundMoney(saldoDisponible+original.monto,2);
-        }else if(editing&&original.tipoCuenta==='usdt'&&original.tipoMovimiento==='ingreso'){
-            saldoDisponible=roundMoney(saldoDisponible-original.monto,2);
+    /* INTEGRIDAD: validación dura previa.
+       Para edits, los deltas se computan netos (revirtiendo el efecto original primero). */
+    const mR=tc==='usdt'?truncUsdt(m):roundMoney(m);
+    const isIngreso=AppState.ui.tipoMovimiento==='ingreso';
+    const deltas={bancos:{}};
+    /* Revertir efecto del original (si edit) */
+    if(editing){
+        if(original.tipoCuenta==='banco'&&original.banco){
+            deltas.bancos[original.banco]=(deltas.bancos[original.banco]||0)+(original.tipoMovimiento==='ingreso'?-original.monto:original.monto);
+        }else if(original.tipoCuenta==='usdt'){
+            deltas.usdt=(deltas.usdt||0)+(original.tipoMovimiento==='ingreso'?-original.monto:original.monto);
         }
-        if(saldoDisponible<mR&&!confirm(`Solo tenés ${fmtTrunc(saldoDisponible,2)} USDT en inventario. ¿Continuar?`))return;
     }
+    /* Aplicar nuevo efecto */
+    if(tc==='banco'){
+        deltas.bancos[b]=(deltas.bancos[b]||0)+(isIngreso?mR:-mR);
+    }else{
+        deltas.usdt=(deltas.usdt||0)+(isIngreso?mR:-mR);
+        /* Egreso USDT: validar también que haya inventario en alguna moneda */
+        if(!isIngreso)deltas.usdtMoneda='UYU'; /* movs USDT van contra lotes UYU por convención */
+    }
+    const valI=validarDeltas(deltas);
+    if(!valI.ok){alert('🚫 No se puede guardar este ajuste:\n\n'+valI.reason);return}
     AppState.ui.guardandoMovimiento=true;btn.disabled=true;btn.textContent=editing?'Guardando...':'Guardando...';
     try{
-        const mR=tc==='usdt'?truncUsdt(m):roundMoney(m);
         if(editing){
             /* Capture pre-mutation state for decisions that depend on it */
             const wasUsdt=original.tipoCuenta==='usdt';
@@ -3586,14 +3734,25 @@ async function guardarMovimiento(){
 }
 
 async function eliminarMovimiento(id){
+    const mv=AppState.datos.movimientos.find(m=>m.id===id);if(!mv)return;
+    /* INTEGRIDAD: pre-validar que el rollback no deje saldos negativos */
+    const deltas={bancos:{}};
+    if(mv.tipoCuenta==='banco'&&mv.banco){
+        deltas.bancos[mv.banco]=mv.tipoMovimiento==='ingreso'?-mv.monto:mv.monto;
+    }else if(mv.tipoCuenta==='usdt'){
+        /* Revertir USDT: si era egreso → suma al inventario (siempre OK); si era ingreso → resta */
+        deltas.usdt=mv.tipoMovimiento==='ingreso'?-mv.monto:mv.monto;
+    }
+    const valI=validarDeltas(deltas);
+    if(!valI.ok){alert('🚫 No se puede eliminar este ajuste:\n\n'+valI.reason);return}
     if(!confirm('¿Eliminar?'))return;
     try{
-        const mv=AppState.datos.movimientos.find(m=>m.id===id);
-        if(mv&&mv.tipoCuenta==='banco'&&mv.banco&&AppState.datos.bancos[mv.banco]){
+        if(mv.tipoCuenta==='banco'&&mv.banco&&AppState.datos.bancos[mv.banco]){
             AppState.datos.bancos[mv.banco].saldo=fixNeg(AppState.datos.bancos[mv.banco].saldo+(mv.tipoMovimiento==='ingreso'?-mv.monto:mv.monto));
         }
         AppState.datos.movimientos=AppState.datos.movimientos.filter(m=>m.id!==id);
         recalcularLotesYGanancias();
+        verificarIntegridadGlobal();
         actualizarVista();
         guardaOptimista('delete','movimientos',id);
     }catch(e){console.error('[P2P] Error eliminando movimiento:',e)}
@@ -3746,6 +3905,9 @@ async function realizarTransferencia(){
         let montoRecibido;
         if(oi.moneda==='UYU'&&di.moneda==='USD')montoRecibido=roundMoney(m/t);
         else montoRecibido=roundMoney(m*t);
+        /* INTEGRIDAD: el banco origen debe poder cubrir el monto a convertir */
+        const valI=validarDeltas({bancos:{[o]:-m,[d]:montoRecibido}});
+        if(!valI.ok){alert('🚫 No se puede convertir:\n\n'+valI.reason);return}
         btn.disabled=true;btn.textContent='Convirtiendo...';AppState.ui.guardandoTransferencia=true;
         try{
             const convId=uid();
@@ -3758,6 +3920,9 @@ async function realizarTransferencia(){
         }catch(e){console.error('[P2P] Error en conversión:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Convertir'}
     }else{
         if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);const dU=roundMoney(AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}}
+        /* INTEGRIDAD: el banco origen debe poder cubrir monto + comisión */
+        const valI=validarDeltas({bancos:{[o]:-(m+c),[d]:m}});
+        if(!valI.ok){alert('🚫 No se puede transferir:\n\n'+valI.reason);return}
         btn.disabled=true;btn.textContent='Transfiriendo...';AppState.ui.guardandoTransferencia=true;
         try{
             const trId=uid();
@@ -3772,25 +3937,35 @@ async function realizarTransferencia(){
 }
 
 async function eliminarTransferencia(id){
+    const t=AppState.datos.transferencias.find(x=>x.id===id);if(!t)return;
+    /* INTEGRIDAD: rollback de transfer suma a origen, resta de destino → puede dejar destino negativo */
+    const deltas={bancos:{}};
+    deltas.bancos[t.origen]=t.monto+(t.comision||0);
+    deltas.bancos[t.destino]=-t.monto;
+    const valI=validarDeltas(deltas);
+    if(!valI.ok){alert('🚫 No se puede eliminar esta transferencia:\n\n'+valI.reason+'\n\nProbablemente ya gastaste los fondos transferidos al destino.');return}
     if(!confirm('¿Eliminar?'))return;
     try{
-        const t=AppState.datos.transferencias.find(x=>x.id===id);
-        if(t){
-            const bo=AppState.datos.bancos[t.origen],bd=AppState.datos.bancos[t.destino];
-            if(bo)bo.saldo=fixNeg(bo.saldo+(t.monto+t.comision));
-            if(bd)bd.saldo=fixNeg(bd.saldo-t.monto);
-            if(bo&&bo.limiteDiarioUSD>0){const bi=getBancoInfo(t.origen);let mU=0;if(bi?.moneda==='USD')mU=t.monto+t.comision;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((t.monto+t.comision)/AppState.datos.ultimaTasaCompra);if(mU>0)bo.limiteUsadoUSD=Math.max(0,roundMoney((bo.limiteUsadoUSD||0)-mU))}
-        }
-        AppState.datos.transferencias=AppState.datos.transferencias.filter(x=>x.id!==id);actualizarVista();
+        const bo=AppState.datos.bancos[t.origen],bd=AppState.datos.bancos[t.destino];
+        if(bo)bo.saldo=fixNeg(bo.saldo+(t.monto+t.comision));
+        if(bd)bd.saldo=fixNeg(bd.saldo-t.monto);
+        if(bo&&bo.limiteDiarioUSD>0){const bi=getBancoInfo(t.origen);let mU=0;if(bi?.moneda==='USD')mU=t.monto+t.comision;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((t.monto+t.comision)/AppState.datos.ultimaTasaCompra);if(mU>0)bo.limiteUsadoUSD=Math.max(0,roundMoney((bo.limiteUsadoUSD||0)-mU))}
+        AppState.datos.transferencias=AppState.datos.transferencias.filter(x=>x.id!==id);
+        verificarIntegridadGlobal();actualizarVista();
         guardaOptimista('delete','transferencias',id);
     }catch(e){console.error('[P2P] Error eliminando transferencia:',e)}
 }
 
 async function eliminarConversion(id){
+    const c=AppState.datos.conversiones.find(x=>x.id===id);if(!c)return;
+    const deltas={bancos:{}};
+    deltas.bancos[c.origen]=c.montoOrigen;
+    deltas.bancos[c.destino]=-c.montoDestino;
+    const valI=validarDeltas(deltas);
+    if(!valI.ok){alert('🚫 No se puede eliminar esta conversión:\n\n'+valI.reason);return}
     if(!confirm('¿Eliminar conversión?'))return;
     try{
-        const c=AppState.datos.conversiones.find(x=>x.id===id);
-        if(c){const bo=AppState.datos.bancos[c.origen],bd=AppState.datos.bancos[c.destino];if(bo)bo.saldo=fixNeg(bo.saldo+c.montoOrigen);if(bd)bd.saldo=fixNeg(bd.saldo-c.montoDestino)}
+        const bo=AppState.datos.bancos[c.origen],bd=AppState.datos.bancos[c.destino];if(bo)bo.saldo=fixNeg(bo.saldo+c.montoOrigen);if(bd)bd.saldo=fixNeg(bd.saldo-c.montoDestino);
         AppState.datos.conversiones=AppState.datos.conversiones.filter(x=>x.id!==id);actualizarVista();
         guardaOptimista('delete','conversiones',id);
     }catch(e){console.error('[P2P] Error eliminando conversión:',e)}
@@ -3809,6 +3984,31 @@ function _gananciaCacheKey(monedaFiltro){
     return (monedaFiltro||'_all')+'|'+v+'|'+opsLen+'|'+movsLen+'|'+bump;
 }
 function invalidarGananciaCache(){_gananciaCache.diaria=null;_gananciaCache.total=null;_gananciaCache.key=null;AppState.ui._cacheBump=(AppState.ui._cacheBump||0)+1}
+/* ═══ Ingresos externos (separados de ganancia P2P) ═══
+   Suma monto en UYU de TODOS los ingresos registrados desde Ajustes
+   (banco UYU, banco USD convertido, USDT con tasaRef).
+   No participan en cálculo de ganancia P2P — son una métrica paralela. */
+function calcularIngresosExternosDia(fecha){
+    if(!fecha)return 0;
+    const tasaFb=AppState.datos.ultimaTasaCompra||1;
+    let total=0;
+    AppState.datos.movimientos.forEach(m=>{
+        if(m.tipoMovimiento!=='ingreso'||m.fecha!==fecha)return;
+        total=roundMoney(total+movimientoValorUYU(m,tasaFb));
+    });
+    return total;
+}
+function calcularIngresosExternosMes(yyyy_mm){
+    if(!yyyy_mm)return 0;
+    const tasaFb=AppState.datos.ultimaTasaCompra||1;
+    let total=0;
+    AppState.datos.movimientos.forEach(m=>{
+        if(m.tipoMovimiento!=='ingreso'||!m.fecha?.startsWith(yyyy_mm))return;
+        total=roundMoney(total+movimientoValorUYU(m,tasaFb));
+    });
+    return total;
+}
+
 function calcularGananciaDiaria(monedaFiltro){
     const key=_gananciaCacheKey(monedaFiltro);
     if(_gananciaCache.diaria&&_gananciaCache.key===key)return _gananciaCache.diaria;
@@ -4111,6 +4311,17 @@ function actualizarVista(){
     else{ghE.textContent='-$'+fmtNum(Math.abs(gH));ghE.className='card-value negative';cH.className='card main-card negative'}
     const ds=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     setText('fechaHoy',ds[hoy.getDay()]+' '+hoy.getDate()+'/'+(hoy.getMonth()+1));setText('opsHoy',opsH+' ops hoy');
+    /* Ingresos externos del día — métrica paralela, NO suma a ganancia P2P */
+    const ingExt=calcularIngresosExternosDia(hoyStr);
+    const cardIE=$('cardIngresosExt'),ieEl=$('ingresosExtHoy');
+    if(cardIE){
+        if(ingExt>0.005){
+            cardIE.style.display='flex';
+            if(ieEl)ieEl.textContent='+$'+fmtNum(ingExt,0);
+        }else{
+            cardIE.style.display='none';
+        }
+    }
     // — Ganancia Hoy USD —
     const tieneUSD=hayBancosUSD(),cardUSD=$('cardGananciaUSD');
     if(tieneUSD){
