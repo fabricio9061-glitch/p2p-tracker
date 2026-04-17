@@ -207,8 +207,11 @@
 
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
-        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
-        .banco-mini-card.has-gauge{padding-right:10px}
+        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.3s ease}
+        /* Cuando la tarjeta tiene gauge, el border-right se sobreescribe con el color de temperatura.
+           Mismo lenguaje visual que card-compra/card-venta (border-left sólido) — integrado al card,
+           no un overlay pegado. El color viene inline vía JS por interpolación progresiva. */
+        .banco-mini-card.has-gauge{border-right-width:3px;border-right-style:solid}
         /* Barra compacta: total bancario */
         .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
         .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
@@ -219,25 +222,9 @@
         .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
         .banco-moneda{font-size:0.65em;color:#94a3b8}
         .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
-        /* ═══ Indicador de límite — línea lateral fina al borde derecho ═══
-           Espejo visual de card-compra/card-venta (border-left 3px) pero como barra 
-           de temperatura proporcional al % de uso del límite. */
-        .banco-gauge{
-            position:absolute;
-            right:0;top:6px;bottom:6px;
-            width:3px;
-            border-radius:2px;
-            background:transparent;
-            pointer-events:none;
-        }
-        .banco-gauge-fill{
-            position:absolute;
-            bottom:0;left:0;right:0;
-            border-radius:2px;
-            transition:height 0.35s cubic-bezier(0.4,0,0.2,1),background 0.35s ease;
-            /* Gradiente vertical: el color se interpola según el % via CSS vars en JS */
-        }
-        /* Mostrar % en hover/tap: badge flotante arriba a la derecha */
+        /* ═══ Badge "tip" on tap/hover ═══
+           Solo aparece cuando el usuario toca el borde derecho de una tarjeta con límite,
+           mostrando el % exacto y el disponible. Sin texto fijo extra en la tarjeta. */
         .banco-gauge-tip{
             position:absolute;
             right:6px;top:6px;
@@ -255,7 +242,6 @@
             z-index:2;
         }
         .banco-mini-card.show-tip .banco-gauge-tip{opacity:1}
-        /* Hover solo en desktop, tap-to-show en mobile */
         @media(hover:hover){
             .banco-mini-card.has-gauge:hover .banco-gauge-tip{opacity:1}
         }
@@ -1223,7 +1209,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.4',
+    APP_VERSION: '4.7.5',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1256,6 +1242,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.5', date:'2026-04-17', headline:'🎨 Barra lateral de bancos unificada con el lenguaje de Compras/Ventas.', changes:[
+        {type:'improve', title:'Misma familia visual', desc:'La línea lateral de las tarjetas bancarias ahora usa border-right nativo del card, igual que card-compra y card-venta usan border-left. Sin divs superpuestos, sin pastillas pegadas — es parte de la tarjeta misma.'},
+        {type:'improve', title:'Color semántico por temperatura', desc:'La diferencia con Compras/Ventas es solo el color: los bancos muestran un color interpolado según % de uso del límite (azul → verde → amarillo → naranja → rojo). La forma base es idéntica.'},
+        {type:'improve', title:'Transición suave de color', desc:'Al cambiar el uso del límite, el color del borde transiciona con ease 0.3s — sin saltos bruscos de un umbral a otro.'},
+        {type:'fix', title:'Código más liviano', desc:'Removidos el div overlay, el fill interno y los estilos de pastilla. El indicador ahora es pura propiedad CSS del card, sin elementos extra en el DOM.'}
+    ]},
     {version:'4.7.4', date:'2026-04-17', headline:'⚙️ Debounce de escrituras + error boundary + diagnóstico exportable.', changes:[
         {type:'improve', title:'Debounce en sincronización', desc:'Los cambios rápidos (typing en edits, ajustes de comisión, sliders) ahora se agrupan en una sola escritura a Firebase cada 400ms. 5 edits rápidos dejan de ser 5 transacciones — son 1. Menos costo, menos latencia, menos consumo de batería.'},
         {type:'improve', title:'Flush automático al perder foco', desc:'Al cambiar de pestaña, minimizar la app o cerrar sesión, los cambios pendientes se vacían inmediatamente. No se pierde nada por el debounce.'},
@@ -3071,19 +3063,19 @@ function actualizarBancosGrid(){
     CONFIG.BANCOS.forEach(b=>{
         if(!AppState.datos.bancos[b.nombre]?.activo)return;
         const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
-        let gaugeHtml='',limTxt='',hasGauge=false;
+        let tipHtml='',limTxt='',hasGauge=false,borderColor='';
         if(lim>0){
             hasGauge=true;
             const pct=Math.min(100,Math.max(0,(us/lim)*100));
-            const color=_gaugeColor(pct);
+            borderColor=_gaugeColor(pct);
             const disp=Math.max(0,lim-us);
-            /* Altura mínima 8% para que siempre haya un rastro visible (incluso a 0% se ve un punto) */
-            const visualH=pct<=0.5?0:Math.max(8,pct);
-            gaugeHtml=`<div class="banco-gauge"><div class="banco-gauge-fill" style="height:${visualH}%;background:${color};box-shadow:0 0 6px ${color}44"></div></div>`
-                +`<div class="banco-gauge-tip">${fmtNum(pct,0)}% · US$${fmtNum(disp,0)}</div>`;
+            /* Tip on-demand — se muestra en tap/hover sobre el borde derecho, sin texto fijo extra */
+            tipHtml=`<div class="banco-gauge-tip">${fmtNum(pct,0)}% · US$${fmtNum(disp,0)}</div>`;
             limTxt=`<div class="banco-limite-txt">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div>`;
         }
-        h+=`<div class="banco-mini-card${hasGauge?' has-gauge':''}" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${gaugeHtml}</div>`;
+        /* Border-right-color inline → mismo lenguaje que card-compra/card-venta (border-left) */
+        const style=hasGauge?` style="border-right-color:${borderColor}"`:'';
+        h+=`<div class="banco-mini-card${hasGauge?' has-gauge':''}"${style} data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${tipHtml}</div>`;
     });
     setHtml('bancosGrid',h);
 }
@@ -5561,14 +5553,16 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     // Delegación de eventos para contenido dinámico
     document.addEventListener('click',e=>{
-        /* Tap en el gauge de banco → mostrar tip en lugar de abrir modal de edición */
-        const gaugeTap=e.target.closest('.banco-gauge');
-        if(gaugeTap){
-            const card=gaugeTap.closest('.banco-mini-card.has-gauge');
-            if(card){
+        /* Tap en el borde derecho de una tarjeta de banco con límite → mostrar tip
+           sin abrir el modal de edición. Detectamos por offsetX dentro del card. */
+        const card=e.target.closest('.banco-mini-card.has-gauge');
+        if(card){
+            const rect=card.getBoundingClientRect();
+            const offsetX=e.clientX-rect.left;
+            /* Zona reactiva: 16px desde el borde derecho */
+            if(offsetX>rect.width-16){
                 e.stopPropagation();
                 e.preventDefault();
-                /* Ocultar cualquier otro tip visible */
                 document.querySelectorAll('.banco-mini-card.show-tip').forEach(c=>{
                     if(c!==card)c.classList.remove('show-tip');
                 });
