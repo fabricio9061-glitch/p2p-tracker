@@ -229,19 +229,19 @@
         .usdt-card .banco-saldo{color:#2563eb}
 
         /* ═══ Filtros rápidos de operaciones — fila compacta scrolleable ═══ */
-        .ops-filtros{display:flex;align-items:center;gap:5px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:2px 0}
+        .ops-filtros{display:flex;align-items:center;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:2px 0}
         .ops-filtros::-webkit-scrollbar{display:none}
-        .ops-filtros-sep{width:1px;height:16px;background:#e2e8f0;flex-shrink:0;margin:0 2px}
-        .ops-chip{flex-shrink:0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 10px;font-size:0.7em;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;user-select:none;transition:all 0.15s;line-height:1.2}
-        .ops-chip:active{transform:scale(0.96)}
-        .ops-chip.active{background:#1e293b;border-color:#1e293b;color:white}
+        .ops-filtros-sep{width:1px;height:14px;background:#e2e8f0;flex-shrink:0;margin:0 4px}
+        .ops-chip{flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:999px;padding:6px 12px;font-size:0.72em;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;user-select:none;transition:all 0.15s;line-height:1}
+        .ops-chip:active{transform:scale(0.95)}
+        .ops-chip.active{background:#1e293b;border-color:#1e293b;color:white;box-shadow:0 1px 3px rgba(0,0,0,0.12)}
         .ops-chip.active.compra{background:#16a34a;border-color:#16a34a}
         .ops-chip.active.venta{background:#dc2626;border-color:#dc2626}
         .ops-chip.active.ganancia{background:#16a34a;border-color:#16a34a}
         .ops-chip.active.perdida{background:#dc2626;border-color:#dc2626}
-        .ops-chip.active.sin-gan{background:#64748b;border-color:#64748b}
-        .ops-filtros-clear{flex-shrink:0;background:transparent;border:1px solid #e2e8f0;border-radius:999px;color:#dc2626;font-size:0.68em;font-weight:700;cursor:pointer;padding:5px 9px;line-height:1.2;white-space:nowrap}
-        .ops-filtros-clear:active{background:#fee2e2}
+        .ops-chip.active.neutro{background:#64748b;border-color:#64748b}
+        .ops-chip-clear{flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:999px;padding:6px 12px;font-size:0.72em;font-weight:600;color:#94a3b8;cursor:pointer;white-space:nowrap;line-height:1;transition:all 0.15s}
+        .ops-chip-clear:active{background:#fee2e2;color:#dc2626;border-color:#fecaca}
 
         /* ═══ Toggle Sections ═══ */
         .toggle-section{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:15px;overflow:hidden}
@@ -1164,7 +1164,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.5.7',
+    APP_VERSION: '4.5.8',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1197,6 +1197,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.5.8', date:'2026-04-16', headline:'Filtros pulidos: etiquetas claras, botón Limpiar, grupos separados, chip "Neutro".', changes:[
+        {type:'improve', title:'Etiquetas de resultado', desc:'Ahora dicen "+ Ganancia", "0 Neutro" y "- Pérdida" en vez de símbolos crípticos.'},
+        {type:'improve', title:'Botón Limpiar explícito', desc:'Reemplazó el "✕" confuso por un chip secundario con texto "Limpiar". Solo aparece con filtros activos.'},
+        {type:'improve', title:'Separación entre grupos', desc:'Separadores sutiles con mayor spacing entre tipo, banco, resultado y fecha para mejor escaneo visual.'},
+        {type:'improve', title:'Chips consistentes', desc:'Mismo padding, borde 1.5px, box-shadow en activos y transiciones suaves. Optimizados para touch.'}
+    ]},
     {version:'4.5.7', date:'2026-04-16', headline:'Filtros compactos + gauge solo en cuentas con límite real.', changes:[
         {type:'fix', title:'Filtros rediseñados', desc:'Una sola fila horizontal scrolleable con chips compactos. Sin labels pesados, sin filas múltiples. Tap para activar, tap de nuevo para desactivar. Separadores sutiles entre grupos.'},
         {type:'fix', title:'Gauge solo con límite', desc:'La barra vertical ahora solo aparece en cuentas con limiteDiarioUSD. Sin barra decorativa ni placeholder "idle" en cuentas sin límite.'}
@@ -2098,21 +2104,23 @@ function renderOpsFilters(){
     /* Tipo */
     h+=chip('tipo','compra','Compras',f.tipo,'compra');
     h+=chip('tipo','venta','Ventas',f.tipo,'venta');
-    h+=sep;
     /* Bancos dinámicos */
-    _bancosEnOperaciones().forEach(b=>{h+=chip('banco',b,b,f.banco)});
-    if(_bancosEnOperaciones().length)h+=sep;
+    const bancos=_bancosEnOperaciones();
+    if(bancos.length){h+=sep;bancos.forEach(b=>{h+=chip('banco',b,b,f.banco)})}
     /* Resultado */
-    h+=chip('resultado','ganancia','✓ Gan',f.resultado,'ganancia');
-    h+=chip('resultado','perdida','✗ Pér',f.resultado,'perdida');
     h+=sep;
+    h+=chip('resultado','ganancia','+ Ganancia',f.resultado,'ganancia');
+    h+=chip('resultado','sin-gan','0 Neutro',f.resultado,'neutro');
+    h+=chip('resultado','perdida','- Pérdida',f.resultado,'perdida');
     /* Fecha */
+    h+=sep;
     h+=chip('fecha','hoy','Hoy',f.fecha);
     h+=chip('fecha','7dias','7d',f.fecha);
     h+=chip('fecha','mes','Mes',f.fecha);
-    /* Clear — solo si hay filtros activos */
+    /* Limpiar — solo si hay filtros activos, estilo secundario */
     if(_opsFiltersActive()){
-        h+=`<button class="ops-filtros-clear" data-action="ops-filter-clear">✕</button>`;
+        h+=sep;
+        h+=`<button class="ops-chip-clear" data-action="ops-filter-clear">Limpiar</button>`;
     }
     c.innerHTML=h;
 }
