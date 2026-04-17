@@ -915,6 +915,7 @@
 
                     <div class="menu-group-title">Sistema</div>
                     <div class="menu-group">
+                        <div class="menu-row" data-action="restaurar-respaldo"><span class="menu-row-icon">💾</span><span class="menu-row-label">Restaurar último respaldo</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon">🔄</span><span class="menu-row-label">Resetear aplicación</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon">🚪</span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron">›</span></div>
                     </div>
@@ -1185,7 +1186,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.6.2',
+    APP_VERSION: '4.7.0',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1218,6 +1219,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.0', date:'2026-04-17', headline:'🛡️ Blindaje crítico contra pérdida de datos en Android + botón manual de restauración.', changes:[
+        {type:'fix', title:'Fix crítico: no más wipes por caché corrupta', desc:'En Android, Firestore a veces devolvía documentos vacíos desde su caché IndexedDB en el primer snapshot. La app aceptaba ese vacío como truth y luego lo persistía sobre los datos reales. Ahora se detecta el patrón y se prioriza el backup local.'},
+        {type:'fix', title:'Anti-wipe en guardarDatos', desc:'Si la app está por pushear un estado vacío pero existe un backup con datos reales, la escritura se aborta y el usuario ve "Datos protegidos".'},
+        {type:'fix', title:'Backup local con rotación', desc:'Cada guardado rota al previo como _prev antes de sobrescribir. Ya no se respaldan estados vacíos ni se borran backups útiles.'},
+        {type:'fix', title:'Branch 2 protege locales reales', desc:'Si un snapshot newer trae datos vacíos pero tenemos datos locales, se ignora el remoto y se fuerza re-push en 1.5s para restaurar Firebase.'},
+        {type:'feature', title:'Botón "Restaurar último respaldo"', desc:'Nuevo en Configuración → Sistema. Muestra resumen del backup (operaciones, bancos, antigüedad), pide confirmación, rota el actual a _prev, aplica y re-sincroniza con Firebase. Trace visible en header como "Restaurado (manual/auto)".'}
+    ]},
     {version:'4.6.2', date:'2026-04-16', headline:'Filtros integrados al header: chip compacto en la cabecera de Operaciones con estado del filtro visible.', changes:[
         {type:'improve', title:'Trigger en el header', desc:'El botón "Filtros" ahora vive dentro del header del bloque, al lado del contador, como un chip compacto. Sin bloques sueltos ni espacios muertos.'},
         {type:'improve', title:'Estado visible en el chip', desc:'El chip muestra "Filtros" cuando no hay filtros y "N activos" cuando los hay. Badge azul con la cantidad y borde azul tenue para indicar estado activo.'},
@@ -1426,7 +1434,13 @@ function setSyncStatus(s,t) {
     const el=$('syncStatus');if(!el)return;
     const labels={online:'En línea',offline:'Desconectado',syncing:'Sincronizando...',reconnecting:'Reconectando...'};
     el.className='sync-status '+s;
-    setText('syncText',t||labels[s]||s);
+    /* Trazabilidad: si hubo restauración reciente, reflejarla al estar online */
+    let lbl=t||labels[s]||s;
+    if(s==='online'&&AppState._restoredFrom&&!t){
+        const map={'backup-empty-remote':'Restaurado (auto)','backup-no-remote':'Restaurado (auto)','manual-backup':'Restaurado (manual)'};
+        lbl=map[AppState._restoredFrom]||'En línea';
+    }
+    setText('syncText',lbl);
     AppState.ui.syncState=s;
 }
 
@@ -3167,10 +3181,94 @@ function mergeRemoteState(d){
     recalcularLotesYGanancias();
 }
 
-/* ─── localStorage safety net ─── */
-function backupToLocal(){try{if(AppState.datos&&AppState.currentUser)localStorage.setItem('p2p_backup_'+AppState.currentUser.uid,JSON.stringify({v:AppState.datos._version||0,ts:Date.now(),datos:AppState.datos}))}catch(e){}}
-function restoreFromLocal(){try{const k='p2p_backup_'+AppState.currentUser?.uid;const raw=localStorage.getItem(k);if(!raw)return null;const b=JSON.parse(raw);if(Date.now()-b.ts>86400000){localStorage.removeItem(k);return null}return b}catch(e){return null}}
-function clearLocalBackup(){try{if(AppState.currentUser)localStorage.removeItem('p2p_backup_'+AppState.currentUser.uid)}catch(e){}}
+/* ═══════════════════════════════════════════════════════════════════
+   §BKP — Integridad de datos + red de seguridad
+   ═══════════════════════════════════════════════════════════════════ */
+/* Heurística: detectar documento/estado vacío o triviamente inicializado.
+   Un estado "real" tiene al menos ops, movs, transfers, conversiones o bancos configurados. */
+function esDatosVacios(d){
+    if(!d||typeof d!=='object')return true;
+    const ops=(d.operaciones||[]).length;
+    const movs=(d.movimientos||[]).length;
+    const trans=(d.transferencias||[]).length;
+    const conv=(d.conversiones||[]).length;
+    const lotes=(d.lotes||[]).length;
+    const bancosCount=Object.keys(d.bancos||{}).length;
+    const bancosActivos=Object.values(d.bancos||{}).filter(b=>b&&b.activo).length;
+    /* Estado con contenido real */
+    if(ops>0||movs>0||trans>0||conv>0||lotes>0||bancosActivos>0)return false;
+    return true;
+}
+/* Comparar cuál estado tiene más contenido (para decidir si un backup supera al remoto vacío) */
+function _puntajeDatos(d){
+    if(!d)return -1;
+    return (d.operaciones||[]).length*10
+        + (d.movimientos||[]).length*5
+        + (d.transferencias||[]).length*5
+        + (d.conversiones||[]).length*5
+        + (d.lotes||[]).length*3
+        + Object.values(d.bancos||{}).filter(b=>b&&b.activo).length*2;
+}
+
+/* ─── localStorage safety net con rotación ─── */
+function backupToLocal(){
+    try{
+        if(!AppState.datos||!AppState.currentUser)return;
+        /* No respaldar estados vacíos — preservaría bug #1 */
+        if(esDatosVacios(AppState.datos))return;
+        const k='p2p_backup_'+AppState.currentUser.uid;
+        const prevKey=k+'_prev';
+        const prev=localStorage.getItem(k);
+        /* Rotación: el actual pasa a ser previo antes de sobrescribir */
+        if(prev)localStorage.setItem(prevKey,prev);
+        localStorage.setItem(k,JSON.stringify({
+            v:AppState.datos._version||0,
+            ts:Date.now(),
+            datos:AppState.datos
+        }));
+    }catch(e){console.warn('[P2P] backupToLocal failed:',e.message)}
+}
+function restoreFromLocal(){
+    try{
+        if(!AppState.currentUser)return null;
+        const k='p2p_backup_'+AppState.currentUser.uid;
+        const raw=localStorage.getItem(k);
+        if(!raw)return null;
+        const b=JSON.parse(raw);
+        /* Ya no expirar a las 24h — puede ser la única copia válida en caso de bug de sync.
+           El backup se limpia solo cuando se confirmó un estado mayor o igual en Firebase. */
+        return b;
+    }catch(e){return null}
+}
+function restoreFromLocalPrev(){
+    try{
+        if(!AppState.currentUser)return null;
+        const k='p2p_backup_'+AppState.currentUser.uid+'_prev';
+        const raw=localStorage.getItem(k);
+        if(!raw)return null;
+        return JSON.parse(raw);
+    }catch(e){return null}
+}
+/* Clear backup solo cuando el estado actual es DEMOSTRABLEMENTE mayor o igual al backup.
+   Nunca borrar si el estado actual está vacío o tiene menos puntaje. */
+function clearLocalBackup(){
+    try{
+        if(!AppState.currentUser)return;
+        const b=restoreFromLocal();
+        if(b&&b.datos){
+            const currentScore=_puntajeDatos(AppState.datos);
+            const backupScore=_puntajeDatos(b.datos);
+            /* Si el backup tiene MÁS contenido que el actual → NO borrar.
+               Esto protege contra escenarios donde el snapshot remoto llegó vacío
+               y nosotros estamos por guardar vacío también. */
+            if(backupScore>currentScore){
+                console.warn('[P2P] clearLocalBackup skipped: backup has more data than current state');
+                return;
+            }
+        }
+        localStorage.removeItem('p2p_backup_'+AppState.currentUser.uid);
+    }catch(e){}
+}
 
 function updateSyncBadge(){
     const badge=$('syncBadge');if(!badge)return;
@@ -3180,6 +3278,17 @@ function updateSyncBadge(){
 
 async function guardarDatos(forzar){
     if(!AppState.currentUser)return;
+    /* BLINDAJE ANTI-WIPE: si estoy por pushear un estado vacío pero existe un backup local
+       con contenido real, abortar y alertar. Esto evita que un snapshot corrupto + auto-save
+       termine sobrescribiendo los datos reales del usuario en Firebase. */
+    if(!forzar&&esDatosVacios(AppState.datos)){
+        const backup=restoreFromLocal();
+        if(backup&&backup.datos&&!esDatosVacios(backup.datos)){
+            console.warn('[P2P] guardarDatos abortado: estado vacío con backup válido disponible. Usá "Restaurar respaldo".');
+            setSyncStatus('offline','Datos protegidos');
+            return;
+        }
+    }
     _localDirty++;
     if(AppState._datosStale&&!forzar){
         setSyncStatus('syncing','Sincronizando...');return;
@@ -3255,18 +3364,44 @@ function cargarDatosUsuario(){
             const d=doc.data();
             const serverVersion=d._version||0;
             const pending=hasPendingLocal();
+            const remoteEmpty=esDatosVacios(d);
 
-            /* Branch 1: Initial load (no local data yet) → accept entirely, even from cache */
+            /* Branch 1: Initial load (no local data yet) */
             if(AppState._localVersion===0){
-                AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||''};
-                AppState._localVersion=serverVersion;
+                /* BLINDAJE: si el documento remoto viene vacío Y tenemos un backup local
+                   con contenido real, priorizamos el backup (posible corrupción de cache Android). */
+                const backup=restoreFromLocal();
+                const backupTienedatos=backup&&backup.datos&&!esDatosVacios(backup.datos);
+                if(remoteEmpty&&backupTienedatos){
+                    console.warn('[P2P] Remote doc empty + local backup has data → restoring from backup');
+                    AppState.datos=backup.datos;
+                    AppState._localVersion=backup.v||0;
+                    AppState._restoredFrom='backup-empty-remote';
+                    /* Re-push el backup para rehidratar Firebase — pero sólo si el servidor no tiene
+                       algo mayor pendiente de llegar. Esperamos un ciclo antes de pushear. */
+                    setTimeout(()=>{if(!esDatosVacios(AppState.datos))guardarDatos(true)},2500);
+                }else{
+                    AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||''};
+                    AppState._localVersion=serverVersion;
+                }
             }
             /* Branch 2: Remote is newer → ALWAYS merge (never full replace after initial load) */
             else if(serverVersion>AppState._localVersion){
-                mergeRemoteState(d);
-                AppState._localVersion=serverVersion;
-                /* If we had pending local changes, re-push merged state */
-                if(pending)guardaOptimista('merge','state','reconcile');
+                /* BLINDAJE: si el remote newer viene VACÍO pero tenemos datos locales reales,
+                   NO mergear ciegamente — posible wipe corrupto en otro dispositivo o cache. */
+                if(remoteEmpty&&!esDatosVacios(AppState.datos)){
+                    console.warn('[P2P] Remote newer but empty, local has data → ignoring remote, forcing re-sync up');
+                    /* No actualizamos _localVersion → próximo guardarDatos tendrá newVersion > serverVersion */
+                    AppState._datosStale=true;
+                    setSyncStatus('syncing','Protegiendo datos locales…');
+                    /* Forzar re-push de datos locales para restaurar el servidor */
+                    setTimeout(()=>{AppState._datosStale=false;if(!esDatosVacios(AppState.datos))guardarDatos(true)},1500);
+                }else{
+                    mergeRemoteState(d);
+                    AppState._localVersion=serverVersion;
+                    /* If we had pending local changes, re-push merged state */
+                    if(pending)guardaOptimista('merge','state','reconcile');
+                }
             }
             /* Branch 3: serverVersion <= localVersion → echo of our own write, ignore */
 
@@ -3274,14 +3409,16 @@ function cargarDatosUsuario(){
                 AppState._datosStale=false;
                 _syncErrors=0;clearTimeout(_retryTimer);updateSyncBadge();
             }
-            if(!fromCache&&!hasPending&&!pending)clearLocalBackup();
+            /* Solo limpiar backup si el servidor confirmó estado con contenido real */
+            if(!fromCache&&!hasPending&&!pending&&!remoteEmpty&&!esDatosVacios(AppState.datos))clearLocalBackup();
         }else{
-            /* Try localStorage backup before creating empty state */
+            /* doc no existe — intentar backup local antes de crear vacío */
             const backup=restoreFromLocal();
-            if(backup&&backup.datos&&(backup.datos.operaciones?.length||backup.datos.movimientos?.length)){
+            if(backup&&backup.datos&&!esDatosVacios(backup.datos)){
                 AppState.datos=backup.datos;AppState._localVersion=backup.v||0;
-                console.log('[P2P] Restored from localStorage backup');
-                guardarDatos();/* Re-persist to Firestore */
+                AppState._restoredFrom='backup-no-remote';
+                console.log('[P2P] Restored from localStorage backup (no remote doc)');
+                setTimeout(()=>guardarDatos(true),2000);
             }else{
                 AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
             }
@@ -4679,6 +4816,85 @@ async function borrarTodo(){
 }
 
 /* ═══════════════════════════════════════
+   §17B — RESTAURACIÓN MANUAL DE RESPALDO
+   ═══════════════════════════════════════ */
+async function restaurarRespaldoManual(){
+    if(!AppState.currentUser){alert('No hay usuario activo');return}
+    /* 1. Buscar el mejor respaldo disponible */
+    let backup=restoreFromLocal();
+    let origen='backup actual';
+    /* Si el actual no sirve, probar la generación previa */
+    if(!backup||!backup.datos||esDatosVacios(backup.datos)){
+        const prev=restoreFromLocalPrev();
+        if(prev&&prev.datos&&!esDatosVacios(prev.datos)){
+            backup=prev;origen='backup anterior (previo)';
+        }
+    }
+    if(!backup||!backup.datos){
+        alert('📭 No hay respaldo local disponible.\n\nEl respaldo se crea automáticamente cada vez que se guardan datos. Si recién creaste tu cuenta o borraste el caché, no habrá respaldo aún.');
+        return;
+    }
+    if(esDatosVacios(backup.datos)){
+        alert('⚠️ El respaldo encontrado está vacío y no tiene datos útiles para restaurar.');
+        return;
+    }
+    /* 2. Mostrar resumen del respaldo al usuario */
+    const d=backup.datos;
+    const ts=backup.ts?new Date(backup.ts):null;
+    const edad=ts?Math.floor((Date.now()-backup.ts)/60000):null; /* minutos */
+    const edadTxt=edad===null?'fecha desconocida':
+                  edad<1?'hace menos de 1 minuto':
+                  edad<60?`hace ${edad} min`:
+                  edad<1440?`hace ${Math.floor(edad/60)} h`:
+                  `hace ${Math.floor(edad/1440)} días`;
+    const resumen=`¿Restaurar este respaldo?\n\n`
+        +`📅 Origen: ${origen}\n`
+        +`⏱️ Guardado: ${edadTxt}\n`
+        +`📊 Contenido:\n`
+        +`  • ${(d.operaciones||[]).length} operaciones\n`
+        +`  • ${(d.movimientos||[]).length} ajustes\n`
+        +`  • ${(d.transferencias||[]).length} transferencias\n`
+        +`  • ${(d.conversiones||[]).length} conversiones\n`
+        +`  • ${(d.lotes||[]).length} lotes USDT\n`
+        +`  • ${Object.values(d.bancos||{}).filter(b=>b&&b.activo).length} bancos activos\n\n`
+        +`Esta acción reemplazará los datos actuales de la app con los del respaldo.\n`
+        +`Los datos actuales se guardarán como respaldo previo antes de aplicar.`;
+    if(!confirm(resumen))return;
+    /* 3. Aplicar — con rotación: lo actual pasa a _prev antes */
+    try{
+        /* Backup defensivo del estado actual antes de sobreescribir */
+        if(!esDatosVacios(AppState.datos)){
+            try{
+                const cur=localStorage.getItem('p2p_backup_'+AppState.currentUser.uid);
+                if(cur)localStorage.setItem('p2p_backup_'+AppState.currentUser.uid+'_prev',cur);
+            }catch(e){}
+        }
+        /* Aplicar el respaldo */
+        AppState.datos=backup.datos;
+        /* Forzar _localVersion=0 obliga a que el próximo snapshot/save
+           re-hidrate Firebase como "nueva verdad" */
+        AppState._localVersion=0;
+        AppState._restoredFrom='manual-backup';
+        AppState._datosStale=false;
+        /* Recalcular y re-renderizar */
+        inicializarBancos();
+        recalcularLotesYGanancias();
+        AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
+        actualizarVista();
+        /* Empujar a Firebase */
+        await guardarDatos(true);
+        alert('✅ Respaldo restaurado correctamente.\n\n'
+            +`Origen: ${origen}\n`
+            +`Operaciones: ${(d.operaciones||[]).length}\n`
+            +`Bancos activos: ${Object.values(d.bancos||{}).filter(b=>b&&b.activo).length}\n\n`
+            +'Los datos fueron sincronizados con Firebase.');
+    }catch(e){
+        console.error('[P2P] Error restaurando respaldo:',e);
+        alert('❌ Error al restaurar el respaldo: '+(e.message||e.code||'desconocido'));
+    }
+}
+
+/* ═══════════════════════════════════════
    §18 — EVENT LISTENERS (sin inline)
    ═══════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded',()=>{
@@ -4728,6 +4944,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='transferencia')abrirModalTransferencia();
         else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
         else if(a==='historial-mensual')cargarHistorialMensual();
+        else if(a==='restaurar-respaldo')restaurarRespaldoManual();
         else if(a==='borrar-todo')borrarTodo();
         else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;clearTimeout(_retryTimer);AppState.auth.signOut()}}
     });
