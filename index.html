@@ -207,7 +207,7 @@
 
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
-        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer}
+        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px 16px 10px 10px;cursor:pointer;position:relative;overflow:hidden}
         /* Barra compacta: total bancario */
         .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
         .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
@@ -217,13 +217,33 @@
         .banco-nombre{font-weight:600;color:#1e293b;font-size:0.8em;margin-bottom:2px}
         .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
         .banco-moneda{font-size:0.65em;color:#94a3b8}
-        .banco-limite{font-size:0.6em;color:#64748b;margin-top:2px}
-        .banco-limite-bar{height:4px;background:#e2e8f0;border-radius:2px;margin-top:3px;overflow:hidden}
-        .banco-limite-fill{height:100%;background:#3b82f6;border-radius:2px;transition:width 0.3s}
-        .banco-limite-fill.warning{background:#f59e0b}
-        .banco-limite-fill.danger{background:#dc2626}
-        .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#93c5fd}
+        .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
+        /* Indicador vertical tipo "temperatura" en el borde derecho */
+        .banco-gauge{position:absolute;right:5px;top:8px;bottom:8px;width:4px;border-radius:3px;background:#e2e8f0;overflow:hidden}
+        .banco-gauge-fill{position:absolute;bottom:0;left:0;width:100%;border-radius:3px;transition:height 0.3s,background 0.3s}
+        .banco-gauge-fill.safe{background:linear-gradient(180deg,#22c55e,#16a34a)}
+        .banco-gauge-fill.warning{background:linear-gradient(180deg,#fbbf24,#f59e0b)}
+        .banco-gauge-fill.danger{background:linear-gradient(180deg,#f87171,#dc2626)}
+        .banco-gauge-fill.idle{background:#cbd5e1}
+        .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#93c5fd;padding-right:10px}
         .usdt-card .banco-saldo{color:#2563eb}
+
+        /* ═══ Filtros rápidos de operaciones ═══ */
+        .ops-filtros{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}
+        .ops-filtros-row{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px;align-items:center}
+        .ops-filtros-row::-webkit-scrollbar{display:none}
+        .ops-filtros-label{font-size:0.62em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;flex-shrink:0;padding-right:2px;min-width:42px}
+        .ops-chip{flex-shrink:0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 11px;font-size:0.72em;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;user-select:none;transition:all 0.15s;line-height:1.2}
+        .ops-chip:active{transform:scale(0.96)}
+        .ops-chip.active{background:#2563eb;border-color:#2563eb;color:white}
+        .ops-chip.active.compra{background:#16a34a;border-color:#16a34a}
+        .ops-chip.active.venta{background:#dc2626;border-color:#dc2626}
+        .ops-chip.active.ganancia{background:#16a34a;border-color:#16a34a}
+        .ops-chip.active.perdida{background:#dc2626;border-color:#dc2626}
+        .ops-chip.active.sin-gan{background:#64748b;border-color:#64748b}
+        .ops-filtros-clear{margin-left:auto;flex-shrink:0;background:transparent;border:none;color:#2563eb;font-size:0.7em;font-weight:700;cursor:pointer;padding:4px 8px;border-radius:6px}
+        .ops-filtros-clear:active{background:#eff6ff}
+        .ops-filtros-clear.hidden{display:none}
 
         /* ═══ Toggle Sections ═══ */
         .toggle-section{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:15px;overflow:hidden}
@@ -983,6 +1003,7 @@
             <div class="toggle-section open" id="seccionOperaciones">
                 <div class="toggle-header"><span class="toggle-title">📋 Operaciones</span><div class="toggle-right"><span class="toggle-badge" id="totalOperaciones">0</span><span class="toggle-arrow">▼</span></div></div>
                 <div class="toggle-content">
+                    <div class="ops-filtros" id="opsFiltros"></div>
                     <div class="ops-summary" id="opsSummary">
                         <div class="ops-summary-item"><div class="val" id="opsSumCompras">0</div><div class="lbl">Compras</div></div>
                         <div class="ops-summary-item"><div class="val" id="opsSumVentas">0</div><div class="lbl">Ventas</div></div>
@@ -1145,7 +1166,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.5.5',
+    APP_VERSION: '4.5.6',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1178,6 +1199,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.5.6', date:'2026-04-16', headline:'Tarjetas con indicador vertical + filtros rápidos en Operaciones.', changes:[
+        {type:'feature', title:'Gauge vertical en bancos', desc:'Las tarjetas de cuentas ahora muestran una barra vertical en el borde derecho que indica el uso del límite diario. Verde (seguro), amarillo (alerta) y rojo (crítico). Los bancos sin límite muestran una barra neutral.'},
+        {type:'feature', title:'Filtros rápidos de operaciones', desc:'Nueva fila de chips arriba de la lista: filtrá por tipo (Compras/Ventas), banco (detección dinámica, split-aware), resultado (Ganancia/Sin ganancia/Pérdida) y fecha (Mes/7 días/Ayer/Hoy). Los filtros se combinan entre sí.'},
+        {type:'improve', title:'Resúmenes reflejan los filtros', desc:'Cantidad de compras, ventas, ganancia y total del bloque Operaciones se actualizan en vivo al aplicar filtros.'},
+        {type:'improve', title:'Limpieza rápida', desc:'Botón "✕ Limpiar" aparece cuando hay filtros activos. La paginación se reinicia automáticamente al cambiar filtros.'}
+    ]},
     {version:'4.5.5', date:'2026-04-15', headline:'Lotes USDT: solo manuales editables, botón Recalcular eliminado.', changes:[
         {type:'fix', title:'Lotes automáticos bloqueados', desc:'Los lotes generados por compras quedaron protegidos contra edición y eliminación. Solo los marcados como "manual" muestran el botón ✏️.'},
         {type:'improve', title:'Validación dura en backend', desc:'Aunque alguien fuerce la edición desde el DOM, abrirEditarLote, guardarLote y eliminarLoteActual rechazan lotes no manuales con mensaje explicativo.'},
@@ -2001,6 +2028,111 @@ function getUDateStr(){const d=getUDate();return`${d.getFullYear()}-${String(d.g
 function getMesActivo(){const d=getUDate();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
 function filtrarMes(arr){const m=getMesActivo();return arr.filter(x=>x.fecha&&x.fecha.startsWith(m))}
 function opsMes(){return filtrarMes(AppState.datos.operaciones)}
+
+/* ═══════════════════════════════════════
+   §OF — FILTROS RÁPIDOS OPERACIONES
+   ═══════════════════════════════════════ */
+/* Estado de filtros persistido en AppState.ui.opsFilters */
+function _initOpsFilters(){
+    if(!AppState.ui.opsFilters)AppState.ui.opsFilters={tipo:'all',banco:'all',resultado:'all',fecha:'mes'};
+}
+function _opsFiltersActive(){
+    _initOpsFilters();
+    const f=AppState.ui.opsFilters;
+    return f.tipo!=='all'||f.banco!=='all'||f.resultado!=='all'||f.fecha!=='mes';
+}
+/* Filtra operaciones aplicando todos los filtros combinables */
+function aplicarOpsFilters(ops){
+    _initOpsFilters();
+    const f=AppState.ui.opsFilters;
+    if(f.tipo==='all'&&f.banco==='all'&&f.resultado==='all'&&f.fecha==='mes')return ops;
+    /* Para filtros de fecha distintos a "mes" usamos la lista completa */
+    let src=(f.fecha==='mes')?ops:AppState.datos.operaciones;
+    const hoyStr=getUDateStr();
+    /* Yesterday calculation */
+    const ayer=new Date();ayer.setDate(ayer.getDate()-1);
+    const ayerStr=ayer.toISOString().slice(0,10);
+    /* 7 days ago */
+    const hace7=new Date();hace7.setDate(hace7.getDate()-6);
+    const hace7Str=hace7.toISOString().slice(0,10);
+    return src.filter(op=>{
+        if(f.tipo!=='all'&&op.tipo!==f.tipo)return false;
+        /* Banco: considera op.banco y aportes si hay split */
+        if(f.banco!=='all'){
+            let match=op.banco===f.banco;
+            if(!match&&Array.isArray(op.aportes))match=op.aportes.some(a=>a.banco===f.banco);
+            if(!match)return false;
+        }
+        if(f.resultado!=='all'){
+            const g=op.ganancia||0;
+            if(f.resultado==='ganancia'&&g<=0.005)return false;
+            if(f.resultado==='perdida'&&g>=-0.005)return false;
+            if(f.resultado==='sin-gan'&&Math.abs(g)>=0.005)return false;
+        }
+        if(f.fecha!=='mes'){
+            if(f.fecha==='hoy'&&op.fecha!==hoyStr)return false;
+            if(f.fecha==='ayer'&&op.fecha!==ayerStr)return false;
+            if(f.fecha==='7dias'&&(op.fecha<hace7Str||op.fecha>hoyStr))return false;
+        }
+        return true;
+    });
+}
+/* Lista de bancos que aparecen en las operaciones (para chip dinámico) */
+function _bancosEnOperaciones(){
+    const set=new Set();
+    AppState.datos.operaciones.forEach(op=>{
+        if(op.banco)set.add(op.banco);
+        if(Array.isArray(op.aportes))op.aportes.forEach(a=>a.banco&&set.add(a.banco));
+    });
+    return [...set];
+}
+function renderOpsFilters(){
+    _initOpsFilters();
+    const c=$('opsFiltros');if(!c)return;
+    const f=AppState.ui.opsFilters;
+    const chip=(id,val,label,cur,cls)=>`<button class="ops-chip${cur===val?' active'+(cls?' '+cls:''):''}" data-action="ops-filter" data-filter="${id}" data-val="${val}">${label}</button>`;
+    let h='';
+    /* Fila 1: tipo + resultado */
+    h+='<div class="ops-filtros-row">';
+    h+='<span class="ops-filtros-label">Tipo</span>';
+    h+=chip('tipo','all','Todas',f.tipo);
+    h+=chip('tipo','compra','📥 Compras',f.tipo,'compra');
+    h+=chip('tipo','venta','📤 Ventas',f.tipo,'venta');
+    h+='<span style="width:10px;flex-shrink:0"></span>';
+    h+='<span class="ops-filtros-label">Resultado</span>';
+    h+=chip('resultado','all','Todos',f.resultado);
+    h+=chip('resultado','ganancia','✓ Ganancia',f.resultado,'ganancia');
+    h+=chip('resultado','sin-gan','= S/G',f.resultado,'sin-gan');
+    h+=chip('resultado','perdida','✗ Pérdida',f.resultado,'perdida');
+    h+='</div>';
+    /* Fila 2: banco + fecha */
+    h+='<div class="ops-filtros-row">';
+    h+='<span class="ops-filtros-label">Banco</span>';
+    h+=chip('banco','all','Todos',f.banco);
+    _bancosEnOperaciones().forEach(b=>{h+=chip('banco',b,b,f.banco)});
+    h+='<span style="width:10px;flex-shrink:0"></span>';
+    h+='<span class="ops-filtros-label">Fecha</span>';
+    h+=chip('fecha','mes','Mes',f.fecha);
+    h+=chip('fecha','7dias','7 días',f.fecha);
+    h+=chip('fecha','ayer','Ayer',f.fecha);
+    h+=chip('fecha','hoy','Hoy',f.fecha);
+    h+=`<button class="ops-filtros-clear${_opsFiltersActive()?'':' hidden'}" data-action="ops-filter-clear">✕ Limpiar</button>`;
+    h+='</div>';
+    c.innerHTML=h;
+}
+function setOpsFilter(filter,val){
+    _initOpsFilters();
+    AppState.ui.opsFilters[filter]=val;
+    AppState.ui.paginaOp=1;
+    renderOpsFilters();
+    pagOp.render();
+}
+function clearOpsFilters(){
+    AppState.ui.opsFilters={tipo:'all',banco:'all',resultado:'all',fecha:'mes'};
+    AppState.ui.paginaOp=1;
+    renderOpsFilters();
+    pagOp.render();
+}
 function movsMes(){return filtrarMes(AppState.datos.movimientos)}
 function transMes(){return filtrarMes(AppState.datos.transferencias)}
 function convMes(){return filtrarMes(AppState.datos.conversiones||[])}
@@ -2748,10 +2880,19 @@ function actualizarBancosGrid(){
     CONFIG.BANCOS.forEach(b=>{
         if(!AppState.datos.bancos[b.nombre]?.activo)return;
         const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
-        let lh='';
-        if(lim>0){const disp=Math.max(0,lim-us),pct=Math.min(100,(us/lim)*100);let fc='';if(pct>=90)fc='danger';else if(pct>=70)fc='warning';
-            lh=`<div class="banco-limite">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div><div class="banco-limite-bar"><div class="banco-limite-fill ${fc}" style="width:${pct}%"></div></div>`}
-        h+=`<div class="banco-mini-card" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${lh}</div>`;
+        let gaugeHtml='',limTxt='';
+        if(lim>0){
+            /* Barra vertical: representa uso del límite diario (frío→caliente) */
+            const pct=Math.min(100,Math.max(0,(us/lim)*100));
+            let fc='safe';if(pct>=90)fc='danger';else if(pct>=60)fc='warning';
+            const disp=Math.max(0,lim-us);
+            gaugeHtml=`<div class="banco-gauge" title="${fmtNum(pct,0)}% del límite diario usado"><div class="banco-gauge-fill ${fc}" style="height:${pct}%"></div></div>`;
+            limTxt=`<div class="banco-limite-txt">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div>`;
+        }else{
+            /* Sin límite: gauge neutral idle para mantener consistencia visual */
+            gaugeHtml=`<div class="banco-gauge" title="Sin límite diario"><div class="banco-gauge-fill idle" style="height:100%"></div></div>`;
+        }
+        h+=`<div class="banco-mini-card" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${gaugeHtml}</div>`;
     });
     setHtml('bancosGrid',h);
 }
@@ -4198,17 +4339,21 @@ function renderizarCalendario(){
 /* ═══════════════════════════════════════
    §13 — PAGINACIONES (instancias)
    ═══════════════════════════════════════ */
-const pagOp=crearPaginacion({getTotal:()=>opsMes().length,getPag:()=>AppState.ui.paginaOp,setPag:p=>{AppState.ui.paginaOp=p},porPag:CONFIG.POR_PAGINA,
+const pagOp=crearPaginacion({getTotal:()=>aplicarOpsFilters(opsMes()).length,getPag:()=>AppState.ui.paginaOp,setPag:p=>{AppState.ui.paginaOp=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationOp',info:'paginaInfoOp',prev:'btnPrevOp',next:'btnNextOp'},
     renderFn:(ini,fin,total)=>{
         setText('totalOperaciones',total||0);const c=$('tablaContent');
-        const allOps=opsMes();
+        /* Ops filtradas — base del summary y de la lista */
+        const allOps=aplicarOpsFilters(opsMes());
         let sc=0,sv=0,sg=0;allOps.forEach(op=>{if(op.tipo==='compra')sc++;else sv++;sg=roundMoney(sg+(op.ganancia||0))});
         setText('opsSumCompras',sc);setText('opsSumVentas',sv);setText('opsSumTotal',allOps.length);
         const sgE=$('opsSumGanancia');sgE.textContent=(sg>=0?'+':'-')+'$'+fmtNum(Math.abs(sg),0);sgE.style.color=sg>=0?'#16a34a':'#dc2626';
         $('opsSummary').style.display=total?'grid':'none';
 
-        if(!total){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div>';return}
+        if(!total){
+            const emptyMsg=_opsFiltersActive()?'Sin operaciones que coincidan con los filtros':'Sin operaciones';
+            c.innerHTML=`<div class="empty-state"><div class="empty-state-icon">📝</div><div>${emptyMsg}</div></div>`;return
+        }
         const ops=allOps.slice(ini,fin);
         let h='<div class="op-cards">';
         ops.forEach(op=>{
@@ -4388,7 +4533,7 @@ function actualizarVista(){
     setText('statsCompra',cc?'Prom $'+fmtNum(tpc)+' · '+minTxt:'--');
     setText('statsVenta',cv?la.length+' lotes · Spread $'+fmtNum(sp):'--');
     setText('spreadPromedio','$'+fmtNum(sp));
-    actualizarBancosGrid();actualizarSelectBancos();pagOp.render();pagMov.render();pagTrans.render();pagConv.render();
+    actualizarBancosGrid();actualizarSelectBancos();renderOpsFilters();pagOp.render();pagMov.render();pagTrans.render();pagConv.render();
 }
 
 /* ═══════════════════════════════════════
@@ -4670,6 +4815,13 @@ document.addEventListener('DOMContentLoaded',()=>{
             const target=t.dataset.target;
             AppState.ui._tagShowAll=true;
             if(target)renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'');
+        }
+        else if(a==='ops-filter'){
+            const filter=t.dataset.filter,val=t.dataset.val;
+            if(filter&&val)setOpsFilter(filter,val);
+        }
+        else if(a==='ops-filter-clear'){
+            clearOpsFilters();
         }
         else if(a==='split-add'){
             AppState.ui.splitExtras=AppState.ui.splitExtras||[];
