@@ -916,6 +916,8 @@
                     <div class="menu-group-title">Sistema</div>
                     <div class="menu-group">
                         <div class="menu-row" data-action="restaurar-respaldo"><span class="menu-row-icon">💾</span><span class="menu-row-label">Restaurar último respaldo</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="exportar-datos"><span class="menu-row-icon">📤</span><span class="menu-row-label">Exportar datos (.json)</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="importar-datos"><span class="menu-row-icon">📥</span><span class="menu-row-label">Importar datos (.json)</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon">🔄</span><span class="menu-row-label">Resetear aplicación</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon">🚪</span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron">›</span></div>
                     </div>
@@ -1186,7 +1188,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.0',
+    APP_VERSION: '4.7.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1219,6 +1221,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.1', date:'2026-04-17', headline:'🛟 Exportar/Importar JSON + búsqueda exhaustiva de respaldos locales.', changes:[
+        {type:'feature', title:'Exportar datos a archivo JSON', desc:'Nuevo botón en Configuración → Sistema. Descarga un archivo .json con todos los datos (operaciones, movimientos, bancos, lotes, etc.) + metadata. Guardalo en Drive/email como respaldo propio que no depende del caché del navegador.'},
+        {type:'feature', title:'Importar desde JSON', desc:'Permite cargar un .json exportado desde este u otro dispositivo. Valida estructura, rechaza estados vacíos, avisa si el archivo pertenece a otro usuario y muestra resumen antes de aplicar.'},
+        {type:'improve', title:'Búsqueda exhaustiva de respaldos', desc:'Al pulsar "Restaurar último respaldo" la app ahora escanea TODO localStorage buscando claves p2p_backup_* huérfanas (cambios de uid, sesiones viejas, formatos anteriores). Elige el de mayor contenido.'},
+        {type:'improve', title:'Mensaje claro cuando no hay respaldo', desc:'Si no existe ningún backup local, ahora se explican las 4 opciones de recuperación restantes: importar archivo, otro dispositivo, Firebase Console/PITR, y cómo prevenir a futuro con Exportar.'}
+    ]},
     {version:'4.7.0', date:'2026-04-17', headline:'🛡️ Blindaje crítico contra pérdida de datos en Android + botón manual de restauración.', changes:[
         {type:'fix', title:'Fix crítico: no más wipes por caché corrupta', desc:'En Android, Firestore a veces devolvía documentos vacíos desde su caché IndexedDB en el primer snapshot. La app aceptaba ese vacío como truth y luego lo persistía sobre los datos reales. Ahora se detecta el patrón y se prioriza el backup local.'},
         {type:'fix', title:'Anti-wipe en guardarDatos', desc:'Si la app está por pushear un estado vacío pero existe un backup con datos reales, la escritura se aborta y el usuario ve "Datos protegidos".'},
@@ -1437,7 +1445,7 @@ function setSyncStatus(s,t) {
     /* Trazabilidad: si hubo restauración reciente, reflejarla al estar online */
     let lbl=t||labels[s]||s;
     if(s==='online'&&AppState._restoredFrom&&!t){
-        const map={'backup-empty-remote':'Restaurado (auto)','backup-no-remote':'Restaurado (auto)','manual-backup':'Restaurado (manual)'};
+        const map={'backup-empty-remote':'Restaurado (auto)','backup-no-remote':'Restaurado (auto)','manual-backup':'Restaurado (manual)','manual-import':'Importado (manual)'};
         lbl=map[AppState._restoredFrom]||'En línea';
     }
     setText('syncText',lbl);
@@ -4816,38 +4824,73 @@ async function borrarTodo(){
 }
 
 /* ═══════════════════════════════════════
-   §17B — RESTAURACIÓN MANUAL DE RESPALDO
+   §17B — RESTAURACIÓN MANUAL + EXPORT/IMPORT JSON
    ═══════════════════════════════════════ */
+/* Busca TODOS los respaldos posibles en localStorage — incluye claves huérfanas de
+   sesiones anteriores, cambios de uid, formatos viejos. Devuelve array ordenado por
+   puntaje (mejor primero). */
+function _buscarTodosLosRespaldos(){
+    const encontrados=[];
+    try{
+        for(let i=0;i<localStorage.length;i++){
+            const k=localStorage.key(i);
+            if(!k||!k.startsWith('p2p_backup_'))continue;
+            try{
+                const raw=localStorage.getItem(k);
+                if(!raw)continue;
+                const b=JSON.parse(raw);
+                if(!b||!b.datos)continue;
+                const score=_puntajeDatos(b.datos);
+                if(score<=0)continue;
+                const isPrev=k.endsWith('_prev');
+                const isCurrent=AppState.currentUser&&(k==='p2p_backup_'+AppState.currentUser.uid||k==='p2p_backup_'+AppState.currentUser.uid+'_prev');
+                encontrados.push({key:k,score,ts:b.ts||0,v:b.v||0,datos:b.datos,isPrev,isCurrent});
+            }catch(e){/* key corrupto — ignorar */}
+        }
+    }catch(e){console.warn('[P2P] Error escaneando localStorage:',e.message)}
+    /* Orden: primero los del uid actual, luego por puntaje descendente, luego por timestamp */
+    encontrados.sort((a,b)=>{
+        if(a.isCurrent!==b.isCurrent)return a.isCurrent?-1:1;
+        if(a.score!==b.score)return b.score-a.score;
+        return b.ts-a.ts;
+    });
+    return encontrados;
+}
+
 async function restaurarRespaldoManual(){
     if(!AppState.currentUser){alert('No hay usuario activo');return}
-    /* 1. Buscar el mejor respaldo disponible */
-    let backup=restoreFromLocal();
-    let origen='backup actual';
-    /* Si el actual no sirve, probar la generación previa */
-    if(!backup||!backup.datos||esDatosVacios(backup.datos)){
-        const prev=restoreFromLocalPrev();
-        if(prev&&prev.datos&&!esDatosVacios(prev.datos)){
-            backup=prev;origen='backup anterior (previo)';
-        }
-    }
-    if(!backup||!backup.datos){
-        alert('📭 No hay respaldo local disponible.\n\nEl respaldo se crea automáticamente cada vez que se guardan datos. Si recién creaste tu cuenta o borraste el caché, no habrá respaldo aún.');
+    /* 1. Búsqueda exhaustiva — escanea TODO localStorage */
+    const todos=_buscarTodosLosRespaldos();
+    if(!todos.length){
+        /* Sin respaldos — dar al usuario TODAS las opciones restantes */
+        alert('📭 No se encontraron respaldos locales con datos útiles.\n\n'
+            +'═══ OPCIONES DE RECUPERACIÓN ═══\n\n'
+            +'1️⃣ IMPORTAR DESDE ARCHIVO\n'
+            +'Si tenés un archivo .json de respaldo manual (exportado previamente o desde otro dispositivo), usá "Importar datos" en este mismo menú.\n\n'
+            +'2️⃣ OTRO DISPOSITIVO/NAVEGADOR\n'
+            +'Si abriste la app en otro navegador o dispositivo antes del problema, abrí la app allí e inmediatamente usá "Exportar datos". Luego importá acá.\n\n'
+            +'3️⃣ FIREBASE CONSOLE (admin)\n'
+            +'Si tenés acceso a la consola de Firebase y el proyecto tiene Point-in-Time Recovery o backups programados, podés restaurar el documento del usuario desde allí (ventana de 7 días para PITR).\n\n'
+            +'4️⃣ PREVENCIÓN A FUTURO\n'
+            +'Usá "Exportar datos" regularmente para tener un archivo propio de respaldo que no depende de la caché del navegador.');
         return;
     }
-    if(esDatosVacios(backup.datos)){
-        alert('⚠️ El respaldo encontrado está vacío y no tiene datos útiles para restaurar.');
-        return;
-    }
-    /* 2. Mostrar resumen del respaldo al usuario */
+    /* 2. Elegir el mejor respaldo — el primero del array ordenado */
+    const best=todos[0];
+    const backup={v:best.v,ts:best.ts,datos:best.datos};
+    let origen='respaldo principal';
+    if(best.isPrev)origen='respaldo previo (rotado)';
+    if(!best.isCurrent)origen='respaldo de sesión anterior';
+    /* 3. Mostrar resumen al usuario */
     const d=backup.datos;
     const ts=backup.ts?new Date(backup.ts):null;
-    const edad=ts?Math.floor((Date.now()-backup.ts)/60000):null; /* minutos */
+    const edad=ts?Math.floor((Date.now()-backup.ts)/60000):null;
     const edadTxt=edad===null?'fecha desconocida':
                   edad<1?'hace menos de 1 minuto':
                   edad<60?`hace ${edad} min`:
                   edad<1440?`hace ${Math.floor(edad/60)} h`:
                   `hace ${Math.floor(edad/1440)} días`;
-    const resumen=`¿Restaurar este respaldo?\n\n`
+    let resumen=`¿Restaurar este respaldo?\n\n`
         +`📅 Origen: ${origen}\n`
         +`⏱️ Guardado: ${edadTxt}\n`
         +`📊 Contenido:\n`
@@ -4856,11 +4899,15 @@ async function restaurarRespaldoManual(){
         +`  • ${(d.transferencias||[]).length} transferencias\n`
         +`  • ${(d.conversiones||[]).length} conversiones\n`
         +`  • ${(d.lotes||[]).length} lotes USDT\n`
-        +`  • ${Object.values(d.bancos||{}).filter(b=>b&&b.activo).length} bancos activos\n\n`
-        +`Esta acción reemplazará los datos actuales de la app con los del respaldo.\n`
+        +`  • ${Object.values(d.bancos||{}).filter(b=>b&&b.activo).length} bancos activos\n`;
+    if(todos.length>1)resumen+=`\n📦 Hay ${todos.length} respaldos totales. Se usa el mejor disponible.\n`;
+    resumen+=`\nEsta acción reemplazará los datos actuales de la app con los del respaldo.\n`
         +`Los datos actuales se guardarán como respaldo previo antes de aplicar.`;
     if(!confirm(resumen))return;
-    /* 3. Aplicar — con rotación: lo actual pasa a _prev antes */
+    await _aplicarRespaldo(backup.datos,origen);
+}
+/* Helper común: aplica un objeto datos al estado, rotando el actual a _prev */
+async function _aplicarRespaldo(datos,origen){
     try{
         /* Backup defensivo del estado actual antes de sobreescribir */
         if(!esDatosVacios(AppState.datos)){
@@ -4869,29 +4916,133 @@ async function restaurarRespaldoManual(){
                 if(cur)localStorage.setItem('p2p_backup_'+AppState.currentUser.uid+'_prev',cur);
             }catch(e){}
         }
-        /* Aplicar el respaldo */
-        AppState.datos=backup.datos;
-        /* Forzar _localVersion=0 obliga a que el próximo snapshot/save
-           re-hidrate Firebase como "nueva verdad" */
+        AppState.datos=datos;
         AppState._localVersion=0;
-        AppState._restoredFrom='manual-backup';
+        AppState._restoredFrom=origen.includes('importado')?'manual-import':'manual-backup';
         AppState._datosStale=false;
-        /* Recalcular y re-renderizar */
         inicializarBancos();
         recalcularLotesYGanancias();
         AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
         actualizarVista();
-        /* Empujar a Firebase */
         await guardarDatos(true);
-        alert('✅ Respaldo restaurado correctamente.\n\n'
+        alert(`✅ Datos restaurados correctamente.\n\n`
             +`Origen: ${origen}\n`
-            +`Operaciones: ${(d.operaciones||[]).length}\n`
-            +`Bancos activos: ${Object.values(d.bancos||{}).filter(b=>b&&b.activo).length}\n\n`
-            +'Los datos fueron sincronizados con Firebase.');
+            +`Operaciones: ${(datos.operaciones||[]).length}\n`
+            +`Bancos activos: ${Object.values(datos.bancos||{}).filter(b=>b&&b.activo).length}\n\n`
+            +`Los datos fueron sincronizados con Firebase.`);
     }catch(e){
-        console.error('[P2P] Error restaurando respaldo:',e);
-        alert('❌ Error al restaurar el respaldo: '+(e.message||e.code||'desconocido'));
+        console.error('[P2P] Error aplicando respaldo:',e);
+        alert('❌ Error al restaurar: '+(e.message||e.code||'desconocido'));
     }
+}
+
+/* Exportar — descarga JSON con todo el estado actual */
+function exportarDatos(){
+    if(!AppState.currentUser){alert('No hay usuario activo');return}
+    if(esDatosVacios(AppState.datos)){
+        if(!confirm('⚠️ Los datos actuales están vacíos. ¿Exportar de todos modos?\n\nSi acabás de ser víctima del bug de wipe en Android, NO exportes ahora — usá "Restaurar último respaldo" primero.'))return;
+    }
+    try{
+        const uname=emailToUser(AppState.currentUser.email);
+        const payload={
+            _meta:{
+                app:'P2P Tracker',
+                version:CONFIG.APP_VERSION,
+                exported_at:new Date().toISOString(),
+                user:uname,
+                uid:AppState.currentUser.uid,
+                counts:{
+                    operaciones:(AppState.datos.operaciones||[]).length,
+                    movimientos:(AppState.datos.movimientos||[]).length,
+                    transferencias:(AppState.datos.transferencias||[]).length,
+                    conversiones:(AppState.datos.conversiones||[]).length,
+                    lotes:(AppState.datos.lotes||[]).length,
+                    bancosActivos:Object.values(AppState.datos.bancos||{}).filter(b=>b&&b.activo).length
+                }
+            },
+            datos:AppState.datos
+        };
+        const json=JSON.stringify(payload,null,2);
+        const blob=new Blob([json],{type:'application/json'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        const fechaStr=new Date().toISOString().slice(0,10);
+        a.href=url;a.download=`p2p-backup-${uname}-${fechaStr}.json`;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setTimeout(()=>alert(`✅ Respaldo exportado.\n\n`
+            +`Archivo: p2p-backup-${uname}-${fechaStr}.json\n`
+            +`Operaciones: ${payload._meta.counts.operaciones}\n`
+            +`Movimientos: ${payload._meta.counts.movimientos}\n\n`
+            +`Guardalo en un lugar seguro (email, Drive, etc.).\n`
+            +`Podrás importarlo cuando lo necesites con "Importar datos".`),100);
+    }catch(e){
+        console.error('[P2P] Error exportando:',e);
+        alert('❌ Error al exportar: '+(e.message||'desconocido'));
+    }
+}
+
+/* Importar — usuario sube un JSON y se aplica tras validación */
+function importarDatos(){
+    if(!AppState.currentUser){alert('No hay usuario activo');return}
+    const input=document.createElement('input');
+    input.type='file';input.accept='.json,application/json';
+    input.addEventListener('change',e=>{
+        const file=e.target.files?.[0];if(!file)return;
+        const reader=new FileReader();
+        reader.onload=async evt=>{
+            try{
+                const txt=evt.target.result;
+                const parsed=JSON.parse(txt);
+                /* Aceptar formato nuevo (con _meta.datos) o legacy (datos directos) */
+                const datos=parsed.datos&&parsed._meta?parsed.datos:parsed;
+                /* Validación estructural */
+                if(!datos||typeof datos!=='object'){alert('❌ Archivo inválido: no es un objeto JSON de datos.');return}
+                const camposRequeridos=['operaciones','movimientos','transferencias','conversiones','bancos','lotes'];
+                const faltantes=camposRequeridos.filter(c=>datos[c]===undefined);
+                if(faltantes.length===camposRequeridos.length){
+                    alert('❌ Archivo inválido: no contiene ninguno de los campos esperados (operaciones, bancos, etc.).');return;
+                }
+                /* Normalizar campos faltantes para que la app no reviente */
+                camposRequeridos.forEach(c=>{if(datos[c]===undefined)datos[c]=(c==='bancos')?{}:[]});
+                if(esDatosVacios(datos)){
+                    alert('⚠️ El archivo contiene un estado vacío. No se importará — sería destructivo.');return;
+                }
+                /* Resumen + confirmación */
+                const meta=parsed._meta||{};
+                let resumen=`¿Importar este respaldo?\n\n`;
+                if(meta.user)resumen+=`👤 Usuario: ${meta.user}\n`;
+                if(meta.exported_at){
+                    try{resumen+=`📅 Exportado: ${new Date(meta.exported_at).toLocaleString('es-UY')}\n`}catch(e){}
+                }
+                if(meta.version)resumen+=`🏷️ App v${meta.version}\n`;
+                resumen+=`\n📊 Contenido:\n`
+                    +`  • ${(datos.operaciones||[]).length} operaciones\n`
+                    +`  • ${(datos.movimientos||[]).length} ajustes\n`
+                    +`  • ${(datos.transferencias||[]).length} transferencias\n`
+                    +`  • ${(datos.conversiones||[]).length} conversiones\n`
+                    +`  • ${(datos.lotes||[]).length} lotes USDT\n`
+                    +`  • ${Object.values(datos.bancos||{}).filter(b=>b&&b.activo).length} bancos activos\n\n`;
+                /* Advertencia si el archivo era de otro usuario */
+                if(meta.user){
+                    const actual=emailToUser(AppState.currentUser.email);
+                    if(meta.user!==actual){
+                        resumen+=`⚠️ ATENCIÓN: este archivo es del usuario "${meta.user}" pero estás logueado como "${actual}".\n`
+                            +`Si confirmás, los datos se aplicarán a tu cuenta actual.\n\n`;
+                    }
+                }
+                resumen+=`Esta acción reemplazará los datos actuales. El estado actual se guardará como respaldo previo.`;
+                if(!confirm(resumen))return;
+                await _aplicarRespaldo(datos,'importado desde archivo');
+            }catch(ex){
+                console.error('[P2P] Error importando:',ex);
+                alert('❌ Error al leer el archivo: '+(ex.message||'formato inválido'));
+            }
+        };
+        reader.onerror=()=>alert('❌ Error al leer el archivo.');
+        reader.readAsText(file);
+    });
+    input.click();
 }
 
 /* ═══════════════════════════════════════
@@ -4945,6 +5096,8 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
         else if(a==='historial-mensual')cargarHistorialMensual();
         else if(a==='restaurar-respaldo')restaurarRespaldoManual();
+        else if(a==='exportar-datos')exportarDatos();
+        else if(a==='importar-datos')importarDatos();
         else if(a==='borrar-todo')borrarTodo();
         else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;clearTimeout(_retryTimer);AppState.auth.signOut()}}
     });
