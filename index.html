@@ -208,7 +208,7 @@
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
         .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
-        .banco-mini-card.has-gauge{padding-right:16px}
+        .banco-mini-card.has-gauge{padding-right:10px}
         /* Barra compacta: total bancario */
         .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
         .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
@@ -219,12 +219,46 @@
         .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
         .banco-moneda{font-size:0.65em;color:#94a3b8}
         .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
-        /* Indicador vertical tipo "temperatura" en el borde derecho */
-        .banco-gauge{position:absolute;right:5px;top:8px;bottom:8px;width:4px;border-radius:3px;background:#e2e8f0;overflow:hidden}
-        .banco-gauge-fill{position:absolute;bottom:0;left:0;width:100%;border-radius:3px;transition:height 0.3s,background 0.3s}
-        .banco-gauge-fill.safe{background:linear-gradient(180deg,#22c55e,#16a34a)}
-        .banco-gauge-fill.warning{background:linear-gradient(180deg,#fbbf24,#f59e0b)}
-        .banco-gauge-fill.danger{background:linear-gradient(180deg,#f87171,#dc2626)}
+        /* ═══ Indicador de límite — línea lateral fina al borde derecho ═══
+           Espejo visual de card-compra/card-venta (border-left 3px) pero como barra 
+           de temperatura proporcional al % de uso del límite. */
+        .banco-gauge{
+            position:absolute;
+            right:0;top:6px;bottom:6px;
+            width:3px;
+            border-radius:2px;
+            background:transparent;
+            pointer-events:none;
+        }
+        .banco-gauge-fill{
+            position:absolute;
+            bottom:0;left:0;right:0;
+            border-radius:2px;
+            transition:height 0.35s cubic-bezier(0.4,0,0.2,1),background 0.35s ease;
+            /* Gradiente vertical: el color se interpola según el % via CSS vars en JS */
+        }
+        /* Mostrar % en hover/tap: badge flotante arriba a la derecha */
+        .banco-gauge-tip{
+            position:absolute;
+            right:6px;top:6px;
+            font-size:0.58em;
+            font-weight:700;
+            padding:1px 5px;
+            border-radius:4px;
+            background:rgba(30,41,59,0.92);
+            color:white;
+            opacity:0;
+            pointer-events:none;
+            transition:opacity 0.2s;
+            white-space:nowrap;
+            line-height:1.3;
+            z-index:2;
+        }
+        .banco-mini-card.show-tip .banco-gauge-tip{opacity:1}
+        /* Hover solo en desktop, tap-to-show en mobile */
+        @media(hover:hover){
+            .banco-mini-card.has-gauge:hover .banco-gauge-tip{opacity:1}
+        }
         .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#93c5fd}
         .usdt-card .banco-saldo{color:#2563eb}
 
@@ -918,6 +952,7 @@
                         <div class="menu-row" data-action="restaurar-respaldo"><span class="menu-row-icon">💾</span><span class="menu-row-label">Restaurar último respaldo</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="exportar-datos"><span class="menu-row-icon">📤</span><span class="menu-row-label">Exportar datos (.json)</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="importar-datos"><span class="menu-row-icon">📥</span><span class="menu-row-label">Importar datos (.json)</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="exportar-diagnostico"><span class="menu-row-icon">🔍</span><span class="menu-row-label">Exportar diagnóstico</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon">🔄</span><span class="menu-row-label">Resetear aplicación</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon">🚪</span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron">›</span></div>
                     </div>
@@ -1188,7 +1223,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.1',
+    APP_VERSION: '4.7.4',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1221,6 +1256,34 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.4', date:'2026-04-17', headline:'⚙️ Debounce de escrituras + error boundary + diagnóstico exportable.', changes:[
+        {type:'improve', title:'Debounce en sincronización', desc:'Los cambios rápidos (typing en edits, ajustes de comisión, sliders) ahora se agrupan en una sola escritura a Firebase cada 400ms. 5 edits rápidos dejan de ser 5 transacciones — son 1. Menos costo, menos latencia, menos consumo de batería.'},
+        {type:'improve', title:'Flush automático al perder foco', desc:'Al cambiar de pestaña, minimizar la app o cerrar sesión, los cambios pendientes se vacían inmediatamente. No se pierde nada por el debounce.'},
+        {type:'feature', title:'Error boundary global', desc:'Captura errores JavaScript no manejados y rejections de promesas sin tumbar la UI. Logs circulares de las últimas 50 incidencias en localStorage.'},
+        {type:'feature', title:'Exportar diagnóstico', desc:'Nuevo botón en Configuración → Sistema. Descarga un JSON con errores capturados + snapshot mínimo del estado (counts, sync, versión) + info técnica (user agent, online). Compartilo si reportás un bug — acelera el diagnóstico.'},
+        {type:'improve', title:'aplicarDeltas con límites', desc:'Helper extendido que aplica cambios de saldo + uso de límite diario en una sola llamada atómica. Usado en agregarOperacion — simplifica el path más complejo (split + límite USD).'}
+    ]},
+    {version:'4.7.3', date:'2026-04-17', headline:'🎨 Barra lateral de límite rediseñada: línea fina al borde, gradiente progresivo, tap para ver %.', changes:[
+        {type:'improve', title:'Línea al borde, no widget', desc:'La barra de límite pasa de ser un contenedor con track gris a una línea fina de 3px pegada al borde derecho — espejo visual de las líneas de color en Compras/Ventas.'},
+        {type:'improve', title:'Gradiente progresivo 5-stops', desc:'Color interpolado según % de uso: azul (bajo) → verde → amarillo → naranja → rojo (crítico). La transición es continua, no por umbrales bruscos.'},
+        {type:'improve', title:'Glow sutil', desc:'La barra tiene un halo suave del mismo color para destacar estados altos sin gritar. Animación de 350ms con curva ease cuando cambia el % o el color.'},
+        {type:'feature', title:'Tap para ver detalle', desc:'Al tocar la barra lateral, aparece por 2 segundos un badge con el % exacto y el disponible (US$X). En desktop se muestra al hacer hover. No agrega texto fijo a la tarjeta.'}
+    ]},
+    {version:'4.7.2', date:'2026-04-17', headline:'🔧 Auditoría técnica: 13 fixes de integridad, timezone, consistencia y performance.', changes:[
+        {type:'fix', title:'Filtro "Ayer" y "7 días" ahora respeta timezone de Uruguay', desc:'Los filtros usaban UTC con toISOString, lo que desfasaba día para usuarios a las 21-23h local o 00-03h. Ahora usan getUDate (UTC-3) consistente con el resto de la app.'},
+        {type:'fix', title:'Editar transferencia con límite excedido', desc:'Antes, si el nuevo monto excedía el límite diario tras revertir el original, la app retornaba dejando el saldo inconsistente. Ahora valida deltas netos ANTES de mutar nada.'},
+        {type:'fix', title:'Migración legacy incluye lotes sin moneda', desc:'Los lotes viejos sin campo moneda causaban que la migración se ejecutara en cada snapshot sin resolverlos. Ahora se normalizan a UYU en el primer run.'},
+        {type:'fix', title:'guardarDatos ya no hace loop durante stale-version', desc:'Tras un stale-version, el finally podía recursar sobre datos desactualizados. Ahora se pospone al próximo snapshot merge.'},
+        {type:'fix', title:'Editar operación con split bloqueado correctamente', desc:'Antes solo se bloqueaba con aportes.length>1 — ahora cualquier split (incluyendo el caso degenerado de 1 aporte) se bloquea.'},
+        {type:'improve', title:'previewFIFO filtra por moneda', desc:'Consistente con consumirFIFO: no mezcla lotes UYU y USD.'},
+        {type:'improve', title:'Cache para calcularGananciaTotal', desc:'Extiende el cache existente — evita recalcular en cada llamada desde resumen mensual y dashboard.'},
+        {type:'improve', title:'Cache para getDayStats', desc:'Mapa en memoria invalidado por cacheKey. El calendario con día seleccionado deja de recalcular en cada render.'},
+        {type:'improve', title:'Branch 3 (echo) sale temprano', desc:'Los snapshots de echo de nuestra propia escritura ya no disparan re-render completo.'},
+        {type:'improve', title:'backupToLocal solo con cambios pendientes', desc:'Evita writes a localStorage innecesarios. Reduce lag en Android de gama baja.'},
+        {type:'improve', title:'Import JSON valida tipos numéricos', desc:'Detecta montos/tasas no numéricos y alerta al usuario antes de corromper el estado.'},
+        {type:'improve', title:'ultimoMesProcesado elige el más nuevo en merge', desc:'Comparación por valor en lugar de OR, evita que un device con fecha vieja pise el snapshot automático.'},
+        {type:'improve', title:'Código muerto limpio', desc:'Rama redundante en guardarMovimiento eliminada.'}
+    ]},
     {version:'4.7.1', date:'2026-04-17', headline:'🛟 Exportar/Importar JSON + búsqueda exhaustiva de respaldos locales.', changes:[
         {type:'feature', title:'Exportar datos a archivo JSON', desc:'Nuevo botón en Configuración → Sistema. Descarga un archivo .json con todos los datos (operaciones, movimientos, bancos, lotes, etc.) + metadata. Guardalo en Drive/email como respaldo propio que no depende del caché del navegador.'},
         {type:'feature', title:'Importar desde JSON', desc:'Permite cargar un .json exportado desde este u otro dispositivo. Valida estructura, rechaza estados vacíos, avisa si el archivo pertenece a otro usuario y muestra resumen antes de aplicar.'},
@@ -1493,6 +1556,16 @@ async function reconnectFirebase(){
 function inicializarConectividad(){
     window.addEventListener('online',()=>{if(AppState.currentUser&&AppState.ui.syncState==='offline')reconnectFirebase()});
     window.addEventListener('offline',()=>setSyncStatus('offline'));
+    /* Flush del debounce al perder foco — evita que cambios queden en buffer al cerrar pestaña/app */
+    document.addEventListener('visibilitychange',()=>{
+        if(document.visibilityState==='hidden'&&AppState.currentUser)flushGuardaDebounce();
+    });
+    window.addEventListener('beforeunload',()=>{
+        if(AppState.currentUser)flushGuardaDebounce();
+    });
+    window.addEventListener('pagehide',()=>{
+        if(AppState.currentUser)flushGuardaDebounce();
+    });
 }
 
 /* ═══ Monthly Summary — Snapshot automático al cambio de mes ═══ */
@@ -2117,13 +2190,15 @@ function aplicarOpsFilters(ops){
     if(f.tipo==='all'&&f.banco==='all'&&f.resultado==='all'&&f.fecha==='mes')return ops;
     /* Para filtros de fecha distintos a "mes" usamos la lista completa */
     let src=(f.fecha==='mes')?ops:AppState.datos.operaciones;
-    const hoyStr=getUDateStr();
-    /* Yesterday calculation */
-    const ayer=new Date();ayer.setDate(ayer.getDate()-1);
-    const ayerStr=ayer.toISOString().slice(0,10);
-    /* 7 days ago */
-    const hace7=new Date();hace7.setDate(hace7.getDate()-6);
-    const hace7Str=hace7.toISOString().slice(0,10);
+    /* CRÍTICO: usar getUDate() (timezone Uruguay, UTC-3) — NO new Date() + toISOString() 
+       que retorna UTC. Un usuario a las 21:00 local vería "ayer" desfasado por 3h. */
+    const fmtUY=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const hoyUY=getUDate();
+    const hoyStr=fmtUY(hoyUY);
+    const ayerUY=new Date(hoyUY.getTime()-86400000);
+    const ayerStr=fmtUY(ayerUY);
+    const hace7UY=new Date(hoyUY.getTime()-6*86400000);
+    const hace7Str=fmtUY(hace7UY);
     return src.filter(op=>{
         if(f.tipo!=='all'&&op.tipo!==f.tipo)return false;
         /* Banco: considera op.banco y aportes si hay split */
@@ -2328,7 +2403,10 @@ function verificarIntegridadGlobal(){
 }
 
 /* Aplica los deltas a los saldos. Asume que ya pasaron validarDeltas().
-   Tras aplicar, fixNeg() es safety net contra -0 epsilon. */
+   Tras aplicar, fixNeg() es safety net contra -0 epsilon.
+   deltas.bancos: {nombre: deltaSaldo}
+   deltas.limitesUSD: {nombre: deltaLimiteUsado}  (opcional, + aumenta uso, - lo reduce)
+*/
 function aplicarDeltas(deltas){
     deltas=deltas||{};
     if(deltas.bancos){
@@ -2338,6 +2416,26 @@ function aplicarDeltas(deltas){
             bk.saldo=fixNeg(roundMoney(bk.saldo+delta));
         }
     }
+    if(deltas.limitesUSD){
+        for(const [nombre,delta] of Object.entries(deltas.limitesUSD)){
+            const bk=AppState.datos.bancos[nombre];
+            if(!bk||!(bk.limiteDiarioUSD>0))continue;
+            const nuevo=roundMoney((bk.limiteUsadoUSD||0)+delta);
+            bk.limiteUsadoUSD=Math.max(0,Math.min(bk.limiteDiarioUSD,nuevo));
+        }
+    }
+}
+
+/* Helper: convierte monto en UYU (o USD) a su equivalente en USD para tracking de límite diario.
+   Si el banco es USD, el monto ya está en USD. Si es UYU, divide por ultimaTasaCompra. 
+   Si no hay tasa válida, devuelve 0 (no se trackea). */
+function _montoEnUSDLimite(bancoNombre,monto){
+    if(!monto||monto<=0)return 0;
+    const bi=getBancoInfo(bancoNombre);
+    if(bi?.moneda==='USD')return roundMoney(monto);
+    const tasa=AppState.datos.ultimaTasaCompra;
+    if(!tasa||tasa<=0)return 0;
+    return roundMoney(monto/tasa);
 }
 
 /* ═══ Conversión unificada de movimientos a UYU ═══
@@ -2975,17 +3073,44 @@ function actualizarBancosGrid(){
         const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
         let gaugeHtml='',limTxt='',hasGauge=false;
         if(lim>0){
-            /* Barra vertical: representa uso del límite diario (frío→caliente) */
             hasGauge=true;
             const pct=Math.min(100,Math.max(0,(us/lim)*100));
-            let fc='safe';if(pct>=90)fc='danger';else if(pct>=60)fc='warning';
+            const color=_gaugeColor(pct);
             const disp=Math.max(0,lim-us);
-            gaugeHtml=`<div class="banco-gauge" title="${fmtNum(pct,0)}% del límite diario usado"><div class="banco-gauge-fill ${fc}" style="height:${pct}%"></div></div>`;
+            /* Altura mínima 8% para que siempre haya un rastro visible (incluso a 0% se ve un punto) */
+            const visualH=pct<=0.5?0:Math.max(8,pct);
+            gaugeHtml=`<div class="banco-gauge"><div class="banco-gauge-fill" style="height:${visualH}%;background:${color};box-shadow:0 0 6px ${color}44"></div></div>`
+                +`<div class="banco-gauge-tip">${fmtNum(pct,0)}% · US$${fmtNum(disp,0)}</div>`;
             limTxt=`<div class="banco-limite-txt">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div>`;
         }
         h+=`<div class="banco-mini-card${hasGauge?' has-gauge':''}" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${gaugeHtml}</div>`;
     });
     setHtml('bancosGrid',h);
+}
+
+/* Interpolación progresiva de color por porcentaje de uso del límite.
+   Escala 5-stops: azul (bajo) → verde → amarillo → naranja → rojo (crítico).
+   La transición entre colores es suave (mix lineal RGB entre stops consecutivos). */
+function _gaugeColor(pct){
+    /* Clamp */
+    const p=Math.max(0,Math.min(100,pct));
+    /* Stops: [pct, r, g, b] */
+    const stops=[
+        [0,   59, 130, 246],  /* #3b82f6 — azul, uso bajo */
+        [30,  34, 197,  94],  /* #22c55e — verde, normal */
+        [60, 250, 204,  21],  /* #facc15 — amarillo, alerta */
+        [80, 249, 115,  22],  /* #f97316 — naranja, alto */
+        [95, 220,  38,  38]   /* #dc2626 — rojo, crítico */
+    ];
+    /* Encontrar segmento */
+    let i=0;while(i<stops.length-1&&p>stops[i+1][0])i++;
+    const a=stops[i],b=stops[Math.min(i+1,stops.length-1)];
+    const range=b[0]-a[0];
+    const t=range>0?(p-a[0])/range:0;
+    const r=Math.round(a[1]+(b[1]-a[1])*t);
+    const g=Math.round(a[2]+(b[2]-a[2])*t);
+    const bl=Math.round(a[3]+(b[3]-a[3])*t);
+    return `rgb(${r},${g},${bl})`;
 }
 
 function renderizarListaBancos(){
@@ -3032,8 +3157,11 @@ function consumirFIFO(cant,precioVenta,monedaVenta){
         l.disponible=truncUsdt(l.disponible-c);if(l.disponible<0.005)l.disponible=0;rest=truncUsdt(rest-c);if(rest<0.005)rest=0}
     return{ganancia:gan,costo,consumed};
 }
-function previewFIFO(cant){
-    let rest=truncUsdt(cant);const lotes=getLotesActivosFIFO(),res=[];
+function previewFIFO(cant,moneda){
+    let rest=truncUsdt(cant);
+    const monedaTarget=moneda||'UYU';
+    const lotes=getLotesActivosFIFO().filter(l=>(l.moneda||'UYU')===monedaTarget);
+    const res=[];
     for(const l of lotes){if(rest<=0)break;const c=truncUsdt(Math.min(l.disponible,rest));
         res.push({precio:l.precioCompra,cantidad:c,subtotal:roundMoney(c*l.precioCompra)});rest=truncUsdt(rest-c);if(rest<0.005)rest=0}
     return res;
@@ -3130,7 +3258,34 @@ const _syncQueue=[];/* [{type:'create'|'delete'|'update',entity:string,id:string
 function enqueueSync(type,entity,id){_syncQueue.push({type,entity,id,ts:Date.now()})}
 function clearSyncQueue(){_syncQueue.length=0;_localDirty=0}
 function hasPendingLocal(){return _syncQueue.length>0||_localDirty>0||_guardando||_guardarPendiente}
-function guardaOptimista(type,entity,id){if(type&&entity&&id)enqueueSync(type,entity,id);guardarDatos().catch(e=>console.error('[P2P] Sync error:',e))}
+/* Debounce: agrupa cambios rápidos (typing, sliders) en una sola escritura a Firebase.
+   Window de 400ms — si la última mutación fue hace <400ms, espera.
+   Si se superan 2000ms acumulados, flushea igual (safety net contra keyboards lentos). */
+let _guardaDebounceTimer=null,_guardaFirstPendingTs=0;
+function guardaOptimista(type,entity,id){
+    if(type&&entity&&id)enqueueSync(type,entity,id);
+    const now=Date.now();
+    if(!_guardaFirstPendingTs)_guardaFirstPendingTs=now;
+    clearTimeout(_guardaDebounceTimer);
+    /* Flush forzado si pasaron >2s desde el primer pending */
+    const elapsed=now-_guardaFirstPendingTs;
+    const delay=elapsed>=2000?0:400;
+    _guardaDebounceTimer=setTimeout(()=>{
+        _guardaDebounceTimer=null;
+        _guardaFirstPendingTs=0;
+        guardarDatos().catch(e=>console.error('[P2P] Sync error:',e));
+    },delay);
+}
+/* Flush inmediato — usar antes de cerrar sesión / visibilitychange / beforeunload */
+function flushGuardaDebounce(){
+    if(_guardaDebounceTimer){
+        clearTimeout(_guardaDebounceTimer);
+        _guardaDebounceTimer=null;
+        _guardaFirstPendingTs=0;
+        return guardarDatos().catch(e=>console.error('[P2P] Sync error:',e));
+    }
+    return Promise.resolve();
+}
 
 /* ─── Merge: NEVER drops local-only entities ─── */
 function mergeRemoteState(d){
@@ -3180,7 +3335,7 @@ function mergeRemoteState(d){
     AppState.datos.tasasRecientes=d.tasasRecientes||AppState.datos.tasasRecientes;
     AppState.datos.comisionPlataforma=d.comisionPlataforma!==undefined?d.comisionPlataforma:AppState.datos.comisionPlataforma;
     AppState.datos.comisionUSD=d.comisionUSD!==undefined?d.comisionUSD:AppState.datos.comisionUSD;
-    AppState.datos.ultimoMesProcesado=d.ultimoMesProcesado||AppState.datos.ultimoMesProcesado;
+    AppState.datos.ultimoMesProcesado=d.ultimoMesProcesado&&d.ultimoMesProcesado>(AppState.datos.ultimoMesProcesado||'')?d.ultimoMesProcesado:(AppState.datos.ultimoMesProcesado||d.ultimoMesProcesado||'');
     /* lastSeenVersion: aceptar el más alto entre local y remoto (multi-device sync) */
     const remoteSeen=d.lastSeenVersion||'';
     const localSeen=AppState.datos.lastSeenVersion||'';
@@ -3304,7 +3459,9 @@ async function guardarDatos(forzar){
     if(_guardando){_guardarPendiente=true;return}
     _guardando=true;_syncPending++;updateSyncBadge();
     setSyncStatus('syncing',_syncPending>1?'Sincronizando '+_syncPending+'…':'Sincronizando…');
-    backupToLocal();
+    /* Backup solo si hay cambios reales pendientes — evita writes inútiles a localStorage 
+       en cada save (bloqueo síncrono en Android de gama baja). */
+    if(_syncQueue.length>0||forzar)backupToLocal();
     const ref=AppState.db.collection('users').doc(AppState.currentUser.uid);
     try{
         if(navigator.onLine){
@@ -3352,7 +3509,10 @@ async function guardarDatos(forzar){
         }
     }finally{
         _guardando=false;
-        if(_guardarPendiente){_guardarPendiente=false;guardarDatos()}
+        /* No re-consumir _guardarPendiente si estamos stale — el merge del snapshot siguiente
+           disparará un guardaOptimista('merge',...) que hará el retry. Evita loop sobre 
+           datos desactualizados. */
+        if(_guardarPendiente&&!AppState._datosStale){_guardarPendiente=false;guardarDatos()}
     }
 }
 
@@ -3411,7 +3571,15 @@ function cargarDatosUsuario(){
                     if(pending)guardaOptimista('merge','state','reconcile');
                 }
             }
-            /* Branch 3: serverVersion <= localVersion → echo of our own write, ignore */
+            /* Branch 3: serverVersion <= localVersion → echo of our own write, ignore.
+               Si no estamos stale y no hay pending, podemos salir sin re-renderizar. */
+            else if(serverVersion<=AppState._localVersion){
+                if(!fromCache&&!hasPending&&!pending&&!AppState._datosStale&&!AppState._restoredFrom){
+                    /* Echo puro — no hay nada que actualizar en UI */
+                    if(!remoteEmpty)clearLocalBackup();
+                    return;
+                }
+            }
 
             if(!fromCache&&AppState._datosStale){
                 AppState._datosStale=false;
@@ -3437,6 +3605,8 @@ function cargarDatosUsuario(){
         const hasLegacyLotes=AppState.datos.lotes.some(l=>!l.moneda);
         const hasLegacyOps=AppState.datos.operaciones.some(op=>op.ganancia===undefined);
         if(hasLegacyLotes||hasLegacyOps){
+            /* Normalizar lotes sin moneda → 'UYU' (convención histórica) */
+            AppState.datos.lotes.forEach(l=>{if(!l.moneda)l.moneda='UYU'});
             AppState.datos.operaciones.forEach(op=>{
                 if(!op.tasa||op.tasa<=0)return;
                 const exp=usdtBase(op.monto/op.tasa,op.tipo);
@@ -3467,6 +3637,120 @@ function cargarDatosUsuario(){
 
 function showApp(u){AppState.currentUser=u;const uname=emailToUser(u.email);setText('menuUserName',uname);setText('menuUserEmail',u.email);$('menuUserAvatar').textContent=(uname[0]||'U').toUpperCase();$('authContainer').classList.add('hidden');$('appContainer').classList.add('active');cargarDatosUsuario()}
 function showAuth(){AppState.currentUser=null;$('authContainer')?.classList.remove('hidden');$('appContainer')?.classList.remove('active');['loginBtn','registerBtn'].forEach(id=>{const b=$(id);if(b){b.disabled=false;b.textContent=id==='loginBtn'?'Iniciar Sesión':'Crear Cuenta'}});['loginUser','loginPass','regUser','regPass','regPassConfirm'].forEach(id=>{const e=$(id);if(e)e.value=''});ocultarLoading()}
+
+/* ═══════════════════════════════════════════════════════════════════
+   §ERR — Error boundary + telemetría local
+   ═══════════════════════════════════════════════════════════════════
+   Captura errores no manejados. Los guarda en localStorage (circular buffer de 50
+   entradas) bajo 'p2p_errlog'. El usuario puede exportarlos con "Diagnóstico" en
+   el menú Sistema para enviarlos si reporta un bug.
+*/
+const _ERRLOG_KEY='p2p_errlog';
+const _ERRLOG_MAX=50;
+function _readErrLog(){
+    try{const raw=localStorage.getItem(_ERRLOG_KEY);return raw?JSON.parse(raw):[]}catch(e){return[]}
+}
+function _writeErrLog(arr){
+    try{localStorage.setItem(_ERRLOG_KEY,JSON.stringify(arr.slice(-_ERRLOG_MAX)))}catch(e){}
+}
+function registrarError(tipo,detalle){
+    try{
+        const log=_readErrLog();
+        log.push({
+            ts:new Date().toISOString(),
+            tipo:tipo||'unknown',
+            detalle:(detalle||'').toString().slice(0,800),
+            user:AppState.currentUser?emailToUser(AppState.currentUser.email):null,
+            version:CONFIG.APP_VERSION,
+            ua:navigator.userAgent.slice(0,120),
+            url:location.hash||''
+        });
+        _writeErrLog(log);
+    }catch(e){/* no-op */}
+}
+function instalarErrorBoundary(){
+    window.addEventListener('error',e=>{
+        registrarError('window.error',
+            (e.message||'?')+' @ '+(e.filename||'').split('/').pop()+':'+(e.lineno||'?')
+        );
+        /* No prevenir default — dejar que el navegador lo loguee también */
+    });
+    window.addEventListener('unhandledrejection',e=>{
+        const reason=e.reason;
+        const msg=reason?(reason.message||reason.code||JSON.stringify(reason).slice(0,300)):'(no reason)';
+        registrarError('promise.rejection',msg);
+    });
+    /* Wrap console.error para capturar errores de sync y lógica no-throw */
+    const origConsoleError=console.error.bind(console);
+    console.error=(...args)=>{
+        try{
+            const msg=args.map(a=>{
+                if(a instanceof Error)return a.message;
+                if(typeof a==='object')return JSON.stringify(a).slice(0,200);
+                return String(a);
+            }).join(' ');
+            /* Solo loguear si parece un error real (evitar ruido de debug) */
+            if(msg.includes('[P2P]')||msg.includes('error')||msg.includes('Error')){
+                registrarError('console.error',msg);
+            }
+        }catch(e){}
+        origConsoleError(...args);
+    };
+}
+/* Exportar log + snapshot de estado mínimo para diagnóstico */
+function exportarDiagnostico(){
+    try{
+        const log=_readErrLog();
+        const snap=AppState.datos?{
+            counts:{
+                operaciones:(AppState.datos.operaciones||[]).length,
+                movimientos:(AppState.datos.movimientos||[]).length,
+                transferencias:(AppState.datos.transferencias||[]).length,
+                conversiones:(AppState.datos.conversiones||[]).length,
+                lotes:(AppState.datos.lotes||[]).length,
+                bancosActivos:Object.values(AppState.datos.bancos||{}).filter(b=>b&&b.activo).length
+            },
+            _version:AppState.datos._version,
+            _localVersion:AppState._localVersion,
+            _datosStale:AppState._datosStale,
+            _restoredFrom:AppState._restoredFrom||null,
+            syncState:AppState.ui.syncState
+        }:null;
+        const payload={
+            _meta:{
+                app:'P2P Tracker',
+                version:CONFIG.APP_VERSION,
+                exported_at:new Date().toISOString(),
+                user:AppState.currentUser?emailToUser(AppState.currentUser.email):'(no login)',
+                ua:navigator.userAgent,
+                online:navigator.onLine,
+                storageOk:(function(){try{localStorage.setItem('_t','1');localStorage.removeItem('_t');return true}catch(e){return false}})()
+            },
+            snapshot:snap,
+            errores:log
+        };
+        const json=JSON.stringify(payload,null,2);
+        const blob=new Blob([json],{type:'application/json'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        const uname=AppState.currentUser?emailToUser(AppState.currentUser.email):'anon';
+        const fecha=new Date().toISOString().slice(0,10);
+        a.href=url;a.download=`p2p-diagnostico-${uname}-${fecha}.json`;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setTimeout(()=>alert(`✅ Diagnóstico exportado.\n\n`
+            +`• Errores capturados: ${log.length}\n`
+            +`• Versión: ${CONFIG.APP_VERSION}\n\n`
+            +`Compartí este archivo si reportás un bug — contiene info técnica que ayuda a diagnosticar el problema.`),100);
+    }catch(e){
+        console.error('[P2P] Error exportando diagnóstico:',e);
+        alert('❌ Error exportando diagnóstico: '+(e.message||'desconocido'));
+    }
+}
+function limpiarLogErrores(){
+    if(!confirm('¿Borrar el log de errores local?\n\nEsto solo afecta los datos de diagnóstico, no tus datos de la app.'))return;
+    try{localStorage.removeItem(_ERRLOG_KEY);alert('✅ Log de errores borrado.')}catch(e){alert('Error: '+e.message)}
+}
 
 function inicializarFirebase(){
     if(typeof firebase==='undefined'){ocultarLoading();return}
@@ -3800,17 +4084,18 @@ async function agregarOperacion(){
     try{
         const opId=uid();
         if(t==='compra'){
+            /* Construir deltas: saldos + límite USD (solo al banco principal) */
+            const deltas={bancos:{},limitesUSD:{}};
             if(isSplit){
-                /* Descontar saldo de cada banco aportante */
-                aportes.forEach(a=>{AppState.datos.bancos[a.banco].saldo=fixNeg(AppState.datos.bancos[a.banco].saldo-a.monto)});
-                /* Límite diario solo al banco principal (convención actual) */
-                if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta);AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,roundMoney((AppState.datos.bancos[b].limiteUsadoUSD||0)+mU))}
+                aportes.forEach(a=>{deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)-a.monto});
             }else{
-                AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo-(m+cb));
-                if(AppState.datos.bancos[b].limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta);AppState.datos.bancos[b].limiteUsadoUSD=Math.min(AppState.datos.bancos[b].limiteDiarioUSD,roundMoney((AppState.datos.bancos[b].limiteUsadoUSD||0)+mU))}
+                deltas.bancos[b]=-(m+cb);
             }
+            const mU=_montoEnUSDLimite(b,isSplit?m:m);
+            if(mU>0)deltas.limitesUSD[b]=mU;
+            aplicarDeltas(deltas);
         }else{
-            AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+m);
+            aplicarDeltas({bancos:{[b]:m}});
         }
         const opRecord={id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:0,timestamp:new Date().toISOString()};
         /* Persistir aportes para trazabilidad y reverso correcto en delete/edit */
@@ -3880,7 +4165,9 @@ async function eliminarOperacion(id){
 
 function abrirEditarOperacion(id){
     const op=AppState.datos.operaciones.find(o=>o.id===id);if(!op)return;
-    if(Array.isArray(op.aportes)&&op.aportes.length>1){
+    /* Cualquier operación con aportes (split pago) no puede editarse directamente — 
+       hay que eliminar y recrear para mantener la coherencia de los saldos por banco */
+    if(Array.isArray(op.aportes)&&op.aportes.length>0){
         alert('Esta operación se pagó con múltiples cuentas. Por ahora no se puede editar directamente — eliminala y recreala si necesitás cambiarla.');
         return;
     }
@@ -4102,10 +4389,9 @@ async function guardarMovimiento(){
             original.tasaRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0;
             original.descripcion=desc;
             original.updatedAt=new Date().toISOString();
-            /* valorUYU: solo relevante para egresos USDT — se recalcula en replay. 
-               Limpiar explícitamente para evitar que un valor viejo persista si tc cambió de usdt→banco */
-            if(tc!=='usdt')original.valorUYU=0;
-            else original.valorUYU=0; /* Siempre 0 antes del replay; replay lo recalcula */
+            /* valorUYU: siempre 0 antes del replay FIFO — se recalcula solo para egresos USDT.
+               Si el tc cambió de usdt→banco, el valor viejo queda irrelevante (igual 0). */
+            original.valorUYU=0;
             /* 3. Aplicar nuevo impacto bancario */
             if(tc==='banco'&&AppState.datos.bancos[b]){
                 AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?mR:-mR));
@@ -4246,6 +4532,47 @@ async function realizarTransferencia(){
     if(editing){
         const t=cross?pv('transfTasa'):0;
         if(cross&&(!t||t<=0))return alert('Ingresá una tasa de conversión válida');
+        /* INTEGRIDAD: calcular deltas netos (revertir + aplicar) y validar ANTES de mutar.
+           Esto evita el bug de dejar el estado revertido si el nuevo impacto excede límite. */
+        const netoDeltas={bancos:{}};
+        /* Revertir impacto original (suma a deltas) */
+        if(origIsConv){
+            netoDeltas.bancos[original.origen]=(netoDeltas.bancos[original.origen]||0)+original.montoOrigen;
+            netoDeltas.bancos[original.destino]=(netoDeltas.bancos[original.destino]||0)-original.montoDestino;
+        }else{
+            netoDeltas.bancos[original.origen]=(netoDeltas.bancos[original.origen]||0)+(original.monto+(original.comision||0));
+            netoDeltas.bancos[original.destino]=(netoDeltas.bancos[original.destino]||0)-original.monto;
+        }
+        /* Aplicar nuevo impacto */
+        if(cross){
+            const oi2=getBancoInfo(o),di2=getBancoInfo(d);
+            const montoRecibido2=oi2.moneda==='UYU'&&di2.moneda==='USD'?roundMoney(m/t):roundMoney(m*t);
+            netoDeltas.bancos[o]=(netoDeltas.bancos[o]||0)-m;
+            netoDeltas.bancos[d]=(netoDeltas.bancos[d]||0)+montoRecibido2;
+        }else{
+            netoDeltas.bancos[o]=(netoDeltas.bancos[o]||0)-(m+c);
+            netoDeltas.bancos[d]=(netoDeltas.bancos[d]||0)+m;
+        }
+        const valEdit=validarDeltas(netoDeltas);
+        if(!valEdit.ok){alert('🚫 No se puede guardar este cambio:\n\n'+valEdit.reason);return}
+        /* Validar límite diario nuevo (si corresponde) ANTES de tocar nada */
+        if(!cross&&AppState.datos.bancos[o].limiteDiarioUSD>0){
+            const bi=getBancoInfo(o);
+            let mU=0;
+            if(bi?.moneda==='USD')mU=m+c;
+            else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);
+            /* Calcular uso "efectivo" tras revertir el original: si el original era del mismo banco origen, se descuenta su uso */
+            let usoActual=AppState.datos.bancos[o].limiteUsadoUSD||0;
+            if(!origIsConv&&original.origen===o&&AppState.datos.ultimaTasaCompra>0){
+                const biOrig=getBancoInfo(original.origen);
+                let mUorig=0;
+                if(biOrig?.moneda==='USD')mUorig=original.monto+(original.comision||0);
+                else mUorig=roundMoney((original.monto+(original.comision||0))/AppState.datos.ultimaTasaCompra);
+                usoActual=Math.max(0,usoActual-mUorig);
+            }
+            const dU=roundMoney(AppState.datos.bancos[o].limiteDiarioUSD-usoActual);
+            if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}
+        }
         btn.disabled=true;btn.textContent='Guardando...';AppState.ui.guardandoTransferencia=true;
         try{
             /* 1. Revertir impacto del registro original */
@@ -4278,8 +4605,6 @@ async function realizarTransferencia(){
                 if(!origIsConv)guardaOptimista('delete','transferencias',editId);
                 showSuccess({amount:getSym(di.moneda)+fmtNum(montoRecibido),message:'Conversión actualizada con éxito',sub:o+' → '+d});
             }else{
-                /* Validación límite diario para transferencia editada */
-                if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);const dU=roundMoney(AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Guardar cambios';return}}
                 /* Si era conversión → remover de conversiones, agregar a transferencias */
                 if(origIsConv){
                     AppState.datos.conversiones=AppState.datos.conversiones.filter(x=>x.id!==editId);
@@ -4384,7 +4709,7 @@ function _gananciaCacheKey(monedaFiltro){
     const bump=AppState.ui._cacheBump||0;
     return (monedaFiltro||'_all')+'|'+v+'|'+opsLen+'|'+movsLen+'|'+bump;
 }
-function invalidarGananciaCache(){_gananciaCache.diaria=null;_gananciaCache.total=null;_gananciaCache.key=null;AppState.ui._cacheBump=(AppState.ui._cacheBump||0)+1}
+function invalidarGananciaCache(){_gananciaCache.diaria=null;_gananciaCache.total=null;_gananciaCache.key=null;_gananciaCache.keyTotal=null;AppState.ui._cacheBump=(AppState.ui._cacheBump||0)+1}
 /* ═══ Ingresos externos (separados de ganancia P2P) ═══
    Suma monto en UYU de TODOS los ingresos registrados desde Ajustes
    (banco UYU, banco USD convertido, USDT con tasaRef).
@@ -4425,6 +4750,9 @@ function calcularGananciaDiaria(monedaFiltro){
     return g;
 }
 function calcularGananciaTotal(monedaFiltro){
+    /* Usa el mismo sistema de cache que calcularGananciaDiaria — invalidado en cada mutación */
+    const key=_gananciaCacheKey(monedaFiltro)+'|total';
+    if(_gananciaCache.total&&_gananciaCache.keyTotal===key)return _gananciaCache.total;
     let g=0;AppState.datos.operaciones.forEach(op=>{
         if(monedaFiltro&&op.moneda!==monedaFiltro)return;
         if(!monedaFiltro&&op.moneda==='USD')return;
@@ -4433,11 +4761,16 @@ function calcularGananciaTotal(monedaFiltro){
         const tasaFb=AppState.datos.ultimaTasaCompra||1;
         AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso')g=roundMoney(g-movimientoValorUYU(mv,tasaFb))});
     }
+    _gananciaCache.total=g;_gananciaCache.keyTotal=key;
     return g;
 }
 
+const _dayStatsCache={data:new Map(),key:null};
 function getDayStats(fecha){
     if(!fecha)return null;
+    const cacheKey=_gananciaCacheKey('_ds');
+    if(_dayStatsCache.key!==cacheKey){_dayStatsCache.data.clear();_dayStatsCache.key=cacheKey}
+    if(_dayStatsCache.data.has(fecha))return _dayStatsCache.data.get(fecha);
     const ops=AppState.datos.operaciones.filter(o=>o.fecha===fecha&&o.moneda!=='USD');
     const movs=AppState.datos.movimientos.filter(m=>m.fecha===fecha);
     const trans=AppState.datos.transferencias.filter(t=>t.fecha===fecha);
@@ -4454,7 +4787,9 @@ function getDayStats(fecha){
     let gastos=0;
     movs.forEach(m=>{if(m.tipoMovimiento==='egreso')gastos=roundMoney(gastos+movimientoValorUYU(m,tasaFb))});
     const gananciaNeta=roundMoney(gananciaOps-gastos);
-    return{fecha,ops:ops.length,compras,ventas,montoCompras,montoVentas,ajustes:movs.length,transferencias:trans.length,spread,gananciaOps,gastos,gananciaNeta,tasaPromC,tasaPromV};
+    const result={fecha,ops:ops.length,compras,ventas,montoCompras,montoVentas,ajustes:movs.length,transferencias:trans.length,spread,gananciaOps,gastos,gananciaNeta,tasaPromC,tasaPromV};
+    _dayStatsCache.data.set(fecha,result);
+    return result;
 }
 function mostrarDetalleDia(fecha){
     AppState.ui.calSelectedDay=fecha;
@@ -5005,6 +5340,25 @@ function importarDatos(){
                 }
                 /* Normalizar campos faltantes para que la app no reviente */
                 camposRequeridos.forEach(c=>{if(datos[c]===undefined)datos[c]=(c==='bancos')?{}:[]});
+                /* Validación de tipos: los arrays deben serlo, bancos debe ser objeto */
+                const tiposMal=[];
+                ['operaciones','movimientos','transferencias','conversiones','lotes'].forEach(c=>{
+                    if(!Array.isArray(datos[c]))tiposMal.push(c);
+                });
+                if(typeof datos.bancos!=='object'||Array.isArray(datos.bancos))tiposMal.push('bancos');
+                if(tiposMal.length){alert('❌ Archivo con tipos inválidos en: '+tiposMal.join(', '));return}
+                /* Validar que los montos numéricos sean realmente números */
+                let numericosMal=0;
+                (datos.operaciones||[]).forEach(op=>{
+                    if(typeof op.monto!=='number'||!isFinite(op.monto))numericosMal++;
+                    if(op.tasa!==undefined&&(typeof op.tasa!=='number'||!isFinite(op.tasa)))numericosMal++;
+                });
+                (datos.movimientos||[]).forEach(m=>{
+                    if(typeof m.monto!=='number'||!isFinite(m.monto))numericosMal++;
+                });
+                if(numericosMal>0){
+                    if(!confirm(`⚠️ Se detectaron ${numericosMal} campos numéricos inválidos en el archivo. Esto puede causar errores de cálculo.\n\n¿Importar de todos modos?`))return;
+                }
                 if(esDatosVacios(datos)){
                     alert('⚠️ El archivo contiene un estado vacío. No se importará — sería destructivo.');return;
                 }
@@ -5098,8 +5452,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='restaurar-respaldo')restaurarRespaldoManual();
         else if(a==='exportar-datos')exportarDatos();
         else if(a==='importar-datos')importarDatos();
+        else if(a==='exportar-diagnostico')exportarDiagnostico();
         else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;clearTimeout(_retryTimer);AppState.auth.signOut()}}
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
     });
 
     // Toggle sections
@@ -5206,6 +5561,23 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     // Delegación de eventos para contenido dinámico
     document.addEventListener('click',e=>{
+        /* Tap en el gauge de banco → mostrar tip en lugar de abrir modal de edición */
+        const gaugeTap=e.target.closest('.banco-gauge');
+        if(gaugeTap){
+            const card=gaugeTap.closest('.banco-mini-card.has-gauge');
+            if(card){
+                e.stopPropagation();
+                e.preventDefault();
+                /* Ocultar cualquier otro tip visible */
+                document.querySelectorAll('.banco-mini-card.show-tip').forEach(c=>{
+                    if(c!==card)c.classList.remove('show-tip');
+                });
+                card.classList.add('show-tip');
+                clearTimeout(AppState.ui._gaugeTipTimer);
+                AppState.ui._gaugeTipTimer=setTimeout(()=>card.classList.remove('show-tip'),2200);
+                return;
+            }
+        }
         const t=e.target.closest('[data-action]');if(!t)return;
         const a=t.dataset.action,id=parseInt(t.dataset.id),banco=t.dataset.banco,loteId=parseInt(t.dataset.loteId);
         if(a==='eliminar-op')eliminarOperacion(id);
@@ -5334,7 +5706,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.modal.active').forEach(m=>m.classList.remove('active'));document.body.style.overflow='';$('menuPanel')?.classList.remove('active');$('menuBackdrop')?.classList.remove('active');$('menuBtn')?.classList.remove('active')}});
 
     // Init
-    actualizarFormulario();actualizarColorSelect();inicializarFirebase();
+    actualizarFormulario();actualizarColorSelect();instalarErrorBoundary();inicializarFirebase();
     setInterval(()=>{if(!AppState.currentUser)return;verificarResetLimites();actualizarVista();verificarCambioMes()},60000);
 });
     </script>
