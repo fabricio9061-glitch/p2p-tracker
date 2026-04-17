@@ -207,7 +207,8 @@
 
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
-        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px 16px 10px 10px;cursor:pointer;position:relative;overflow:hidden}
+        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
+        .banco-mini-card.has-gauge{padding-right:16px}
         /* Barra compacta: total bancario */
         .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
         .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
@@ -224,26 +225,23 @@
         .banco-gauge-fill.safe{background:linear-gradient(180deg,#22c55e,#16a34a)}
         .banco-gauge-fill.warning{background:linear-gradient(180deg,#fbbf24,#f59e0b)}
         .banco-gauge-fill.danger{background:linear-gradient(180deg,#f87171,#dc2626)}
-        .banco-gauge-fill.idle{background:#cbd5e1}
-        .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#93c5fd;padding-right:10px}
+        .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#93c5fd}
         .usdt-card .banco-saldo{color:#2563eb}
 
-        /* ═══ Filtros rápidos de operaciones ═══ */
-        .ops-filtros{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}
-        .ops-filtros-row{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px;align-items:center}
-        .ops-filtros-row::-webkit-scrollbar{display:none}
-        .ops-filtros-label{font-size:0.62em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;flex-shrink:0;padding-right:2px;min-width:42px}
-        .ops-chip{flex-shrink:0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 11px;font-size:0.72em;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;user-select:none;transition:all 0.15s;line-height:1.2}
+        /* ═══ Filtros rápidos de operaciones — fila compacta scrolleable ═══ */
+        .ops-filtros{display:flex;align-items:center;gap:5px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:2px 0}
+        .ops-filtros::-webkit-scrollbar{display:none}
+        .ops-filtros-sep{width:1px;height:16px;background:#e2e8f0;flex-shrink:0;margin:0 2px}
+        .ops-chip{flex-shrink:0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 10px;font-size:0.7em;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;user-select:none;transition:all 0.15s;line-height:1.2}
         .ops-chip:active{transform:scale(0.96)}
-        .ops-chip.active{background:#2563eb;border-color:#2563eb;color:white}
+        .ops-chip.active{background:#1e293b;border-color:#1e293b;color:white}
         .ops-chip.active.compra{background:#16a34a;border-color:#16a34a}
         .ops-chip.active.venta{background:#dc2626;border-color:#dc2626}
         .ops-chip.active.ganancia{background:#16a34a;border-color:#16a34a}
         .ops-chip.active.perdida{background:#dc2626;border-color:#dc2626}
         .ops-chip.active.sin-gan{background:#64748b;border-color:#64748b}
-        .ops-filtros-clear{margin-left:auto;flex-shrink:0;background:transparent;border:none;color:#2563eb;font-size:0.7em;font-weight:700;cursor:pointer;padding:4px 8px;border-radius:6px}
-        .ops-filtros-clear:active{background:#eff6ff}
-        .ops-filtros-clear.hidden{display:none}
+        .ops-filtros-clear{flex-shrink:0;background:transparent;border:1px solid #e2e8f0;border-radius:999px;color:#dc2626;font-size:0.68em;font-weight:700;cursor:pointer;padding:5px 9px;line-height:1.2;white-space:nowrap}
+        .ops-filtros-clear:active{background:#fee2e2}
 
         /* ═══ Toggle Sections ═══ */
         .toggle-section{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:15px;overflow:hidden}
@@ -1166,7 +1164,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.5.6',
+    APP_VERSION: '4.5.7',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1199,6 +1197,10 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.5.7', date:'2026-04-16', headline:'Filtros compactos + gauge solo en cuentas con límite real.', changes:[
+        {type:'fix', title:'Filtros rediseñados', desc:'Una sola fila horizontal scrolleable con chips compactos. Sin labels pesados, sin filas múltiples. Tap para activar, tap de nuevo para desactivar. Separadores sutiles entre grupos.'},
+        {type:'fix', title:'Gauge solo con límite', desc:'La barra vertical ahora solo aparece en cuentas con limiteDiarioUSD. Sin barra decorativa ni placeholder "idle" en cuentas sin límite.'}
+    ]},
     {version:'4.5.6', date:'2026-04-16', headline:'Tarjetas con indicador vertical + filtros rápidos en Operaciones.', changes:[
         {type:'feature', title:'Gauge vertical en bancos', desc:'Las tarjetas de cuentas ahora muestran una barra vertical en el borde derecho que indica el uso del límite diario. Verde (seguro), amarillo (alerta) y rojo (crítico). Los bancos sin límite muestran una barra neutral.'},
         {type:'feature', title:'Filtros rápidos de operaciones', desc:'Nueva fila de chips arriba de la lista: filtrá por tipo (Compras/Ventas), banco (detección dinámica, split-aware), resultado (Ganancia/Sin ganancia/Pérdida) y fecha (Mes/7 días/Ayer/Hoy). Los filtros se combinan entre sí.'},
@@ -2091,38 +2093,34 @@ function renderOpsFilters(){
     const c=$('opsFiltros');if(!c)return;
     const f=AppState.ui.opsFilters;
     const chip=(id,val,label,cur,cls)=>`<button class="ops-chip${cur===val?' active'+(cls?' '+cls:''):''}" data-action="ops-filter" data-filter="${id}" data-val="${val}">${label}</button>`;
+    const sep='<div class="ops-filtros-sep"></div>';
     let h='';
-    /* Fila 1: tipo + resultado */
-    h+='<div class="ops-filtros-row">';
-    h+='<span class="ops-filtros-label">Tipo</span>';
-    h+=chip('tipo','all','Todas',f.tipo);
-    h+=chip('tipo','compra','📥 Compras',f.tipo,'compra');
-    h+=chip('tipo','venta','📤 Ventas',f.tipo,'venta');
-    h+='<span style="width:10px;flex-shrink:0"></span>';
-    h+='<span class="ops-filtros-label">Resultado</span>';
-    h+=chip('resultado','all','Todos',f.resultado);
-    h+=chip('resultado','ganancia','✓ Ganancia',f.resultado,'ganancia');
-    h+=chip('resultado','sin-gan','= S/G',f.resultado,'sin-gan');
-    h+=chip('resultado','perdida','✗ Pérdida',f.resultado,'perdida');
-    h+='</div>';
-    /* Fila 2: banco + fecha */
-    h+='<div class="ops-filtros-row">';
-    h+='<span class="ops-filtros-label">Banco</span>';
-    h+=chip('banco','all','Todos',f.banco);
+    /* Tipo */
+    h+=chip('tipo','compra','Compras',f.tipo,'compra');
+    h+=chip('tipo','venta','Ventas',f.tipo,'venta');
+    h+=sep;
+    /* Bancos dinámicos */
     _bancosEnOperaciones().forEach(b=>{h+=chip('banco',b,b,f.banco)});
-    h+='<span style="width:10px;flex-shrink:0"></span>';
-    h+='<span class="ops-filtros-label">Fecha</span>';
-    h+=chip('fecha','mes','Mes',f.fecha);
-    h+=chip('fecha','7dias','7 días',f.fecha);
-    h+=chip('fecha','ayer','Ayer',f.fecha);
+    if(_bancosEnOperaciones().length)h+=sep;
+    /* Resultado */
+    h+=chip('resultado','ganancia','✓ Gan',f.resultado,'ganancia');
+    h+=chip('resultado','perdida','✗ Pér',f.resultado,'perdida');
+    h+=sep;
+    /* Fecha */
     h+=chip('fecha','hoy','Hoy',f.fecha);
-    h+=`<button class="ops-filtros-clear${_opsFiltersActive()?'':' hidden'}" data-action="ops-filter-clear">✕ Limpiar</button>`;
-    h+='</div>';
+    h+=chip('fecha','7dias','7d',f.fecha);
+    h+=chip('fecha','mes','Mes',f.fecha);
+    /* Clear — solo si hay filtros activos */
+    if(_opsFiltersActive()){
+        h+=`<button class="ops-filtros-clear" data-action="ops-filter-clear">✕</button>`;
+    }
     c.innerHTML=h;
 }
 function setOpsFilter(filter,val){
     _initOpsFilters();
-    AppState.ui.opsFilters[filter]=val;
+    /* Toggle: si toca el chip ya activo → vuelve a "all" */
+    if(AppState.ui.opsFilters[filter]===val)AppState.ui.opsFilters[filter]='all';
+    else AppState.ui.opsFilters[filter]=val;
     AppState.ui.paginaOp=1;
     renderOpsFilters();
     pagOp.render();
@@ -2880,19 +2878,17 @@ function actualizarBancosGrid(){
     CONFIG.BANCOS.forEach(b=>{
         if(!AppState.datos.bancos[b.nombre]?.activo)return;
         const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
-        let gaugeHtml='',limTxt='';
+        let gaugeHtml='',limTxt='',hasGauge=false;
         if(lim>0){
             /* Barra vertical: representa uso del límite diario (frío→caliente) */
+            hasGauge=true;
             const pct=Math.min(100,Math.max(0,(us/lim)*100));
             let fc='safe';if(pct>=90)fc='danger';else if(pct>=60)fc='warning';
             const disp=Math.max(0,lim-us);
             gaugeHtml=`<div class="banco-gauge" title="${fmtNum(pct,0)}% del límite diario usado"><div class="banco-gauge-fill ${fc}" style="height:${pct}%"></div></div>`;
             limTxt=`<div class="banco-limite-txt">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div>`;
-        }else{
-            /* Sin límite: gauge neutral idle para mantener consistencia visual */
-            gaugeHtml=`<div class="banco-gauge" title="Sin límite diario"><div class="banco-gauge-fill idle" style="height:100%"></div></div>`;
         }
-        h+=`<div class="banco-mini-card" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${gaugeHtml}</div>`;
+        h+=`<div class="banco-mini-card${hasGauge?' has-gauge':''}" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${gaugeHtml}</div>`;
     });
     setHtml('bancosGrid',h);
 }
