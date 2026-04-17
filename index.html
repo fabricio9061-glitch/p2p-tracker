@@ -228,23 +228,32 @@
         .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#93c5fd}
         .usdt-card .banco-saldo{color:#2563eb}
 
-        /* ═══ Filtros inline — botón trigger + franja expandible ═══ */
-        .ops-filtros{margin-bottom:8px}
-        .ops-filtros-bar{display:flex;align-items:center;gap:8px}
-        .ops-filtros-btn{display:flex;align-items:center;gap:6px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 12px;font-size:0.78em;font-weight:600;color:#475569;cursor:pointer;transition:all 0.15s;flex-shrink:0}
-        .ops-filtros-btn:active{transform:scale(0.97);background:#f1f5f9}
-        .ops-filtros-btn .filter-icon{font-size:1.1em;line-height:1}
-        .ops-filtros-btn.open{background:#1e293b;color:white;border-color:#1e293b}
-        .ops-filtros-badge{min-width:18px;height:18px;border-radius:9px;background:#2563eb;color:white;font-size:0.65em;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 5px}
-        .ops-filtros-btn.open .ops-filtros-badge{background:white;color:#1e293b}
-        .ops-filtros-hint{font-size:0.7em;color:#94a3b8;font-weight:500}
-        /* Franja inline de chips — se expande/contrae */
-        .ops-filtros-strip{overflow:hidden;max-height:0;opacity:0;transition:max-height 0.28s ease,opacity 0.2s ease,margin 0.28s ease;margin-top:0}
-        .ops-filtros-strip.open{max-height:200px;opacity:1;margin-top:8px}
-        .ops-filtros-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:2px 0;align-items:center}
+        /* ═══ Filtros — trigger en header + franja inline ═══ */
+        .ops-filtros-trigger{display:inline-flex;align-items:center;gap:5px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:4px 9px;font-size:0.72em;font-weight:600;color:#64748b;cursor:pointer;transition:all 0.15s;user-select:none;line-height:1}
+        .ops-filtros-trigger:active{transform:scale(0.96);background:#f1f5f9}
+        .ops-filtros-trigger .filter-icon{font-size:0.95em;line-height:1}
+        .ops-filtros-trigger.open{background:#1e293b;color:white;border-color:#1e293b}
+        .ops-filtros-trigger.has-active{border-color:#2563eb;color:#2563eb}
+        .ops-filtros-trigger.open.has-active{border-color:#1e293b;color:white}
+        .ops-filtros-trigger-label{font-weight:600}
+        @media(max-width:400px){
+            /* En pantallas muy chicas, ocultar el texto dejando solo el ícono + badge */
+            .ops-filtros-trigger-label{display:none}
+        }
+        .ops-filtros-badge{min-width:16px;height:16px;border-radius:8px;background:#2563eb;color:white;font-size:0.65em;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;line-height:1}
+        .ops-filtros-badge.hidden{display:none}
+        .ops-filtros-trigger.open .ops-filtros-badge{background:white;color:#1e293b}
+        /* Franja inline de chips — extensión del header */
+        .ops-filtros-strip{overflow:hidden;max-height:0;opacity:0;transition:max-height 0.28s ease,opacity 0.2s ease,margin 0.2s ease,padding 0.2s ease;margin:0 -15px 0;padding:0 15px;border-bottom:0 solid transparent}
+        .ops-filtros-strip.open{max-height:60px;opacity:1;margin-bottom:12px;padding-top:10px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;background:#fafbfc}
+        @media(min-width:768px){
+            .ops-filtros-strip{margin:0 -10px}
+            .ops-filtros-strip.open{padding:10px}
+        }
+        .ops-filtros-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;align-items:center}
         .ops-filtros-chips::-webkit-scrollbar{display:none}
         .ops-filtros-sep{width:1px;height:14px;background:#e2e8f0;flex-shrink:0;margin:0 3px}
-        .ops-fchip{flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:999px;padding:6px 11px;font-size:0.72em;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;user-select:none;transition:all 0.15s;line-height:1}
+        .ops-fchip{flex-shrink:0;background:white;border:1.5px solid #e2e8f0;border-radius:999px;padding:5px 11px;font-size:0.7em;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;user-select:none;transition:all 0.15s;line-height:1}
         .ops-fchip:active{transform:scale(0.96)}
         .ops-fchip.active{background:#1e293b;border-color:#1e293b;color:white}
         .ops-fchip.active.compra{background:#16a34a;border-color:#16a34a}
@@ -252,7 +261,7 @@
         .ops-fchip.active.ganancia{background:#16a34a;border-color:#16a34a}
         .ops-fchip.active.perdida{background:#dc2626;border-color:#dc2626}
         .ops-fchip.active.neutro{background:#64748b;border-color:#64748b}
-        .ops-fchip-clear{flex-shrink:0;background:transparent;border:1.5px solid #e2e8f0;border-radius:999px;padding:6px 11px;font-size:0.72em;font-weight:600;color:#94a3b8;cursor:pointer;white-space:nowrap;line-height:1;transition:all 0.15s}
+        .ops-fchip-clear{flex-shrink:0;background:transparent;border:1.5px solid #e2e8f0;border-radius:999px;padding:5px 11px;font-size:0.7em;font-weight:600;color:#94a3b8;cursor:pointer;white-space:nowrap;line-height:1;transition:all 0.15s}
         .ops-fchip-clear:active{background:#fee2e2;color:#dc2626;border-color:#fecaca}
 
         /* ═══ Toggle Sections ═══ */
@@ -1011,9 +1020,9 @@
             <div class="col-right">
             <!-- Operaciones -->
             <div class="toggle-section open" id="seccionOperaciones">
-                <div class="toggle-header"><span class="toggle-title">📋 Operaciones</span><div class="toggle-right"><span class="toggle-badge" id="totalOperaciones">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-header"><span class="toggle-title">📋 Operaciones</span><div class="toggle-right"><span class="ops-filtros-trigger" id="opsFiltrosTrigger" data-action="toggle-ops-filters" title="Filtros"><span class="filter-icon">⚙</span><span class="ops-filtros-trigger-label" id="opsFiltrosTriggerLabel">Filtros</span><span class="ops-filtros-badge hidden" id="opsFiltrosBadge">0</span></span><span class="toggle-badge" id="totalOperaciones">0</span><span class="toggle-arrow">▼</span></div></div>
                 <div class="toggle-content">
-                    <div class="ops-filtros" id="opsFiltros"></div>
+                    <div class="ops-filtros-strip" id="opsFiltros"></div>
                     <div class="ops-summary" id="opsSummary">
                         <div class="ops-summary-item"><div class="val" id="opsSumCompras">0</div><div class="lbl">Compras</div></div>
                         <div class="ops-summary-item"><div class="val" id="opsSumVentas">0</div><div class="lbl">Ventas</div></div>
@@ -1176,7 +1185,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.6.1',
+    APP_VERSION: '4.6.2',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1209,6 +1218,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.6.2', date:'2026-04-16', headline:'Filtros integrados al header: chip compacto en la cabecera de Operaciones con estado del filtro visible.', changes:[
+        {type:'improve', title:'Trigger en el header', desc:'El botón "Filtros" ahora vive dentro del header del bloque, al lado del contador, como un chip compacto. Sin bloques sueltos ni espacios muertos.'},
+        {type:'improve', title:'Estado visible en el chip', desc:'El chip muestra "Filtros" cuando no hay filtros y "N activos" cuando los hay. Badge azul con la cantidad y borde azul tenue para indicar estado activo.'},
+        {type:'improve', title:'Franja como extensión del header', desc:'Al desplegarse, la franja usa fondo gris claro y border-bottom sutil para leerse como continuación natural del header, no como otro bloque aislado.'},
+        {type:'improve', title:'Mobile muy chico', desc:'Debajo de 400px el texto del chip se oculta dejando solo el ícono + badge, para no competir con el título.'},
+        {type:'fix', title:'Click del trigger no colapsa sección', desc:'Al tocar el chip de filtros dentro del header, la sección de Operaciones ya no se colapsa por accidente.'}
+    ]},
     {version:'4.6.1', date:'2026-04-16', headline:'Filtros inline: franja de chips expandible dentro de Operaciones, sin drawer ni panel externo.', changes:[
         {type:'improve', title:'Franja inline expandible', desc:'Los filtros se revelan como una tira de chips scrolleable al tocar el botón "Filtros". Todo se mantiene dentro del bloque Operaciones, sin abrir paneles ni cubrir contenido.'},
         {type:'improve', title:'Botón toggle con badge', desc:'El botón "Filtros" cambia de estilo al abrirse y muestra un badge con la cantidad de filtros activos. Un hint "N filtros activos" aparece cuando la franja está cerrada.'},
@@ -2119,23 +2135,28 @@ function _bancosEnOperaciones(){
 }
 function renderOpsFilters(){
     _initOpsFilters();
-    const c=$('opsFiltros');if(!c)return;
     const count=_countActiveFilters();
     const isOpen=AppState.ui._filtersOpen||false;
     const f=AppState.ui.opsFilters;
-    const chip=(id,val,label,cur,cls)=>`<button class="ops-fchip${cur===val?' active'+(cls?' '+cls:''):''}" data-action="ops-filter" data-filter="${id}" data-val="${val}">${label}</button>`;
+
+    /* 1. Actualizar trigger en header */
+    const trig=$('opsFiltrosTrigger'),label=$('opsFiltrosTriggerLabel'),badge=$('opsFiltrosBadge');
+    if(trig){
+        trig.classList.toggle('open',isOpen);
+        trig.classList.toggle('has-active',count>0);
+        if(label)label.textContent=count>0?`${count} activo${count>1?'s':''}`:'Filtros';
+        if(badge){
+            if(count>0){badge.textContent=count;badge.classList.remove('hidden')}
+            else badge.classList.add('hidden');
+        }
+    }
+
+    /* 2. Render de la franja inline */
+    const c=$('opsFiltros');if(!c)return;
+    c.classList.toggle('open',isOpen);
+    const chip=(id,val,l,cur,cls)=>`<button class="ops-fchip${cur===val?' active'+(cls?' '+cls:''):''}" data-action="ops-filter" data-filter="${id}" data-val="${val}">${l}</button>`;
     const sep='<div class="ops-filtros-sep"></div>';
-
-    /* Fila 1: botón trigger + hint */
-    let h=`<div class="ops-filtros-bar">`;
-    h+=`<button class="ops-filtros-btn${isOpen?' open':''}" data-action="toggle-ops-filters"><span class="filter-icon">⚙</span>Filtros`;
-    if(count>0)h+=`<span class="ops-filtros-badge">${count}</span>`;
-    h+=`</button>`;
-    if(count>0&&!isOpen)h+=`<span class="ops-filtros-hint">${count} filtro${count>1?'s':''} activo${count>1?'s':''}</span>`;
-    h+=`</div>`;
-
-    /* Franja inline de chips — se expande/contrae */
-    h+=`<div class="ops-filtros-strip${isOpen?' open':''}"><div class="ops-filtros-chips">`;
+    let h=`<div class="ops-filtros-chips">`;
     h+=chip('tipo','compra','Compras',f.tipo,'compra');
     h+=chip('tipo','venta','Ventas',f.tipo,'venta');
     const bancos=_bancosEnOperaciones().filter(b=>AppState.datos.bancos[b]?.activo);
@@ -2150,7 +2171,7 @@ function renderOpsFilters(){
     h+=chip('fecha','7dias','7 días',f.fecha);
     h+=chip('fecha','mes','Mes',f.fecha);
     if(count>0){h+=sep;h+=`<button class="ops-fchip-clear" data-action="ops-filter-clear">Limpiar</button>`}
-    h+=`</div></div>`;
+    h+=`</div>`;
     c.innerHTML=h;
 }
 function _countActiveFilters(){
@@ -2165,6 +2186,8 @@ function _countActiveFilters(){
 }
 function toggleOpsFilters(){
     AppState.ui._filtersOpen=!AppState.ui._filtersOpen;
+    /* Si la sección estaba colapsada, abrirla para que la franja sea visible */
+    if(AppState.ui._filtersOpen)$('seccionOperaciones')?.classList.add('open');
     renderOpsFilters();
 }
 function setOpsFilter(filter,val){
@@ -4710,7 +4733,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
 
     // Toggle sections
-    document.querySelectorAll('.toggle-header').forEach(h=>h.addEventListener('click',()=>h.closest('.toggle-section')?.classList.toggle('open')));
+    document.querySelectorAll('.toggle-header').forEach(h=>h.addEventListener('click',e=>{
+        /* Si el click fue en el trigger de filtros, ignorar — lo maneja el dispatcher global */
+        if(e.target.closest('.ops-filtros-trigger'))return;
+        h.closest('.toggle-section')?.classList.toggle('open');
+    }));
 
     // Formulario — Toggle compra/venta
     function setTipoOp(v){$('tipo').value=v;AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;actualizarFormulario();actualizarColorSelect()}
