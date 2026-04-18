@@ -208,7 +208,7 @@
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
         .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
-        .banco-mini-card.has-gauge{padding-right:11px}
+        .banco-mini-card.has-gauge{padding-right:10px}
         /* Barra compacta: total bancario */
         .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
         .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
@@ -219,18 +219,22 @@
         .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
         .banco-moneda{font-size:0.65em;color:#94a3b8}
         .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
-        /* ═══ Medidor de capacidad — línea lateral con fill progresivo ═══
-           Track: línea vertical fina pegada al borde derecho, color neutro oscuro, 
-           sin borde propio ni fondo claro (no parece contenedor).
-           Fill: crece desde abajo según % usado, con color interpolado por temperatura. */
+        /* ═══ Línea lateral derecha con fill progresivo ═══
+           Espejo estructural de card-compra/card-venta (border-left 3px sólido),
+           pero en el borde derecho y con relleno interno según % de uso del límite.
+           
+           Implementación: el track se coloca sobre el border-right del card (pegado 
+           al borde, misma altura, mismo radio). No es un elemento "dentro" del card,
+           se lee como si fuera el border mismo pero rellenable.
+        */
         .banco-gauge-track{
             position:absolute;
-            right:4px;
-            top:6px;
-            bottom:6px;
-            width:3px;
-            background:#1e293b;
-            border-radius:2px;
+            right:-1px;       /* tapa exactamente el border derecho del card (1px) */
+            top:-1px;         /* extiende sobre el border-top, se alinea con el card */
+            bottom:-1px;      /* extiende sobre el border-bottom */
+            width:3px;        /* mismo grosor que card-compra/card-venta */
+            background:#0f172a;  /* track casi negro — sutil, tipo border oscuro */
+            border-radius:0 7px 7px 0;  /* mismo radio que el card (8px - 1px border) */
             overflow:hidden;
         }
         .banco-gauge-fill{
@@ -238,13 +242,15 @@
             bottom:0;
             left:0;
             right:0;
-            border-radius:2px;
+            border-radius:0 0 7px 7px;  /* respeta el radio inferior del track */
             transition:height 0.4s cubic-bezier(0.4,0,0.2,1),background-color 0.4s ease;
         }
-        /* Tip on-demand — muestra el % exacto en tap/hover sobre la barra */
+        /* Cuando llega al tope, aplica radio superior también */
+        .banco-gauge-fill[data-full="1"]{border-radius:0 7px 7px 0}
+        /* Tip on-demand con % exacto */
         .banco-gauge-tip{
             position:absolute;
-            right:12px;top:5px;
+            right:10px;top:5px;
             font-size:0.58em;
             font-weight:700;
             padding:2px 6px;
@@ -1226,7 +1232,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.7',
+    APP_VERSION: '4.7.8',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1259,6 +1265,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.8', date:'2026-04-17', headline:'🎯 Línea lateral en el borde mismo del card: estructura igual a Compras/Ventas con fill progresivo.', changes:[
+        {type:'improve', title:'Track pegado al borde del card', desc:'El track se posiciona sobre el border-right del card (right/top/bottom en -1px). No vive adentro como elemento interno, no se lee como columna aparte. Es el borde mismo.'},
+        {type:'improve', title:'Mismo grosor que Compras/Ventas', desc:'3px de ancho igual que .card-compra y .card-venta tienen en su border-left. Hace par estructural al otro lado del card.'},
+        {type:'improve', title:'Radio inferior/superior alineado', desc:'El track y el fill respetan el border-radius del card (7px al costado derecho). Cuando el fill llega al tope, el radio superior se aplica vía data-full. Sin esquinas rotas.'},
+        {type:'improve', title:'Fill progresivo con color de temperatura', desc:'Verde (bajo) → amarillo (medio) → naranja (alto) → rojo (crítico). Crece de abajo hacia arriba con transición suave de 400ms.'}
+    ]},
     {version:'4.7.7', date:'2026-04-17', headline:'🎯 Barra lateral: track oscuro fino + fill progresivo interno.', changes:[
         {type:'fix', title:'Track como línea, no como canal', desc:'La barra vuelve a verse como una línea lateral fina al borde (color casi negro #1e293b, 3px de ancho), no como un contenedor con borde visible.'},
         {type:'improve', title:'Fill progresivo interno', desc:'Dentro del track, el relleno crece desde abajo según el % de uso del límite. A 50%, el fill ocupa la mitad inferior; a 100%, llena la línea completa.'},
@@ -3098,11 +3110,10 @@ function actualizarBancosGrid(){
             const pct=Math.min(100,Math.max(0,(us/lim)*100));
             const fillColor=_gaugeColor(pct);
             const disp=Math.max(0,lim-us);
-            /* Altura mínima 4% para que siempre haya un punto visible si hay uso (evita que 
-               a 1% la barra se vea vacía por ruido de redondeo) */
             const visualH=pct<=0.5?0:Math.max(4,pct);
-            /* Medidor: línea oscura fina (track) + fill progresivo desde abajo */
-            gaugeHtml=`<div class="banco-gauge-track"><div class="banco-gauge-fill" style="height:${visualH}%;background:${fillColor}"></div></div>`;
+            /* data-full=1 cuando el fill llega al tope → aplica radio superior también */
+            const fullAttr=pct>=99?' data-full="1"':'';
+            gaugeHtml=`<div class="banco-gauge-track"><div class="banco-gauge-fill"${fullAttr} style="height:${visualH}%;background:${fillColor}"></div></div>`;
             tipHtml=`<div class="banco-gauge-tip">${fmtNum(pct,0)}% · US$${fmtNum(disp,0)}</div>`;
             limTxt=`<div class="banco-limite-txt">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div>`;
         }
