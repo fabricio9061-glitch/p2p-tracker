@@ -208,7 +208,6 @@
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
         .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
-        .banco-mini-card.has-gauge{padding-right:10px}
         /* Barra compacta: total bancario */
         .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
         .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
@@ -220,34 +219,36 @@
         .banco-moneda{font-size:0.65em;color:#94a3b8}
         .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
         /* ═══ Línea lateral derecha con fill progresivo ═══
-           Espejo estructural de card-compra/card-venta (border-left 3px sólido),
-           pero en el borde derecho y con relleno interno según % de uso del límite.
+           Estructura IDÉNTICA a card-compra/card-venta (3px sólido), pero:
+           - Del lado derecho
+           - Con relleno progresivo interno según % de uso del límite
            
-           Implementación: el track se coloca sobre el border-right del card (pegado 
-           al borde, misma altura, mismo radio). No es un elemento "dentro" del card,
-           se lee como si fuera el border mismo pero rellenable.
-        */
+           Implementación: track de 3px pegado al borde interno derecho del card.
+           El overflow:hidden del card recorta las esquinas según el border-radius (8px),
+           así track y fill heredan automáticamente la curvatura del card. */
+        .banco-mini-card.has-gauge{
+            padding-right:11px;  /* 3px track + 8px breathing room */
+        }
         .banco-gauge-track{
             position:absolute;
-            right:-1px;       /* tapa exactamente el border derecho del card (1px) */
-            top:-1px;         /* extiende sobre el border-top, se alinea con el card */
-            bottom:-1px;      /* extiende sobre el border-bottom */
-            width:3px;        /* mismo grosor que card-compra/card-venta */
-            background:#0f172a;  /* track casi negro — sutil, tipo border oscuro */
-            border-radius:0 7px 7px 0;  /* mismo radio que el card (8px - 1px border) */
+            right:0;
+            top:0;
+            bottom:0;
+            width:3px;
+            background:#0f172a;  /* track oscuro — estructura base */
             overflow:hidden;
+            pointer-events:none;
         }
         .banco-gauge-fill{
             position:absolute;
             bottom:0;
             left:0;
             right:0;
-            border-radius:0 0 7px 7px;  /* respeta el radio inferior del track */
             transition:height 0.4s cubic-bezier(0.4,0,0.2,1),background-color 0.4s ease;
+            /* Sin border-radius propio — el overflow:hidden del card (8px) recorta 
+               automáticamente las esquinas. El fill hereda las curvas del card. */
         }
-        /* Cuando llega al tope, aplica radio superior también */
-        .banco-gauge-fill[data-full="1"]{border-radius:0 7px 7px 0}
-        /* Tip on-demand con % exacto */
+        /* Tip on-demand */
         .banco-gauge-tip{
             position:absolute;
             right:10px;top:5px;
@@ -1232,7 +1233,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.8',
+    APP_VERSION: '4.7.9',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1265,6 +1266,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.9', date:'2026-04-17', headline:'🎯 Barra lateral bancaria: mismo grosor y forma que Compras/Ventas, con fill progresivo.', changes:[
+        {type:'improve', title:'Mismo peso visual que Compras/Ventas', desc:'La barra bancaria ahora tiene 3px de ancho — idéntico grosor que el border-left de card-compra y card-venta. El sistema completo habla el mismo lenguaje visual.'},
+        {type:'improve', title:'Forma heredada del card', desc:'El overflow:hidden del card recorta automáticamente las esquinas del track y del fill según el border-radius (8px). No necesita radios propios — las curvas vienen heredadas, se ven naturales en la esquina superior e inferior.'},
+        {type:'improve', title:'Track pegado al borde interno', desc:'Right:0, top:0, bottom:0 → el track ocupa toda la altura del card al borde derecho. No sobresale, no deforma.'},
+        {type:'improve', title:'Fill progresivo con temperatura', desc:'Dentro del track oscuro (#0f172a), el fill crece de abajo hacia arriba con color interpolado: verde (bajo) → amarillo (medio) → naranja (alto) → rojo (crítico).'}
+    ]},
     {version:'4.7.8', date:'2026-04-17', headline:'🎯 Línea lateral en el borde mismo del card: estructura igual a Compras/Ventas con fill progresivo.', changes:[
         {type:'improve', title:'Track pegado al borde del card', desc:'El track se posiciona sobre el border-right del card (right/top/bottom en -1px). No vive adentro como elemento interno, no se lee como columna aparte. Es el borde mismo.'},
         {type:'improve', title:'Mismo grosor que Compras/Ventas', desc:'3px de ancho igual que .card-compra y .card-venta tienen en su border-left. Hace par estructural al otro lado del card.'},
