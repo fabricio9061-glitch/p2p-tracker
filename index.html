@@ -208,7 +208,7 @@
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
         .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
-        .banco-mini-card.has-gauge{padding-right:14px}
+        .banco-mini-card.has-gauge{padding-right:11px}
         /* Barra compacta: total bancario */
         .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
         .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
@@ -219,40 +219,32 @@
         .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
         .banco-moneda{font-size:0.65em;color:#94a3b8}
         .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
-        /* ═══ Medidor de capacidad — barra vertical al borde derecho ═══
-           Dos capas:
-           1) track: canal base con borde neutro, altura completa del card
-           2) fill:  relleno interno que crece de abajo hacia arriba según % usado,
-                     con color interpolado (frío→caliente)
-           Se alinea con el interior del card (dentro del padding) para que se lea
-           como parte nativa de la tarjeta, no como overlay superpuesto. */
+        /* ═══ Medidor de capacidad — línea lateral con fill progresivo ═══
+           Track: línea vertical fina pegada al borde derecho, color neutro oscuro, 
+           sin borde propio ni fondo claro (no parece contenedor).
+           Fill: crece desde abajo según % usado, con color interpolado por temperatura. */
         .banco-gauge-track{
             position:absolute;
-            right:5px;
-            top:5px;
-            bottom:5px;
-            width:5px;
-            border:1px solid #cbd5e1;
-            border-radius:3px;
-            background:#f8fafc;
+            right:4px;
+            top:6px;
+            bottom:6px;
+            width:3px;
+            background:#1e293b;
+            border-radius:2px;
             overflow:hidden;
-            box-sizing:border-box;
         }
         .banco-gauge-fill{
             position:absolute;
             bottom:0;
             left:0;
             right:0;
-            border-radius:0 0 2px 2px;
+            border-radius:2px;
             transition:height 0.4s cubic-bezier(0.4,0,0.2,1),background-color 0.4s ease;
-            /* height y background vienen inline desde JS según % */
         }
-        /* Cuando el fill llega al tope, redondea arriba también para cerrar el canal */
-        .banco-gauge-fill.full{border-radius:2px}
         /* Tip on-demand — muestra el % exacto en tap/hover sobre la barra */
         .banco-gauge-tip{
             position:absolute;
-            right:16px;top:5px;
+            right:12px;top:5px;
             font-size:0.58em;
             font-weight:700;
             padding:2px 6px;
@@ -1234,7 +1226,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.6',
+    APP_VERSION: '4.7.7',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1267,6 +1259,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.7', date:'2026-04-17', headline:'🎯 Barra lateral: track oscuro fino + fill progresivo interno.', changes:[
+        {type:'fix', title:'Track como línea, no como canal', desc:'La barra vuelve a verse como una línea lateral fina al borde (color casi negro #1e293b, 3px de ancho), no como un contenedor con borde visible.'},
+        {type:'improve', title:'Fill progresivo interno', desc:'Dentro del track, el relleno crece desde abajo según el % de uso del límite. A 50%, el fill ocupa la mitad inferior; a 100%, llena la línea completa.'},
+        {type:'improve', title:'Mismo lenguaje visual', desc:'La barra se integra como las líneas laterales de Compras/Ventas pero con progreso dinámico. Sin pastilla, sin fondo blanco, sin apariencia de widget superpuesto.'},
+        {type:'improve', title:'Color por temperatura', desc:'El fill interpola progresivamente: azul/verde (bajo) → amarillo (medio) → naranja (alto) → rojo (crítico). Transición suave de 400ms.'}
+    ]},
     {version:'4.7.6', date:'2026-04-17', headline:'📊 Medidor de capacidad vertical: canal + relleno proporcional según uso real.', changes:[
         {type:'improve', title:'Medidor de capacidad', desc:'La barra lateral pasó de ser una línea de color fijo a un medidor de dos capas: canal base con borde neutro + relleno vertical que crece de abajo hacia arriba según el % usado del límite.'},
         {type:'improve', title:'Color de temperatura', desc:'El relleno cambia de color según el riesgo: azul/verde cuando el uso es bajo, amarillo en alerta media, naranja en alto, rojo en crítico. Transición suave entre estados.'},
@@ -3100,11 +3098,11 @@ function actualizarBancosGrid(){
             const pct=Math.min(100,Math.max(0,(us/lim)*100));
             const fillColor=_gaugeColor(pct);
             const disp=Math.max(0,lim-us);
-            /* Altura mínima 2px visible si hay uso > 0 — evita que el canal se vea "vacío" con 1% */
-            const visualH=pct<=0.5?0:Math.max(3,pct);
-            const fullCls=pct>=99?' full':'';
-            /* Medidor de capacidad: track (canal base) + fill (relleno proporcional) */
-            gaugeHtml=`<div class="banco-gauge-track"><div class="banco-gauge-fill${fullCls}" style="height:${visualH}%;background:${fillColor}"></div></div>`;
+            /* Altura mínima 4% para que siempre haya un punto visible si hay uso (evita que 
+               a 1% la barra se vea vacía por ruido de redondeo) */
+            const visualH=pct<=0.5?0:Math.max(4,pct);
+            /* Medidor: línea oscura fina (track) + fill progresivo desde abajo */
+            gaugeHtml=`<div class="banco-gauge-track"><div class="banco-gauge-fill" style="height:${visualH}%;background:${fillColor}"></div></div>`;
             tipHtml=`<div class="banco-gauge-tip">${fmtNum(pct,0)}% · US$${fmtNum(disp,0)}</div>`;
             limTxt=`<div class="banco-limite-txt">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div>`;
         }
