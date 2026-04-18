@@ -218,16 +218,16 @@
         .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
         .banco-moneda{font-size:0.65em;color:#94a3b8}
         .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
-        /* ═══ Línea lateral derecha con fill progresivo ═══
-           Estructura IDÉNTICA a card-compra/card-venta (3px sólido), pero:
-           - Del lado derecho
-           - Con relleno progresivo interno según % de uso del límite
+        /* ═══ Línea lateral derecha — espejo de card-compra/card-venta ═══
+           Lenguaje IDÉNTICO: línea sólida de 3px al borde del card.
+           Diferencia única: el color NO es fijo — es la parte rellena del progreso.
            
-           Implementación: track de 3px pegado al borde interno derecho del card.
-           El overflow:hidden del card recorta las esquinas según el border-radius (8px),
-           así track y fill heredan automáticamente la curvatura del card. */
+           Track: tono gris claro muy sutil, apenas perceptible — no es un "contenedor
+           técnico", es la "hendidura" donde la línea de color aún no llegó.
+           Fill: crece desde abajo, ocupa el ancho completo de 3px, con color saturado
+           igual de protagonista que las líneas de Compras/Ventas. */
         .banco-mini-card.has-gauge{
-            padding-right:11px;  /* 3px track + 8px breathing room */
+            padding-right:11px;
         }
         .banco-gauge-track{
             position:absolute;
@@ -235,7 +235,7 @@
             top:0;
             bottom:0;
             width:3px;
-            background:#0f172a;  /* track oscuro — estructura base */
+            background:#e2e8f0;  /* gris muy claro — igual que el border base del card */
             overflow:hidden;
             pointer-events:none;
         }
@@ -246,7 +246,7 @@
             right:0;
             transition:height 0.4s cubic-bezier(0.4,0,0.2,1),background-color 0.4s ease;
             /* Sin border-radius propio — el overflow:hidden del card (8px) recorta 
-               automáticamente las esquinas. El fill hereda las curvas del card. */
+               las esquinas automáticamente, heredando la silueta del card. */
         }
         /* Tip on-demand */
         .banco-gauge-tip{
@@ -1233,7 +1233,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.9',
+    APP_VERSION: '4.7.10',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1266,6 +1266,11 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.10', date:'2026-04-17', headline:'✨ Barra bancaria integrada: misma familia visual que Compras/Ventas.', changes:[
+        {type:'improve', title:'Track neutro, no técnico', desc:'El track cambió de oscuro #0f172a a gris muy claro #e2e8f0 — el mismo tono que el border base del card. Ya no se lee como "medidor técnico superpuesto" sino como continuación natural del borde.'},
+        {type:'improve', title:'Misma familia que Compras/Ventas', desc:'Al 100% de uso, la barra bancaria se ve idéntica a card-compra o card-venta: 3px sólidos al borde con color saturado. A menor %, el color ocupa solo la parte inferior proporcional, con el resto apenas perceptible.'},
+        {type:'improve', title:'Protagonismo del fill', desc:'El color de temperatura ahora es el protagonista visual — el track actúa como hendidura sutil donde el color aún no llegó. Sin columna oscura compitiendo por atención.'}
+    ]},
     {version:'4.7.9', date:'2026-04-17', headline:'🎯 Barra lateral bancaria: mismo grosor y forma que Compras/Ventas, con fill progresivo.', changes:[
         {type:'improve', title:'Mismo peso visual que Compras/Ventas', desc:'La barra bancaria ahora tiene 3px de ancho — idéntico grosor que el border-left de card-compra y card-venta. El sistema completo habla el mismo lenguaje visual.'},
         {type:'improve', title:'Forma heredada del card', desc:'El overflow:hidden del card recorta automáticamente las esquinas del track y del fill según el border-radius (8px). No necesita radios propios — las curvas vienen heredadas, se ven naturales en la esquina superior e inferior.'},
