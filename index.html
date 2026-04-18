@@ -207,7 +207,7 @@
 
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
-        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative}
+        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
         /* Barra compacta: total bancario */
         .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
         .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
@@ -218,37 +218,35 @@
         .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
         .banco-moneda{font-size:0.65em;color:#94a3b8}
         .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
-        /* ═══ Línea lateral derecha — espejo exacto de card-compra/card-venta ═══
+        /* ═══ Línea lateral derecha — espejo de card-compra/card-venta ═══
+           Lenguaje IDÉNTICO: línea sólida de 3px al borde del card.
+           Diferencia única: el color NO es fijo — es la parte rellena del progreso.
            
-           Compras/Ventas usan: border-left:3px solid {color}
-           Bancos usan:          border-right:3px solid {track-color} + fill superpuesto
-           
-           Para igualar la silueta exacta (esquinas redondeadas del card, altura 
-           total sin padding interno), usamos dos pseudo-elementos en el card:
-           - ::before → el track base (gris claro)
-           - ::after  → el fill progresivo (color saturado, altura variable)
-           
-           Ambos usan border-radius: 0 8px 8px 0 para que las esquinas superior
-           e inferior derecha del card se respeten (igual que card-compra respeta
-           las esquinas superior e inferior izquierda del card-principal). */
+           Track: tono gris claro muy sutil, apenas perceptible — no es un "contenedor
+           técnico", es la "hendidura" donde la línea de color aún no llegó.
+           Fill: crece desde abajo, ocupa el ancho completo de 3px, con color saturado
+           igual de protagonista que las líneas de Compras/Ventas. */
         .banco-mini-card.has-gauge{
-            border-right:3px solid #e2e8f0;  /* reemplaza el 1px del borde derecho por 3px (mismo mecanismo que card-compra) */
+            padding-right:11px;
         }
-        .banco-mini-card.has-gauge::after{
-            content:'';
+        .banco-gauge-track{
             position:absolute;
-            right:-3px;                        /* ocupa exactamente el área del border-right de 3px */
-            bottom:-1px;                       /* alinea con el borde inferior del card */
+            right:0;
+            top:0;
+            bottom:0;
             width:3px;
-            height:var(--gauge-h,0%);          /* altura controlada por custom property */
-            background:var(--gauge-color,#e2e8f0);
-            border-radius:0 0 8px 0;           /* esquina inferior derecha = radio del card */
-            transition:height 0.4s cubic-bezier(0.4,0,0.2,1),background-color 0.4s ease;
+            background:#e2e8f0;  /* gris muy claro — igual que el border base del card */
+            overflow:hidden;
             pointer-events:none;
         }
-        /* Cuando el fill llega al tope, también redondea la esquina superior derecha */
-        .banco-mini-card.has-gauge[data-full="1"]::after{
-            border-radius:0 8px 8px 0;
+        .banco-gauge-fill{
+            position:absolute;
+            bottom:0;
+            left:0;
+            right:0;
+            transition:height 0.4s cubic-bezier(0.4,0,0.2,1),background-color 0.4s ease;
+            /* Sin border-radius propio — el overflow:hidden del card (8px) recorta 
+               las esquinas automáticamente, heredando la silueta del card. */
         }
         /* Tip on-demand */
         .banco-gauge-tip{
@@ -1235,7 +1233,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.11',
+    APP_VERSION: '4.7.10',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1268,12 +1266,6 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
-    {version:'4.7.11', date:'2026-04-17', headline:'🎯 Barra bancaria: mismas medidas y forma exactas que Compras/Ventas.', changes:[
-        {type:'improve', title:'Mismo mecanismo nativo que Compras/Ventas', desc:'Compras usa border-left:3px solid. Bancos ahora usa border-right:3px solid — el mismo tratamiento del borde del card. No es un div interno ni un contenedor, es el borde del card mismo.'},
-        {type:'improve', title:'Altura completa', desc:'La barra ocupa 100% de la altura del card de esquina a esquina, respetando el border-radius. Antes quedaba recortada en el padding interno.'},
-        {type:'improve', title:'Fill como pseudo-elemento del card', desc:'El relleno progresivo se pinta vía ::after del card mismo (custom properties --gauge-h y --gauge-color). Sin divs hijo, sin jerarquía extra — una sola pieza CSS que hereda la silueta del card.'},
-        {type:'improve', title:'Esquinas perfectamente alineadas', desc:'El fill tiene border-radius:0 0 8px 0 que coincide exactamente con la esquina inferior derecha del card. Al 100%, se aplica data-full que agrega también el radio superior. Sin esquinas rotas.'}
-    ]},
     {version:'4.7.10', date:'2026-04-17', headline:'✨ Barra bancaria integrada: misma familia visual que Compras/Ventas.', changes:[
         {type:'improve', title:'Track neutro, no técnico', desc:'El track cambió de oscuro #0f172a a gris muy claro #e2e8f0 — el mismo tono que el border base del card. Ya no se lee como "medidor técnico superpuesto" sino como continuación natural del borde.'},
         {type:'improve', title:'Misma familia que Compras/Ventas', desc:'Al 100% de uso, la barra bancaria se ve idéntica a card-compra o card-venta: 3px sólidos al borde con color saturado. A menor %, el color ocupa solo la parte inferior proporcional, con el resto apenas perceptible.'},
@@ -3124,21 +3116,20 @@ function actualizarBancosGrid(){
     CONFIG.BANCOS.forEach(b=>{
         if(!AppState.datos.bancos[b.nombre]?.activo)return;
         const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
-        let tipHtml='',limTxt='',hasGauge=false,cardStyle='',fullAttr='';
+        let gaugeHtml='',tipHtml='',limTxt='',hasGauge=false;
         if(lim>0){
             hasGauge=true;
             const pct=Math.min(100,Math.max(0,(us/lim)*100));
             const fillColor=_gaugeColor(pct);
             const disp=Math.max(0,lim-us);
             const visualH=pct<=0.5?0:Math.max(4,pct);
-            /* Custom properties — el pseudo ::after del card las lee para pintar el fill.
-               No hay divs hijos — la barra ES parte del card mismo (igual que card-compra). */
-            cardStyle=` style="--gauge-h:${visualH}%;--gauge-color:${fillColor}"`;
-            if(pct>=99)fullAttr=' data-full="1"';
+            /* data-full=1 cuando el fill llega al tope → aplica radio superior también */
+            const fullAttr=pct>=99?' data-full="1"':'';
+            gaugeHtml=`<div class="banco-gauge-track"><div class="banco-gauge-fill"${fullAttr} style="height:${visualH}%;background:${fillColor}"></div></div>`;
             tipHtml=`<div class="banco-gauge-tip">${fmtNum(pct,0)}% · US$${fmtNum(disp,0)}</div>`;
             limTxt=`<div class="banco-limite-txt">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div>`;
         }
-        h+=`<div class="banco-mini-card${hasGauge?' has-gauge':''}"${cardStyle}${fullAttr} data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${tipHtml}</div>`;
+        h+=`<div class="banco-mini-card${hasGauge?' has-gauge':''}" data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'}">${b.nombre}</div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${gaugeHtml}${tipHtml}</div>`;
     });
     setHtml('bancosGrid',h);
 }
@@ -5616,23 +5607,29 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     // Delegación de eventos para contenido dinámico
     document.addEventListener('click',e=>{
-        /* Tap en el borde derecho de una tarjeta con límite (últimos 16px) →
-           mostrar tip con el % sin abrir el modal de edición del banco */
-        const maybeCard=e.target.closest('.banco-mini-card.has-gauge');
-        if(maybeCard){
-            const rect=maybeCard.getBoundingClientRect();
-            const offsetX=e.clientX-rect.left;
-            if(offsetX>rect.width-16){
-                e.stopPropagation();
-                e.preventDefault();
-                document.querySelectorAll('.banco-mini-card.show-tip').forEach(c=>{
-                    if(c!==maybeCard)c.classList.remove('show-tip');
-                });
-                maybeCard.classList.add('show-tip');
-                clearTimeout(AppState.ui._gaugeTipTimer);
-                AppState.ui._gaugeTipTimer=setTimeout(()=>maybeCard.classList.remove('show-tip'),2200);
-                return;
+        /* Tap en el medidor de capacidad (track o zona cercana) → mostrar tip
+           en lugar de abrir modal de edición del banco */
+        const gaugeTap=e.target.closest('.banco-gauge-track');
+        let card=gaugeTap?gaugeTap.closest('.banco-mini-card.has-gauge'):null;
+        if(!card){
+            /* Fallback: tap en el borde derecho del card (últimos 16px) */
+            const maybeCard=e.target.closest('.banco-mini-card.has-gauge');
+            if(maybeCard){
+                const rect=maybeCard.getBoundingClientRect();
+                const offsetX=e.clientX-rect.left;
+                if(offsetX>rect.width-16)card=maybeCard;
             }
+        }
+        if(card){
+            e.stopPropagation();
+            e.preventDefault();
+            document.querySelectorAll('.banco-mini-card.show-tip').forEach(c=>{
+                if(c!==card)c.classList.remove('show-tip');
+            });
+            card.classList.add('show-tip');
+            clearTimeout(AppState.ui._gaugeTipTimer);
+            AppState.ui._gaugeTipTimer=setTimeout(()=>card.classList.remove('show-tip'),2200);
+            return;
         }
         const t=e.target.closest('[data-action]');if(!t)return;
         const a=t.dataset.action,id=parseInt(t.dataset.id),banco=t.dataset.banco,loteId=parseInt(t.dataset.loteId);
