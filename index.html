@@ -207,7 +207,7 @@
 
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
-        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative}
+        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
         /* Barra compacta: total bancario */
         .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
         .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
@@ -218,44 +218,47 @@
         .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
         .banco-moneda{font-size:0.65em;color:#94a3b8}
         .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
-        /* ═══ Línea lateral derecha — espejo exacto de card-compra/card-venta ═══
+        /* ═══ Línea lateral derecha — pegada al borde derecho del card ═══
            
-           Compras/Ventas usan: border-left:3px solid {color}
-           Bancos usan:         ::before (track) + ::after (fill) con geometría IDÉNTICA
+           Compras/Ventas: border-left:3px solid color → pegado al borde izquierdo
+           Bancos:         track + fill en right:0 → pegado al borde derecho
+           
+           Track y fill viven DENTRO del card (right:0 = al borde derecho del padding-box).
+           El card tiene overflow:hidden + border-radius:8px, así el track hereda las 
+           esquinas redondeadas del card automáticamente — se ve perfectamente integrado.
            
            Track y fill comparten exactamente el mismo rectángulo de referencia:
-           - right:-1px (sobre el border del card)
-           - top:-1px / bottom:-1px (altura total de esquina a esquina)  
+           - right:0 (al borde derecho interno del card)
+           - top:0 / bottom:0 (altura completa del padding-box)  
            - width:3px (mismo grosor que card-compra/card-venta)
-           - border-radius:0 8px 8px 0 (respeta esquinas derechas del card)
            
-           La única diferencia: el fill tiene height:var(--gauge-h) y crece desde abajo.
-           No son "dos barras" — son dos capas que ocupan el MISMO espacio. */
+           La única diferencia entre track y fill: el fill tiene altura variable y está
+           anclado al bottom para crecer hacia arriba. */
+        .banco-mini-card.has-gauge{
+            padding-right:11px;  /* 3px de barra + 8px de respiro para el contenido */
+        }
         .banco-mini-card.has-gauge::before,
         .banco-mini-card.has-gauge::after{
             content:'';
             position:absolute;
-            right:-1px;
-            top:-1px;
-            bottom:-1px;
+            right:0;
+            top:0;
+            bottom:0;
             width:3px;
             pointer-events:none;
         }
-        /* Track: ambas esquinas derechas redondeadas (8px = radius del card) */
+        /* Track: línea base gris, siempre visible, altura completa del card.
+           El overflow:hidden + border-radius del card recorta automáticamente 
+           las esquinas superior e inferior derechas. */
         .banco-mini-card.has-gauge::before{
             background:#e2e8f0;
-            border-radius:0 8px 8px 0;
         }
-        /* Fill: misma geometría base, altura variable anclada abajo.
-           Solo la esquina inferior-derecha redondeada — la superior queda recta 
-           porque el fill crece desde abajo (la "línea de llenado" es horizontal).
-           Cuando llega al 100%, el track detrás ya tiene la esquina superior 
-           redondeada, así que visualmente se ve perfectamente sellado. */
+        /* Fill: mismo rectángulo base, altura variable, anclado al bottom.
+           top:auto libera la posición superior para que height controle el tamaño. */
         .banco-mini-card.has-gauge::after{
             top:auto;
             height:var(--gauge-h,0%);
             background:var(--gauge-color,transparent);
-            border-radius:0 0 8px 0;
             transition:height 0.4s cubic-bezier(0.4,0,0.2,1),background-color 0.4s ease;
         }
         /* Tip on-demand */
@@ -1243,7 +1246,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.12',
+    APP_VERSION: '4.7.13',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1276,6 +1279,11 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.13', date:'2026-04-17', headline:'🎯 Barra bancaria correctamente pegada al borde derecho del card.', changes:[
+        {type:'fix', title:'Barra alineada al borde del card', desc:'El gap visible entre la barra y el card (que la hacía parecer flotar en el espacio entre tarjetas) se corrigió. Antes usaba offsets negativos (right:-1px) que la sacaban del card hacia el gap de la grid. Ahora vive dentro del card con right:0, top:0, bottom:0, pegada al borde derecho interno.'},
+        {type:'improve', title:'Overflow:hidden recorta las esquinas automáticamente', desc:'El card recupera overflow:hidden + border-radius:8px. Track y fill, sin border-radius propio, heredan la curvatura del card — se recortan perfectamente en las esquinas superior e inferior derechas.'},
+        {type:'improve', title:'Mismo grosor que Compras/Ventas', desc:'Track y fill mantienen width:3px idéntico a los border-left de card-compra y card-venta. El padding-right:11px del card reserva exactamente el espacio necesario (3px barra + 8px respiro).'}
+    ]},
     {version:'4.7.12', date:'2026-04-17', headline:'🎯 Track y fill con geometría idéntica: una sola barra que se rellena.', changes:[
         {type:'fix', title:'Track y fill ocupan el mismo rectángulo', desc:'Antes track y fill tenían coordenadas ligeramente distintas (right:-3px vs right:0, bottom:-1px vs bottom:0) — se veían desalineados. Ahora ambos pseudo-elementos comparten exactamente: right:-1px, top:-1px, bottom:-1px, width:3px. La única diferencia es la altura variable del fill.'},
         {type:'improve', title:'No parecen dos componentes', desc:'Al compartir el mismo rectángulo de referencia, track y fill se leen como una sola barra donde una parte se rellena. El fill crece anclado abajo (top:auto) dentro del mismo espacio que ocupa el track.'},
