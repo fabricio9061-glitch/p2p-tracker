@@ -85,6 +85,29 @@
         .news-version-date{font-size:0.7em;color:#94a3b8;font-weight:600}
         .news-version-badge{font-size:0.6em;font-weight:700;background:#dc2626;color:white;padding:2px 7px;border-radius:8px;text-transform:uppercase;letter-spacing:0.5px;margin-left:auto}
         .news-version-badge.seen{display:none}
+        /* Dismiss (×) para ocultar una versión — persistente en Firebase */
+        .news-dismiss{
+            margin-left:6px;
+            width:22px;height:22px;
+            padding:0;
+            background:transparent;
+            border:none;
+            color:#cbd5e1;
+            font-size:1.3em;
+            font-weight:400;
+            line-height:1;
+            cursor:pointer;
+            border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            transition:background 0.15s,color 0.15s;
+            flex-shrink:0;
+        }
+        .news-dismiss:hover{background:#f1f5f9;color:#64748b}
+        .news-dismiss:active{background:#e2e8f0;color:#475569}
+        /* Si ya hay badge "Nuevo", el × va después y no compite por margin-left:auto */
+        .news-version-badge + .news-dismiss{margin-left:6px}
+        /* Si NO hay badge, el × debe ir al final */
+        .news-version-header > .news-dismiss:last-child{margin-left:auto}
         .news-version-headline{font-size:0.78em;color:#475569;line-height:1.5;padding:0 4px;margin-bottom:10px;font-style:italic}
         .news-card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
         .news-card-tag{flex-shrink:0;font-size:0.55em;font-weight:800;padding:3px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:0.5px;line-height:1.4}
@@ -1347,7 +1370,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.19',
+    APP_VERSION: '4.7.20',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1380,8 +1403,15 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.20', date:'2026-04-22', headline:'🪶 Centro de Noticias: 5 versiones máximo + descarte individual persistente.', changes:[
+        {type:'improve', title:'Ventana fija de 5 entradas', desc:'CHANGELOG cap a las últimas 5 versiones (hard limit CHANGELOG_MAX_ENTRIES=5). Si al bumpear se olvida retirar las viejas, el código las recorta automáticamente y loguea warning en consola. Doble red de seguridad.'},
+        {type:'feature', title:'Descartar novedad individual', desc:'Cada entrada tiene botón × para ocultarla. El estado persiste en Firebase (dismissedVersions) y se sincroniza entre dispositivos. Filtrable con "Ver ocultas" para recuperación.'},
+        {type:'feature', title:'Garbage collection automático', desc:'Cuando una versión descartada sale del CHANGELOG actual (por rotación), su flag se limpia automáticamente en el siguiente merge de estado. Sin basura acumulada.'},
+        {type:'improve', title:'Badge sin inflación', desc:'El contador de la campanita solo cuenta: no-vistas + no-descartadas + de los últimos 30 días. Imposible que se quede pegado en un número alto por inactividad.'},
+        {type:'improve', title:'Merge multi-device seguro', desc:'dismissedVersions se sincroniza como union (cualquier descarte cuenta) para respetar el estado entre dispositivos sin conflictos.'}
+    ]},
     {version:'4.7.19', date:'2026-04-22', headline:'🧹 Centro de Noticias con ventana deslizante y auto-archivo de versiones viejas.', changes:[
-        {type:'improve', title:'Changelog recortado a las últimas 15 versiones', desc:'Entradas anteriores a v4.7.5 fueron archivadas fuera del bundle. Se eliminaron 174 líneas y ~32KB del archivo. El array se mantiene manejable a futuro — las viejas se retiran periódicamente.'},
+        {type:'improve', title:'Changelog recortado a las últimas 15 versiones', desc:'Entradas anteriores a v4.7.4 fueron archivadas fuera del bundle. Se eliminaron 174 líneas y ~32KB del archivo. El array se mantiene manejable a futuro — las viejas se retiran periódicamente.'},
         {type:'feature', title:'Ventana deslizante por edad (30 días)', desc:'El Centro de Noticias muestra por defecto solo las versiones de los últimos 30 días. Las más viejas quedan disponibles tras un botón "Ver X versiones anteriores". Relevancia sobre acumulación.'},
         {type:'improve', title:'Badge más inteligente', desc:'La campanita solo marca como "pendientes" entradas de los últimos 30 días. Usuario que no abre la app en 2 meses ya no ve un número inflado al volver.'},
         {type:'improve', title:'Reset al abrir', desc:'Cada apertura del centro defaultea a vista reciente. Si el usuario quiso ver viejas, al cerrar y reabrir vuelve a la vista compacta.'}
@@ -1405,80 +1435,23 @@ const CHANGELOG = [
         {type:'feature', title:'Indicador de tendencia del spread', desc:'Al lado del spread en la tarjeta "Ganancia Hoy", aparece un indicador pill discreto con flecha (↑/↓/→) y % de variación respecto a la referencia más reciente. Verde=subió, rojo=bajó, gris=estable. Al tocarlo muestra tooltip con valores comparados.'},
         {type:'improve', title:'Referencia histórica inteligente', desc:'El sistema busca hasta 7 días hacia atrás el último día con spread calculable (compras + ventas). Cubre fines de semana o días inactivos sin mostrar datos viejos irrelevantes.'},
         {type:'improve', title:'Umbral anti-ruido', desc:'Variaciones menores al 0.5% del spread de referencia (mínimo 2 centavos) se consideran estables. Evita que micro-fluctuaciones disparen indicador verde/rojo falsamente.'}
-    ]},
-    {version:'4.7.15', date:'2026-04-18', headline:'⚡ Performance: paginación sin doble filtro + render diffing + CSS limpio.', changes:[
-        {type:'perf', title:'Paginación: un solo filtro por render', desc:'crearPaginacion ahora acepta getData() — computa la lista filtrada una sola vez y deriva total/slice de ahí. Las 4 paginaciones (ops, movs, trans, conv) migradas. Antes aplicarOpsFilters corría 2 veces por render; ahora 1 vez.'},
-        {type:'perf', title:'Render diffing: listas no se re-renderizan sin cambios', desc:'Sistema de fingerprints por lista: si los datos + página + filtros no cambiaron, se saltea el innerHTML write. actualizarVista() puede llamarse múltiples veces sin reflow innecesario. Invalidación automática en recalcularLotesYGanancias y guardaOptimista.'},
-        {type:'improve', title:'CSS !important reducido', desc:'Usos de !important pasaron de 14 a 12. Las reglas .mov-monto-input se consolidaron con selectores más específicos (.mov-monto-group input.mov-monto-input). Los 12 restantes son overrides legítimos en modales fullscreen mobile.'},
-        {type:'verified', title:'Touch events ya son passive', desc:'Los 3 touch handlers del swipe gesture usan {passive:true} — scroll en Android sin jank. Verificado, sin cambios necesarios.'},
-        {type:'verified', title:'Virtual scrolling no es necesario', desc:'POR_PAGINA=10 — con solo 10 cards por render, virtual scrolling sería overhead. Descartado tras medir.'}
-    ]},
-    {version:'4.7.14', date:'2026-04-18', headline:'🛠️ Auditoría técnica: 4 fixes críticos + reorden de pantalla principal.', changes:[
-        {type:'improve', title:'Nuevo orden en la home', desc:'"Actividad del período" (Compras/Ventas) ahora aparece arriba de "Mis Saldos". El orden refleja mejor la jerarquía: Ganancia → Actividad → Saldos → Nueva Operación.'},
-        {type:'fix', title:'Interval respeta visibility en Android', desc:'El tick de 60s corría aunque la pestaña estuviera oculta. En Android WebView con batería saver, eso consumía CPU sin motivo. Ahora el scheduler pausa con visibilitychange y hace tick inmediato al volver visible. También evita re-render completo si no cambió el día.'},
-        {type:'fix', title:'Race condition en offline corregida', desc:'Cuando navigator.onLine era false, guardarDatos hacía ref.set() sin chequear _version. Un device en offline con cambios locales podía pisar datos hechos en otro dispositivo al sincronizar. Ahora el offline-deferred path mantiene el estado localmente y espera al evento online para reconciliar con transacción.'},
-        {type:'fix', title:'Cache de ganancia ya no se pisa entre monedas', desc:'calcularGananciaTotal(USD) sobrescribía el cache compartido con el valor UYU (_all). El siguiente call sin filtro devolvía el número equivocado. El cache ahora usa Map por moneda — cada filtro tiene su slot propio.'},
-        {type:'fix', title:'Migración legacy en loop', desc:'Firestore stripea campos undefined. op.ganancia=undefined re-aparecía en cada snapshot, disparando migración + guardarDatos en bucle. Ahora un flag _legacyMigrado asegura que corra una vez por sesión. Se resetea en logout.'}
-    ]},
-    {version:'4.7.13', date:'2026-04-17', headline:'🎯 Barra bancaria correctamente pegada al borde derecho del card.', changes:[
-        {type:'fix', title:'Barra alineada al borde del card', desc:'El gap visible entre la barra y el card (que la hacía parecer flotar en el espacio entre tarjetas) se corrigió. Antes usaba offsets negativos (right:-1px) que la sacaban del card hacia el gap de la grid. Ahora vive dentro del card con right:0, top:0, bottom:0, pegada al borde derecho interno.'},
-        {type:'improve', title:'Overflow:hidden recorta las esquinas automáticamente', desc:'El card recupera overflow:hidden + border-radius:8px. Track y fill, sin border-radius propio, heredan la curvatura del card — se recortan perfectamente en las esquinas superior e inferior derechas.'},
-        {type:'improve', title:'Mismo grosor que Compras/Ventas', desc:'Track y fill mantienen width:3px idéntico a los border-left de card-compra y card-venta. El padding-right:11px del card reserva exactamente el espacio necesario (3px barra + 8px respiro).'}
-    ]},
-    {version:'4.7.12', date:'2026-04-17', headline:'🎯 Track y fill con geometría idéntica: una sola barra que se rellena.', changes:[
-        {type:'fix', title:'Track y fill ocupan el mismo rectángulo', desc:'Antes track y fill tenían coordenadas ligeramente distintas (right:-3px vs right:0, bottom:-1px vs bottom:0) — se veían desalineados. Ahora ambos pseudo-elementos comparten exactamente: right:-1px, top:-1px, bottom:-1px, width:3px. La única diferencia es la altura variable del fill.'},
-        {type:'improve', title:'No parecen dos componentes', desc:'Al compartir el mismo rectángulo de referencia, track y fill se leen como una sola barra donde una parte se rellena. El fill crece anclado abajo (top:auto) dentro del mismo espacio que ocupa el track.'},
-        {type:'improve', title:'Esquinas coherentes', desc:'Track con border-radius:0 8px 8px 0 (ambas esquinas derechas). Fill con border-radius:0 0 8px 0 (solo inferior derecha) — cuando el fill crece a 100%, la esquina superior del track asoma arriba y se ve sellado correctamente sin cambiar el radio del fill.'}
-    ]},
-    {version:'4.7.11', date:'2026-04-17', headline:'🎯 Barra bancaria: mismas medidas y forma exactas que Compras/Ventas.', changes:[
-        {type:'improve', title:'Mismo mecanismo nativo que Compras/Ventas', desc:'Compras usa border-left:3px solid. Bancos ahora usa border-right:3px solid — el mismo tratamiento del borde del card. No es un div interno ni un contenedor, es el borde del card mismo.'},
-        {type:'improve', title:'Altura completa', desc:'La barra ocupa 100% de la altura del card de esquina a esquina, respetando el border-radius. Antes quedaba recortada en el padding interno.'},
-        {type:'improve', title:'Fill como pseudo-elemento del card', desc:'El relleno progresivo se pinta vía ::after del card mismo (custom properties --gauge-h y --gauge-color). Sin divs hijo, sin jerarquía extra — una sola pieza CSS que hereda la silueta del card.'},
-        {type:'improve', title:'Esquinas perfectamente alineadas', desc:'El fill tiene border-radius:0 0 8px 0 que coincide exactamente con la esquina inferior derecha del card. Al 100%, se aplica data-full que agrega también el radio superior. Sin esquinas rotas.'}
-    ]},
-    {version:'4.7.10', date:'2026-04-17', headline:'✨ Barra bancaria integrada: misma familia visual que Compras/Ventas.', changes:[
-        {type:'improve', title:'Track neutro, no técnico', desc:'El track cambió de oscuro #0f172a a gris muy claro #e2e8f0 — el mismo tono que el border base del card. Ya no se lee como "medidor técnico superpuesto" sino como continuación natural del borde.'},
-        {type:'improve', title:'Misma familia que Compras/Ventas', desc:'Al 100% de uso, la barra bancaria se ve idéntica a card-compra o card-venta: 3px sólidos al borde con color saturado. A menor %, el color ocupa solo la parte inferior proporcional, con el resto apenas perceptible.'},
-        {type:'improve', title:'Protagonismo del fill', desc:'El color de temperatura ahora es el protagonista visual — el track actúa como hendidura sutil donde el color aún no llegó. Sin columna oscura compitiendo por atención.'}
-    ]},
-    {version:'4.7.9', date:'2026-04-17', headline:'🎯 Barra lateral bancaria: mismo grosor y forma que Compras/Ventas, con fill progresivo.', changes:[
-        {type:'improve', title:'Mismo peso visual que Compras/Ventas', desc:'La barra bancaria ahora tiene 3px de ancho — idéntico grosor que el border-left de card-compra y card-venta. El sistema completo habla el mismo lenguaje visual.'},
-        {type:'improve', title:'Forma heredada del card', desc:'El overflow:hidden del card recorta automáticamente las esquinas del track y del fill según el border-radius (8px). No necesita radios propios — las curvas vienen heredadas, se ven naturales en la esquina superior e inferior.'},
-        {type:'improve', title:'Track pegado al borde interno', desc:'Right:0, top:0, bottom:0 → el track ocupa toda la altura del card al borde derecho. No sobresale, no deforma.'},
-        {type:'improve', title:'Fill progresivo con temperatura', desc:'Dentro del track oscuro (#0f172a), el fill crece de abajo hacia arriba con color interpolado: verde (bajo) → amarillo (medio) → naranja (alto) → rojo (crítico).'}
-    ]},
-    {version:'4.7.8', date:'2026-04-17', headline:'🎯 Línea lateral en el borde mismo del card: estructura igual a Compras/Ventas con fill progresivo.', changes:[
-        {type:'improve', title:'Track pegado al borde del card', desc:'El track se posiciona sobre el border-right del card (right/top/bottom en -1px). No vive adentro como elemento interno, no se lee como columna aparte. Es el borde mismo.'},
-        {type:'improve', title:'Mismo grosor que Compras/Ventas', desc:'3px de ancho igual que .card-compra y .card-venta tienen en su border-left. Hace par estructural al otro lado del card.'},
-        {type:'improve', title:'Radio inferior/superior alineado', desc:'El track y el fill respetan el border-radius del card (7px al costado derecho). Cuando el fill llega al tope, el radio superior se aplica vía data-full. Sin esquinas rotas.'},
-        {type:'improve', title:'Fill progresivo con color de temperatura', desc:'Verde (bajo) → amarillo (medio) → naranja (alto) → rojo (crítico). Crece de abajo hacia arriba con transición suave de 400ms.'}
-    ]},
-    {version:'4.7.7', date:'2026-04-17', headline:'🎯 Barra lateral: track oscuro fino + fill progresivo interno.', changes:[
-        {type:'fix', title:'Track como línea, no como canal', desc:'La barra vuelve a verse como una línea lateral fina al borde (color casi negro #1e293b, 3px de ancho), no como un contenedor con borde visible.'},
-        {type:'improve', title:'Fill progresivo interno', desc:'Dentro del track, el relleno crece desde abajo según el % de uso del límite. A 50%, el fill ocupa la mitad inferior; a 100%, llena la línea completa.'},
-        {type:'improve', title:'Mismo lenguaje visual', desc:'La barra se integra como las líneas laterales de Compras/Ventas pero con progreso dinámico. Sin pastilla, sin fondo blanco, sin apariencia de widget superpuesto.'},
-        {type:'improve', title:'Color por temperatura', desc:'El fill interpola progresivamente: azul/verde (bajo) → amarillo (medio) → naranja (alto) → rojo (crítico). Transición suave de 400ms.'}
-    ]},
-    {version:'4.7.6', date:'2026-04-17', headline:'📊 Medidor de capacidad vertical: canal + relleno proporcional según uso real.', changes:[
-        {type:'improve', title:'Medidor de capacidad', desc:'La barra lateral pasó de ser una línea de color fijo a un medidor de dos capas: canal base con borde neutro + relleno vertical que crece de abajo hacia arriba según el % usado del límite.'},
-        {type:'improve', title:'Color de temperatura', desc:'El relleno cambia de color según el riesgo: azul/verde cuando el uso es bajo, amarillo en alerta media, naranja en alto, rojo en crítico. Transición suave entre estados.'},
-        {type:'improve', title:'Comunica progreso real', desc:'Ya no se percibe como un estado general. A 40% el relleno llega a 40% del canal — expresa claramente cuánto consumiste y cuánto queda.'},
-        {type:'improve', title:'Integración profunda', desc:'El canal vive dentro del padding del card, respeta su border-radius, se alinea vertical con el contenido. No es un overlay flotante — es parte de la tarjeta.'}
-    ]},
-    {version:'4.7.5', date:'2026-04-17', headline:'🎨 Barra lateral de bancos unificada con el lenguaje de Compras/Ventas.', changes:[
-        {type:'improve', title:'Misma familia visual', desc:'La línea lateral de las tarjetas bancarias ahora usa border-right nativo del card, igual que card-compra y card-venta usan border-left. Sin divs superpuestos, sin pastillas pegadas — es parte de la tarjeta misma.'},
-        {type:'improve', title:'Color semántico por temperatura', desc:'La diferencia con Compras/Ventas es solo el color: los bancos muestran un color interpolado según % de uso del límite (azul → verde → amarillo → naranja → rojo). La forma base es idéntica.'},
-        {type:'improve', title:'Transición suave de color', desc:'Al cambiar el uso del límite, el color del borde transiciona con ease 0.3s — sin saltos bruscos de un umbral a otro.'},
-        {type:'fix', title:'Código más liviano', desc:'Removidos el div overlay, el fill interno y los estilos de pastilla. El indicador ahora es pura propiedad CSS del card, sin elementos extra en el DOM.'}
-    ]},
-    /* ═══ Historial anterior archivado ═══
-       Entradas anteriores a v4.7.5 fueron retiradas del bundle para mantenerlo liviano.
-       Ver CHANGELOG.archive.md en el repo para histórico completo. */
+    ]}
 ];
+/* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
+   Si al bumpear se olvida retirar las viejas, el código las recorta automáticamente.
+   Doble red de seguridad: advertencia en consola + slice defensivo. */
+const CHANGELOG_MAX_ENTRIES=5;
 function normalizarChangelog(){
+    /* Advertencia de mantenimiento — no rompe nada, solo avisa al dev */
+    if(CHANGELOG.length>CHANGELOG_MAX_ENTRIES&&!normalizarChangelog._warned){
+        normalizarChangelog._warned=true;
+        console.warn(`[P2P] CHANGELOG tiene ${CHANGELOG.length} entradas — retirar las más viejas para mantener solo las últimas ${CHANGELOG_MAX_ENTRIES}.`);
+    }
+    /* CAP defensivo: aunque el array crezca, solo se expone ventana N */
+    const capped=CHANGELOG.slice(0,CHANGELOG_MAX_ENTRIES);
     /* Convierte entradas legacy con changes:[string] al formato {type,title,desc}.
        Detecta type por keywords; default 'improve'. */
-    return CHANGELOG.map(entry=>{
+    return capped.map(entry=>{
         if(!entry.changes)return entry;
         const norm=entry.changes.map(ch=>{
             if(typeof ch==='object'&&ch.title)return ch;
@@ -1512,7 +1485,7 @@ function crearDatosVacios() {
     return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],tags:[],tasasRecientes:[],
             saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,
             ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14,ultimoMesProcesado:'',_version:0,
-            lastSeenVersion:''};
+            lastSeenVersion:'',dismissedVersions:[]};
 }
 AppState.datos = crearDatosVacios();
 
@@ -1847,13 +1820,17 @@ function cmpVersion(a,b){
 /* Cantidad de versiones nuevas vs lo último visto por el usuario */
 function getNoticiasNoVistas(){
     const last=AppState.datos?.lastSeenVersion||'';
+    const dismissed=new Set(AppState.datos?.dismissedVersions||[]);
     const log=normalizarChangelog();
-    /* El badge solo cuenta entradas recientes (≤30 días).
-       Esto evita que un usuario que no abrió la campanita en 2 meses siga viendo
-       un número grande de "pendientes" irrelevantes. */
+    /* Badge cuenta SOLO entradas:
+         1. Más nuevas que lastSeenVersion
+         2. No descartadas individualmente
+         3. De los últimos 30 días (relevancia temporal)
+       Esto asegura que el badge nunca se quede "pegado" en un número alto. */
     const now=Date.now();
     return log.filter(e=>{
         if(cmpVersion(e.version,last)<=0)return false;
+        if(dismissed.has(e.version))return false;
         if(!e.date)return true;
         const d=new Date(e.date+'T00:00:00');
         if(isNaN(d.getTime()))return true;
@@ -1877,30 +1854,37 @@ function abrirCentroNoticias(){
 function renderizarCentroNoticias(){
     const log=normalizarChangelog();
     const last=AppState.datos?.lastSeenVersion||'';
-    /* ═══ Ventana deslizante por edad ═══
-       Por defecto solo se renderizan entradas de los últimos 30 días.
-       Las más viejas quedan ocultas tras un botón "ver anteriores".
-       Esto mantiene el centro liviano y relevante sin perder acceso al histórico. */
+    const dismissed=new Set(AppState.datos?.dismissedVersions||[]);
+    /* ═══ Ventana deslizante ═══
+       Base: 5 entradas máximo (cap en normalizarChangelog).
+       Filtros aplicados en este orden:
+         1. Descartadas individualmente (botón × por entrada)
+         2. Por edad (>30 días colapsadas tras "ver anteriores")
+       Cada capa se puede desactivar via AppState.ui flags. */
     const AGE_CUTOFF_DAYS=30;
     const now=Date.now();
-    const esRelativaReciente=fechaStr=>{
-        if(!fechaStr)return true;  /* sin fecha: asumimos reciente */
+    const esRecienteEnEdad=fechaStr=>{
+        if(!fechaStr)return true;
         const d=new Date(fechaStr+'T00:00:00');
         if(isNaN(d.getTime()))return true;
         return(now-d.getTime())/86400000<=AGE_CUTOFF_DAYS;
     };
     const showAll=AppState.ui._noticiasShowAll||false;
-    const entriesRecientes=showAll?log:log.filter(e=>esRelativaReciente(e.date));
-    const entriesOcultas=showAll?0:log.length-entriesRecientes.length;
+    /* Filtro 1: descarte individual */
+    const logVisible=showAll?log:log.filter(e=>!dismissed.has(e.version));
+    /* Filtro 2: edad (solo si no está en modo "ver todas") */
+    const entriesRecientes=showAll?logVisible:logVisible.filter(e=>esRecienteEnEdad(e.date));
+    const entriesOcultas=log.length-entriesRecientes.length;
 
     const renderEntry=entry=>{
         const isNew=cmpVersion(entry.version,last)>0;
         const badge=isNew?'<span class="news-version-badge">Nuevo</span>':'';
-        return`<div class="news-version">
+        return`<div class="news-version" data-version="${escHtml(entry.version)}">
             <div class="news-version-header">
                 <span class="news-version-num">Versión ${escHtml(entry.version)}</span>
                 <span class="news-version-date">${escHtml(entry.date||'')}</span>
                 ${badge}
+                <button class="news-dismiss" data-action="dismiss-news" data-version="${escHtml(entry.version)}" title="Descartar esta novedad" aria-label="Descartar">×</button>
             </div>
             ${entry.headline?`<div class="news-version-headline">${escHtml(entry.headline)}</div>`:''}
             ${entry.changes.map(ch=>{
@@ -1918,15 +1902,28 @@ function renderizarCentroNoticias(){
         </div>`;
     };
     let h=entriesRecientes.map(renderEntry).join('');
-    if(entriesOcultas>0){
-        h+=`<div style="text-align:center;padding:12px 0 20px"><button class="btn btn-cancel" id="btnNewsShowAll" style="font-size:0.85em;padding:8px 16px">Ver ${entriesOcultas} versión${entriesOcultas>1?'es':''} anterior${entriesOcultas>1?'es':''}</button></div>`;
+    if(entriesOcultas>0&&!showAll){
+        h+=`<div style="text-align:center;padding:12px 0 20px"><button class="btn btn-cancel" id="btnNewsShowAll" style="font-size:0.85em;padding:8px 16px">Ver ${entriesOcultas} ${entriesOcultas>1?'ocultas':'oculta'}</button></div>`;
     }
-    if(!h)h='<div style="text-align:center;padding:30px;color:#94a3b8">Sin novedades aún</div>';
+    if(!h)h='<div style="text-align:center;padding:30px;color:#94a3b8">Sin novedades pendientes</div>';
     setHtml('noticiasContent',h);
-    /* Wire del botón "ver anteriores" — re-render con flag activada */
-    if(entriesOcultas>0){
+    if(entriesOcultas>0&&!showAll){
         $('btnNewsShowAll').onclick=()=>{AppState.ui._noticiasShowAll=true;renderizarCentroNoticias()};
     }
+}
+
+/* Descartar una versión individualmente — se agrega al set persistente.
+   En el siguiente snapshot, dismissedVersions se filtra contra el CHANGELOG actual,
+   así que las descartadas de versiones que ya no están en el bundle se auto-limpian. */
+function descartarNovedad(version){
+    if(!version||!AppState.datos)return;
+    if(!Array.isArray(AppState.datos.dismissedVersions))AppState.datos.dismissedVersions=[];
+    if(!AppState.datos.dismissedVersions.includes(version)){
+        AppState.datos.dismissedVersions.push(version);
+        guardaOptimista('update','config','dismissedVersions');
+    }
+    renderizarCentroNoticias();
+    actualizarBadgeNoticias();
 }
 function marcarVersionVista(){
     const log=normalizarChangelog();
@@ -3442,6 +3439,13 @@ function mergeRemoteState(d){
     const remoteSeen=d.lastSeenVersion||'';
     const localSeen=AppState.datos.lastSeenVersion||'';
     if(cmpVersion(remoteSeen,localSeen)>0)AppState.datos.lastSeenVersion=remoteSeen;
+    /* dismissedVersions: union de ambos lados — un descarte en cualquier device se respeta.
+       Además, filtrado a versiones que sigan en el CHANGELOG actual (garbage collection). */
+    const remoteDism=Array.isArray(d.dismissedVersions)?d.dismissedVersions:[];
+    const localDism=Array.isArray(AppState.datos.dismissedVersions)?AppState.datos.dismissedVersions:[];
+    const union=Array.from(new Set([...localDism,...remoteDism]));
+    const versionesActuales=new Set(CHANGELOG.slice(0,CHANGELOG_MAX_ENTRIES).map(e=>e.version));
+    AppState.datos.dismissedVersions=union.filter(v=>versionesActuales.has(v));
     AppState.datos._version=d._version||AppState.datos._version;
     recalcularLotesYGanancias();
 }
@@ -3655,7 +3659,7 @@ function cargarDatosUsuario(){
                        algo mayor pendiente de llegar. Esperamos un ciclo antes de pushear. */
                     setTimeout(()=>{if(!esDatosVacios(AppState.datos))guardarDatos(true)},2500);
                 }else{
-                    AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||''};
+                    AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||'',dismissedVersions:Array.isArray(d.dismissedVersions)?d.dismissedVersions:[]};
                     AppState._localVersion=serverVersion;
                 }
             }
@@ -5903,6 +5907,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const a=t.dataset.action,id=parseInt(t.dataset.id),banco=t.dataset.banco,loteId=parseInt(t.dataset.loteId);
         if(a==='eliminar-op')eliminarOperacion(id);
         else if(a==='editar-op')abrirEditarOperacion(id);
+        else if(a==='dismiss-news'){const v=t.dataset.version;if(v)descartarNovedad(v)}
         else if(a==='eliminar-mov')eliminarMovimiento(id);
         else if(a==='eliminar-trans')eliminarTransferencia(id);
         else if(a==='eliminar-conv')eliminarConversion(id);
