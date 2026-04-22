@@ -1347,7 +1347,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.18',
+    APP_VERSION: '4.7.19',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1380,6 +1380,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.19', date:'2026-04-22', headline:'🧹 Centro de Noticias con ventana deslizante y auto-archivo de versiones viejas.', changes:[
+        {type:'improve', title:'Changelog recortado a las últimas 15 versiones', desc:'Entradas anteriores a v4.7.5 fueron archivadas fuera del bundle. Se eliminaron 174 líneas y ~32KB del archivo. El array se mantiene manejable a futuro — las viejas se retiran periódicamente.'},
+        {type:'feature', title:'Ventana deslizante por edad (30 días)', desc:'El Centro de Noticias muestra por defecto solo las versiones de los últimos 30 días. Las más viejas quedan disponibles tras un botón "Ver X versiones anteriores". Relevancia sobre acumulación.'},
+        {type:'improve', title:'Badge más inteligente', desc:'La campanita solo marca como "pendientes" entradas de los últimos 30 días. Usuario que no abre la app en 2 meses ya no ve un número inflado al volver.'},
+        {type:'improve', title:'Reset al abrir', desc:'Cada apertura del centro defaultea a vista reciente. Si el usuario quiso ver viejas, al cerrar y reabrir vuelve a la vista compacta.'}
+    ]},
     {version:'4.7.18', date:'2026-04-22', headline:'🎨 Comisión como peer en línea secundaria — layout horizontal sin ganar altura.', changes:[
         {type:'improve', title:'Integración horizontal del % de comisión', desc:'El % de comisión ahora es un peer al mismo nivel que tasa, USDT y banco en la línea secundaria. Nueva secuencia: tasa · USDT · 0,14% · banco. Sin background pill, sin aumento de altura, sin saltos de línea.'},
         {type:'improve', title:'Flexbox con shrink controlado', desc:'r2 pasó de grid rígido a flex con separadores · visibles. Tasa, USDT y % nunca se truncan (flex-shrink:0). El banco es el único con ellipsis cuando falta espacio. Altura exacta de 17px preservada.'},
@@ -1465,187 +1471,9 @@ const CHANGELOG = [
         {type:'improve', title:'Transición suave de color', desc:'Al cambiar el uso del límite, el color del borde transiciona con ease 0.3s — sin saltos bruscos de un umbral a otro.'},
         {type:'fix', title:'Código más liviano', desc:'Removidos el div overlay, el fill interno y los estilos de pastilla. El indicador ahora es pura propiedad CSS del card, sin elementos extra en el DOM.'}
     ]},
-    {version:'4.7.4', date:'2026-04-17', headline:'⚙️ Debounce de escrituras + error boundary + diagnóstico exportable.', changes:[
-        {type:'improve', title:'Debounce en sincronización', desc:'Los cambios rápidos (typing en edits, ajustes de comisión, sliders) ahora se agrupan en una sola escritura a Firebase cada 400ms. 5 edits rápidos dejan de ser 5 transacciones — son 1. Menos costo, menos latencia, menos consumo de batería.'},
-        {type:'improve', title:'Flush automático al perder foco', desc:'Al cambiar de pestaña, minimizar la app o cerrar sesión, los cambios pendientes se vacían inmediatamente. No se pierde nada por el debounce.'},
-        {type:'feature', title:'Error boundary global', desc:'Captura errores JavaScript no manejados y rejections de promesas sin tumbar la UI. Logs circulares de las últimas 50 incidencias en localStorage.'},
-        {type:'feature', title:'Exportar diagnóstico', desc:'Nuevo botón en Configuración → Sistema. Descarga un JSON con errores capturados + snapshot mínimo del estado (counts, sync, versión) + info técnica (user agent, online). Compartilo si reportás un bug — acelera el diagnóstico.'},
-        {type:'improve', title:'aplicarDeltas con límites', desc:'Helper extendido que aplica cambios de saldo + uso de límite diario en una sola llamada atómica. Usado en agregarOperacion — simplifica el path más complejo (split + límite USD).'}
-    ]},
-    {version:'4.7.3', date:'2026-04-17', headline:'🎨 Barra lateral de límite rediseñada: línea fina al borde, gradiente progresivo, tap para ver %.', changes:[
-        {type:'improve', title:'Línea al borde, no widget', desc:'La barra de límite pasa de ser un contenedor con track gris a una línea fina de 3px pegada al borde derecho — espejo visual de las líneas de color en Compras/Ventas.'},
-        {type:'improve', title:'Gradiente progresivo 5-stops', desc:'Color interpolado según % de uso: azul (bajo) → verde → amarillo → naranja → rojo (crítico). La transición es continua, no por umbrales bruscos.'},
-        {type:'improve', title:'Glow sutil', desc:'La barra tiene un halo suave del mismo color para destacar estados altos sin gritar. Animación de 350ms con curva ease cuando cambia el % o el color.'},
-        {type:'feature', title:'Tap para ver detalle', desc:'Al tocar la barra lateral, aparece por 2 segundos un badge con el % exacto y el disponible (US$X). En desktop se muestra al hacer hover. No agrega texto fijo a la tarjeta.'}
-    ]},
-    {version:'4.7.2', date:'2026-04-17', headline:'🔧 Auditoría técnica: 13 fixes de integridad, timezone, consistencia y performance.', changes:[
-        {type:'fix', title:'Filtro "Ayer" y "7 días" ahora respeta timezone de Uruguay', desc:'Los filtros usaban UTC con toISOString, lo que desfasaba día para usuarios a las 21-23h local o 00-03h. Ahora usan getUDate (UTC-3) consistente con el resto de la app.'},
-        {type:'fix', title:'Editar transferencia con límite excedido', desc:'Antes, si el nuevo monto excedía el límite diario tras revertir el original, la app retornaba dejando el saldo inconsistente. Ahora valida deltas netos ANTES de mutar nada.'},
-        {type:'fix', title:'Migración legacy incluye lotes sin moneda', desc:'Los lotes viejos sin campo moneda causaban que la migración se ejecutara en cada snapshot sin resolverlos. Ahora se normalizan a UYU en el primer run.'},
-        {type:'fix', title:'guardarDatos ya no hace loop durante stale-version', desc:'Tras un stale-version, el finally podía recursar sobre datos desactualizados. Ahora se pospone al próximo snapshot merge.'},
-        {type:'fix', title:'Editar operación con split bloqueado correctamente', desc:'Antes solo se bloqueaba con aportes.length>1 — ahora cualquier split (incluyendo el caso degenerado de 1 aporte) se bloquea.'},
-        {type:'improve', title:'previewFIFO filtra por moneda', desc:'Consistente con consumirFIFO: no mezcla lotes UYU y USD.'},
-        {type:'improve', title:'Cache para calcularGananciaTotal', desc:'Extiende el cache existente — evita recalcular en cada llamada desde resumen mensual y dashboard.'},
-        {type:'improve', title:'Cache para getDayStats', desc:'Mapa en memoria invalidado por cacheKey. El calendario con día seleccionado deja de recalcular en cada render.'},
-        {type:'improve', title:'Branch 3 (echo) sale temprano', desc:'Los snapshots de echo de nuestra propia escritura ya no disparan re-render completo.'},
-        {type:'improve', title:'backupToLocal solo con cambios pendientes', desc:'Evita writes a localStorage innecesarios. Reduce lag en Android de gama baja.'},
-        {type:'improve', title:'Import JSON valida tipos numéricos', desc:'Detecta montos/tasas no numéricos y alerta al usuario antes de corromper el estado.'},
-        {type:'improve', title:'ultimoMesProcesado elige el más nuevo en merge', desc:'Comparación por valor en lugar de OR, evita que un device con fecha vieja pise el snapshot automático.'},
-        {type:'improve', title:'Código muerto limpio', desc:'Rama redundante en guardarMovimiento eliminada.'}
-    ]},
-    {version:'4.7.1', date:'2026-04-17', headline:'🛟 Exportar/Importar JSON + búsqueda exhaustiva de respaldos locales.', changes:[
-        {type:'feature', title:'Exportar datos a archivo JSON', desc:'Nuevo botón en Configuración → Sistema. Descarga un archivo .json con todos los datos (operaciones, movimientos, bancos, lotes, etc.) + metadata. Guardalo en Drive/email como respaldo propio que no depende del caché del navegador.'},
-        {type:'feature', title:'Importar desde JSON', desc:'Permite cargar un .json exportado desde este u otro dispositivo. Valida estructura, rechaza estados vacíos, avisa si el archivo pertenece a otro usuario y muestra resumen antes de aplicar.'},
-        {type:'improve', title:'Búsqueda exhaustiva de respaldos', desc:'Al pulsar "Restaurar último respaldo" la app ahora escanea TODO localStorage buscando claves p2p_backup_* huérfanas (cambios de uid, sesiones viejas, formatos anteriores). Elige el de mayor contenido.'},
-        {type:'improve', title:'Mensaje claro cuando no hay respaldo', desc:'Si no existe ningún backup local, ahora se explican las 4 opciones de recuperación restantes: importar archivo, otro dispositivo, Firebase Console/PITR, y cómo prevenir a futuro con Exportar.'}
-    ]},
-    {version:'4.7.0', date:'2026-04-17', headline:'🛡️ Blindaje crítico contra pérdida de datos en Android + botón manual de restauración.', changes:[
-        {type:'fix', title:'Fix crítico: no más wipes por caché corrupta', desc:'En Android, Firestore a veces devolvía documentos vacíos desde su caché IndexedDB en el primer snapshot. La app aceptaba ese vacío como truth y luego lo persistía sobre los datos reales. Ahora se detecta el patrón y se prioriza el backup local.'},
-        {type:'fix', title:'Anti-wipe en guardarDatos', desc:'Si la app está por pushear un estado vacío pero existe un backup con datos reales, la escritura se aborta y el usuario ve "Datos protegidos".'},
-        {type:'fix', title:'Backup local con rotación', desc:'Cada guardado rota al previo como _prev antes de sobrescribir. Ya no se respaldan estados vacíos ni se borran backups útiles.'},
-        {type:'fix', title:'Branch 2 protege locales reales', desc:'Si un snapshot newer trae datos vacíos pero tenemos datos locales, se ignora el remoto y se fuerza re-push en 1.5s para restaurar Firebase.'},
-        {type:'feature', title:'Botón "Restaurar último respaldo"', desc:'Nuevo en Configuración → Sistema. Muestra resumen del backup (operaciones, bancos, antigüedad), pide confirmación, rota el actual a _prev, aplica y re-sincroniza con Firebase. Trace visible en header como "Restaurado (manual/auto)".'}
-    ]},
-    {version:'4.6.2', date:'2026-04-16', headline:'Filtros integrados al header: chip compacto en la cabecera de Operaciones con estado del filtro visible.', changes:[
-        {type:'improve', title:'Trigger en el header', desc:'El botón "Filtros" ahora vive dentro del header del bloque, al lado del contador, como un chip compacto. Sin bloques sueltos ni espacios muertos.'},
-        {type:'improve', title:'Estado visible en el chip', desc:'El chip muestra "Filtros" cuando no hay filtros y "N activos" cuando los hay. Badge azul con la cantidad y borde azul tenue para indicar estado activo.'},
-        {type:'improve', title:'Franja como extensión del header', desc:'Al desplegarse, la franja usa fondo gris claro y border-bottom sutil para leerse como continuación natural del header, no como otro bloque aislado.'},
-        {type:'improve', title:'Mobile muy chico', desc:'Debajo de 400px el texto del chip se oculta dejando solo el ícono + badge, para no competir con el título.'},
-        {type:'fix', title:'Click del trigger no colapsa sección', desc:'Al tocar el chip de filtros dentro del header, la sección de Operaciones ya no se colapsa por accidente.'}
-    ]},
-    {version:'4.6.1', date:'2026-04-16', headline:'Filtros inline: franja de chips expandible dentro de Operaciones, sin drawer ni panel externo.', changes:[
-        {type:'improve', title:'Franja inline expandible', desc:'Los filtros se revelan como una tira de chips scrolleable al tocar el botón "Filtros". Todo se mantiene dentro del bloque Operaciones, sin abrir paneles ni cubrir contenido.'},
-        {type:'improve', title:'Botón toggle con badge', desc:'El botón "Filtros" cambia de estilo al abrirse y muestra un badge con la cantidad de filtros activos. Un hint "N filtros activos" aparece cuando la franja está cerrada.'},
-        {type:'fix', title:'Drawer eliminado', desc:'Se removieron el backdrop, el panel fijo, los listeners y todo el CSS del drawer lateral. La experiencia es ahora 100% inline y contextual.'}
-    ]},
-    {version:'4.6.0', date:'2026-04-16', headline:'Filtros en panel lateral: un botón limpio abre un drawer con filtros organizados por sección.', changes:[
-        {type:'feature', title:'Drawer lateral de filtros', desc:'Los filtros de operaciones ahora viven en un panel que se desliza desde la derecha. Organizado en secciones: Tipo, Banco, Resultado y Período. Los chips aplican en tiempo real y el panel se cierra con Aplicar o tap fuera.'},
-        {type:'improve', title:'Vista principal despejada', desc:'En vez de una fila de chips ocupando espacio, solo se muestra un botón "Filtros" con badge de conteo y un hint discreto si hay filtros activos.'},
-        {type:'improve', title:'Solo bancos activos', desc:'El panel solo muestra bancos que estén activos Y que aparezcan en operaciones. Sin opciones inútiles.'},
-        {type:'improve', title:'Ayer recuperado', desc:'El filtro "Ayer" vuelve a estar disponible dentro del drawer donde hay espacio para mostrarlo sin compresión.'}
-    ]},
-    {version:'4.5.8', date:'2026-04-16', headline:'Filtros pulidos: etiquetas claras, botón Limpiar, grupos separados, chip "Neutro".', changes:[
-        {type:'improve', title:'Etiquetas de resultado', desc:'Ahora dicen "+ Ganancia", "0 Neutro" y "- Pérdida" en vez de símbolos crípticos.'},
-        {type:'improve', title:'Botón Limpiar explícito', desc:'Reemplazó el "✕" confuso por un chip secundario con texto "Limpiar". Solo aparece con filtros activos.'},
-        {type:'improve', title:'Separación entre grupos', desc:'Separadores sutiles con mayor spacing entre tipo, banco, resultado y fecha para mejor escaneo visual.'},
-        {type:'improve', title:'Chips consistentes', desc:'Mismo padding, borde 1.5px, box-shadow en activos y transiciones suaves. Optimizados para touch.'}
-    ]},
-    {version:'4.5.7', date:'2026-04-16', headline:'Filtros compactos + gauge solo en cuentas con límite real.', changes:[
-        {type:'fix', title:'Filtros rediseñados', desc:'Una sola fila horizontal scrolleable con chips compactos. Sin labels pesados, sin filas múltiples. Tap para activar, tap de nuevo para desactivar. Separadores sutiles entre grupos.'},
-        {type:'fix', title:'Gauge solo con límite', desc:'La barra vertical ahora solo aparece en cuentas con limiteDiarioUSD. Sin barra decorativa ni placeholder "idle" en cuentas sin límite.'}
-    ]},
-    {version:'4.5.6', date:'2026-04-16', headline:'Tarjetas con indicador vertical + filtros rápidos en Operaciones.', changes:[
-        {type:'feature', title:'Gauge vertical en bancos', desc:'Las tarjetas de cuentas ahora muestran una barra vertical en el borde derecho que indica el uso del límite diario. Verde (seguro), amarillo (alerta) y rojo (crítico). Los bancos sin límite muestran una barra neutral.'},
-        {type:'feature', title:'Filtros rápidos de operaciones', desc:'Nueva fila de chips arriba de la lista: filtrá por tipo (Compras/Ventas), banco (detección dinámica, split-aware), resultado (Ganancia/Sin ganancia/Pérdida) y fecha (Mes/7 días/Ayer/Hoy). Los filtros se combinan entre sí.'},
-        {type:'improve', title:'Resúmenes reflejan los filtros', desc:'Cantidad de compras, ventas, ganancia y total del bloque Operaciones se actualizan en vivo al aplicar filtros.'},
-        {type:'improve', title:'Limpieza rápida', desc:'Botón "✕ Limpiar" aparece cuando hay filtros activos. La paginación se reinicia automáticamente al cambiar filtros.'}
-    ]},
-    {version:'4.5.5', date:'2026-04-15', headline:'Lotes USDT: solo manuales editables, botón Recalcular eliminado.', changes:[
-        {type:'fix', title:'Lotes automáticos bloqueados', desc:'Los lotes generados por compras quedaron protegidos contra edición y eliminación. Solo los marcados como "manual" muestran el botón ✏️.'},
-        {type:'improve', title:'Validación dura en backend', desc:'Aunque alguien fuerce la edición desde el DOM, abrirEditarLote, guardarLote y eliminarLoteActual rechazan lotes no manuales con mensaje explicativo.'},
-        {type:'improve', title:'Botón Recalcular eliminado', desc:'Removido del modal Lotes USDT. La función forzarRecalculo y su listener también se eliminaron — el sistema recalcula automáticamente en cada mutación.'}
-    ]},
-    {version:'4.5.4', date:'2026-04-15', headline:'Total Bancos compacto: barra horizontal limpia sin ruido visual.', changes:[
-        {type:'improve', title:'Barra compacta', desc:'El total bancario ahora es una línea horizontal con label y monto alineados, sin texto secundario ni padding excesivo. No compite con Ganancia Hoy.'}
-    ]},
-    {version:'4.5.3', date:'2026-04-15', headline:'Total Bancos limpio: solo dinero fiat real, USDT en su propia tarjeta.', changes:[
-        {type:'improve', title:'Total solo fiat', desc:'La tarjeta principal ahora muestra "Total en cuentas bancarias" sumando exclusivamente saldos UYU reales. Sin conversiones de USDT que mezclen conceptos.'},
-        {type:'improve', title:'USDT independiente', desc:'El saldo USDT se muestra únicamente en su tarjeta propia dentro del desglose, con su cantidad exacta y número de lotes.'}
-    ]},
-    {version:'4.5.2', date:'2026-04-15', headline:'Mis Saldos: total consolidado como hero card con valorización USDT→UYU, desglose debajo.', changes:[
-        {type:'improve', title:'Total patrimonial arriba', desc:'La tarjeta de total consolidado ahora es lo primero que se ve bajo "Mis Saldos". Muestra el patrimonio en UYU incluyendo USDT valorizado a la última tasa de compra.'},
-        {type:'improve', title:'Sin duplicación de USDT', desc:'El saldo USDT ya no aparece duplicado en la tarjeta de total — solo se muestra en su propia mini-card de desglose. El total UYU incluye la conversión detallada.'},
-        {type:'improve', title:'Desglose debajo del total', desc:'Las tarjetas individuales (USDT, Itaú, Mercado Pago, etc.) aparecen debajo del total como composición detallada, manteniendo su funcionalidad original.'},
-        {type:'fix', title:'Precisión exacta en total', desc:'El total se calcula como suma de saldos UYU + (USDT × tasa), con 2 decimales exactos. La fórmula de composición se muestra como subtexto.'}
-    ]},
-    {version:'4.5.1', date:'2026-04-15', headline:'Dashboard reorganizado: saldos consolidados + precisión decimal exacta en todos los montos.', changes:[
-        {type:'improve', title:'Saldos consolidados', desc:'Nueva sección "Mis Saldos" unifica USDT + cuentas bancarias individuales + barra de totales (Total UYU, Total USD, USDT). Se eliminó la tarjeta independiente "Cuentas Bancarias".'},
-        {type:'improve', title:'Actividad separada', desc:'Las tarjetas de Compras y Ventas se reubicaron bajo su propia sección "Actividad del período", separando estado patrimonial de métricas operativas.'},
-        {type:'fix', title:'Precisión decimal exacta', desc:'Todos los montos UYU en el dashboard ahora muestran 2 decimales exactos. Se corrigió "Otros ingresos", totales de compras/ventas y saldos de banco que antes truncaban a 0 decimales.'},
-        {type:'fix', title:'Otros ingresos: display fix', desc:'Se corrigió el bug de doble propiedad display en el div de ingresos externos que impedía la animación de mostrar/ocultar.'}
-    ]},
-    {version:'4.5.0', date:'2026-04-13', headline:'Integridad financiera: validaciones duras + ingresos externos separados de la ganancia P2P.', changes:[
-        {type:'feature', title:'Capa central de integridad', desc:'Nueva función validarDeltas() que bloquea cualquier mutación que dejaría saldos negativos. Aplicada a creación, edición y eliminación de operaciones, ajustes, transferencias y conversiones.'},
-        {type:'fix', title:'Sin más confirmaciones inseguras', desc:'Reemplazadas las confirmaciones "¿Continuar?" en saldo insuficiente por bloqueos duros con mensajes claros que explican por qué no se puede.'},
-        {type:'fix', title:'Eliminar protege saldos', desc:'No podés eliminar una operación, ajuste o transferencia si el rollback dejaría una cuenta negativa. Mensaje guía: "Eliminá primero las operaciones posteriores que consumieron los fondos".'},
-        {type:'fix', title:'Validación FIFO por moneda', desc:'No podés vender más USDT del disponible en lotes activos de la moneda elegida. Antes solo se chequeaba el total general.'},
-        {type:'feature', title:'Ingresos externos separados', desc:'Los ingresos registrados desde Ajustes ya no se mezclan con la ganancia P2P. Aparecen como métrica paralela en la card de Ganancia Hoy ("💵 Otros ingresos") y en el Resumen Mensual con su propia sección + Resultado total del mes.'},
-        {type:'improve', title:'Edición con deltas netos', desc:'Editar una operación o ajuste calcula el cambio neto (revertir + aplicar nuevo) en una sola validación atómica, evitando estados intermedios inválidos.'}
-    ]},
-    {version:'4.4.2', date:'2026-04-13', headline:'Fix de precisión en split pago: el faltante real se muestra al centésimo, sin más "Faltan $0".', changes:[
-        {type:'fix', title:'Precisión decimal del faltante', desc:'Si quedan $0,47 sin cubrir, ahora se muestra "$0,47" exacto. Antes fmtNum lo redondeaba a "0" y parecía que estaba completo.'},
-        {type:'fix', title:'Fuente única de verdad', desc:'Nuevo helper _computeSplitState() centraliza el cálculo. Render, status, validación y persistencia usan el mismo objeto — imposible que diverjan.'},
-        {type:'improve', title:'Tolerancia explícita SPLIT_EPSILON', desc:'Comparaciones usan ±0,005 como umbral de ruido FP, consistente en todo el módulo. Anything ≥ 0,005 es faltante real.'},
-        {type:'improve', title:'Formato monetario inteligente', desc:'fmtMonto() muestra 0 decimales si el valor es entero, 2 decimales si tiene centésimos significativos. Sin más "Faltan $0" engañoso.'}
-    ]},
-    {version:'4.4.1', date:'2026-04-13', headline:'Split pago blindado solo para compras + mejoras UX en Novedades + offset del header.', changes:[
-        {type:'fix', title:'Split pago solo en compras', desc:'Se blindó splitActivo() con guard explícito: imposible que el pago dividido se active en ventas (donde el usuario recibe UYU, no paga).'},
-        {type:'improve', title:'Mensaje claro de saldo insuficiente', desc:'Al detectar faltante, el panel ahora muestra "Saldo insuficiente · faltan $X" con subtexto guía, en vez del título genérico.'},
-        {type:'improve', title:'Novedades: safe-area iOS', desc:'Modal "Qué hay nuevo" respeta env(safe-area-inset-top) — el contenido ya no se solapa con la isla dinámica.'},
-        {type:'improve', title:'Novedades: scroll más cómodo', desc:'Centro de Novedades usa toda la altura disponible en mobile (antes limitado a 65vh). Cards con más espaciado vertical.'},
-        {type:'improve', title:'Header: offset refinado', desc:'Ajuste del translateX a -36px para mejor balance óptico con cluster derecho (campanita + menú).'}
-    ]},
-    {version:'4.4.0', date:'2026-04-13', headline:'Pago dividido: completá una operación con múltiples cuentas cuando una sola no alcanza.', changes:[
-        {type:'feature', title:'Split pago en compras', desc:'Si el banco elegido no tiene saldo suficiente, se activa automáticamente un panel para agregar cuentas adicionales hasta cubrir el total.'},
-        {type:'feature', title:'Trazabilidad de aportes', desc:'Cada aporte se guarda en op.aportes; al eliminar la operación, el saldo vuelve a cada banco correctamente.'},
-        {type:'feature', title:'Indicador visual en listas', desc:'Las operaciones con pago dividido muestran "+N" al lado del banco principal, con tooltip mostrando el detalle.'},
-        {type:'improve', title:'Offset óptico del título', desc:'Se aumentó a -32px para mejor balance visual del header (antes -24px).'}
-    ]},
-    {version:'4.3.9', date:'2026-04-13', headline:'Centrado óptico del header con solución simple: offset visual leve.', changes:[
-        {type:'fix', title:'Header: offset visual del título', desc:'Solución simple vía transform:translateX(-24px) en mobile para compensar el peso visual de la campanita + menú sin reestructurar el layout.'},
-        {type:'improve', title:'Estructura original preservada', desc:'Se revirtió el grid de 3 columnas — la corrección ahora es un ajuste CSS mínimo, sin cambios en el DOM.'}
-    ]},
-    {version:'4.3.8', date:'2026-04-13', headline:'(Descartada — reemplazada por solución más simple en 4.3.9).', changes:[
-        {type:'improve', title:'Intento de centrado con grid', desc:'Se probó una estructura de 3 columnas con spacer fantasma pero resultó innecesariamente compleja. Ver 4.3.9.'}
-    ]},
-    {version:'4.3.7', date:'2026-04-13', headline:'Centro de Novedades: enterate de cada actualización con detalle, tipo y versión.', changes:[
-        {type:'feature', title:'Centro de Novedades', desc:'Campanita en el header con badge de novedades no vistas, panel full-screen agrupado por versión.'},
-        {type:'feature', title:'Modal "Qué hay nuevo"', desc:'Al detectar versión nueva se muestra automáticamente un resumen de las novedades una sola vez.'},
-        {type:'improve', title:'Changelog estructurado', desc:'Cada entrada ahora tiene tipo (feature/mejora/fix/perf), título y descripción para mejor legibilidad.'}
-    ]},
-    {version:'4.3.6', date:'2026-04-13', headline:'Cada operación, ajuste y transferencia ahora muestra hora exacta.', changes:[
-        {type:'feature', title:'Hora visible en listas', desc:'Cada registro muestra fecha + hora (ej: 13/04 · 21:10) en operaciones, ajustes, transferencias y conversiones.'},
-        {type:'improve', title:'Compatible con datos viejos', desc:'Registros antiguos sin campo hora derivan la hora del timestamp ISO con offset UY.'}
-    ]},
-    {version:'4.3.5', date:'2026-04-12', headline:'Resumen Mensual rediseñado con gráficos interactivos y comparación entre meses.', changes:[
-        {type:'feature', title:'Meses colapsables', desc:'Cada mes funciona como bloque expandible — tap en el header para abrir/cerrar.'},
-        {type:'feature', title:'Gráficos por mes', desc:'Switch entre vista de barras (actividad) y dona (distribución de gastos).'},
-        {type:'feature', title:'Vista Comparar', desc:'Seleccioná dos meses y ve el diff de 8 métricas clave: ganancia neta, volumen, gastos, comisiones, ops, balance USDT.'},
-        {type:'feature', title:'Evolución mensual', desc:'Gráfico de línea/área que muestra la progresión de ganancia neta a lo largo de los meses.'}
-    ]},
-    {version:'4.3.4', date:'2026-04-12', headline:'Conversión a UYU consistente en toda la app, con visualización en cards de ajustes USDT.', changes:[
-        {type:'improve', title:'Conversión UYU unificada', desc:'Helper único movimientoValorUYU() centraliza la lógica de conversión en toda la app.'},
-        {type:'feature', title:'Equivalente UYU en ajustes USDT', desc:'Cada card de ajuste en USDT muestra ≈ $X usando la tasa del lote correspondiente.'},
-        {type:'perf', title:'Persistencia valorUYU', desc:'Ingresos USDT ahora persisten valorUYU tras el replay FIFO — evita recálculos en cada render.'}
-    ]},
-    {version:'4.3.3', date:'2026-04-12', headline:'Reset de banco al guardar operación para evitar errores por descuido.', changes:[
-        {type:'improve', title:'Reset automático del banco', desc:'Tras guardar una operación, el campo banco vuelve a vacío para forzar selección consciente en la siguiente.'}
-    ]},
-    {version:'4.3.2', date:'2026-04-12', headline:'Cache de ganancia + 3 fixes latentes detectados en auditoría.', changes:[
-        {type:'perf', title:'Cache de ganancia diaria', desc:'calcularGananciaDiaria memoizado con invalidación por versión — dashboard mucho más rápido.'},
-        {type:'fix', title:'Comisión bancaria preservada', desc:'comisionBanco normalizada defensivamente en replay FIFO para evitar undefined drift.'},
-        {type:'fix', title:'Edit de ajuste consistente', desc:'Captura tipoCuenta antes de mutar — el FIFO recalc se dispara correctamente al cambiar entre banco/USDT.'}
-    ]},
-    {version:'4.3.1', date:'2026-04-12', headline:'Auditoría completa: 6 fixes críticos en sincronización, FIFO y parsers.', changes:[
-        {type:'fix', title:'FIFO segregado por moneda', desc:'consumirFIFO ahora aísla lotes UYU y USD — fix crítico de costo y ganancia en operaciones cross-currency.'},
-        {type:'fix', title:'IDs únicos garantizados', desc:'uid() arranca con offset random para evitar colisiones tras reload del navegador.'},
-        {type:'fix', title:'Parser de inputs robusto', desc:'pv() ahora rechaza formatos ambiguos como "1.234.5" en vez de silenciosamente perder datos.'},
-        {type:'fix', title:'Edit op: guard de moneda', desc:'No permite cambiar el banco de una operación a uno de moneda distinta — evitaría corrupción de datos.'},
-        {type:'fix', title:'Sync counter normalizado', desc:'Eliminado doble incremento de _localDirty en guardaOptimista.'},
-        {type:'fix', title:'Inventario sin drift', desc:'Total de inventario usa truncar consistente con la precisión de los lotes.'}
-    ]},
-    {version:'4.3.0', date:'2026-04-12', headline:'Edición de ajustes y transferencias + fix de overflow de tags.', changes:[
-        {type:'feature', title:'Editar ajustes y transferencias', desc:'Swipe-right o botón ✏️ permite editar registros existentes en lugar de eliminar y recrear.'},
-        {type:'fix', title:'Tags ya no invaden el banco', desc:'Combinación de cap de longitud (24 chars) + ellipsis visual para tags antiguos.'},
-        {type:'improve', title:'Versionado semántico formal', desc:'Regla establecida en código: cada release debe bumpear APP_VERSION y agregar entry al CHANGELOG.'}
-    ]},
-    {version:'4.2.0', date:'2026-04-10', headline:'Calendario interactivo, merge de tags rediseñado y mejoras de UX en mobile.', changes:[
-        {type:'feature', title:'Calendario interactivo', desc:'Tap en cualquier día muestra detalle completo: ops, ganancia, gastos y métricas mensuales.'},
-        {type:'feature', title:'Merge de tags guiado', desc:'Modal con búsqueda, sugerencias automáticas por similitud y confirmación clara.'},
-        {type:'feature', title:'Stepper de tasa', desc:'Botones − / + para ajustar la tasa con paso fino de 0,01.'},
-        {type:'improve', title:'Hasta 5 tasas sugeridas', desc:'Las tasas más usadas aparecen como pills clickeables (antes solo 3).'},
-        {type:'improve', title:'Mobile: safe-area iOS', desc:'Header y modales respetan el notch y la barra inferior en dispositivos Apple.'}
-    ]}
+    /* ═══ Historial anterior archivado ═══
+       Entradas anteriores a v4.7.5 fueron retiradas del bundle para mantenerlo liviano.
+       Ver CHANGELOG.archive.md en el repo para histórico completo. */
 ];
 function normalizarChangelog(){
     /* Convierte entradas legacy con changes:[string] al formato {type,title,desc}.
@@ -2020,7 +1848,17 @@ function cmpVersion(a,b){
 function getNoticiasNoVistas(){
     const last=AppState.datos?.lastSeenVersion||'';
     const log=normalizarChangelog();
-    return log.filter(e=>cmpVersion(e.version,last)>0);
+    /* El badge solo cuenta entradas recientes (≤30 días).
+       Esto evita que un usuario que no abrió la campanita en 2 meses siga viendo
+       un número grande de "pendientes" irrelevantes. */
+    const now=Date.now();
+    return log.filter(e=>{
+        if(cmpVersion(e.version,last)<=0)return false;
+        if(!e.date)return true;
+        const d=new Date(e.date+'T00:00:00');
+        if(isNaN(d.getTime()))return true;
+        return(now-d.getTime())/86400000<=30;
+    });
 }
 function actualizarBadgeNoticias(){
     const badge=$('newsBellBadge');if(!badge)return;
@@ -2029,6 +1867,8 @@ function actualizarBadgeNoticias(){
     else badge.classList.add('hidden');
 }
 function abrirCentroNoticias(){
+    /* Reset de "ver anteriores" cada vez que abre — defaulteamos a mostrar solo las recientes */
+    AppState.ui._noticiasShowAll=false;
     renderizarCentroNoticias();
     abrirModal('modalNoticias');
     /* Marcar la versión más reciente como vista (el usuario abrió el centro) */
@@ -2037,11 +1877,26 @@ function abrirCentroNoticias(){
 function renderizarCentroNoticias(){
     const log=normalizarChangelog();
     const last=AppState.datos?.lastSeenVersion||'';
-    let h='';
-    log.forEach(entry=>{
+    /* ═══ Ventana deslizante por edad ═══
+       Por defecto solo se renderizan entradas de los últimos 30 días.
+       Las más viejas quedan ocultas tras un botón "ver anteriores".
+       Esto mantiene el centro liviano y relevante sin perder acceso al histórico. */
+    const AGE_CUTOFF_DAYS=30;
+    const now=Date.now();
+    const esRelativaReciente=fechaStr=>{
+        if(!fechaStr)return true;  /* sin fecha: asumimos reciente */
+        const d=new Date(fechaStr+'T00:00:00');
+        if(isNaN(d.getTime()))return true;
+        return(now-d.getTime())/86400000<=AGE_CUTOFF_DAYS;
+    };
+    const showAll=AppState.ui._noticiasShowAll||false;
+    const entriesRecientes=showAll?log:log.filter(e=>esRelativaReciente(e.date));
+    const entriesOcultas=showAll?0:log.length-entriesRecientes.length;
+
+    const renderEntry=entry=>{
         const isNew=cmpVersion(entry.version,last)>0;
         const badge=isNew?'<span class="news-version-badge">Nuevo</span>':'';
-        h+=`<div class="news-version">
+        return`<div class="news-version">
             <div class="news-version-header">
                 <span class="news-version-num">Versión ${escHtml(entry.version)}</span>
                 <span class="news-version-date">${escHtml(entry.date||'')}</span>
@@ -2061,9 +1916,17 @@ function renderizarCentroNoticias(){
             }).join('')}
             <div class="news-version-divider"></div>
         </div>`;
-    });
+    };
+    let h=entriesRecientes.map(renderEntry).join('');
+    if(entriesOcultas>0){
+        h+=`<div style="text-align:center;padding:12px 0 20px"><button class="btn btn-cancel" id="btnNewsShowAll" style="font-size:0.85em;padding:8px 16px">Ver ${entriesOcultas} versión${entriesOcultas>1?'es':''} anterior${entriesOcultas>1?'es':''}</button></div>`;
+    }
     if(!h)h='<div style="text-align:center;padding:30px;color:#94a3b8">Sin novedades aún</div>';
     setHtml('noticiasContent',h);
+    /* Wire del botón "ver anteriores" — re-render con flag activada */
+    if(entriesOcultas>0){
+        $('btnNewsShowAll').onclick=()=>{AppState.ui._noticiasShowAll=true;renderizarCentroNoticias()};
+    }
 }
 function marcarVersionVista(){
     const log=normalizarChangelog();
