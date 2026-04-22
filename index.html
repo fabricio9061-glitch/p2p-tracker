@@ -464,6 +464,18 @@
         .r2 span{font-size:0.65em;white-space:nowrap}
         .r2-c1{color:#94a3b8}
         .r2-c2{color:#475569;overflow:hidden;text-overflow:ellipsis;min-width:0}
+        /* Comisión Binance — badge discreto al lado del USDT neto */
+        .r2-com{
+            display:inline-block;
+            margin-left:4px;
+            padding:0 4px;
+            font-size:0.82em;
+            font-weight:600;
+            color:#94a3b8;
+            background:#f1f5f9;
+            border-radius:3px;
+            letter-spacing:-0.2px;
+        }
         .r2-c3{display:contents}
         .r2-banco{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
         .r2-fecha{color:#b0b8c4;text-align:right;min-width:64px;flex-shrink:0}
@@ -1246,7 +1258,19 @@
             <div class="whatsnew-content" id="whatsNewContent"></div>
         </div>
     </div>
-    <div id="modalEditarOp" class="modal"><div class="modal-content"><div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div><div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div><div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div><div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div><div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div><div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div></div></div>
+    <div id="modalEditarOp" class="modal"><div class="modal-content">
+        <div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div>
+        <div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div>
+        <div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div>
+        <div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div>
+        <div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div>
+        <div class="com-row" style="margin-bottom:12px">
+            <div><div class="com-label">Comisión Binance</div><div class="com-info"><strong id="editOpComisionInfo">0 USDT</strong></div></div>
+            <label class="com-edit" title="Comisión Binance de esta operación (0% a 10%)" aria-label="Editar comisión Binance"><input type="text" id="editOpComisionPct" value="0,14" placeholder="0,14" inputmode="decimal" maxlength="6" aria-label="Porcentaje de comisión"><span>%</span></label>
+        </div>
+        <div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div>
+        <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div>
+    </div></div>
 
     <!-- ═══ SUCCESS OVERLAY ═══ -->
     <div class="success-overlay" id="successOverlay">
@@ -1295,7 +1319,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.16',
+    APP_VERSION: '4.7.17',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1328,6 +1352,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.17', date:'2026-04-22', headline:'✏️ Comisión Binance completa de punta a punta + errores iOS silenciados.', changes:[
+        {type:'feature', title:'Comisión editable también en Editar Operación', desc:'El modal de Editar Compra/Venta ahora tiene el mismo control pill para editar la comisión. Cambios recalculan en vivo el preview (comisión USDT, cantidad neta). Al guardar, se persisten op.comisionPct, op.usdt y op.comisionPlataforma recomputados.'},
+        {type:'feature', title:'Comisión persistida por operación', desc:'Cada operación guarda explícitamente el % con el que fue creada/editada. Cambios futuros a la comisión global no afectan el historial — cada op conserva su valor real.'},
+        {type:'feature', title:'Comisión visible en la lista', desc:'Badge discreto al lado del USDT neto en cada tarjeta de operación (ej. "0,14%"). Fondo gris claro, tooltip "Comisión Binance aplicada". Se ve sin quitar protagonismo a los datos principales.'},
+        {type:'improve', title:'Migración inteligente de datos viejos', desc:'Operaciones antiguas sin comisionPct se backfillean derivando el % desde comisionPlataforma/usdt (respeta la tasa real de cada op). Si no se puede derivar, usa 0,14% como fallback. Migración corre una sola vez por sesión.'},
+        {type:'fix', title:'Errores iOS Safari silenciados', desc:'El error "Attempt to get records from database without an in-progress transaction" (benigno, ocurre cuando IDB se cierra por backgrounding) ya no llena el log de diagnóstico. También se filtran fetch abortados. Los errores reales quedan visibles.'}
+    ]},
     {version:'4.7.16', date:'2026-04-18', headline:'✏️ Comisión Binance claramente editable + indicador de tendencia del spread.', changes:[
         {type:'feature', title:'Comisión Binance con affordance visual clara', desc:'El campo de comisión ahora se ve como un pill editable: border completo, fondo blanco, ícono ✎ a la izquierda. Estados de hover, focus (con ring azul) y error (rojo) claramente diferenciados. El valor se aplica en tiempo real tanto a compras como a ventas.'},
         {type:'improve', title:'Validación más segura', desc:'Rango 0-10% mantenido. Estado transitorio (mientras tipeás "0.") no marca error. Al perder foco, si el valor es inválido se revierte al último guardado. maxlength evita pegados absurdos. Se persiste via guardaOptimista respetando la cola de sync.'},
@@ -3786,14 +3817,27 @@ function cargarDatosUsuario(){
         if(!AppState._legacyMigrado){
             const hasLegacyLotes=AppState.datos.lotes.some(l=>!l.moneda);
             const hasLegacyOps=AppState.datos.operaciones.some(op=>op.ganancia===undefined);
-            if(hasLegacyLotes||hasLegacyOps){
+            const hasLegacyCom=AppState.datos.operaciones.some(op=>op.comisionPct===undefined);
+            if(hasLegacyLotes||hasLegacyOps||hasLegacyCom){
                 AppState.datos.lotes.forEach(l=>{if(!l.moneda)l.moneda='UYU'});
                 AppState.datos.operaciones.forEach(op=>{
                     if(!op.tasa||op.tasa<=0)return;
+                    /* Backfill comisionPct: primero intentar derivarlo de los valores existentes
+                       (usdt + comisionPlataforma) para respetar la tasa real de cada op.
+                       Si no se puede derivar, usar default 0.14%. Esto garantiza que operaciones
+                       viejas conserven su comisión real en vez de asumir la global actual. */
+                    if(op.comisionPct===undefined){
+                        if(op.usdt>0&&op.comisionPlataforma>=0){
+                            const derivado=roundMoney((op.comisionPlataforma/op.usdt)*100,3);
+                            op.comisionPct=(derivado>=0&&derivado<=10)?derivado:0.14;
+                        }else{
+                            op.comisionPct=0.14;
+                        }
+                    }
                     const exp=usdtBase(op.monto/op.tasa,op.tipo);
                     if(Math.abs((op.usdt||0)-exp)>0.001){
                         op.usdt=exp;
-                        op.comisionPlataforma=truncar(op.usdt*((op.comisionPct||0.14)/100),2);
+                        op.comisionPlataforma=truncar(op.usdt*(op.comisionPct/100),2);
                     }
                     /* Asegurar ganancia numérica — sino recalcularLotesYGanancias la setea */
                     if(op.ganancia===undefined)op.ganancia=0;
@@ -3841,11 +3885,19 @@ function _writeErrLog(arr){
 }
 function registrarError(tipo,detalle){
     try{
+        const det=(detalle||'').toString();
+        /* Filtro de ruido conocido — iOS Safari + Firestore IndexedDB:
+           "Attempt to get records from database without an in-progress transaction"
+           ocurre cuando la transacción IDB se cierra mid-operation por backgrounding.
+           Es benigno (Firestore reintenta), pero ensuciaba el log y ocultaba errores reales. */
+        if(det.includes('in-progress transaction'))return;
+        /* Otro ruido: "The operation couldn't be completed" — típico de fetch abortado */
+        if(det.includes("operation couldn't be completed")&&det.includes('aborted'))return;
         const log=_readErrLog();
         log.push({
             ts:new Date().toISOString(),
             tipo:tipo||'unknown',
-            detalle:(detalle||'').toString().slice(0,800),
+            detalle:det.slice(0,800),
             user:AppState.currentUser?emailToUser(AppState.currentUser.email):null,
             version:CONFIG.APP_VERSION,
             ua:navigator.userAgent.slice(0,120),
@@ -4379,6 +4431,11 @@ function abrirEditarOperacion(id){
     setText('editOpMontoLabel',op.tipo==='compra'?`Monto pagado (${op.moneda||'UYU'})`:`Monto recibido (${op.moneda||'UYU'})`);
     $('editOpMonto').value=fmtNum(op.monto);
     $('editOpTasa').value=fmtTasa(op.tasa,op.moneda||'UYU');
+    /* Comisión Binance: poblar con el valor persistido en la operación.
+       Fallback al global de la moneda si la op no tiene (datos legacy). */
+    const cpOp=op.comisionPct!==undefined?op.comisionPct:(op.moneda==='USD'?(AppState.datos.comisionUSD||0.14):(AppState.datos.comisionPlataforma||0.14));
+    $('editOpComisionPct').value=fmtNum(cpOp);
+    $('editOpComisionPct').classList.remove('error');
     /* Poblar select de bancos */
     const sel=$('editOpBanco');sel.innerHTML='';
     getBancosActivos().forEach(b=>{sel.innerHTML+=`<option value="${b.nombre}" style="color:${b.color||'#1e293b'};font-weight:600"${b.nombre===op.banco?' selected':''}>${b.nombre}</option>`});
@@ -4389,17 +4446,32 @@ function abrirEditarOperacion(id){
     abrirModal('modalEditarOp');
 }
 
+/* Lee el % de comisión del input del modal. Si está inválido, retorna fallback de la op.
+   Separado para poder reutilizarse en preview y en guardar. */
+function _editOpComisionPctLeida(op){
+    const raw=$('editOpComisionPct').value.replace(',','.').trim();
+    const v=parsearComisionPct(raw);
+    if(v!==null)return v;
+    /* Fallback — mismo que en abrir */
+    return op.comisionPct!==undefined?op.comisionPct:(op.moneda==='USD'?(AppState.datos.comisionUSD||0.14):(AppState.datos.comisionPlataforma||0.14));
+}
+
 function calcularEditOpPreview(){
     const op=AppState.datos.operaciones.find(o=>o.id===AppState.ui.opEditandoId);if(!op)return;
     const m=pv('editOpMonto'),ta=parsearTasa($('editOpTasa').value),pbox=$('editOpPreview');
     if(m>0&&ta){
-        const cpct=(op.comisionPct||0.14)/100;
+        /* Usar el % del input editable (no el persistido) para preview en vivo */
+        const cpct=_editOpComisionPctLeida(op)/100;
         const u=usdtBase(m/ta,op.tipo),c=truncar(u*cpct,2),neto=usdtNeto(u,c,op.tipo);
+        setText('editOpComisionInfo',fmtTrunc(c,2)+' USDT');
         pbox.innerHTML=op.tipo==='compra'
             ?`📥 Recibís <b>${fmtNum(neto,2)} USDT</b> <span style="color:#64748b;font-size:0.85em">(base: ${fmtNum(u,2)})</span>`
             :`📤 Entregás <b>${fmtNum(neto,2)} USDT</b>`;
         pbox.style.display='block';
-    }else pbox.style.display='none';
+    }else{
+        setText('editOpComisionInfo','0 USDT');
+        pbox.style.display='none';
+    }
 }
 
 async function guardarEditarOperacion(){
@@ -4440,6 +4512,11 @@ async function guardarEditarOperacion(){
         }
         /* 2. Aplicar nuevos valores */
         op.monto=roundMoney(newM);op.tasa=newTa;op.banco=newB;
+        /* Comisión editable: persistir el % específico y recalcular derivados */
+        const newCpct=_editOpComisionPctLeida(op);
+        op.comisionPct=newCpct;
+        op.usdt=usdtBase(op.monto/op.tasa,op.tipo);
+        op.comisionPlataforma=truncar(op.usdt*(newCpct/100),2);
         op.updatedAt=new Date().toISOString();
         /* 3. Aplicar nuevo impacto bancario */
         if(newB&&AppState.datos.bancos[newB]){
@@ -5121,6 +5198,9 @@ const pagOp=crearPaginacion({
             const gt=gn>=0?'+$'+fmtNum(gn):'-$'+fmtNum(Math.abs(gn));
             const cl=op.consumedLots?.length?op.consumedLots.map(x=>fmtTrunc(x.amount,2)+'@$'+fmtNum(x.precio)).join(', '):'';
             const fifoTip=cl?` title="FIFO: ${cl}"`:'';
+            /* Comisión Binance: mostrar el % persistido (o fallback 0.14 para datos legacy) */
+            const cPct=op.comisionPct!==undefined?op.comisionPct:0.14;
+            const cPctTxt=fmtNum(cPct,2)+'%';
 
             h+=`<div class="op-swipe-wrap">
                 <div class="op-swipe-bg edit">✏️</div>
@@ -5129,7 +5209,7 @@ const pagOp=crearPaginacion({
                     <div class="op-card ${op.tipo}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${sy}${fmtNum(op.monto)}</span><span class="r1-gp" style="color:${gc}">${gt}</span></div>
-                            <div class="r2"><span class="r2-c1">${sy}${fmtNum(op.tasa,td)}</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}" title="${Array.isArray(op.aportes)&&op.aportes.length>1?'Pago dividido: '+op.aportes.map(a=>a.banco+' $'+fmtNum(a.monto,0)).join(' · '):''}">${op.banco||'-'}${Array.isArray(op.aportes)&&op.aportes.length>1?' <span style="font-size:0.85em;color:#f59e0b;font-weight:700">+'+(op.aportes.length-1)+'</span>':''}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
+                            <div class="r2"><span class="r2-c1">${sy}${fmtNum(op.tasa,td)}</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT <span class="r2-com" title="Comisión Binance aplicada">${cPctTxt}</span></span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}" title="${Array.isArray(op.aportes)&&op.aportes.length>1?'Pago dividido: '+op.aportes.map(a=>a.banco+' $'+fmtNum(a.monto,0)).join(' · '):''}">${op.banco||'-'}${Array.isArray(op.aportes)&&op.aportes.length>1?' <span style="font-size:0.85em;color:#f59e0b;font-weight:700">+'+(op.aportes.length-1)+'</span>':''}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button></span>
                         </div>
                     </div>
@@ -5874,6 +5954,27 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnGuardarEditOp').addEventListener('click',guardarEditarOperacion);
     $('editOpMonto').addEventListener('input',calcularEditOpPreview);
     $('editOpTasa').addEventListener('input',calcularEditOpPreview);
+    /* Comisión editable en modal de editar — live preview + blur validation */
+    $('editOpComisionPct').addEventListener('input',()=>{
+        const inp=$('editOpComisionPct'),raw=inp.value.replace(',','.').trim();
+        if(raw===''||raw==='.'||raw.endsWith('.')){inp.classList.remove('error');calcularEditOpPreview();return}
+        const v=parsearComisionPct(raw);
+        if(v===null){inp.classList.add('error');return}
+        inp.classList.remove('error');
+        calcularEditOpPreview();
+    });
+    $('editOpComisionPct').addEventListener('blur',()=>{
+        const op=AppState.datos.operaciones.find(o=>o.id===AppState.ui.opEditandoId);if(!op)return;
+        const inp=$('editOpComisionPct');
+        const v=parsearComisionPct(inp.value.replace(',','.').trim());
+        if(v===null){
+            /* Revertir al valor persistido o fallback */
+            const cv=op.comisionPct!==undefined?op.comisionPct:(op.moneda==='USD'?(AppState.datos.comisionUSD||0.14):(AppState.datos.comisionPlataforma||0.14));
+            inp.value=fmtNum(cv);
+            inp.classList.remove('error');
+            calcularEditOpPreview();
+        }
+    });
     $('editOpBanco').addEventListener('change',()=>{const v=$('editOpBanco').value;$('editOpBanco').style.color=v?getBancoColor(v):'#1e293b';$('editOpBanco').style.fontWeight=v?'600':'400'});
     $('tagSearch').addEventListener('input',renderizarGestionTags);
     $('movDescripcion').addEventListener('input',()=>{AppState.ui._tagShowAll=false;renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov')});
