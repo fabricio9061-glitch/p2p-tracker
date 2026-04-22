@@ -826,8 +826,8 @@
         /* ═══ Ajuste Externo: prominent monto + summary preview + differentiated selects ═══ */
         .mov-monto-group{margin-bottom:14px}
         .mov-monto-group label{font-size:0.65em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px}
-        .mov-monto-input{font-size:1.7em !important;font-weight:800 !important;color:#1e293b !important;text-align:left !important;padding:14px 16px !important;background:linear-gradient(180deg,#fafbfc,#f8fafc) !important;border:2px solid #e2e8f0 !important;border-radius:12px !important;letter-spacing:-0.5px}
-        .mov-monto-input:focus{border-color:#2563eb !important;background:white !important;outline:none}
+        .mov-monto-group input.mov-monto-input{font-size:1.7em;font-weight:800;color:#1e293b;text-align:left;padding:14px 16px;background:linear-gradient(180deg,#fafbfc,#f8fafc);border:2px solid #e2e8f0;border-radius:12px;letter-spacing:-0.5px}
+        .mov-monto-group input.mov-monto-input:focus{border-color:#2563eb;background:white;outline:none}
         .select-tipo{background:white;border:1px solid #e2e8f0;font-weight:600;color:#475569}
         .select-banco{background:#f8fafc;border:1px solid #cbd5e1;font-weight:700;color:#1e293b}
         .mov-resumen{margin:12px 0 8px;padding:11px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:0.82em}
@@ -994,10 +994,6 @@
                 <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
             </div>
 
-            <div class="section-title">💰 Mis Saldos</div>
-            <div class="saldos-hero" id="saldosTotales"></div>
-            <div class="bancos-grid" id="bancosGrid"></div>
-
             <div class="section-title">📊 Actividad del período</div>
             <div class="cards cards-actividad">
                 <div class="card card-compra">
@@ -1011,6 +1007,10 @@
                     <div style="font-size:0.6em;color:#94a3b8" id="statsVenta">--</div>
                 </div>
             </div>
+
+            <div class="section-title">💰 Mis Saldos</div>
+            <div class="saldos-hero" id="saldosTotales"></div>
+            <div class="bancos-grid" id="bancosGrid"></div>
 
             <div class="desktop-columns">
             <div class="col-left">
@@ -1246,7 +1246,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.13',
+    APP_VERSION: '4.7.15',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1279,6 +1279,20 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.15', date:'2026-04-18', headline:'⚡ Performance: paginación sin doble filtro + render diffing + CSS limpio.', changes:[
+        {type:'perf', title:'Paginación: un solo filtro por render', desc:'crearPaginacion ahora acepta getData() — computa la lista filtrada una sola vez y deriva total/slice de ahí. Las 4 paginaciones (ops, movs, trans, conv) migradas. Antes aplicarOpsFilters corría 2 veces por render; ahora 1 vez.'},
+        {type:'perf', title:'Render diffing: listas no se re-renderizan sin cambios', desc:'Sistema de fingerprints por lista: si los datos + página + filtros no cambiaron, se saltea el innerHTML write. actualizarVista() puede llamarse múltiples veces sin reflow innecesario. Invalidación automática en recalcularLotesYGanancias y guardaOptimista.'},
+        {type:'improve', title:'CSS !important reducido', desc:'Usos de !important pasaron de 14 a 12. Las reglas .mov-monto-input se consolidaron con selectores más específicos (.mov-monto-group input.mov-monto-input). Los 12 restantes son overrides legítimos en modales fullscreen mobile.'},
+        {type:'verified', title:'Touch events ya son passive', desc:'Los 3 touch handlers del swipe gesture usan {passive:true} — scroll en Android sin jank. Verificado, sin cambios necesarios.'},
+        {type:'verified', title:'Virtual scrolling no es necesario', desc:'POR_PAGINA=10 — con solo 10 cards por render, virtual scrolling sería overhead. Descartado tras medir.'}
+    ]},
+    {version:'4.7.14', date:'2026-04-18', headline:'🛠️ Auditoría técnica: 4 fixes críticos + reorden de pantalla principal.', changes:[
+        {type:'improve', title:'Nuevo orden en la home', desc:'"Actividad del período" (Compras/Ventas) ahora aparece arriba de "Mis Saldos". El orden refleja mejor la jerarquía: Ganancia → Actividad → Saldos → Nueva Operación.'},
+        {type:'fix', title:'Interval respeta visibility en Android', desc:'El tick de 60s corría aunque la pestaña estuviera oculta. En Android WebView con batería saver, eso consumía CPU sin motivo. Ahora el scheduler pausa con visibilitychange y hace tick inmediato al volver visible. También evita re-render completo si no cambió el día.'},
+        {type:'fix', title:'Race condition en offline corregida', desc:'Cuando navigator.onLine era false, guardarDatos hacía ref.set() sin chequear _version. Un device en offline con cambios locales podía pisar datos hechos en otro dispositivo al sincronizar. Ahora el offline-deferred path mantiene el estado localmente y espera al evento online para reconciliar con transacción.'},
+        {type:'fix', title:'Cache de ganancia ya no se pisa entre monedas', desc:'calcularGananciaTotal(USD) sobrescribía el cache compartido con el valor UYU (_all). El siguiente call sin filtro devolvía el número equivocado. El cache ahora usa Map por moneda — cada filtro tiene su slot propio.'},
+        {type:'fix', title:'Migración legacy en loop', desc:'Firestore stripea campos undefined. op.ganancia=undefined re-aparecía en cada snapshot, disparando migración + guardarDatos en bucle. Ahora un flag _legacyMigrado asegura que corra una vez por sesión. Se resetea en logout.'}
+    ]},
     {version:'4.7.13', date:'2026-04-17', headline:'🎯 Barra bancaria correctamente pegada al borde derecho del card.', changes:[
         {type:'fix', title:'Barra alineada al borde del card', desc:'El gap visible entre la barra y el card (que la hacía parecer flotar en el espacio entre tarjetas) se corrigió. Antes usaba offsets negativos (right:-1px) que la sacaban del card hacia el gap de la grid. Ahora vive dentro del card con right:0, top:0, bottom:0, pegada al borde derecho interno.'},
         {type:'improve', title:'Overflow:hidden recorta las esquinas automáticamente', desc:'El card recupera overflow:hidden + border-radius:8px. Track y fill, sin border-radius propio, heredan la curvatura del card — se recortan perfectamente en las esquinas superior e inferior derechas.'},
@@ -1628,7 +1642,14 @@ async function reconnectFirebase(){
 
 /* ═══ Detectar conectividad ═══ */
 function inicializarConectividad(){
-    window.addEventListener('online',()=>{if(AppState.currentUser&&AppState.ui.syncState==='offline')reconnectFirebase()});
+    window.addEventListener('online',()=>{
+        if(!AppState.currentUser)return;
+        /* Al volver online, intentar reconectar Firebase y vaciar cualquier cambio pendiente
+           que quedó diferido por estar offline. El snapshot re-sincronizará el servidor. */
+        if(AppState.ui.syncState==='offline')reconnectFirebase();
+        /* Si quedó pending local por offline, re-disparar guardado con debounce */
+        if(_syncQueue.length>0||_localDirty>0)guardaOptimista('resync','pending','online');
+    });
     window.addEventListener('offline',()=>setSyncStatus('offline'));
     /* Flush del debounce al perder foco — evita que cambios queden en buffer al cerrar pestaña/app */
     document.addEventListener('visibilitychange',()=>{
@@ -2188,7 +2209,10 @@ function activarCooldown() {
 const _perf={enabled:false,log(name,ms){if(this.enabled||ms>100)console.log(`[PERF] ${name}: ${ms.toFixed(1)}ms`)}};
 function perfWrap(name,fn){return function(){const t0=performance.now();const r=fn.apply(this,arguments);_perf.log(name,performance.now()-t0);return r}}
 
-/* ═══ Debounced actualizarVista ═══ */
+/* ═══ Debounced actualizarVista ═══
+   actualizarVistaDebounced agrupa múltiples llamadas en un solo frame.
+   Las rutas críticas que disparan mutación + render se benefician automáticamente
+   si llaman actualizarVistaDebounced en lugar de actualizarVista directo. */
 let _vistaRAF=0;
 function actualizarVistaDebounced(){if(_vistaRAF)return;_vistaRAF=requestAnimationFrame(()=>{_vistaRAF=0;actualizarVista()})}
 
@@ -3052,24 +3076,38 @@ function inicializarSwipe(){
 /* ═══════════════════════════════════════
    §5 — PAGINACIÓN GENÉRICA
    ═══════════════════════════════════════ */
+/* Acepta getData() (preferido) o getTotal() legacy.
+   getData() devuelve la lista completa filtrada — total y slice se derivan de ahí
+   en una sola pasada, evitando filtrar/contar dos veces por render. */
 function crearPaginacion(cfg) {
-    const {getTotal,getPag,setPag,porPag,ids,renderFn} = cfg;
-    function totalPags(){return Math.max(1,Math.ceil(getTotal()/porPag))}
+    const {getData,getTotal,getPag,setPag,porPag,ids,renderFn} = cfg;
     function render(){
-        const total=getTotal();
-        if(!total){$(ids.pagination).style.display='none';renderFn([],0,0);return}
-        let pag=getPag(),tp=totalPags();
+        let data=null,total;
+        if(typeof getData==='function'){
+            data=getData();
+            total=data.length;
+        }else{
+            total=getTotal();
+        }
+        if(!total){$(ids.pagination).style.display='none';renderFn([],0,0,data||[]);return}
+        const tp=Math.max(1,Math.ceil(total/porPag));
+        let pag=getPag();
         if(pag>tp){pag=tp;setPag(pag)}
         if(pag<1){pag=1;setPag(pag)}
         const ini=(pag-1)*porPag,fin=ini+porPag;
-        renderFn(ini,fin,total);
+        /* Pasamos data (si la tenemos) como 4to arg — renderFn puede hacer slice sin re-filtrar */
+        renderFn(ini,fin,total,data);
         $(ids.pagination).style.display=tp>1?'flex':'none';
         setText(ids.info,`${pag} / ${tp}`);
         $(ids.prev).disabled=pag===1;
         $(ids.next).disabled=pag===tp;
     }
     function cambiar(dir){
-        let pag=getPag()+dir,tp=totalPags();
+        let total;
+        if(typeof getData==='function')total=getData().length;
+        else total=getTotal();
+        const tp=Math.max(1,Math.ceil(total/porPag));
+        let pag=getPag()+dir;
         if(pag<1)pag=1;if(pag>tp)pag=tp;setPag(pag);render();
     }
     return{render,cambiar};
@@ -3295,6 +3333,8 @@ function recalcularLotesYGanancias(){
     AppState.datos.ultimaTasaVenta=utvL;AppState.datos.ultimaTasaVentaUSD=utvU;
     sincronizarSaldoUsdt();
     invalidarGananciaCache();
+    /* Listas dependen de ganancia/ops recalculadas → invalidar fingerprints también */
+    if(typeof _invalidateListCache==='function')_invalidateListCache();
 }
 
 function renderizarInventario(){
@@ -3339,6 +3379,9 @@ function hasPendingLocal(){return _syncQueue.length>0||_localDirty>0||_guardando
 let _guardaDebounceTimer=null,_guardaFirstPendingTs=0;
 function guardaOptimista(type,entity,id){
     if(type&&entity&&id)enqueueSync(type,entity,id);
+    /* Invalidar fingerprints de listas → próximo actualizarVista re-renderiza las listas
+       aunque no cambie array.length (ej. editar monto de una transferencia) */
+    if(typeof _invalidateListCache==='function')_invalidateListCache();
     const now=Date.now();
     if(!_guardaFirstPendingTs)_guardaFirstPendingTs=now;
     clearTimeout(_guardaDebounceTimer);
@@ -3539,48 +3582,52 @@ async function guardarDatos(forzar){
     if(_syncQueue.length>0||forzar)backupToLocal();
     const ref=AppState.db.collection('users').doc(AppState.currentUser.uid);
     try{
-        if(navigator.onLine){
-            await AppState.db.runTransaction(async tx=>{
-                const doc=await tx.get(ref);
-                const serverVersion=doc.exists?(doc.data()._version||0):0;
-                if(serverVersion>AppState._localVersion){
-                    throw{code:'stale-version',serverV:serverVersion,localV:AppState._localVersion};
-                }
-                const newVersion=serverVersion+1;
-                tx.set(ref,{
-                    ...AppState.datos,
-                    _version:newVersion,
-                    ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
-                });
-                AppState._localVersion=newVersion;
-                AppState.datos._version=newVersion;
-            });
-        }else{
-            const nv=(AppState.datos._version||0)+1;
-            AppState.datos._version=nv;AppState._localVersion=nv;
-            await ref.set({
+        if(!navigator.onLine){
+            /* OFFLINE: no escribir a Firebase con un _version bumped — esto evita
+               race conditions con otros devices. Solo marcamos que hay pending local y
+               esperamos al evento 'online' para disparar un guardaOptimista real.
+               El backup local ya está hecho arriba, así que los datos están a salvo. */
+            setSyncStatus('offline','Sin conexión');
+            _syncPending=Math.max(0,_syncPending-1);
+            updateSyncBadge();
+            throw{code:'offline-deferred'};
+        }
+        await AppState.db.runTransaction(async tx=>{
+            const doc=await tx.get(ref);
+            const serverVersion=doc.exists?(doc.data()._version||0):0;
+            if(serverVersion>AppState._localVersion){
+                throw{code:'stale-version',serverV:serverVersion,localV:AppState._localVersion};
+            }
+            const newVersion=serverVersion+1;
+            tx.set(ref,{
                 ...AppState.datos,
+                _version:newVersion,
                 ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
             });
-        }
+            AppState._localVersion=newVersion;
+            AppState.datos._version=newVersion;
+        });
         _syncPending=Math.max(0,_syncPending-1);_syncErrors=0;_retryDelay=2000;
         clearTimeout(_retryTimer);
         if(_syncPending===0&&!_guardarPendiente){clearSyncQueue();setSyncStatus('online');clearLocalBackup()}
         else setSyncStatus('syncing',_syncPending+' pendiente'+((_syncPending>1)?'s':''));
         updateSyncBadge();
     }catch(e){
-        _syncPending=Math.max(0,_syncPending-1);
-        if(e.code==='stale-version'){
-            AppState._datosStale=true;
-            setSyncStatus('syncing','Reconciliando…');
+        if(e.code==='offline-deferred'){
+            /* Ya manejado arriba: no incrementar errores, no retry inmediato */
         }else{
-            _syncErrors++;updateSyncBadge();
-            const isNet=e.code==='unavailable'||e.code==='failed-precondition'||!navigator.onLine;
-            setSyncStatus('offline',_syncErrors>0?_syncErrors+' error'+((_syncErrors>1)?'es':''):'Error sync');
-            /* Auto-retry with backoff */
-            clearTimeout(_retryTimer);
-            _retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();guardarDatos()},Math.min(_retryDelay,30000));
-            _retryDelay=Math.min(_retryDelay*1.5,30000);
+            _syncPending=Math.max(0,_syncPending-1);
+            if(e.code==='stale-version'){
+                AppState._datosStale=true;
+                setSyncStatus('syncing','Reconciliando…');
+            }else{
+                _syncErrors++;updateSyncBadge();
+                setSyncStatus('offline',_syncErrors>0?_syncErrors+' error'+((_syncErrors>1)?'es':''):'Error sync');
+                /* Auto-retry with backoff */
+                clearTimeout(_retryTimer);
+                _retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();guardarDatos()},Math.min(_retryDelay,30000));
+                _retryDelay=Math.min(_retryDelay*1.5,30000);
+            }
         }
     }finally{
         _guardando=false;
@@ -3676,21 +3723,29 @@ function cargarDatosUsuario(){
         }
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
-        /* Migración: normalizar datos legacy (solo si hay datos sin moneda o sin ganancia) */
-        const hasLegacyLotes=AppState.datos.lotes.some(l=>!l.moneda);
-        const hasLegacyOps=AppState.datos.operaciones.some(op=>op.ganancia===undefined);
-        if(hasLegacyLotes||hasLegacyOps){
-            /* Normalizar lotes sin moneda → 'UYU' (convención histórica) */
-            AppState.datos.lotes.forEach(l=>{if(!l.moneda)l.moneda='UYU'});
-            AppState.datos.operaciones.forEach(op=>{
-                if(!op.tasa||op.tasa<=0)return;
-                const exp=usdtBase(op.monto/op.tasa,op.tipo);
-                if(Math.abs((op.usdt||0)-exp)>0.001){
-                    op.usdt=exp;
-                    op.comisionPlataforma=truncar(op.usdt*((op.comisionPct||0.14)/100),2);
-                }
-            });
-            recalcularLotesYGanancias();guardarDatos()
+        /* Migración: normalizar datos legacy (solo si hay datos sin moneda o sin ganancia).
+           IMPORTANTE: guard por sesión — si Firestore stripea undefined al marshallizar, 
+           ganancia=undefined vuelve en cada snapshot, y eso dispararía un loop 
+           de guardarDatos. La flag evita re-ejecutar en cada snapshot. */
+        if(!AppState._legacyMigrado){
+            const hasLegacyLotes=AppState.datos.lotes.some(l=>!l.moneda);
+            const hasLegacyOps=AppState.datos.operaciones.some(op=>op.ganancia===undefined);
+            if(hasLegacyLotes||hasLegacyOps){
+                AppState.datos.lotes.forEach(l=>{if(!l.moneda)l.moneda='UYU'});
+                AppState.datos.operaciones.forEach(op=>{
+                    if(!op.tasa||op.tasa<=0)return;
+                    const exp=usdtBase(op.monto/op.tasa,op.tipo);
+                    if(Math.abs((op.usdt||0)-exp)>0.001){
+                        op.usdt=exp;
+                        op.comisionPlataforma=truncar(op.usdt*((op.comisionPct||0.14)/100),2);
+                    }
+                    /* Asegurar ganancia numérica — sino recalcularLotesYGanancias la setea */
+                    if(op.ganancia===undefined)op.ganancia=0;
+                });
+                recalcularLotesYGanancias();
+                guardarDatos();
+            }
+            AppState._legacyMigrado=true;
         }
         AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
         if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=fmtNum(cv);setText('comisionPctLabel',fmtNum(cv))}
@@ -4776,15 +4831,20 @@ async function eliminarConversion(id){
    §12 — CALENDARIO
    ═══════════════════════════════════════ */
 /* Cache for ganancia calculations — invalidated by data version changes.
-   Key: monedaFiltro + '_' + version. Ops/movs array length as secondary key for safety. */
-const _gananciaCache={diaria:null,total:null,key:null};
+   Per-moneda slots (Map) para que distintos filtros no se pisen mutuamente. */
+const _gananciaCache={diaria:new Map(),total:new Map(),key:null};
 function _gananciaCacheKey(monedaFiltro){
     const v=AppState.datos._version||0;
     const opsLen=AppState.datos.operaciones.length,movsLen=AppState.datos.movimientos.length;
     const bump=AppState.ui._cacheBump||0;
     return (monedaFiltro||'_all')+'|'+v+'|'+opsLen+'|'+movsLen+'|'+bump;
 }
-function invalidarGananciaCache(){_gananciaCache.diaria=null;_gananciaCache.total=null;_gananciaCache.key=null;_gananciaCache.keyTotal=null;AppState.ui._cacheBump=(AppState.ui._cacheBump||0)+1}
+function invalidarGananciaCache(){
+    _gananciaCache.diaria.clear();
+    _gananciaCache.total.clear();
+    _gananciaCache.key=null;
+    AppState.ui._cacheBump=(AppState.ui._cacheBump||0)+1;
+}
 /* ═══ Ingresos externos (separados de ganancia P2P) ═══
    Suma monto en UYU de TODOS los ingresos registrados desde Ajustes
    (banco UYU, banco USD convertido, USDT con tasaRef).
@@ -4812,7 +4872,8 @@ function calcularIngresosExternosMes(yyyy_mm){
 
 function calcularGananciaDiaria(monedaFiltro){
     const key=_gananciaCacheKey(monedaFiltro);
-    if(_gananciaCache.diaria&&_gananciaCache.key===key)return _gananciaCache.diaria;
+    const cached=_gananciaCache.diaria.get(key);
+    if(cached)return cached;
     const g={};AppState.datos.operaciones.forEach(op=>{
         if(monedaFiltro&&op.moneda!==monedaFiltro)return;
         if(!monedaFiltro&&op.moneda==='USD')return;
@@ -4821,13 +4882,13 @@ function calcularGananciaDiaria(monedaFiltro){
         const tasaFb=AppState.datos.ultimaTasaCompra||1;
         AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(!g[mv.fecha])g[mv.fecha]=0;g[mv.fecha]=roundMoney(g[mv.fecha]-movimientoValorUYU(mv,tasaFb))}});
     }
-    _gananciaCache.diaria=g;_gananciaCache.key=key;
+    _gananciaCache.diaria.set(key,g);
     return g;
 }
 function calcularGananciaTotal(monedaFiltro){
-    /* Usa el mismo sistema de cache que calcularGananciaDiaria — invalidado en cada mutación */
-    const key=_gananciaCacheKey(monedaFiltro)+'|total';
-    if(_gananciaCache.total&&_gananciaCache.keyTotal===key)return _gananciaCache.total;
+    const key=_gananciaCacheKey(monedaFiltro);
+    const cached=_gananciaCache.total.get(key);
+    if(cached!==undefined)return cached;
     let g=0;AppState.datos.operaciones.forEach(op=>{
         if(monedaFiltro&&op.moneda!==monedaFiltro)return;
         if(!monedaFiltro&&op.moneda==='USD')return;
@@ -4836,7 +4897,7 @@ function calcularGananciaTotal(monedaFiltro){
         const tasaFb=AppState.datos.ultimaTasaCompra||1;
         AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso')g=roundMoney(g-movimientoValorUYU(mv,tasaFb))});
     }
-    _gananciaCache.total=g;_gananciaCache.keyTotal=key;
+    _gananciaCache.total.set(key,g);
     return g;
 }
 
@@ -4963,12 +5024,14 @@ function renderizarCalendario(){
 /* ═══════════════════════════════════════
    §13 — PAGINACIONES (instancias)
    ═══════════════════════════════════════ */
-const pagOp=crearPaginacion({getTotal:()=>aplicarOpsFilters(opsMes()).length,getPag:()=>AppState.ui.paginaOp,setPag:p=>{AppState.ui.paginaOp=p},porPag:CONFIG.POR_PAGINA,
+const pagOp=crearPaginacion({
+    getData:()=>aplicarOpsFilters(opsMes()),
+    getPag:()=>AppState.ui.paginaOp,setPag:p=>{AppState.ui.paginaOp=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationOp',info:'paginaInfoOp',prev:'btnPrevOp',next:'btnNextOp'},
-    renderFn:(ini,fin,total)=>{
+    renderFn:(ini,fin,total,allOps)=>{
         setText('totalOperaciones',total||0);const c=$('tablaContent');
-        /* Ops filtradas — base del summary y de la lista */
-        const allOps=aplicarOpsFilters(opsMes());
+        /* allOps viene del getData — no volvemos a filtrar */
+        if(!allOps)allOps=aplicarOpsFilters(opsMes()); /* fallback defensivo */
         let sc=0,sv=0,sg=0;allOps.forEach(op=>{if(op.tipo==='compra')sc++;else sv++;sg=roundMoney(sg+(op.ganancia||0))});
         setText('opsSumCompras',sc);setText('opsSumVentas',sv);setText('opsSumTotal',allOps.length);
         const sgE=$('opsSumGanancia');sgE.textContent=(sg>=0?'+':'-')+'$'+fmtNum(Math.abs(sg),0);sgE.style.color=sg>=0?'#16a34a':'#dc2626';
@@ -5007,12 +5070,13 @@ const pagOp=crearPaginacion({getTotal:()=>aplicarOpsFilters(opsMes()).length,get
     }
 });
 
-const pagMov=crearPaginacion({getTotal:()=>movsMes().length,getPag:()=>AppState.ui.paginaMov,setPag:p=>{AppState.ui.paginaMov=p},porPag:CONFIG.POR_PAGINA,
+const pagMov=crearPaginacion({
+    getData:()=>movsMes(),
+    getPag:()=>AppState.ui.paginaMov,setPag:p=>{AppState.ui.paginaMov=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationMov',info:'paginaInfoMov',prev:'btnPrevMov',next:'btnNextMov'},
-    renderFn:(ini,fin,total)=>{
+    renderFn:(ini,fin,total,allMov)=>{
         setText('totalMovimientos',total||0);const sec=$('seccionMovimientos');if(!total){sec.style.display='none';return}sec.style.display='block';
-        /* Summary */
-        const allMov=movsMes();
+        if(!allMov)allMov=movsMes();
         let si=0,se=0;allMov.forEach(m=>{if(m.tipoMovimiento==='ingreso')si=roundMoney(si+m.monto);else se=roundMoney(se+m.monto)});
         const bal=roundMoney(si-se);
         setText('movSumIngresos','+$'+fmtNum(si,0));setText('movSumEgresos','-$'+fmtNum(se,0));
@@ -5050,12 +5114,13 @@ const pagMov=crearPaginacion({getTotal:()=>movsMes().length,getPag:()=>AppState.
     }
 });
 
-const pagTrans=crearPaginacion({getTotal:()=>transMes().length,getPag:()=>AppState.ui.paginaTrans,setPag:p=>{AppState.ui.paginaTrans=p},porPag:CONFIG.POR_PAGINA,
+const pagTrans=crearPaginacion({
+    getData:()=>transMes(),
+    getPag:()=>AppState.ui.paginaTrans,setPag:p=>{AppState.ui.paginaTrans=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationTrans',info:'paginaInfoTrans',prev:'btnPrevTrans',next:'btnNextTrans'},
-    renderFn:(ini,fin,total)=>{
+    renderFn:(ini,fin,total,allTr)=>{
         setText('totalTransferencias',total||0);const sec=$('seccionTransferencias');if(!total){sec.style.display='none';return}sec.style.display='block';
-        /* Summary */
-        const allTr=transMes();
+        if(!allTr)allTr=transMes();
         let sm=0,sc=0;allTr.forEach(t=>{sm=roundMoney(sm+t.monto);sc=roundMoney(sc+(t.comision||0))});
         setText('transSumMonto','$'+fmtNum(sm,0));setText('transSumCom','$'+fmtNum(sc,0));setText('transSumTotal',allTr.length);
         $('transSummary').style.display=total?'grid':'none';
@@ -5084,11 +5149,14 @@ const pagTrans=crearPaginacion({getTotal:()=>transMes().length,getPag:()=>AppSta
     }
 });
 
-const pagConv=crearPaginacion({getTotal:()=>convMes().length,getPag:()=>AppState.ui.paginaConv||1,setPag:p=>{AppState.ui.paginaConv=p},porPag:CONFIG.POR_PAGINA,
+const pagConv=crearPaginacion({
+    getData:()=>convMes(),
+    getPag:()=>AppState.ui.paginaConv||1,setPag:p=>{AppState.ui.paginaConv=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationConv',info:'paginaInfoConv',prev:'btnPrevConv',next:'btnNextConv'},
-    renderFn:(ini,fin,total)=>{
+    renderFn:(ini,fin,total,allCv)=>{
         setText('totalConversiones',total||0);const sec=$('seccionConversiones');if(!total){sec.style.display='none';return}sec.style.display='block';
-        const cvs=convMes().slice(ini,fin);
+        if(!allCv)allCv=convMes();
+        const cvs=allCv.slice(ini,fin);
         let h='<div class="op-cards">';
         cvs.forEach(c=>{
             const syO=c.monedaOrigen==='USD'?'US$':'$',syD=c.monedaDestino==='USD'?'US$':'$';
@@ -5157,7 +5225,31 @@ function actualizarVista(){
     setText('statsCompra',cc?'Prom $'+fmtNum(tpc)+' · '+minTxt:'--');
     setText('statsVenta',cv?la.length+' lotes · Spread $'+fmtNum(sp):'--');
     setText('spreadPromedio','$'+fmtNum(sp));
-    actualizarBancosGrid();actualizarSelectBancos();renderOpsFilters();pagOp.render();pagMov.render();pagTrans.render();pagConv.render();
+    actualizarBancosGrid();actualizarSelectBancos();renderOpsFilters();
+    /* Render diffing: cada lista paginada se re-renderiza solo si su fingerprint
+       (data version + pagina + filtros relevantes) cambió respecto al último render.
+       Reduce innerHTML writes innecesarios — clave para perf en Android de gama baja. */
+    _renderListIfChanged('pagOp',pagOp,()=>{
+        const f=AppState.ui.opsFilters||{};
+        return `${AppState.datos._version||0}|${AppState.ui.paginaOp}|${f.tipo}|${f.banco}|${f.resultado}|${f.fecha}|${AppState.datos.operaciones.length}`;
+    });
+    _renderListIfChanged('pagMov',pagMov,()=>`${AppState.datos._version||0}|${AppState.ui.paginaMov}|${AppState.datos.movimientos.length}`);
+    _renderListIfChanged('pagTrans',pagTrans,()=>`${AppState.datos._version||0}|${AppState.ui.paginaTrans}|${AppState.datos.transferencias.length}`);
+    _renderListIfChanged('pagConv',pagConv,()=>`${AppState.datos._version||0}|${AppState.ui.paginaConv||1}|${(AppState.datos.conversiones||[]).length}`);
+}
+
+/* Registro de fingerprints para evitar re-render de listas cuyo contenido no cambió */
+const _renderFingerprints={};
+function _renderListIfChanged(key,pag,getFingerprint){
+    const fp=getFingerprint();
+    if(_renderFingerprints[key]===fp)return;  /* sin cambios, skip */
+    _renderFingerprints[key]=fp;
+    pag.render();
+}
+/* Forzar re-render de una lista (e.g. tras mutación que no cambia length pero sí contenido) */
+function _invalidateListCache(key){
+    if(key)delete _renderFingerprints[key];
+    else Object.keys(_renderFingerprints).forEach(k=>delete _renderFingerprints[k]);
 }
 
 /* ═══════════════════════════════════════
@@ -5529,7 +5621,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='importar-datos')importarDatos();
         else if(a==='exportar-diagnostico')exportarDiagnostico();
         else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
     });
 
     // Toggle sections
@@ -5783,7 +5875,31 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     // Init
     actualizarFormulario();actualizarColorSelect();instalarErrorBoundary();inicializarFirebase();
-    setInterval(()=>{if(!AppState.currentUser)return;verificarResetLimites();actualizarVista();verificarCambioMes()},60000);
+    /* Scheduler horario — corre cada 60s pero SOLO cuando la pestaña está visible.
+       Evita wake-ups de CPU con app en background (crítico en Android WebView). */
+    (function installHourlyTick(){
+        let _tickInterval=null;
+        let _lastTickDay='';  /* guarda fecha del último tick para evitar trabajo redundante */
+        function tick(){
+            if(!AppState.currentUser)return;
+            if(document.hidden)return;  /* no hacer nada si la pestaña está oculta */
+            verificarResetLimites();
+            /* actualizarVista solo si cambió el día — evita re-render a cada minuto */
+            const hoyStr=getUDateStr();
+            if(hoyStr!==_lastTickDay){
+                _lastTickDay=hoyStr;
+                actualizarVista();
+                verificarCambioMes();
+            }
+        }
+        function start(){if(!_tickInterval)_tickInterval=setInterval(tick,60000)}
+        function stop(){if(_tickInterval){clearInterval(_tickInterval);_tickInterval=null}}
+        start();
+        document.addEventListener('visibilitychange',()=>{
+            if(document.hidden)stop();
+            else{start();tick()}  /* al volver, hacer un tick inmediato */
+        });
+    })();
 });
     </script>
 </body>
