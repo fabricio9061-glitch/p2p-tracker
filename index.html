@@ -198,6 +198,22 @@
         .card-compra{border-left:3px solid #16a34a}
         .card-venta{border-left:3px solid #dc2626}
 
+        /* ═══ Spread trend indicator ═══
+           Pill discreto al lado del spread con flecha + % de variación respecto a ref reciente.
+           Colores: verde=subió, rojo=bajó, gris=estable. */
+        .spread-wrap{display:inline-flex;align-items:center;gap:5px}
+        .spread-trend{
+            display:inline-flex;align-items:center;gap:2px;
+            font-size:0.92em;font-weight:700;line-height:1;
+            padding:1px 5px;
+            border-radius:5px;
+            letter-spacing:-0.2px;
+        }
+        .spread-trend.up{background:#dcfce7;color:#15803d}
+        .spread-trend.down{background:#fee2e2;color:#b91c1c}
+        .spread-trend.flat{background:#f1f5f9;color:#64748b}
+        .spread-trend .arr{font-size:0.85em;line-height:1}
+
         /* ═══ Desktop Columns ═══ */
         .desktop-columns{}
         .col-left,.col-right{}
@@ -379,11 +395,44 @@
         .op-meta{text-align:center;font-size:0.64em;color:#94a3b8;margin-top:4px}
         /* Commission row */
         .com-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:6px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px}
-        .com-label{font-size:0.65em;color:#94a3b8;font-weight:500}
-        .com-edit{display:flex;align-items:center;gap:2px}
-        .com-edit input{width:36px;border:none;border-bottom:1.5px dashed #94a3b8;background:transparent;text-align:center;font-size:0.82em;font-weight:700;color:#1e293b;padding:1px 0;outline:none;transition:border-color 0.2s}
-        .com-edit input:focus{border-bottom-color:#2563eb;border-bottom-style:solid}
-        .com-edit span{font-size:0.72em;color:#64748b;font-weight:500}
+        .com-label{font-size:0.65em;color:#94a3b8;font-weight:500;display:flex;align-items:center;gap:4px}
+        /* Wrapper pill-shaped para el input de comisión — visualmente claramente editable.
+           Border completo + fondo blanco para que se lea como campo de texto, no como etiqueta. */
+        .com-edit{
+            display:inline-flex;align-items:center;gap:3px;
+            background:white;
+            border:1.5px solid #cbd5e1;
+            border-radius:7px;
+            padding:3px 8px 3px 7px;
+            transition:border-color 0.15s,box-shadow 0.15s,background 0.15s;
+            cursor:text;
+        }
+        .com-edit:hover{border-color:#94a3b8;background:#fafbfc}
+        .com-edit:focus-within{
+            border-color:#2563eb;
+            background:white;
+            box-shadow:0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .com-edit:has(input.error){border-color:#dc2626;background:#fef2f2}
+        .com-edit:has(input.error)::before{color:#dc2626}
+        .com-edit input{
+            width:36px;border:none;background:transparent;
+            text-align:right;
+            font-size:0.82em;font-weight:700;color:#1e293b;
+            padding:0;outline:none;
+            font-variant-numeric:tabular-nums;
+        }
+        .com-edit input::placeholder{color:#cbd5e1;font-weight:500}
+        .com-edit span{font-size:0.72em;color:#64748b;font-weight:600}
+        /* Ícono sutil a la izquierda del input para reforzar editabilidad */
+        .com-edit::before{
+            content:'✎';
+            font-size:0.7em;
+            color:#94a3b8;
+            margin-right:2px;
+            transition:color 0.15s;
+        }
+        .com-edit:focus-within::before{color:#2563eb}
         .com-info{display:flex;align-items:center;gap:6px;font-size:0.65em;color:#94a3b8}
 
         /* ═══ Buttons ═══ */
@@ -988,7 +1037,7 @@
                 <div class="card main-card" id="cardGananciaHoy">
                     <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title">📈 Ganancia Hoy</div><span style="font-size:0.65em;color:#64748b" id="fechaHoy">--</span></div>
                     <div class="card-value positive" id="gananciaHoy">$0</div>
-                    <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span>Spread <b style="color:#0284c7" id="spreadPromedio">$0</b></span></div>
+                    <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span class="spread-wrap">Spread <b style="color:#0284c7" id="spreadPromedio">$0</b><span id="spreadTrend" class="spread-trend" style="display:none"></span></span></div>
                     <div id="cardIngresosExt" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;font-size:0.68em;color:#64748b;justify-content:space-between;align-items:center"><span>💵 Otros ingresos</span><span style="font-weight:700;color:#475569" id="ingresosExtHoy">$0</span></div>
                 </div>
                 <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
@@ -1069,7 +1118,7 @@
                         <div class="op-btn-wrap">
                             <div class="com-row">
                                 <div><div class="com-label">Comisión Binance</div><div class="com-info"><strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></div></div>
-                                <div class="com-edit"><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal"><span>%</span></div>
+                                <label class="com-edit" title="Comisión Binance editable (0% a 10%). Se aplica a compras y ventas." aria-label="Editar comisión de Binance en porcentaje"><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal" maxlength="6" aria-label="Porcentaje de comisión"><span>%</span></label>
                             </div>
                             <button class="btn op-btn-compra" id="btnAgregarOp">📥 Comprar USDT</button>
                         </div>
@@ -1246,7 +1295,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.15',
+    APP_VERSION: '4.7.16',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1279,6 +1328,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.16', date:'2026-04-18', headline:'✏️ Comisión Binance claramente editable + indicador de tendencia del spread.', changes:[
+        {type:'feature', title:'Comisión Binance con affordance visual clara', desc:'El campo de comisión ahora se ve como un pill editable: border completo, fondo blanco, ícono ✎ a la izquierda. Estados de hover, focus (con ring azul) y error (rojo) claramente diferenciados. El valor se aplica en tiempo real tanto a compras como a ventas.'},
+        {type:'improve', title:'Validación más segura', desc:'Rango 0-10% mantenido. Estado transitorio (mientras tipeás "0.") no marca error. Al perder foco, si el valor es inválido se revierte al último guardado. maxlength evita pegados absurdos. Se persiste via guardaOptimista respetando la cola de sync.'},
+        {type:'feature', title:'Indicador de tendencia del spread', desc:'Al lado del spread en la tarjeta "Ganancia Hoy", aparece un indicador pill discreto con flecha (↑/↓/→) y % de variación respecto a la referencia más reciente. Verde=subió, rojo=bajó, gris=estable. Al tocarlo muestra tooltip con valores comparados.'},
+        {type:'improve', title:'Referencia histórica inteligente', desc:'El sistema busca hasta 7 días hacia atrás el último día con spread calculable (compras + ventas). Cubre fines de semana o días inactivos sin mostrar datos viejos irrelevantes.'},
+        {type:'improve', title:'Umbral anti-ruido', desc:'Variaciones menores al 0.5% del spread de referencia (mínimo 2 centavos) se consideran estables. Evita que micro-fluctuaciones disparen indicador verde/rojo falsamente.'}
+    ]},
     {version:'4.7.15', date:'2026-04-18', headline:'⚡ Performance: paginación sin doble filtro + render diffing + CSS limpio.', changes:[
         {type:'perf', title:'Paginación: un solo filtro por render', desc:'crearPaginacion ahora acepta getData() — computa la lista filtrada una sola vez y deriva total/slice de ahí. Las 4 paginaciones (ops, movs, trans, conv) migradas. Antes aplicarOpsFilters corría 2 veces por render; ahora 1 vez.'},
         {type:'perf', title:'Render diffing: listas no se re-renderizan sin cambios', desc:'Sistema de fingerprints por lista: si los datos + página + filtros no cambiaron, se saltea el innerHTML write. actualizarVista() puede llamarse múltiples veces sin reflow innecesario. Invalidación automática en recalcularLotesYGanancias y guardaOptimista.'},
@@ -3981,9 +4037,24 @@ function calcularPreview(){
 
 function guardarComisionYCalcular(){
     const inp=$('comisionPlataforma'),raw=inp.value.replace(',','.').trim();
-    if(raw!==''&&raw!=='.'){const v=parsearComisionPct(raw);if(v!==null){
-        if(getMonedaBanco()==='USD')AppState.datos.comisionUSD=v;else AppState.datos.comisionPlataforma=v;
-        setText('comisionPctLabel',fmtNum(v));clearTimeout(AppState.ui.comisionDebounce);AppState.ui.comisionDebounce=setTimeout(()=>guardarDatos(),1200)}}
+    /* Si el valor es vacío o transitorio ("0." mientras el usuario escribe) no persistir 
+       pero tampoco marcar como error — dejar al usuario terminar de tipear */
+    if(raw===''||raw==='.'||raw.endsWith('.')){
+        inp.classList.remove('error');
+        calcularPreview();
+        return;
+    }
+    const v=parsearComisionPct(raw);
+    if(v===null){
+        /* Valor inválido (negativo, >10%, formato roto) → marcar visualmente pero no bloquear tipeo */
+        inp.classList.add('error');
+        return;
+    }
+    inp.classList.remove('error');
+    if(getMonedaBanco()==='USD')AppState.datos.comisionUSD=v;else AppState.datos.comisionPlataforma=v;
+    setText('comisionPctLabel',fmtNum(v));
+    clearTimeout(AppState.ui.comisionDebounce);
+    AppState.ui.comisionDebounce=setTimeout(()=>guardaOptimista('update','settings','comision'),1200);
     calcularPreview();
 }
 
@@ -5182,6 +5253,70 @@ const pagConv=crearPaginacion({
 /* ═══════════════════════════════════════
    §14 — DASHBOARD
    ═══════════════════════════════════════ */
+
+/* ═══ Spread trend helpers ═══
+   Calcula el spread promedio de un día dado (ops UYU con al menos 1 compra y 1 venta).
+   Retorna null si el día no tiene ambos lados — no hay spread calculable. */
+function _calcularSpreadDia(fecha){
+    if(!fecha)return null;
+    let sc=0,sv=0,cc=0,cv=0;
+    for(const op of AppState.datos.operaciones){
+        if(op.fecha!==fecha||op.moneda==='USD'||!op.tasa||op.tasa<=0)continue;
+        if(op.tipo==='compra'){sc+=op.tasa;cc++}
+        else{sv+=op.tasa;cv++}
+    }
+    if(!cc||!cv)return null;
+    return roundMoney((sv/cv)-(sc/cc));
+}
+/* Busca hacia atrás la referencia más cercana — máximo 7 días — que tenga spread calculable.
+   Eso cubre fines de semana / días inactivos sin retornar un dato demasiado viejo.
+   Retorna {fecha, spread} o null si no hay ref en esa ventana. */
+function _spreadReferenciaReciente(hoyStr){
+    if(!hoyStr)return null;
+    const hoyDate=new Date(hoyStr+'T00:00:00');
+    for(let i=1;i<=7;i++){
+        const d=new Date(hoyDate.getTime()-i*86400000);
+        const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const sp=_calcularSpreadDia(ds);
+        if(sp!==null)return{fecha:ds,spread:sp};
+    }
+    return null;
+}
+/* Renderiza el spread principal + el indicador de tendencia.
+   Prefiere el spread de HOY si existe; si no, cae al spread mensual (fallback).
+   El indicador solo se muestra si hoy tiene spread Y existe una referencia histórica. */
+function _renderSpreadConTendencia(spreadHoy,ref,spreadFallback){
+    const spEl=$('spreadPromedio');
+    const trEl=$('spreadTrend');
+    if(!spEl||!trEl)return;
+    /* Valor del spread mostrado */
+    const valor=spreadHoy!==null?spreadHoy:spreadFallback;
+    spEl.textContent='$'+fmtNum(valor,2);
+    /* Trend solo si tenemos hoy + referencia */
+    if(spreadHoy===null||!ref||ref.spread===null){
+        trEl.style.display='none';
+        trEl.className='spread-trend';
+        return;
+    }
+    const diff=roundMoney(spreadHoy-ref.spread);
+    /* Umbral de "estable": 0.5% del spread de referencia, mínimo 2 centavos.
+       Evita que micro-variaciones se muestren como movimiento significativo. */
+    const umbral=Math.max(0.02,Math.abs(ref.spread)*0.005);
+    let cls='flat',arr='→',txt='';
+    if(Math.abs(diff)<=umbral){
+        cls='flat';arr='→';txt='0%';
+    }else{
+        const pct=ref.spread!==0?Math.abs(diff/ref.spread*100):0;
+        const pctTxt=pct>=10?fmtNum(pct,0)+'%':fmtNum(pct,1)+'%';
+        if(diff>0){cls='up';arr='↑';txt=pctTxt}
+        else{cls='down';arr='↓';txt=pctTxt}
+    }
+    trEl.className='spread-trend '+cls;
+    trEl.innerHTML=`<span class="arr">${arr}</span>${txt}`;
+    trEl.title=`Spread hoy: $${fmtNum(spreadHoy,2)} · Ref ${ref.fecha}: $${fmtNum(ref.spread,2)}`;
+    trEl.style.display='inline-flex';
+}
+
 function actualizarVista(){
     const hoy=getUDate(),mesA=getMesActivo(),ops=opsMes();
     let tp=0,tr=0,stc=0,stv=0,cc=0,cv=0;
@@ -5193,6 +5328,14 @@ function actualizarVista(){
     else{ghE.textContent='-$'+fmtNum(Math.abs(gH));ghE.className='card-value negative';cH.className='card main-card negative'}
     const ds=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     setText('fechaHoy',ds[hoy.getDay()]+' '+hoy.getDate()+'/'+(hoy.getMonth()+1));setText('opsHoy',opsH+' ops hoy');
+
+    /* ═══ Spread del día + tendencia vs referencia reciente ═══
+       Referencia: spread promedio del último día anterior que tenga tanto compras como ventas.
+       Si no hay suficiente data histórica, se muestra estado neutro (sin indicador). */
+    const spreadHoy=_calcularSpreadDia(hoyStr);
+    const trendRef=_spreadReferenciaReciente(hoyStr);
+    _renderSpreadConTendencia(spreadHoy,trendRef,sp);
+
     /* Ingresos externos del día — métrica paralela, NO suma a ganancia P2P */
     const ingExt=calcularIngresosExternosDia(hoyStr);
     const cardIE=$('cardIngresosExt'),ieEl=$('ingresosExtHoy');
@@ -5224,7 +5367,7 @@ function actualizarVista(){
     const minTxt=la.length>0?'Min $'+fmtNum(la.reduce((m,l)=>l.precioCompra<m.precioCompra?l:m,la[0]).precioCompra):'Sin stock';
     setText('statsCompra',cc?'Prom $'+fmtNum(tpc)+' · '+minTxt:'--');
     setText('statsVenta',cv?la.length+' lotes · Spread $'+fmtNum(sp):'--');
-    setText('spreadPromedio','$'+fmtNum(sp));
+    /* spreadPromedio ya lo seteó _renderSpreadConTendencia arriba con el valor del día (o fallback mensual) */
     actualizarBancosGrid();actualizarSelectBancos();renderOpsFilters();
     /* Render diffing: cada lista paginada se re-renderiza solo si su fingerprint
        (data version + pagina + filtros relevantes) cambió respecto al último render.
@@ -5669,6 +5812,18 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
     });
     $('comisionPlataforma').addEventListener('input',guardarComisionYCalcular);
+    $('comisionPlataforma').addEventListener('blur',()=>{
+        /* Al perder foco: si el valor quedó inválido, revertir al último guardado.
+           Si está vacío, poner el valor actual formateado. */
+        const inp=$('comisionPlataforma');
+        const v=parsearComisionPct(inp.value.replace(',','.').trim());
+        if(v===null){
+            const cv=getMonedaBanco()==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;
+            inp.value=fmtNum(cv||0.14);
+            inp.classList.remove('error');
+            calcularPreview();
+        }
+    });
     $('btnAgregarOp').addEventListener('click',agregarOperacion);
 
     // Paginación
