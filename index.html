@@ -819,6 +819,12 @@
             /* Flatten r1+r2 into single row via display:contents */
             .r1,.r2{display:contents;height:auto;padding:0}
             .r2-c3{display:contents}
+            /* CRÍTICO: la regla mobile [data-mov-id] .r2{display:grid} (specificity 0,2,0)
+               anula el display:contents de arriba. Re-establecemos display:contents con 
+               el mismo specificity selector en desktop para que el grid del op-card-body funcione. */
+            [data-mov-id] .r2,
+            [data-trans-id] .r2,
+            [data-conv-id] .r2{display:contents}
             /* En desktop los separadores del flex móvil no tienen sentido — la grid los maneja */
             .r2-sep{display:none}
             /* ═══ DESKTOP grid templates por tipo de tarjeta ═══
@@ -840,8 +846,8 @@
             /* Transferencias: monto | comisión | origen | flecha | destino | fecha | actions */
             [data-trans-id] .op-card-body{grid-template-columns:130px 110px minmax(110px,1fr) 20px minmax(110px,1fr) 100px 52px}
             
-            /* Conversiones: monto-origen | flecha | monto-destino | banco | fecha | actions */
-            [data-conv-id] .op-card-body{grid-template-columns:140px 20px 140px 1fr 100px 52px}
+            /* Conversiones: monto-doble | tasa | origen | flecha | destino | fecha | actions */
+            [data-conv-id] .op-card-body{grid-template-columns:1fr auto minmax(110px,auto) 20px minmax(110px,auto) 100px 52px}
             
             .r1-monto{font-size:0.82em;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
             .r1-gp{font-size:0.88em;font-weight:800;text-align:left;letter-spacing:-0.3px;white-space:nowrap}
@@ -1400,7 +1406,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.21',
+    APP_VERSION: '4.7.22',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1433,6 +1439,11 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.22', date:'2026-04-25', headline:'🔧 Fix: alineación real de Ajustes y Transferencias en desktop.', changes:[
+        {type:'fix', title:'Display:contents anulado por regla mobile', desc:'En v4.7.21 los grids per-tipo no funcionaban porque la regla mobile [data-mov-id] .r2{display:grid} (specificity 0,2,0) anulaba el display:contents del desktop (specificity 0,1,0). Resultado: la palabra "Egreso" saltaba horizontalmente entre filas. Fix: override explícito con misma specificity en el media query desktop.'},
+        {type:'fix', title:'Conversiones grid mismatch', desc:'El grid-template-columns de conversiones tenía 6 columnas pero la estructura HTML proyecta 7 hijos vía display:contents. Ajustado a 7 columnas para que coincida con r1-monto, r1-gp (tasa), origen, flecha, destino, fecha, actions.'},
+        {type:'verified', title:'Movs y trans alineados', desc:'Ahora cada columna está fija en su posición: monto a la izq, tipo (Egreso/Ingreso) en columna fija, conv-USDT, tag, banco, fecha y actions. Sin saltos horizontales entre filas.'}
+    ]},
     {version:'4.7.21', date:'2026-04-25', headline:'🖥️ Desktop: Ajustes y Transferencias rediseñados como tabla + filtros propios.', changes:[
         {type:'improve', title:'Grids específicos por tipo de tarjeta', desc:'En desktop cada tipo (Operaciones, Ajustes, Transferencias, Conversiones) tiene su propio grid-template-columns. Antes había un solo grid genérico que dejaba columnas vacías "flotantes" en Ajustes y Transferencias. Ahora todas las filas se alinean en columnas claras y consistentes.'},
         {type:'feature', title:'Filtros en Ajustes', desc:'Botón "Filtros" propio: por tipo (Ingreso/Egreso), cuenta (banco o USDT), tag (8 más usados) y período (Hoy/Ayer/7 días/Mes). Los totales superiores y la paginación se actualizan en vivo.'},
@@ -1458,13 +1469,6 @@ const CHANGELOG = [
         {type:'improve', title:'Flexbox con shrink controlado', desc:'r2 pasó de grid rígido a flex con separadores · visibles. Tasa, USDT y % nunca se truncan (flex-shrink:0). El banco es el único con ellipsis cuando falta espacio. Altura exacta de 17px preservada.'},
         {type:'improve', title:'Consistencia desktop', desc:'En desktop la grid plana ahora tiene 8 columnas (incluye la comisión), los separadores · se ocultan porque la grid ya provee el espaciado. Estilo sigue siendo discreto: 0.7em, gris claro, sin pill.'},
         {type:'improve', title:'Jerarquía visual clara', desc:'La comisión usa color #94a3b8 (gris tenue) y tamaño levemente menor que los peers principales, sin competir por atención. Tooltip "Comisión Binance aplicada" al tocarla/hovearla.'}
-    ]},
-    {version:'4.7.17', date:'2026-04-22', headline:'✏️ Comisión Binance completa de punta a punta + errores iOS silenciados.', changes:[
-        {type:'feature', title:'Comisión editable también en Editar Operación', desc:'El modal de Editar Compra/Venta ahora tiene el mismo control pill para editar la comisión. Cambios recalculan en vivo el preview (comisión USDT, cantidad neta). Al guardar, se persisten op.comisionPct, op.usdt y op.comisionPlataforma recomputados.'},
-        {type:'feature', title:'Comisión persistida por operación', desc:'Cada operación guarda explícitamente el % con el que fue creada/editada. Cambios futuros a la comisión global no afectan el historial — cada op conserva su valor real.'},
-        {type:'feature', title:'Comisión visible en la lista', desc:'Badge discreto al lado del USDT neto en cada tarjeta de operación (ej. "0,14%"). Fondo gris claro, tooltip "Comisión Binance aplicada". Se ve sin quitar protagonismo a los datos principales.'},
-        {type:'improve', title:'Migración inteligente de datos viejos', desc:'Operaciones antiguas sin comisionPct se backfillean derivando el % desde comisionPlataforma/usdt (respeta la tasa real de cada op). Si no se puede derivar, usa 0,14% como fallback. Migración corre una sola vez por sesión.'},
-        {type:'fix', title:'Errores iOS Safari silenciados', desc:'El error "Attempt to get records from database without an in-progress transaction" (benigno, ocurre cuando IDB se cierra por backgrounding) ya no llena el log de diagnóstico. También se filtran fetch abortados. Los errores reales quedan visibles.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
