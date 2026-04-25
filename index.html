@@ -359,6 +359,10 @@
         .ops-fchip.active.neutro{background:#64748b;border-color:#64748b}
         .ops-fchip-clear{flex-shrink:0;background:transparent;border:1.5px solid #e2e8f0;border-radius:999px;padding:5px 11px;font-size:0.7em;font-weight:600;color:#94a3b8;cursor:pointer;white-space:nowrap;line-height:1;transition:all 0.15s}
         .ops-fchip-clear:active{background:#fee2e2;color:#dc2626;border-color:#fecaca}
+        /* Drawer reusable para movs/trans — más compacto que el strip de ops, vive dentro del toggle-content */
+        .ops-filtros-drawer{padding:10px 15px;background:#fafbfc;border-bottom:1px solid #f1f5f9}
+        .ops-filtros-drawer .ops-filtros-chips{flex-wrap:wrap;gap:5px}
+        .ops-fgroup-label{font-size:0.62em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;align-self:center;flex-shrink:0;padding:0 4px}
 
         /* ═══ Toggle Sections ═══ */
         .toggle-section{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:15px;overflow:hidden}
@@ -817,12 +821,34 @@
             .r2-c3{display:contents}
             /* En desktop los separadores del flex móvil no tienen sentido — la grid los maneja */
             .r2-sep{display:none}
-            /* 8-column grid: monto | G/P | tasa | USDT | % | banco | fecha | actions */
-            .op-card-body:has(.r1){display:grid;grid-template-columns:1fr auto auto auto auto 1fr auto 52px;column-gap:10px;height:32px;line-height:32px;align-items:center;padding:0 12px}
+            /* ═══ DESKTOP grid templates por tipo de tarjeta ═══
+               Cada tipo (ops, movs, trans, conv) tiene su propia secuencia de columnas.
+               Esto evita celdas vacías "flotantes" que ocurren con un grid genérico.
+               
+               La altura uniforme (32px) y el column-gap consistente mantienen la estética
+               de "tabla". Selectores específicos por clase del op-card (compra/venta/
+               transfer/conversion) o por data-attribute del wrapper. */
+            .op-card-body{display:grid;column-gap:10px;height:32px;line-height:32px;align-items:center;padding:0 12px}
+            
+            /* Operaciones (compra/venta): monto | G/P | tasa | USDT | % | banco | fecha | actions */
+            .op-card.compra .op-card-body,
+            .op-card.venta .op-card-body{grid-template-columns:1fr auto auto auto auto 1fr auto 52px}
+            
+            /* Movimientos (ajustes): monto | tipo | conv-USDT | tag | banco | fecha | actions */
+            [data-mov-id] .op-card-body{grid-template-columns:130px 80px 90px 1fr 130px 100px 52px}
+            
+            /* Transferencias: monto | comisión | origen | flecha | destino | fecha | actions */
+            [data-trans-id] .op-card-body{grid-template-columns:130px 110px minmax(110px,1fr) 20px minmax(110px,1fr) 100px 52px}
+            
+            /* Conversiones: monto-origen | flecha | monto-destino | banco | fecha | actions */
+            [data-conv-id] .op-card-body{grid-template-columns:140px 20px 140px 1fr 100px 52px}
+            
             .r1-monto{font-size:0.82em;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-            .r1-gp{font-size:0.88em;font-weight:800;text-align:right;letter-spacing:-0.3px;white-space:nowrap}
-            .r2-c1{font-size:0.74em;color:#94a3b8;white-space:nowrap}
-            .r2-c2{font-size:0.74em;color:#64748b;white-space:nowrap}
+            .r1-gp{font-size:0.88em;font-weight:800;text-align:left;letter-spacing:-0.3px;white-space:nowrap}
+            /* En operaciones, el G/P va alineado a la derecha (es ganancia/pérdida $) */
+            .op-card.compra .r1-gp,.op-card.venta .r1-gp{text-align:right}
+            .r2-c1{font-size:0.74em;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .r2-c2{font-size:0.74em;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
             /* Comisión: discreta también en desktop — reset de reglas mobile para encajar en la grid */
             .r2-com{font-size:0.7em;color:#94a3b8;white-space:nowrap;font-weight:500;letter-spacing:-0.2px;background:none;padding:0;margin:0;border-radius:0}
             .r2-banco{font-size:0.72em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -843,7 +869,7 @@
         }
         @media(min-width:1100px){
             .desktop-columns{grid-template-columns:360px 1fr}
-            .op-card-body:has(.r1){column-gap:12px}
+            .op-card-body{column-gap:12px}
         }
         /* ═══ Success confirmation ═══ */
         .success-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.97);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity 0.3s,visibility 0.3s}
@@ -1209,8 +1235,10 @@
 
             <!-- Movimientos -->
             <div class="toggle-section" id="seccionMovimientos" style="display:none">
-                <div class="toggle-header"><span class="toggle-title">📝 Ajustes</span><div class="toggle-right"><span class="toggle-badge" id="totalMovimientos">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-header"><span class="toggle-title">📝 Ajustes</span><div class="toggle-right"><span class="ops-filtros-trigger" id="movFiltrosTrigger" data-action="toggle-mov-filters" title="Filtros"><span class="filter-icon">⚙</span><span class="ops-filtros-trigger-label">Filtros</span><span class="ops-filtros-badge hidden" id="movFiltrosBadge">0</span></span><span class="toggle-badge" id="totalMovimientos">0</span><span class="toggle-arrow">▼</span></div></div>
                 <div class="toggle-content">
+                    <!-- Drawer de filtros (Ajustes) -->
+                    <div class="ops-filtros-drawer" id="movFiltrosDrawer" style="display:none"></div>
                     <div class="ops-summary" id="movSummary" style="grid-template-columns:repeat(3,1fr)">
                         <div class="ops-summary-item"><div class="val" id="movSumIngresos" style="color:#16a34a">$0</div><div class="lbl">Ingresos</div></div>
                         <div class="ops-summary-item"><div class="val" id="movSumEgresos" style="color:#dc2626">$0</div><div class="lbl">Egresos</div></div>
@@ -1223,8 +1251,10 @@
 
             <!-- Transferencias -->
             <div class="toggle-section" id="seccionTransferencias" style="display:none">
-                <div class="toggle-header"><span class="toggle-title">↔️ Transferencias</span><div class="toggle-right"><span class="toggle-badge" id="totalTransferencias">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-header"><span class="toggle-title">↔️ Transferencias</span><div class="toggle-right"><span class="ops-filtros-trigger" id="transFiltrosTrigger" data-action="toggle-trans-filters" title="Filtros"><span class="filter-icon">⚙</span><span class="ops-filtros-trigger-label">Filtros</span><span class="ops-filtros-badge hidden" id="transFiltrosBadge">0</span></span><span class="toggle-badge" id="totalTransferencias">0</span><span class="toggle-arrow">▼</span></div></div>
                 <div class="toggle-content">
+                    <!-- Drawer de filtros (Transferencias) -->
+                    <div class="ops-filtros-drawer" id="transFiltrosDrawer" style="display:none"></div>
                     <div class="ops-summary" id="transSummary" style="grid-template-columns:repeat(3,1fr)">
                         <div class="ops-summary-item"><div class="val" id="transSumMonto">$0</div><div class="lbl">Transferido</div></div>
                         <div class="ops-summary-item"><div class="val" id="transSumCom">$0</div><div class="lbl">Comisiones</div></div>
@@ -1370,7 +1400,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.20',
+    APP_VERSION: '4.7.21',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1403,6 +1433,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.21', date:'2026-04-25', headline:'🖥️ Desktop: Ajustes y Transferencias rediseñados como tabla + filtros propios.', changes:[
+        {type:'improve', title:'Grids específicos por tipo de tarjeta', desc:'En desktop cada tipo (Operaciones, Ajustes, Transferencias, Conversiones) tiene su propio grid-template-columns. Antes había un solo grid genérico que dejaba columnas vacías "flotantes" en Ajustes y Transferencias. Ahora todas las filas se alinean en columnas claras y consistentes.'},
+        {type:'feature', title:'Filtros en Ajustes', desc:'Botón "Filtros" propio: por tipo (Ingreso/Egreso), cuenta (banco o USDT), tag (8 más usados) y período (Hoy/Ayer/7 días/Mes). Los totales superiores y la paginación se actualizan en vivo.'},
+        {type:'feature', title:'Filtros en Transferencias', desc:'Botón "Filtros" propio: por cuenta origen, cuenta destino y período. Permite combinaciones (ej. Itau→MP en los últimos 7 días). Total transferido/comisiones recalculan según filtro.'},
+        {type:'improve', title:'Coherencia visual en PC', desc:'Los tres módulos (Operaciones, Ajustes, Transferencias) ahora comparten estética: mismo trigger de filtros, mismo drawer expandible, mismas chips, mismas reglas de paginación. Mobile preservado intacto.'},
+        {type:'improve', title:'Empty states con filtros', desc:'Cuando un filtro no devuelve resultados, se muestra mensaje específico ("Sin movimientos que coincidan...") en vez de ocultar la sección. Permite limpiar el filtro sin tener que recargar.'}
+    ]},
     {version:'4.7.20', date:'2026-04-22', headline:'🪶 Centro de Noticias: 5 versiones máximo + descarte individual persistente.', changes:[
         {type:'improve', title:'Ventana fija de 5 entradas', desc:'CHANGELOG cap a las últimas 5 versiones (hard limit CHANGELOG_MAX_ENTRIES=5). Si al bumpear se olvida retirar las viejas, el código las recorta automáticamente y loguea warning en consola. Doble red de seguridad.'},
         {type:'feature', title:'Descartar novedad individual', desc:'Cada entrada tiene botón × para ocultarla. El estado persiste en Firebase (dismissedVersions) y se sincroniza entre dispositivos. Filtrable con "Ver ocultas" para recuperación.'},
@@ -1429,13 +1466,6 @@ const CHANGELOG = [
         {type:'improve', title:'Migración inteligente de datos viejos', desc:'Operaciones antiguas sin comisionPct se backfillean derivando el % desde comisionPlataforma/usdt (respeta la tasa real de cada op). Si no se puede derivar, usa 0,14% como fallback. Migración corre una sola vez por sesión.'},
         {type:'fix', title:'Errores iOS Safari silenciados', desc:'El error "Attempt to get records from database without an in-progress transaction" (benigno, ocurre cuando IDB se cierra por backgrounding) ya no llena el log de diagnóstico. También se filtran fetch abortados. Los errores reales quedan visibles.'}
     ]},
-    {version:'4.7.16', date:'2026-04-18', headline:'✏️ Comisión Binance claramente editable + indicador de tendencia del spread.', changes:[
-        {type:'feature', title:'Comisión Binance con affordance visual clara', desc:'El campo de comisión ahora se ve como un pill editable: border completo, fondo blanco, ícono ✎ a la izquierda. Estados de hover, focus (con ring azul) y error (rojo) claramente diferenciados. El valor se aplica en tiempo real tanto a compras como a ventas.'},
-        {type:'improve', title:'Validación más segura', desc:'Rango 0-10% mantenido. Estado transitorio (mientras tipeás "0.") no marca error. Al perder foco, si el valor es inválido se revierte al último guardado. maxlength evita pegados absurdos. Se persiste via guardaOptimista respetando la cola de sync.'},
-        {type:'feature', title:'Indicador de tendencia del spread', desc:'Al lado del spread en la tarjeta "Ganancia Hoy", aparece un indicador pill discreto con flecha (↑/↓/→) y % de variación respecto a la referencia más reciente. Verde=subió, rojo=bajó, gris=estable. Al tocarlo muestra tooltip con valores comparados.'},
-        {type:'improve', title:'Referencia histórica inteligente', desc:'El sistema busca hasta 7 días hacia atrás el último día con spread calculable (compras + ventas). Cubre fines de semana o días inactivos sin mostrar datos viejos irrelevantes.'},
-        {type:'improve', title:'Umbral anti-ruido', desc:'Variaciones menores al 0.5% del spread de referencia (mínimo 2 centavos) se consideran estables. Evita que micro-fluctuaciones disparen indicador verde/rojo falsamente.'}
-    ]}
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
    Si al bumpear se olvida retirar las viejas, el código las recorta automáticamente.
@@ -2383,6 +2413,231 @@ function clearOpsFilters(){
 function movsMes(){return filtrarMes(AppState.datos.movimientos)}
 function transMes(){return filtrarMes(AppState.datos.transferencias)}
 function convMes(){return filtrarMes(AppState.datos.conversiones||[])}
+
+/* ═══════════════════════════════════════
+   §MF — FILTROS RÁPIDOS AJUSTES (MOVIMIENTOS)
+   ═══════════════════════════════════════ */
+/* Estado de filtros para movs persistido en AppState.ui.movsFilters.
+   Filtros disponibles: tipo (ingreso/egreso), cuenta (banco/usdt), tag, fecha. */
+function _initMovsFilters(){
+    if(!AppState.ui.movsFilters)AppState.ui.movsFilters={tipo:'all',cuenta:'all',tag:'all',fecha:'mes'};
+}
+function _movsFiltersActive(){
+    _initMovsFilters();
+    const f=AppState.ui.movsFilters;
+    return f.tipo!=='all'||f.cuenta!=='all'||f.tag!=='all'||f.fecha!=='mes';
+}
+function aplicarMovsFilters(movs){
+    _initMovsFilters();
+    const f=AppState.ui.movsFilters;
+    if(f.tipo==='all'&&f.cuenta==='all'&&f.tag==='all'&&f.fecha==='mes')return movs;
+    let src=(f.fecha==='mes')?movs:AppState.datos.movimientos;
+    const fmtUY=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const hoyUY=getUDate();
+    const hoyStr=fmtUY(hoyUY);
+    const ayerStr=fmtUY(new Date(hoyUY.getTime()-86400000));
+    const hace7Str=fmtUY(new Date(hoyUY.getTime()-6*86400000));
+    return src.filter(m=>{
+        if(f.tipo!=='all'&&m.tipoMovimiento!==f.tipo)return false;
+        if(f.cuenta!=='all'){
+            if(f.cuenta==='__usdt'){if(m.tipoCuenta!=='usdt')return false}
+            else{if(m.banco!==f.cuenta)return false}
+        }
+        if(f.tag!=='all'){
+            const tagAct=tagKey(m.descripcion||'');
+            if(tagAct!==tagKey(f.tag))return false;
+        }
+        if(f.fecha==='hoy'&&m.fecha!==hoyStr)return false;
+        if(f.fecha==='ayer'&&m.fecha!==ayerStr)return false;
+        if(f.fecha==='7dias'&&(m.fecha<hace7Str||m.fecha>hoyStr))return false;
+        return true;
+    });
+}
+function _bancosEnMovs(){
+    const set=new Set();
+    AppState.datos.movimientos.forEach(m=>{if(m.banco)set.add(m.banco)});
+    return Array.from(set);
+}
+function _tagsEnMovs(){
+    const set=new Set();
+    AppState.datos.movimientos.forEach(m=>{if(m.descripcion)set.add(m.descripcion.split(' / ')[0]||m.descripcion)});
+    return Array.from(set).slice(0,8); /* cap visual a 8 tags más comunes */
+}
+function _countActiveMovsFilters(){
+    _initMovsFilters();
+    const f=AppState.ui.movsFilters;
+    let n=0;
+    if(f.tipo!=='all')n++;
+    if(f.cuenta!=='all')n++;
+    if(f.tag!=='all')n++;
+    if(f.fecha!=='mes')n++;
+    return n;
+}
+function renderMovsFilters(){
+    _initMovsFilters();
+    const f=AppState.ui.movsFilters;
+    const isOpen=AppState.ui._movFiltersOpen||false;
+    const count=_countActiveMovsFilters();
+    const trig=$('movFiltrosTrigger');
+    if(trig){
+        trig.classList.toggle('open',isOpen);
+        trig.classList.toggle('has-active',count>0);
+        const label=trig.querySelector('.ops-filtros-trigger-label');
+        const badge=$('movFiltrosBadge');
+        if(label)label.textContent=count>0?`${count} activo${count>1?'s':''}`:'Filtros';
+        if(badge){
+            if(count>0){badge.textContent=count;badge.classList.remove('hidden')}
+            else badge.classList.add('hidden');
+        }
+    }
+    const c=$('movFiltrosDrawer');if(!c)return;
+    c.style.display=isOpen?'block':'none';
+    if(!isOpen)return;
+    const chip=(id,val,l,cur,cls)=>`<button class="ops-fchip${cur===val?' active'+(cls?' '+cls:''):''}" data-action="movs-filter" data-filter="${id}" data-val="${val}">${l}</button>`;
+    const sep='<div class="ops-filtros-sep"></div>';
+    let h=`<div class="ops-filtros-chips">`;
+    h+=chip('tipo','ingreso','Ingresos',f.tipo,'compra');
+    h+=chip('tipo','egreso','Egresos',f.tipo,'venta');
+    const cuentas=_bancosEnMovs().filter(b=>AppState.datos.bancos[b]?.activo);
+    if(cuentas.length){h+=sep;cuentas.forEach(b=>{h+=chip('cuenta',b,b,f.cuenta)});h+=chip('cuenta','__usdt','USDT',f.cuenta)}
+    const tags=_tagsEnMovs();
+    if(tags.length){h+=sep;tags.forEach(t=>{h+=chip('tag',t,'🏷️ '+t,f.tag)})}
+    h+=sep;
+    h+=chip('fecha','hoy','Hoy',f.fecha);
+    h+=chip('fecha','ayer','Ayer',f.fecha);
+    h+=chip('fecha','7dias','7 días',f.fecha);
+    h+=chip('fecha','mes','Mes',f.fecha);
+    if(count>0){h+=sep;h+=`<button class="ops-fchip-clear" data-action="movs-filter-clear">Limpiar</button>`}
+    h+=`</div>`;
+    c.innerHTML=h;
+}
+function toggleMovsFilters(){
+    AppState.ui._movFiltersOpen=!AppState.ui._movFiltersOpen;
+    if(AppState.ui._movFiltersOpen)$('seccionMovimientos')?.classList.add('open');
+    renderMovsFilters();
+}
+function setMovsFilter(filter,val){
+    _initMovsFilters();
+    if(AppState.ui.movsFilters[filter]===val)AppState.ui.movsFilters[filter]='all';
+    else AppState.ui.movsFilters[filter]=val;
+    AppState.ui.paginaMov=1;
+    _invalidateListCache('pagMov');
+    renderMovsFilters();
+    pagMov.render();
+}
+function clearMovsFilters(){
+    AppState.ui.movsFilters={tipo:'all',cuenta:'all',tag:'all',fecha:'mes'};
+    AppState.ui.paginaMov=1;
+    _invalidateListCache('pagMov');
+    renderMovsFilters();
+    pagMov.render();
+}
+
+/* ═══════════════════════════════════════
+   §TF — FILTROS RÁPIDOS TRANSFERENCIAS
+   ═══════════════════════════════════════ */
+function _initTransFilters(){
+    if(!AppState.ui.transFilters)AppState.ui.transFilters={origen:'all',destino:'all',fecha:'mes'};
+}
+function _transFiltersActive(){
+    _initTransFilters();
+    const f=AppState.ui.transFilters;
+    return f.origen!=='all'||f.destino!=='all'||f.fecha!=='mes';
+}
+function aplicarTransFilters(trans){
+    _initTransFilters();
+    const f=AppState.ui.transFilters;
+    if(f.origen==='all'&&f.destino==='all'&&f.fecha==='mes')return trans;
+    let src=(f.fecha==='mes')?trans:AppState.datos.transferencias;
+    const fmtUY=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const hoyUY=getUDate();
+    const hoyStr=fmtUY(hoyUY);
+    const ayerStr=fmtUY(new Date(hoyUY.getTime()-86400000));
+    const hace7Str=fmtUY(new Date(hoyUY.getTime()-6*86400000));
+    return src.filter(t=>{
+        if(f.origen!=='all'&&t.origen!==f.origen)return false;
+        if(f.destino!=='all'&&t.destino!==f.destino)return false;
+        if(f.fecha==='hoy'&&t.fecha!==hoyStr)return false;
+        if(f.fecha==='ayer'&&t.fecha!==ayerStr)return false;
+        if(f.fecha==='7dias'&&(t.fecha<hace7Str||t.fecha>hoyStr))return false;
+        return true;
+    });
+}
+function _bancosEnTrans(){
+    const set=new Set();
+    AppState.datos.transferencias.forEach(t=>{if(t.origen)set.add(t.origen);if(t.destino)set.add(t.destino)});
+    return Array.from(set);
+}
+function _countActiveTransFilters(){
+    _initTransFilters();
+    const f=AppState.ui.transFilters;
+    let n=0;
+    if(f.origen!=='all')n++;
+    if(f.destino!=='all')n++;
+    if(f.fecha!=='mes')n++;
+    return n;
+}
+function renderTransFilters(){
+    _initTransFilters();
+    const f=AppState.ui.transFilters;
+    const isOpen=AppState.ui._transFiltersOpen||false;
+    const count=_countActiveTransFilters();
+    const trig=$('transFiltrosTrigger');
+    if(trig){
+        trig.classList.toggle('open',isOpen);
+        trig.classList.toggle('has-active',count>0);
+        const label=trig.querySelector('.ops-filtros-trigger-label');
+        const badge=$('transFiltrosBadge');
+        if(label)label.textContent=count>0?`${count} activo${count>1?'s':''}`:'Filtros';
+        if(badge){
+            if(count>0){badge.textContent=count;badge.classList.remove('hidden')}
+            else badge.classList.add('hidden');
+        }
+    }
+    const c=$('transFiltrosDrawer');if(!c)return;
+    c.style.display=isOpen?'block':'none';
+    if(!isOpen)return;
+    const chip=(id,val,l,cur)=>`<button class="ops-fchip${cur===val?' active':''}" data-action="trans-filter" data-filter="${id}" data-val="${val}">${l}</button>`;
+    const sep='<div class="ops-filtros-sep"></div>';
+    let h=`<div class="ops-filtros-chips">`;
+    const cuentas=_bancosEnTrans().filter(b=>AppState.datos.bancos[b]?.activo);
+    if(cuentas.length){
+        h+=`<div class="ops-fgroup-label">Origen</div>`;
+        cuentas.forEach(b=>{h+=chip('origen',b,b,f.origen)});
+        h+=sep;
+        h+=`<div class="ops-fgroup-label">Destino</div>`;
+        cuentas.forEach(b=>{h+=chip('destino',b,b,f.destino)});
+        h+=sep;
+    }
+    h+=chip('fecha','hoy','Hoy',f.fecha);
+    h+=chip('fecha','ayer','Ayer',f.fecha);
+    h+=chip('fecha','7dias','7 días',f.fecha);
+    h+=chip('fecha','mes','Mes',f.fecha);
+    if(count>0){h+=sep;h+=`<button class="ops-fchip-clear" data-action="trans-filter-clear">Limpiar</button>`}
+    h+=`</div>`;
+    c.innerHTML=h;
+}
+function toggleTransFilters(){
+    AppState.ui._transFiltersOpen=!AppState.ui._transFiltersOpen;
+    if(AppState.ui._transFiltersOpen)$('seccionTransferencias')?.classList.add('open');
+    renderTransFilters();
+}
+function setTransFilter(filter,val){
+    _initTransFilters();
+    if(AppState.ui.transFilters[filter]===val)AppState.ui.transFilters[filter]='all';
+    else AppState.ui.transFilters[filter]=val;
+    AppState.ui.paginaTrans=1;
+    _invalidateListCache('pagTrans');
+    renderTransFilters();
+    pagTrans.render();
+}
+function clearTransFilters(){
+    AppState.ui.transFilters={origen:'all',destino:'all',fecha:'mes'};
+    AppState.ui.paginaTrans=1;
+    _invalidateListCache('pagTrans');
+    renderTransFilters();
+    pagTrans.render();
+}
 function getUTimeStr(){const d=getUDate();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function fmtFechaCorta(f){if(!f)return'-';const p=f.split('-');return p.length===3?`${p[2]}/${p[1]}`:f}
 /* Fecha + hora para listas: "13/04 · 21:10". Fallback: extraer hora de timestamp ISO si hora falta. */
@@ -5123,12 +5378,23 @@ const pagOp=crearPaginacion({
 });
 
 const pagMov=crearPaginacion({
-    getData:()=>movsMes(),
+    getData:()=>aplicarMovsFilters(movsMes()),
     getPag:()=>AppState.ui.paginaMov,setPag:p=>{AppState.ui.paginaMov=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationMov',info:'paginaInfoMov',prev:'btnPrevMov',next:'btnNextMov'},
     renderFn:(ini,fin,total,allMov)=>{
-        setText('totalMovimientos',total||0);const sec=$('seccionMovimientos');if(!total){sec.style.display='none';return}sec.style.display='block';
-        if(!allMov)allMov=movsMes();
+        setText('totalMovimientos',total||0);const sec=$('seccionMovimientos');
+        const hasAny=AppState.datos.movimientos.length>0;
+        const filtersOn=_movsFiltersActive();
+        /* Mantener sección visible si hay datos crudos o filtros activos — para no perder la UI de filtros */
+        if(!total){
+            if(!hasAny&&!filtersOn){sec.style.display='none';return}
+            sec.style.display='block';
+            $('movSummary').style.display='none';
+            $('movimientosContent').innerHTML=`<div class="empty-state"><div class="empty-state-icon">📭</div><div>${filtersOn?'Sin movimientos que coincidan con los filtros':'Sin movimientos'}</div></div>`;
+            return;
+        }
+        sec.style.display='block';
+        if(!allMov)allMov=aplicarMovsFilters(movsMes());
         let si=0,se=0;allMov.forEach(m=>{if(m.tipoMovimiento==='ingreso')si=roundMoney(si+m.monto);else se=roundMoney(se+m.monto)});
         const bal=roundMoney(si-se);
         setText('movSumIngresos','+$'+fmtNum(si,0));setText('movSumEgresos','-$'+fmtNum(se,0));
@@ -5167,12 +5433,22 @@ const pagMov=crearPaginacion({
 });
 
 const pagTrans=crearPaginacion({
-    getData:()=>transMes(),
+    getData:()=>aplicarTransFilters(transMes()),
     getPag:()=>AppState.ui.paginaTrans,setPag:p=>{AppState.ui.paginaTrans=p},porPag:CONFIG.POR_PAGINA,
     ids:{pagination:'paginationTrans',info:'paginaInfoTrans',prev:'btnPrevTrans',next:'btnNextTrans'},
     renderFn:(ini,fin,total,allTr)=>{
-        setText('totalTransferencias',total||0);const sec=$('seccionTransferencias');if(!total){sec.style.display='none';return}sec.style.display='block';
-        if(!allTr)allTr=transMes();
+        setText('totalTransferencias',total||0);const sec=$('seccionTransferencias');
+        const hasAny=AppState.datos.transferencias.length>0;
+        const filtersOn=_transFiltersActive();
+        if(!total){
+            if(!hasAny&&!filtersOn){sec.style.display='none';return}
+            sec.style.display='block';
+            $('transSummary').style.display='none';
+            $('transferenciasContent').innerHTML=`<div class="empty-state"><div class="empty-state-icon">📭</div><div>${filtersOn?'Sin transferencias que coincidan con los filtros':'Sin transferencias'}</div></div>`;
+            return;
+        }
+        sec.style.display='block';
+        if(!allTr)allTr=aplicarTransFilters(transMes());
         let sm=0,sc=0;allTr.forEach(t=>{sm=roundMoney(sm+t.monto);sc=roundMoney(sc+(t.comision||0))});
         setText('transSumMonto','$'+fmtNum(sm,0));setText('transSumCom','$'+fmtNum(sc,0));setText('transSumTotal',allTr.length);
         $('transSummary').style.display=total?'grid':'none';
@@ -5349,7 +5625,7 @@ function actualizarVista(){
     setText('statsCompra',cc?'Prom $'+fmtNum(tpc)+' · '+minTxt:'--');
     setText('statsVenta',cv?la.length+' lotes · Spread $'+fmtNum(sp):'--');
     /* spreadPromedio ya lo seteó _renderSpreadConTendencia arriba con el valor del día (o fallback mensual) */
-    actualizarBancosGrid();actualizarSelectBancos();renderOpsFilters();
+    actualizarBancosGrid();actualizarSelectBancos();renderOpsFilters();renderMovsFilters();renderTransFilters();
     /* Render diffing: cada lista paginada se re-renderiza solo si su fingerprint
        (data version + pagina + filtros relevantes) cambió respecto al último render.
        Reduce innerHTML writes innecesarios — clave para perf en Android de gama baja. */
@@ -5357,8 +5633,14 @@ function actualizarVista(){
         const f=AppState.ui.opsFilters||{};
         return `${AppState.datos._version||0}|${AppState.ui.paginaOp}|${f.tipo}|${f.banco}|${f.resultado}|${f.fecha}|${AppState.datos.operaciones.length}`;
     });
-    _renderListIfChanged('pagMov',pagMov,()=>`${AppState.datos._version||0}|${AppState.ui.paginaMov}|${AppState.datos.movimientos.length}`);
-    _renderListIfChanged('pagTrans',pagTrans,()=>`${AppState.datos._version||0}|${AppState.ui.paginaTrans}|${AppState.datos.transferencias.length}`);
+    _renderListIfChanged('pagMov',pagMov,()=>{
+        const f=AppState.ui.movsFilters||{};
+        return `${AppState.datos._version||0}|${AppState.ui.paginaMov}|${f.tipo}|${f.cuenta}|${f.tag}|${f.fecha}|${AppState.datos.movimientos.length}`;
+    });
+    _renderListIfChanged('pagTrans',pagTrans,()=>{
+        const f=AppState.ui.transFilters||{};
+        return `${AppState.datos._version||0}|${AppState.ui.paginaTrans}|${f.origen}|${f.destino}|${f.fecha}|${AppState.datos.transferencias.length}`;
+    });
     _renderListIfChanged('pagConv',pagConv,()=>`${AppState.datos._version||0}|${AppState.ui.paginaConv||1}|${(AppState.datos.conversiones||[]).length}`);
 }
 
@@ -5967,6 +6249,18 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='ops-filter-clear'){
             clearOpsFilters();
         }
+        else if(a==='toggle-mov-filters'){toggleMovsFilters()}
+        else if(a==='movs-filter'){
+            const filter=t.dataset.filter,val=t.dataset.val;
+            if(filter&&val)setMovsFilter(filter,val);
+        }
+        else if(a==='movs-filter-clear'){clearMovsFilters()}
+        else if(a==='toggle-trans-filters'){toggleTransFilters()}
+        else if(a==='trans-filter'){
+            const filter=t.dataset.filter,val=t.dataset.val;
+            if(filter&&val)setTransFilter(filter,val);
+        }
+        else if(a==='trans-filter-clear'){clearTransFilters()}
         else if(a==='split-add'){
             AppState.ui.splitExtras=AppState.ui.splitExtras||[];
             AppState.ui.splitExtras.push({banco:'',monto:0});
