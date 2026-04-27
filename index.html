@@ -504,6 +504,25 @@
         .r2 .r2-sep{color:#cbd5e1;margin:0 6px;flex-shrink:0;font-weight:400}
         .r2-c1{color:#94a3b8;flex-shrink:0}
         .r2-c2{color:#475569;flex-shrink:0}
+        /* ═══ Indicador per-record de sync pendiente ═══
+           Dot pequeño que aparece a la izquierda del monto cuando la operación
+           todavía no se confirmó en Firebase. Desaparece automáticamente al syncear.
+           Sutil pero visible — afirma al usuario que su acción se registró.
+           Animación suave para no agredir visualmente. */
+        .sync-dot{
+            display:inline-block;
+            width:6px;height:6px;
+            border-radius:50%;
+            background:#fbbf24;
+            margin-right:5px;
+            vertical-align:middle;
+            animation:syncPulse 1.6s ease-in-out infinite;
+            flex-shrink:0;
+        }
+        @keyframes syncPulse{
+            0%,100%{opacity:0.4;transform:scale(1)}
+            50%{opacity:1;transform:scale(1.15)}
+        }
         /* Comisión como peer inline — más discreta (color tenue, tamaño levemente menor) */
         .r2-com{
             color:#94a3b8;
@@ -1406,7 +1425,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.22',
+    APP_VERSION: '4.7.23',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1439,6 +1458,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.23', date:'2026-04-25', headline:'⚡ Optimistic UI: feedback instantáneo + indicador per-record + sync silencioso.', changes:[
+        {type:'feature', title:'Sync indicator diferido (800ms)', desc:'El badge "Sincronizando…" ya no aparece en cada save. Se muestra solo si la operación tarda más de 800ms en completarse — la mayoría de saves rápidos quedan invisibles. Reduce ansiedad y hace que la app se sienta instantánea.'},
+        {type:'feature', title:'Dot pulsante per-record', desc:'Cada operación, ajuste, transferencia o conversión muestra un dot amarillo a la izquierda del monto cuando aún está pendiente de sincronizar con Firebase. Animación pulse suave (1.6s). Desaparece automáticamente al confirmarse el sync.'},
+        {type:'improve', title:'_syncState como hint runtime', desc:'Estado pending/synced rastreado por entidad sin ensuciar Firestore — se strippea explícitamente antes de cada write. Si el dispositivo se queda offline, podés ver visualmente qué registros aún no se subieron.'},
+        {type:'improve', title:'Optimistic UI ya estaba bien', desc:'La arquitectura de mutación ya era optimista: AppState se actualiza primero, UI se re-renderiza, sync ocurre async en background. Lo que faltaba era feedback per-record, no un cambio arquitectural. Firestore IndexedDB persistence (ya activa) sigue manejando offline.'}
+    ]},
     {version:'4.7.22', date:'2026-04-25', headline:'🔧 Fix: alineación real de Ajustes y Transferencias en desktop.', changes:[
         {type:'fix', title:'Display:contents anulado por regla mobile', desc:'En v4.7.21 los grids per-tipo no funcionaban porque la regla mobile [data-mov-id] .r2{display:grid} (specificity 0,2,0) anulaba el display:contents del desktop (specificity 0,1,0). Resultado: la palabra "Egreso" saltaba horizontalmente entre filas. Fix: override explícito con misma specificity en el media query desktop.'},
         {type:'fix', title:'Conversiones grid mismatch', desc:'El grid-template-columns de conversiones tenía 6 columnas pero la estructura HTML proyecta 7 hijos vía display:contents. Ajustado a 7 columnas para que coincida con r1-monto, r1-gp (tasa), origen, flecha, destino, fecha, actions.'},
@@ -1463,12 +1488,6 @@ const CHANGELOG = [
         {type:'feature', title:'Ventana deslizante por edad (30 días)', desc:'El Centro de Noticias muestra por defecto solo las versiones de los últimos 30 días. Las más viejas quedan disponibles tras un botón "Ver X versiones anteriores". Relevancia sobre acumulación.'},
         {type:'improve', title:'Badge más inteligente', desc:'La campanita solo marca como "pendientes" entradas de los últimos 30 días. Usuario que no abre la app en 2 meses ya no ve un número inflado al volver.'},
         {type:'improve', title:'Reset al abrir', desc:'Cada apertura del centro defaultea a vista reciente. Si el usuario quiso ver viejas, al cerrar y reabrir vuelve a la vista compacta.'}
-    ]},
-    {version:'4.7.18', date:'2026-04-22', headline:'🎨 Comisión como peer en línea secundaria — layout horizontal sin ganar altura.', changes:[
-        {type:'improve', title:'Integración horizontal del % de comisión', desc:'El % de comisión ahora es un peer al mismo nivel que tasa, USDT y banco en la línea secundaria. Nueva secuencia: tasa · USDT · 0,14% · banco. Sin background pill, sin aumento de altura, sin saltos de línea.'},
-        {type:'improve', title:'Flexbox con shrink controlado', desc:'r2 pasó de grid rígido a flex con separadores · visibles. Tasa, USDT y % nunca se truncan (flex-shrink:0). El banco es el único con ellipsis cuando falta espacio. Altura exacta de 17px preservada.'},
-        {type:'improve', title:'Consistencia desktop', desc:'En desktop la grid plana ahora tiene 8 columnas (incluye la comisión), los separadores · se ocultan porque la grid ya provee el espaciado. Estilo sigue siendo discreto: 0.7em, gris claro, sin pill.'},
-        {type:'improve', title:'Jerarquía visual clara', desc:'La comisión usa color #94a3b8 (gris tenue) y tamaño levemente menor que los peers principales, sin competir por atención. Tooltip "Comisión Binance aplicada" al tocarla/hovearla.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -3610,8 +3629,31 @@ let _guardando=false,_guardarPendiente=false,_syncPending=0,_syncErrors=0,_retry
 
 /* ─── Sync queue: tracks what's pending ─── */
 const _syncQueue=[];/* [{type:'create'|'delete'|'update',entity:string,id:string,ts:number}] */
-function enqueueSync(type,entity,id){_syncQueue.push({type,entity,id,ts:Date.now()})}
-function clearSyncQueue(){_syncQueue.length=0;_localDirty=0}
+function enqueueSync(type,entity,id){
+    _syncQueue.push({type,entity,id,ts:Date.now()});
+    /* Marca la entidad como _syncState:'pending' — visible como dot sutil en la lista.
+       'synced' es el default (no se setea para no inflar el doc en Firestore — la ausencia 
+       del campo significa "todo OK"). */
+    if(id&&entity){
+        const arr=AppState.datos[entity];
+        if(Array.isArray(arr)){
+            const item=arr.find(x=>x.id===id);
+            if(item)item._syncState='pending';
+        }
+    }
+}
+function clearSyncQueue(){
+    /* Al confirmar sync exitoso, limpiar todos los _syncState:'pending' */
+    _syncQueue.forEach(a=>{
+        const arr=AppState.datos[a.entity];
+        if(Array.isArray(arr)){
+            const item=arr.find(x=>x.id===a.id);
+            if(item&&item._syncState==='pending')delete item._syncState;
+        }
+    });
+    _syncQueue.length=0;
+    _localDirty=0;
+}
 function hasPendingLocal(){return _syncQueue.length>0||_localDirty>0||_guardando||_guardarPendiente}
 /* Debounce: agrupa cambios rápidos (typing, sliders) en una sola escritura a Firebase.
    Window de 400ms — si la última mutación fue hace <400ms, espera.
@@ -3823,7 +3865,16 @@ async function guardarDatos(forzar){
     }
     if(_guardando){_guardarPendiente=true;return}
     _guardando=true;_syncPending++;updateSyncBadge();
-    setSyncStatus('syncing',_syncPending>1?'Sincronizando '+_syncPending+'…':'Sincronizando…');
+    /* ═══ Indicador "Sincronizando" diferido ═══
+       En vez de mostrar el badge inmediatamente (genera ansiedad y hace que la app
+       parezca lenta aunque la sync sea instantánea), esperamos 800ms.
+       Si la operación termina antes, el usuario nunca ve el indicador.
+       Solo aparece cuando realmente la red está demorada. */
+    const _syncIndicatorTimer=setTimeout(()=>{
+        if(_guardando){
+            setSyncStatus('syncing',_syncPending>1?'Sincronizando '+_syncPending+'…':'Sincronizando…');
+        }
+    },800);
     /* Backup solo si hay cambios reales pendientes — evita writes inútiles a localStorage 
        en cada save (bloqueo síncrono en Android de gama baja). */
     if(_syncQueue.length>0||forzar)backupToLocal();
@@ -3846,8 +3897,24 @@ async function guardarDatos(forzar){
                 throw{code:'stale-version',serverV:serverVersion,localV:AppState._localVersion};
             }
             const newVersion=serverVersion+1;
-            tx.set(ref,{
+            /* Strip de campos runtime-only que NO deben persistirse en Firestore.
+               _syncState es un hint local para mostrar el dot pulsante en la UI.
+               Si se persistiera, otros devices verían "pending" eterno y el doc 
+               crecería sin razón. */
+            const stripRuntime=arr=>Array.isArray(arr)?arr.map(x=>{
+                if(!x._syncState)return x;
+                const{_syncState,...rest}=x;
+                return rest;
+            }):arr;
+            const datosLimpios={
                 ...AppState.datos,
+                operaciones:stripRuntime(AppState.datos.operaciones),
+                movimientos:stripRuntime(AppState.datos.movimientos),
+                transferencias:stripRuntime(AppState.datos.transferencias),
+                conversiones:stripRuntime(AppState.datos.conversiones||[])
+            };
+            tx.set(ref,{
+                ...datosLimpios,
                 _version:newVersion,
                 ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -3877,6 +3944,7 @@ async function guardarDatos(forzar){
             }
         }
     }finally{
+        clearTimeout(_syncIndicatorTimer);
         _guardando=false;
         /* No re-consumir _guardarPendiente si estamos stale — el merge del snapshot siguiente
            disparará un guardaOptimista('merge',...) que hará el retry. Evita loop sobre 
@@ -5368,7 +5436,7 @@ const pagOp=crearPaginacion({
                 <div class="op-swipe-content" data-op-id="${op.id}">
                     <div class="op-card ${op.tipo}">
                         <div class="op-card-body">
-                            <div class="r1"><span class="r1-monto">${sy}${fmtNum(op.monto)}</span><span class="r1-gp" style="color:${gc}">${gt}</span></div>
+                            <div class="r1"><span class="r1-monto">${op._syncState==='pending'?'<span class="sync-dot" title="Pendiente de sincronizar"></span>':''}${sy}${fmtNum(op.monto)}</span><span class="r1-gp" style="color:${gc}">${gt}</span></div>
                             <div class="r2"><span class="r2-c1">${sy}${fmtNum(op.tasa,td)}</span><span class="r2-sep">·</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT</span><span class="r2-sep">·</span><span class="r2-com" title="Comisión Binance aplicada">${cPctTxt}</span><span class="r2-sep">·</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}" title="${Array.isArray(op.aportes)&&op.aportes.length>1?'Pago dividido: '+op.aportes.map(a=>a.banco+' $'+fmtNum(a.monto,0)).join(' · '):''}">${op.banco||'-'}${Array.isArray(op.aportes)&&op.aportes.length>1?' <span style="font-size:0.85em;color:#f59e0b;font-weight:700">+'+(op.aportes.length-1)+'</span>':''}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button></span>
                         </div>
@@ -5423,7 +5491,7 @@ const pagMov=crearPaginacion({
                 <div class="op-swipe-content" data-mov-id="${m.id}">
                     <div class="op-card ${isI?'compra':'venta'}">
                         <div class="op-card-body">
-                            <div class="r1"><span class="r1-monto">${sy}${fmtNum(m.monto)}${suf}</span><span class="r1-gp" style="color:${isI?'#16a34a':'#dc2626'}">${isI?'Ingreso':'Egreso'}</span></div>
+                            <div class="r1"><span class="r1-monto">${m._syncState==='pending'?'<span class="sync-dot" title="Pendiente de sincronizar"></span>':''}${sy}${fmtNum(m.monto)}${suf}</span><span class="r1-gp" style="color:${isI?'#16a34a':'#dc2626'}">${isI?'Ingreso':'Egreso'}</span></div>
                             <div class="r2"><span class="r2-c1">${c1Txt}</span><span class="r2-c2">${descTxt?'🏷️ '+descTxt:''}</span><span class="r2-c3"><span class="r2-banco" style="color:${isUsdt?'#64748b':getBancoColor(m.banco)}">${isUsdt?'':m.banco||''}</span><span class="r2-fecha">${fmtFechaHora(m.fecha,m.hora,m.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-mov" data-id="${m.id}">✏️</button><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></span>
                         </div>
@@ -5468,7 +5536,7 @@ const pagTrans=crearPaginacion({
                 <div class="op-swipe-content" data-trans-id="${tr.id}">
                     <div class="op-card transfer">
                         <div class="op-card-body">
-                            <div class="r1"><span class="r1-monto">${sy}${fmtNum(tr.monto)}</span><span class="r1-gp" style="color:#475569;font-weight:600;font-size:0.78em">${tr.comision>0?'Com: '+sy+fmtNum(tr.comision):''}</span></div>
+                            <div class="r1"><span class="r1-monto">${tr._syncState==='pending'?'<span class="sync-dot" title="Pendiente de sincronizar"></span>':''}${sy}${fmtNum(tr.monto)}</span><span class="r1-gp" style="color:#475569;font-weight:600;font-size:0.78em">${tr.comision>0?'Com: '+sy+fmtNum(tr.comision):''}</span></div>
                             <div class="r2"><span class="r2-c1" style="color:${getBancoColor(tr.origen)}">${tr.origen}</span><span class="r2-c2">→</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(tr.destino)}">${tr.destino}</span><span class="r2-fecha">${fmtFechaHora(tr.fecha,tr.hora,tr.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-trans" data-id="${tr.id}">✏️</button><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">🗑️</button></span>
                         </div>
@@ -5498,7 +5566,7 @@ const pagConv=crearPaginacion({
                 <div class="op-swipe-content" data-conv-id="${c.id}">
                     <div class="op-card conversion">
                         <div class="op-card-body">
-                            <div class="r1"><span class="r1-monto">${syO}${fmtNum(c.montoOrigen)} → ${syD}${fmtNum(c.montoDestino)}</span><span class="r1-gp" style="color:#64748b;font-weight:600;font-size:0.72em">T: ${fmtNum(c.tasa)}</span></div>
+                            <div class="r1"><span class="r1-monto">${c._syncState==='pending'?'<span class="sync-dot" title="Pendiente de sincronizar"></span>':''}${syO}${fmtNum(c.montoOrigen)} → ${syD}${fmtNum(c.montoDestino)}</span><span class="r1-gp" style="color:#64748b;font-weight:600;font-size:0.72em">T: ${fmtNum(c.tasa)}</span></div>
                             <div class="r2"><span class="r2-c1" style="color:${getBancoColor(c.origen)}">${c.origen}</span><span class="r2-c2">→</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(c.destino)}">${c.destino}</span><span class="r2-fecha">${fmtFechaHora(c.fecha,c.hora,c.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-conv" data-id="${c.id}">✏️</button><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">🗑️</button></span>
                         </div>
