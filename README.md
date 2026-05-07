@@ -13,34 +13,38 @@ p2p-tracker/
 ├── README.md                  ← este archivo
 ├── package.json               ← scripts npm
 ├── .gitignore
-├── firebase.json              ← config para Firebase Hosting
-├── .firebaserc                ← target del proyecto
+├── firebase.json              ← config para Firebase Hosting (apunta a docs/)
+├── .firebaserc                ← target del proyecto Firebase
 │
 ├── index.original.html        ← respaldo intacto del HTML monolítico anterior (NO editar)
 │
 ├── src/                       ← código fuente (acá editás)
 │   ├── index.template.html    ← shell HTML con marcadores {{INJECT_CSS}} y {{INJECT_JS}}
 │   ├── css/
-│   │   ├── 01-base.css        ← reset, layout, header, menú, novedades
-│   │   ├── 02-components.css  ← cards, modales, formularios, filtros
-│   │   └── 03-features.css    ← calendario, métricas, novedades, desktop
+│   │   ├── 01-base.css
+│   │   ├── 02-components.css
+│   │   └── 03-features.css
 │   └── js/
-│       ├── 01-config.js       ← CONFIG, CHANGELOG, AppState
-│       ├── 02-helpers.js      ← DOM, conectividad, summary mensual, novedades
-│       ├── 03-utils-filters.js← utilidades puras + filtros (ops/movs/trans)
-│       ├── 04-integrity.js    ← validarDeltas, aplicarDeltas, tags, swipe
-│       ├── 05-bancos-fifo.js  ← paginación genérica, bancos, FIFO
-│       ├── 06-firebase.js     ← Firebase, auth, save/load, backup, recovery
-│       ├── 07-operations.js   ← formulario op, split pago, movs, transferencias
-│       ├── 08-calendar-dashboard.js ← calendario, dashboard, spread
-│       └── 09-ui-glue.js      ← lotes modal, reset, restore, listeners
+│       ├── 01-config.js
+│       ├── 02-helpers.js
+│       ├── 03-utils-filters.js
+│       ├── 04-integrity.js
+│       ├── 05-bancos-fifo.js
+│       ├── 06-firebase.js
+│       ├── 07-operations.js
+│       ├── 08-calendar-dashboard.js
+│       └── 09-ui-glue.js
 │
 ├── build/
-│   └── build.js               ← script que concatena src/ → dist/index.html
+│   └── build.js               ← script que concatena src/ → docs/index.html
 │
-└── dist/
-    └── index.html             ← OUTPUT FINAL para deploy (no editar a mano)
+└── docs/                      ← OUTPUT FINAL — GitHub Pages y Firebase Hosting
+    ├── .nojekyll              ← le dice a GitHub Pages que no procese con Jekyll
+    └── index.html             ← el archivo que se sirve (no editar a mano)
 ```
+
+**¿Por qué `docs/` y no `dist/`?**
+GitHub Pages solo permite servir desde `/` (raíz) o `/docs`, no desde `/dist`. Usar `docs/` permite servir el sitio sin mover archivos. Firebase Hosting funciona igual, leyendo `firebase.json`.
 
 ---
 
@@ -57,22 +61,49 @@ p2p-tracker/
 npm run build
 ```
 
-Esto regenera `dist/index.html` concatenando todos los `src/css/*.css` (en orden alfabético) y `src/js/*.js` (en orden alfabético).
+Esto regenera `docs/index.html` concatenando todos los `src/css/*.css` (orden alfabético) y `src/js/*.js` (orden alfabético).
 
 ### Probar localmente
 
-Podés abrir `dist/index.html` directamente en el navegador (file://) — funciona porque es un único archivo sin imports en runtime.
+Podés abrir `docs/index.html` directamente en el navegador (file://) — funciona porque es un único archivo sin imports en runtime.
 
 O servir con un servidor local:
 
 ```powershell
-# Si tenés Python instalado:
-cd dist
+# Si tenés Python:
+cd docs
 python -m http.server 8000
 # Abrí http://localhost:8000
 
 # Si tenés Node:
-npx serve dist
+npx serve docs
+```
+
+---
+
+## Setup inicial (PowerShell)
+
+### 1. Descomprimir el zip
+
+Descomprimí `p2p-tracker.zip` en `C:\Users\TuUsuario\proyectos\p2p-tracker` (o donde prefieras).
+
+### 2. Editar `.firebaserc`
+
+Abrí `.firebaserc` y reemplazá `REPLACE-WITH-YOUR-FIREBASE-PROJECT-ID` con el ID de tu proyecto Firebase.
+
+### 3. Verificar que el build funciona
+
+```powershell
+cd C:\Users\TuUsuario\proyectos\p2p-tracker
+npm run build
+```
+
+Deberías ver:
+```
+✓ Built docs/index.html
+  CSS files: 3 → 76758 chars
+  JS files:  9 → 328594 chars
+  Output:    430.8 KB
 ```
 
 ---
@@ -82,44 +113,41 @@ npx serve dist
 ### Primera vez (carpeta nueva, sin repo previo)
 
 ```powershell
-# Posicionarte en la carpeta del proyecto
-cd C:\ruta\a\p2p-tracker
+cd C:\Users\TuUsuario\proyectos\p2p-tracker
 
-# Inicializar git
 git init
 git add .
-git commit -m "Initial commit: split monolithic HTML into modular structure"
+git commit -m "Initial commit: estructura modular con build a docs/"
 
-# Conectar al repo nuevo en GitHub (creá el repo primero en github.com)
-git remote add origin https://github.com/TU-USUARIO/TU-REPO-NUEVO.git
+# Crear primero el repo en github.com (sin README, sin .gitignore — el zip ya los trae)
+git remote add origin https://github.com/TU-USUARIO/p2p-tracker.git
 git branch -M main
 git push -u origin main
 ```
 
+### Configurar GitHub Pages
+
+1. En tu repo en GitHub: **Settings → Pages**
+2. **Source**: Deploy from a branch
+3. **Branch**: `main` / **`/docs`** ← importante
+4. **Save**
+5. Esperá 1-2 minutos
+6. Tu sitio queda en `https://TU-USUARIO.github.io/p2p-tracker/`
+
 ### Actualizaciones siguientes
 
 ```powershell
+# 1. Editás algo en src/
+# 2. Build
+npm run build
+
+# 3. Commit + push
 git add .
 git commit -m "Descripción del cambio"
 git push
 ```
 
-### Si ya tenés un repo viejo abierto y querés migrar
-
-NO borrar todavía el repo viejo. Mientras testeás:
-
-```powershell
-# Crear un repo nuevo en GitHub con otro nombre, ej: p2p-tracker-v2
-# Después conectar este local al nuevo:
-cd C:\ruta\a\p2p-tracker
-git init
-git add .
-git commit -m "Migración a estructura modular"
-git remote add origin https://github.com/TU-USUARIO/p2p-tracker-v2.git
-git push -u origin main
-```
-
-Cuando confirmes que todo funciona, podés borrar el repo viejo y renombrar este.
+GitHub Pages se actualiza automáticamente en 1-2 minutos.
 
 ---
 
@@ -127,30 +155,17 @@ Cuando confirmes que todo funciona, podés borrar el repo viejo y renombrar este
 
 ### Primera vez
 
-1. Instalar Firebase CLI (una sola vez en tu PC):
-   ```powershell
-   npm install -g firebase-tools
-   ```
+```powershell
+# Instalar Firebase CLI (una sola vez en tu PC)
+npm install -g firebase-tools
 
-2. Login:
-   ```powershell
-   firebase login
-   ```
+# Login
+firebase login
 
-3. Editar `.firebaserc` y poner el ID de tu proyecto Firebase:
-   ```json
-   {
-     "projects": {
-       "default": "TU-PROJECT-ID"
-     }
-   }
-   ```
-
-4. Build + deploy:
-   ```powershell
-   npm run build
-   firebase deploy --only hosting
-   ```
+# Build + deploy
+npm run build
+firebase deploy --only hosting
+```
 
 ### Actualizaciones siguientes
 
@@ -161,75 +176,35 @@ firebase deploy --only hosting
 
 ---
 
-## Workflow combinado (lo más común)
-
-```powershell
-# 1. Editás algo en src/
-# 2. Build
-npm run build
-
-# 3. Testear local (opcional)
-# abrí dist/index.html en el browser
-
-# 4. Push a GitHub
-git add .
-git commit -m "Mensaje del cambio"
-git push
-
-# 5. Deploy
-firebase deploy --only hosting
-```
-
----
-
 ## Reglas de oro
 
-- **NUNCA editar `dist/index.html` a mano.** El build lo va a sobrescribir y perdés cambios.
-- **NO borres `index.original.html`** hasta confirmar que todo funciona en producción. Es tu safety net.
-- **Editar siempre en `src/`**. Si el cambio es CSS, editá `src/css/`. Si es JS, editá `src/js/`. Si es HTML estructural, editá `src/index.template.html`.
-- **El orden importa**: los archivos se concatenan en orden alfabético. Por eso usan prefijos numéricos `01-`, `02-`, etc. Si necesitás insertar un archivo nuevo entre dos existentes, numerálo intermedio (ej. `02b-helper-extra.js` va entre 02 y 03).
-- **El sistema de novedades sigue funcionando igual.** El CHANGELOG vive en `src/js/01-config.js`. Mantené el cap de 5 entradas.
+- **NUNCA edites `docs/index.html` a mano.** El build lo va a sobrescribir.
+- **NO borres `index.original.html`** hasta confirmar que todo funciona en producción.
+- **Editá siempre en `src/`**.
+- **El orden importa**: archivos se concatenan alfabéticamente. Por eso usan prefijos `01-`, `02-`, etc.
+- **Después de cada cambio, corré `npm run build`** antes de commitear.
 
 ---
 
 ## Troubleshooting
 
-**El build no genera el archivo.**
-- Verificar que tengás Node ≥ 14 instalado: `node --version`
-- Verificar que estés en el directorio correcto: el `package.json` debe estar visible
-- Probar `node build/build.js` directamente
+**El build falla.**
+- Verificar que tengás Node ≥ 14: `node --version`
+- Verificar que estés en el directorio del proyecto
 
-**El build genera un archivo pero la app no funciona.**
-- Comparar tamaño con `index.original.html` — si difiere mucho, algo se rompió
-- Abrir DevTools (F12) y mirar errores en la consola
-- Verificar que el orden alfabético de los archivos en `src/js/` no esté desordenado
+**GitHub Pages muestra el README en vez de la app.**
+- Verificar que **Settings → Pages** apunte a `main` / `/docs` (no `/root`)
+- Esperar 2 minutos después del push, hard refresh con Ctrl + F5
+
+**El build de GitHub Pages falla con error de Jekyll.**
+- El archivo `docs/.nojekyll` debe existir. El build lo crea automáticamente.
+- Si por algún motivo se borró, corré `npm run build` y commiteá.
 
 **Los cambios en CSS/JS no se reflejan.**
 - ¿Corriste `npm run build` después de editar?
-- Hard refresh en el browser: Ctrl+Shift+R (Windows) / Cmd+Shift+R (Mac)
-- Verificar que estés mirando `dist/index.html` y no `index.original.html`
+- Hard refresh: Ctrl + Shift + R
+- Verificar que estés mirando `docs/index.html` (el output) y no `index.original.html`
 
 **Firebase deploy falla con "Authorization failed".**
 - Re-login: `firebase logout` luego `firebase login`
 - Verificar que `.firebaserc` tenga el project ID correcto
-
----
-
-## Notas técnicas
-
-### Por qué no ES Modules
-
-Considerado y rechazado. Razones:
-- ES Modules requieren servir desde HTTP (no funcionan en `file://`)
-- CORS issues con algunos hostings
-- Más complejidad de configuración sin beneficio real para este tamaño
-
-El build concat → single file da mantenibilidad sin comprometer simplicidad de deploy.
-
-### Por qué orden alfabético en concat
-
-Determinístico, predecible, no requiere config. Cada archivo declara su orden con su prefijo numérico (`01-`, `02-`, ...). Insertar uno nuevo entre dos existentes es trivial.
-
-### Por qué el placeholder usa `() =>` en build.js
-
-`String.prototype.replace` con un string interpreta `$&`, `$1`, `$\``, etc como referencias. El JS de la app tiene cientos de template literals con `${...}` que se rompían. La forma de función evita eso.

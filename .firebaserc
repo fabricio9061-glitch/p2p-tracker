@@ -1,5 +1,5 @@
 {
   "projects": {
-    "default": "p2p-tracker-dc9cc"
+    "default": "REPLACE-WITH-YOUR-FIREBASE-PROJECT-ID"
   }
 }
