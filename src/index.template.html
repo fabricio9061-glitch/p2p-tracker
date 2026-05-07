@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="P2P Tracker">
+    <title>Registro P2P</title>
+    <link rel="icon" type="image/png" href="https://i.imgur.com/fK4ZCLV.png">
+    <link rel="apple-touch-icon" href="https://i.imgur.com/fK4ZCLV.png">
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUDJQIFRyYWNrZXIiLCJzaG9ydF9uYW1lIjoiUDJQIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmMGYwZWUiLCJ0aGVtZV9jb2xvciI6IiMyNTYzZWIiLCJpY29ucyI6W3sic3JjIjoiaHR0cHM6Ly9pLmltZ3VyLmNvbS9mSzRaQ0xWLnBuZyIsInNpemVzIjoiNTEyeDUxMiIsInR5cGUiOiJpbWFnZS9wbmciLCJwdXJwb3NlIjoiYW55IG1hc2thYmxlIn1dfQ==">
+    <style>
+        /* {{INJECT_CSS}} */
+    </style>
+</head>
+<body>
+    <!-- ═══ OVERLAYS ═══ -->
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div style="color:#64748b;font-size:0.9em">Cargando...</div></div>
+    <div class="cooldown-overlay hidden" id="cooldownOverlay"><div class="spinner"></div><div class="cooldown-text">Guardado ✓</div></div>
+
+    <!-- ═══ AUTH ═══ -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-box">
+            <div class="auth-logo">💱</div>
+            <h1 class="auth-title">Registro P2P</h1>
+            <p class="auth-subtitle">Control de operaciones y saldos</p>
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tabLogin">Iniciar Sesión</button>
+                <button class="auth-tab" id="tabRegister">Registrarse</button>
+            </div>
+            <div class="auth-error" id="authError"></div>
+            <form class="auth-form" id="loginForm">
+                <div class="form-group"><label>Usuario</label><input type="text" id="loginUser" placeholder="Tu usuario" required></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="loginPass" placeholder="Tu contraseña" autocomplete="current-password" required></div>
+                <button type="submit" class="btn" id="loginBtn">Iniciar Sesión</button>
+            </form>
+            <form class="auth-form" id="registerForm" style="display:none">
+                <div class="form-group"><label>Usuario</label><input type="text" id="regUser" placeholder="Elige un usuario" required><small>Letras, números, guiones. 3-20 caracteres.</small></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="regPass" placeholder="Crea una contraseña" autocomplete="new-password" required><small>Mínimo 6 caracteres</small></div>
+                <div class="form-group"><label>Confirmar Contraseña</label><input type="password" id="regPassConfirm" placeholder="Repite la contraseña" autocomplete="new-password" required></div>
+                <button type="submit" class="btn" id="registerBtn">Crear Cuenta</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ APP ═══ -->
+    <div class="app-container" id="appContainer">
+        <div class="container">
+            <div class="header">
+                <h1>💱 Registro P2P</h1>
+                <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
+                <div class="menu-container">
+                    <button class="news-bell" id="newsBellBtn" aria-label="Centro de novedades">
+                        <span class="news-bell-icon">🔔</span>
+                        <span class="news-bell-badge hidden" id="newsBellBadge">0</span>
+                    </button>
+                    <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
+                </div>
+            </div>
+
+            <!-- Full-screen menu panel -->
+            <div class="menu-backdrop" id="menuBackdrop"></div>
+            <div class="menu-panel" id="menuPanel">
+                <div class="menu-panel-header">
+                    <button class="menu-back" id="menuBack" aria-label="Volver">←</button>
+                    <div class="menu-panel-title">Configuración y herramientas</div>
+                </div>
+                <div class="menu-panel-body">
+                    <div class="menu-panel-user">
+                        <div class="menu-panel-user-avatar" id="menuUserAvatar">U</div>
+                        <div class="menu-panel-user-info">
+                            <div class="menu-panel-user-name" id="menuUserName">Usuario</div>
+                            <div class="menu-panel-user-email" id="menuUserEmail">@p2p</div>
+                        </div>
+                    </div>
+
+                    <div class="menu-group-title">Operaciones</div>
+                    <div class="menu-group">
+                        <div class="menu-row" data-action="movimiento"><span class="menu-row-icon">📝</span><span class="menu-row-label">Ajustes de saldo</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="transferencia"><span class="menu-row-icon">↔️</span><span class="menu-row-label">Transferencias entre cuentas</span><span class="menu-row-chevron">›</span></div>
+                    </div>
+
+                    <div class="menu-group-title">Cuentas</div>
+                    <div class="menu-group">
+                        <div class="menu-row" data-action="bancos"><span class="menu-row-icon">🏦</span><span class="menu-row-label">Cuentas bancarias y billeteras</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="inventario"><span class="menu-row-icon">📦</span><span class="menu-row-label">Lotes USDT</span><span class="menu-row-chevron">›</span></div>
+                    </div>
+
+                    <div class="menu-group-title">Análisis</div>
+                    <div class="menu-group">
+                        <div class="menu-row" data-action="gestion-tags"><span class="menu-row-icon">🏷️</span><span class="menu-row-label">Análisis de gastos</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="calendario"><span class="menu-row-icon">📅</span><span class="menu-row-label">Calendario de operaciones</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="historial-mensual"><span class="menu-row-icon">📊</span><span class="menu-row-label">Resumen mensual</span><span class="menu-row-chevron">›</span></div>
+                    </div>
+
+                    <div class="menu-group-title">Sistema</div>
+                    <div class="menu-group">
+                        <div class="menu-row" data-action="restaurar-respaldo"><span class="menu-row-icon">💾</span><span class="menu-row-label">Restaurar último respaldo</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="exportar-datos"><span class="menu-row-icon">📤</span><span class="menu-row-label">Exportar datos (.json)</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="importar-datos"><span class="menu-row-icon">📥</span><span class="menu-row-label">Importar datos (.json)</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="exportar-diagnostico"><span class="menu-row-icon">🔍</span><span class="menu-row-label">Exportar diagnóstico</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon">🔄</span><span class="menu-row-label">Resetear aplicación</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon">🚪</span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron">›</span></div>
+                    </div>
+
+                    <div class="menu-version"><span class="menu-version-label">Versión</span> <span id="menuVersion">—</span></div>
+                </div>
+            </div>
+
+            <div class="cards">
+                <div class="card main-card" id="cardGananciaHoy">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title">📈 Ganancia Hoy</div><span style="font-size:0.65em;color:#64748b" id="fechaHoy">--</span></div>
+                    <div class="card-value positive" id="gananciaHoy">$0</div>
+                    <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span class="spread-wrap">Spread <b style="color:#0284c7" id="spreadPromedio">$0</b><span id="spreadTrend" class="spread-trend" style="display:none"></span></span></div>
+                    <div id="cardIngresosExt" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;font-size:0.68em;color:#64748b;justify-content:space-between;align-items:center"><span>💵 Otros ingresos</span><span style="font-weight:700;color:#475569" id="ingresosExtHoy">$0</span></div>
+                </div>
+                <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
+            </div>
+
+            <div class="section-title">📊 Actividad del período</div>
+            <div class="cards cards-actividad">
+                <div class="card card-compra">
+                    <div class="card-title" style="color:#16a34a">📥 Compras <span id="mesCompras" style="color:#86efac;font-weight:400;text-transform:none"></span></div>
+                    <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalPagado">$0</div>
+                    <div style="font-size:0.6em;color:#94a3b8" id="statsCompra">--</div>
+                </div>
+                <div class="card card-venta">
+                    <div class="card-title" style="color:#dc2626">📤 Ventas <span id="mesVentas" style="color:#fca5a5;font-weight:400;text-transform:none"></span></div>
+                    <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalRecibido">$0</div>
+                    <div style="font-size:0.6em;color:#94a3b8" id="statsVenta">--</div>
+                </div>
+            </div>
+
+            <div class="section-title">💰 Mis Saldos</div>
+            <div class="saldos-hero" id="saldosTotales"></div>
+            <div class="bancos-grid" id="bancosGrid"></div>
+
+            <div class="desktop-columns">
+            <div class="col-left">
+            <!-- Nueva Operación -->
+            <div class="toggle-section open" id="seccionNuevaOp">
+                <div class="toggle-header"><span class="toggle-title">➕ Nueva Operación</span><span class="toggle-arrow">▼</span></div>
+                <div class="toggle-content">
+                    <div class="form-content">
+                        <select id="tipo"><option value="compra">Compra</option><option value="venta">Venta</option></select>
+                        <div class="op-toggle">
+                            <div class="op-toggle-btn active-compra" id="opToggleCompra">📥 Comprar USDT</div>
+                            <div class="op-toggle-btn" id="opToggleVenta">📤 Vender USDT</div>
+                        </div>
+
+                        <div class="form-group"><label id="montoLabel">Comprás por (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3.900"></div>
+
+                        <div class="tasa-block">
+                            <label>Tasa por USDT</label>
+                            <div class="tasa-input-row">
+                                <button type="button" class="tasa-step-btn" data-action="tasa-step" data-dir="down" aria-label="Bajar tasa">−</button>
+                                <input type="text" id="tasa" placeholder="39,50" inputmode="decimal">
+                                <button type="button" class="tasa-step-btn" data-action="tasa-step" data-dir="up" aria-label="Subir tasa">+</button>
+                            </div>
+                            <small id="tasaHelp" style="display:none"></small>
+                            <div class="tasa-tags" id="tasaTagsContainer"></div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group"><label id="bancoLabel">Sale de</label><select id="banco"><option value="">Seleccionar</option></select><small id="bancoHelp"></small></div>
+                            <div class="form-group" id="comisionBancoGroup"><label>Com. banco</label><input type="text" inputmode="decimal" id="comisionBanco" value="0" placeholder="0"></div>
+                        </div>
+
+                        <div id="splitPanel" class="split-panel" style="display:none"></div>
+
+                        <div class="op-summary modo-compra" id="opSummary" style="display:none">
+                            <div class="op-summary-row main">
+                                <span class="op-summary-label" id="opSumTotalLabel">Cantidad total</span>
+                                <span class="op-summary-value" id="opSumTotalValue" style="font-size:1.05em;color:#1e293b">0 USDT</span>
+                            </div>
+                            <div class="op-summary-row">
+                                <span class="op-summary-label" id="opSumLibLabel">Cantidad liberada</span>
+                                <span class="op-summary-value" id="opSumLibValue" style="color:#1e293b">0 USDT</span>
+                            </div>
+                            <div class="op-summary-row">
+                                <span class="op-summary-label">Comisión <span id="comisionPctLabel">0,14</span>%</span>
+                                <span class="op-summary-value" id="opSumComision">0 USDT</span>
+                            </div>
+                            <div class="op-summary-divider"></div>
+                            <div class="op-summary-row">
+                                <span class="op-summary-label" id="opSumBancoLabel">Saldo</span>
+                                <span class="op-summary-value" id="opSumBancoValue">--</span>
+                            </div>
+                        </div>
+                        <div id="previewBox" style="display:none"><span id="previewText"></span></div>
+
+                        <div class="op-btn-wrap">
+                            <div class="com-row">
+                                <div><div class="com-label">Comisión Binance</div><div class="com-info"><strong id="comisionPlataformaInfo">0 USDT</strong> <span id="saldoBancoInfo"></span></div></div>
+                                <label class="com-edit" title="Comisión Binance editable (0% a 10%). Se aplica a compras y ventas." aria-label="Editar comisión de Binance en porcentaje"><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal" maxlength="6" aria-label="Porcentaje de comisión"><span>%</span></label>
+                            </div>
+                            <button class="btn op-btn-compra" id="btnAgregarOp">📥 Comprar USDT</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            </div><!-- /col-left -->
+            <div class="col-right">
+            <!-- Operaciones -->
+            <div class="toggle-section open" id="seccionOperaciones">
+                <div class="toggle-header"><span class="toggle-title">📋 Operaciones</span><div class="toggle-right"><span class="ops-filtros-trigger" id="opsFiltrosTrigger" data-action="toggle-ops-filters" title="Filtros"><span class="filter-icon">⚙</span><span class="ops-filtros-trigger-label" id="opsFiltrosTriggerLabel">Filtros</span><span class="ops-filtros-badge hidden" id="opsFiltrosBadge">0</span></span><span class="toggle-badge" id="totalOperaciones">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-content">
+                    <div class="ops-filtros-strip" id="opsFiltros"></div>
+                    <div class="ops-summary" id="opsSummary">
+                        <div class="ops-summary-item"><div class="val" id="opsSumCompras">0</div><div class="lbl">Compras</div></div>
+                        <div class="ops-summary-item"><div class="val" id="opsSumVentas">0</div><div class="lbl">Ventas</div></div>
+                        <div class="ops-summary-item"><div class="val" id="opsSumGanancia" style="color:#16a34a">$0</div><div class="lbl">Ganancia</div></div>
+                        <div class="ops-summary-item"><div class="val" id="opsSumTotal">0</div><div class="lbl">Total</div></div>
+                    </div>
+                    <div id="tablaContent"><div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div></div>
+                    <div class="pagination" id="paginationOp" style="display:none"><button id="btnPrevOp">← Ant</button><span class="pagination-info" id="paginaInfoOp">1 / 1</span><button id="btnNextOp">Sig →</button></div>
+                </div>
+            </div>
+
+            <!-- Movimientos -->
+            <div class="toggle-section" id="seccionMovimientos" style="display:none">
+                <div class="toggle-header"><span class="toggle-title">📝 Ajustes</span><div class="toggle-right"><span class="ops-filtros-trigger" id="movFiltrosTrigger" data-action="toggle-mov-filters" title="Filtros"><span class="filter-icon">⚙</span><span class="ops-filtros-trigger-label">Filtros</span><span class="ops-filtros-badge hidden" id="movFiltrosBadge">0</span></span><span class="toggle-badge" id="totalMovimientos">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-content">
+                    <!-- Drawer de filtros (Ajustes) -->
+                    <div class="ops-filtros-drawer" id="movFiltrosDrawer" style="display:none"></div>
+                    <div class="ops-summary" id="movSummary" style="grid-template-columns:repeat(3,1fr)">
+                        <div class="ops-summary-item"><div class="val" id="movSumIngresos" style="color:#16a34a">$0</div><div class="lbl">Ingresos</div></div>
+                        <div class="ops-summary-item"><div class="val" id="movSumEgresos" style="color:#dc2626">$0</div><div class="lbl">Egresos</div></div>
+                        <div class="ops-summary-item"><div class="val" id="movSumBalance">$0</div><div class="lbl">Balance</div></div>
+                    </div>
+                    <div id="movimientosContent"></div>
+                    <div class="pagination" id="paginationMov" style="display:none"><button id="btnPrevMov">← Ant</button><span class="pagination-info" id="paginaInfoMov">1 / 1</span><button id="btnNextMov">Sig →</button></div>
+                </div>
+            </div>
+
+            <!-- Transferencias -->
+            <div class="toggle-section" id="seccionTransferencias" style="display:none">
+                <div class="toggle-header"><span class="toggle-title">↔️ Transferencias</span><div class="toggle-right"><span class="ops-filtros-trigger" id="transFiltrosTrigger" data-action="toggle-trans-filters" title="Filtros"><span class="filter-icon">⚙</span><span class="ops-filtros-trigger-label">Filtros</span><span class="ops-filtros-badge hidden" id="transFiltrosBadge">0</span></span><span class="toggle-badge" id="totalTransferencias">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-content">
+                    <!-- Drawer de filtros (Transferencias) -->
+                    <div class="ops-filtros-drawer" id="transFiltrosDrawer" style="display:none"></div>
+                    <div class="ops-summary" id="transSummary" style="grid-template-columns:repeat(3,1fr)">
+                        <div class="ops-summary-item"><div class="val" id="transSumMonto">$0</div><div class="lbl">Transferido</div></div>
+                        <div class="ops-summary-item"><div class="val" id="transSumCom">$0</div><div class="lbl">Comisiones</div></div>
+                        <div class="ops-summary-item"><div class="val" id="transSumTotal">0</div><div class="lbl">Total</div></div>
+                    </div>
+                    <div id="transferenciasContent"></div>
+                    <div class="pagination" id="paginationTrans" style="display:none"><button id="btnPrevTrans">← Ant</button><span class="pagination-info" id="paginaInfoTrans">1 / 1</span><button id="btnNextTrans">Sig →</button></div>
+                </div>
+            </div>
+
+            <!-- Conversiones -->
+            <div class="toggle-section" id="seccionConversiones" style="display:none">
+                <div class="toggle-header"><span class="toggle-title">💱 Conversiones</span><div class="toggle-right"><span class="toggle-badge" id="totalConversiones">0</span><span class="toggle-arrow">▼</span></div></div>
+                <div class="toggle-content">
+                    <div id="conversionesContent"></div>
+                    <div class="pagination" id="paginationConv" style="display:none"><button id="btnPrevConv">← Ant</button><span class="pagination-info" id="paginaInfoConv">1 / 1</span><button id="btnNextConv">Sig →</button></div>
+                </div>
+            </div>
+            </div><!-- /col-right -->
+            </div><!-- /desktop-columns -->
+        </div>
+    </div>
+
+    <!-- ═══ MODALS ═══ -->
+    <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:14px"><div class="modal-header">📅 Calendario</div><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div id="calendarDayDetail"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label">💰 Ganancia Acumulada (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label">💵 Ganancia Acumulada (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div><div class="calendar-metrics" id="calMetrics"></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
+    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header">📝 Ajuste Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso">📥 Ingreso</button><button class="tab tab-egreso" id="tabEgreso">📤 Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta" class="select-tipo"><option value="banco">🏦 Banco</option><option value="usdt">🪙 USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco" class="select-banco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="text" inputmode="decimal" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group mov-monto-group"><label id="movMontoLabel">Monto</label><input type="text" inputmode="decimal" id="movMonto" class="mov-monto-input" placeholder="0"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción</label><textarea id="movDescripcion" rows="1" placeholder="Ej: Almuerzo, Uber, etc."></textarea><div id="tagSugerenciasMov"></div></div><div id="movResumen" class="mov-resumen" style="display:none"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
+    <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header">🏦 Cuentas Bancarias</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
+    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
+    <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
+    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
+    <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
+    <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
+        <div id="tagAnalytics" style="margin-bottom:14px"></div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
+            <div id="tagPeriodFilter" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+            <div id="tagViewToggle" style="display:flex;gap:0;margin-left:auto;background:#f1f5f9;border-radius:8px;padding:2px"></div>
+        </div>
+        <input class="tag-search" type="text" id="tagSearch" placeholder="🔍 Buscar categoría...">
+        <div id="tagsList" style="max-height:40vh;overflow-y:auto"></div>
+        <div style="background:#f1f5f9;padding:8px 10px;border-radius:8px;margin-top:10px"><div style="font-size:0.7em;color:#64748b">Las categorías se generan automáticamente desde las descripciones de tus ajustes. Fusionarlas ayuda a mantener el análisis más limpio y preciso. Usá 🔗 para fusionar.</div></div>
+        <div class="modal-buttons"><button class="btn" id="btnCerrarTags">Cerrar</button></div>
+    </div></div>
+
+    <!-- Merge Tag Modal -->
+    <div id="modalMergeTag" class="modal"><div class="modal-content" style="max-width:480px">
+        <div class="modal-header">🔗 Fusionar categoría</div>
+        <div id="mergeSourceCard" class="merge-source"></div>
+        <div class="merge-help">Elegí una categoría destino. Todos los movimientos se moverán y la categoría origen se eliminará.</div>
+        <div class="merge-tabs">
+            <button class="merge-tab active" data-mergetab="existing" id="mergeTabExisting">📂 Usar existente</button>
+            <button class="merge-tab" data-mergetab="new" id="mergeTabNew">✨ Crear nueva</button>
+        </div>
+        <div id="mergePanelExisting">
+            <input type="text" id="mergeSearch" class="tag-search" placeholder="🔍 Buscar destino..." style="margin-bottom:8px">
+            <div id="mergeDestList" class="merge-dest-list"></div>
+        </div>
+        <div id="mergePanelNew" style="display:none">
+            <div class="merge-new-label">Nuevo nombre unificado</div>
+            <input type="text" id="mergeNewName" placeholder="Ej: Comida" class="merge-new-input">
+            <div class="merge-new-hint">Se creará una categoría nueva y los movimientos pasarán a ella.</div>
+        </div>
+        <div id="mergeConfirmBox" class="merge-confirm" style="display:none"></div>
+        <div class="modal-buttons">
+            <button class="btn btn-cancel" id="btnCancelMerge">Cancelar</button>
+            <button class="btn" id="btnConfirmMerge" disabled>Fusionar</button>
+        </div>
+    </div></div>
+    <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px;padding:16px 16px 18px"><div class="modal-header">📊 Resumen Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div style="margin-top:14px"><button class="btn" style="width:100%;background:#f1f5f9;color:#475569;font-size:0.85em;padding:12px" id="btnCerrarHistorial">Cerrar</button></div></div></div>
+
+    <!-- ═══ Centro de Novedades ═══ -->
+    <div id="modalNoticias" class="modal">
+        <div class="modal-content" style="max-width:520px;padding:16px 14px 18px">
+            <div class="modal-header">🔔 Centro de Novedades</div>
+            <div id="noticiasContent"></div>
+            <div style="margin-top:14px"><button class="btn" style="width:100%;background:#f1f5f9;color:#475569;font-size:0.85em;padding:12px" id="btnCerrarNoticias">Cerrar</button></div>
+        </div>
+    </div>
+
+    <!-- ═══ "Qué hay nuevo" — modal automático en versión nueva ═══ -->
+    <div id="modalWhatsNew" class="modal">
+        <div class="modal-content" style="max-width:420px;padding:0;overflow:hidden">
+            <div class="whatsnew-content" id="whatsNewContent"></div>
+        </div>
+    </div>
+    <div id="modalEditarOp" class="modal"><div class="modal-content">
+        <div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div>
+        <div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div>
+        <div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div>
+        <div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div>
+        <div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div>
+        <div class="com-row" style="margin-bottom:12px">
+            <div><div class="com-label">Comisión Binance</div><div class="com-info"><strong id="editOpComisionInfo">0 USDT</strong></div></div>
+            <label class="com-edit" title="Comisión Binance de esta operación (0% a 10%)" aria-label="Editar comisión Binance"><input type="text" id="editOpComisionPct" value="0,14" placeholder="0,14" inputmode="decimal" maxlength="6" aria-label="Porcentaje de comisión"><span>%</span></label>
+        </div>
+        <div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div>
+        <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div>
+    </div></div>
+
+    <!-- ═══ SUCCESS OVERLAY ═══ -->
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-content">
+            <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+            <div class="success-amount" id="successAmount"></div>
+            <div class="success-msg" id="successMsg"></div>
+            <div class="success-sub" id="successSub"></div>
+        </div>
+    </div>
+
+    <!-- ═══ FIREBASE SDK ═══ -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        /* {{INJECT_JS}} */
+    </script>
+</body>
+</html>

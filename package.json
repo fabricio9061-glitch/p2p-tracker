@@ -1,0 +1,14 @@
+{
+  "name": "p2p-tracker",
+  "version": "4.7.31",
+  "description": "App P2P para registro de operaciones USDT con Firebase",
+  "private": true,
+  "scripts": {
+    "build": "node build/build.js",
+    "watch": "node build/watch.js",
+    "deploy": "npm run build && firebase deploy --only hosting"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

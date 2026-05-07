@@ -1,0 +1,202 @@
+/* ═══════════════════════════════════════
+   01-base.css — Generated piece, do not edit directly in dist.
+   Source of truth: src/css/01-base.css
+   Final concatenation: dist/index.html via build/build.js
+   ═══════════════════════════════════════ */
+        /* ═══ Reset & Base ═══ */
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f0ee;min-height:100vh;min-height:100dvh}
+        .container{max-width:1400px;margin:0 auto;padding:18px 16px 30px;padding-top:max(env(safe-area-inset-top,0px) + 12px,28px);padding-bottom:max(env(safe-area-inset-bottom,0px) + 18px,30px);width:100%}
+
+        /* ═══ Header ═══ */
+        .header{text-align:center;margin-bottom:18px;padding-top:6px;padding-bottom:6px;position:relative;z-index:100;min-height:64px}
+        /* Offset visual leve: compensa el peso de la campanita + menú a la derecha.
+           ~48px ≈ mitad del ancho del cluster (bell 42 + gap 8 + menu ~46 = ~96 → mitad 48).
+           Mobile only — en desktop el header es left-aligned. */
+        .header h1{color:#1e293b;font-size:1.35em;margin-bottom:0;line-height:1.2;transform:translateX(-36px)}
+        .header .sync-status{transform:translateX(-36px)}
+
+        /* ═══ Sync ═══ */
+        .sync-status{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;font-size:0.7em;margin-top:5px;cursor:pointer;user-select:none;transition:all 0.2s}
+        .sync-status:active{transform:scale(0.95)}
+        .sync-status.online{background:#dcfce7;color:#16a34a}
+        .sync-status.offline{background:#fee2e2;color:#dc2626}
+        .sync-status.syncing{background:#fef3c7;color:#d97706}
+        .sync-status.reconnecting{background:#e0e7ff;color:#4338ca;animation:pulse-sync 1.5s infinite}
+        .sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+        .sync-badge{font-size:0.65em;font-weight:700;min-width:14px;height:14px;line-height:14px;text-align:center;border-radius:7px;display:none;padding:0 3px}
+        .sync-status.syncing .sync-badge,.sync-status.offline .sync-badge{display:inline-block}
+        .sync-status.syncing .sync-badge{background:#fbbf24;color:#78350f}
+        .sync-status.offline .sync-badge{background:#fca5a5;color:#7f1d1d}
+        @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:0.4}}
+
+        /* ═══ Menu ═══ */
+        .menu-container{position:absolute;top:14px;right:0;z-index:100;display:flex;gap:8px;align-items:center}
+        .menu-btn{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+        .menu-btn span{display:block;width:20px;height:2px;background:#475569;border-radius:2px;transition:all 0.3s}
+        .menu-btn.active span:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
+        .menu-btn.active span:nth-child(2){opacity:0}
+        .menu-btn.active span:nth-child(3){transform:rotate(-45deg) translate(4px,-4px)}
+
+        /* ═══ NEWS CENTER (campanita) ═══ */
+        .news-bell{position:relative;background:white;border:1px solid #e2e8f0;border-radius:10px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+        .news-bell:active{background:#f1f5f9;transform:scale(0.95)}
+        .news-bell-icon{font-size:1.05em;line-height:1}
+        .news-bell-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:#dc2626;color:white;font-size:0.62em;font-weight:800;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid white;box-shadow:0 1px 3px rgba(220,38,38,0.4);animation:newsPulse 1.6s ease-in-out infinite}
+        .news-bell-badge.hidden{display:none;animation:none}
+        @keyframes newsPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+        /* ═══ Split pago: cuando banco principal no alcanza ═══ */
+        .split-panel{background:linear-gradient(180deg,#fef3c7,#fde68a);border:1.5px solid #fbbf24;border-radius:10px;padding:12px;margin-bottom:10px;animation:splitAppear 0.25s ease-out}
+        @keyframes splitAppear{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+        .split-panel-title{font-size:0.72em;font-weight:800;color:#78350f;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+        .split-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;background:white;border-radius:8px;margin-bottom:6px;font-size:0.82em}
+        .split-row-label{color:#64748b;font-weight:600;display:flex;align-items:center;gap:6px;min-width:0}
+        .split-row-label b{color:#1e293b;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .split-row-monto{font-weight:700;color:#1e293b;white-space:nowrap}
+        .split-row.faltante .split-row-label b{color:#b91c1c}
+        .split-row.faltante .split-row-monto{color:#b91c1c}
+        .split-row.aporte .split-row-monto{color:#15803d}
+        .split-row.completo{background:#dcfce7;border:1px solid #86efac}
+        .split-row.completo .split-row-monto{color:#15803d}
+        .split-extra-row{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;margin-bottom:6px}
+        .split-extra-row select{padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;background:white;font-size:0.82em;font-weight:600;color:#1e293b;width:100%;min-width:0}
+        .split-extra-row input{padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;background:white;font-size:0.82em;font-weight:700;color:#1e293b;width:90px;text-align:right}
+        .split-remove{background:#fee2e2;border:none;border-radius:6px;padding:6px 9px;font-size:0.85em;cursor:pointer;line-height:1;color:#b91c1c}
+        .split-remove:active{background:#fecaca}
+        .split-add-btn{width:100%;background:white;border:1.5px dashed #fbbf24;color:#78350f;padding:8px;border-radius:8px;font-size:0.78em;font-weight:700;cursor:pointer;margin-top:4px}
+        .split-add-btn:active{background:#fef3c7}
+        .split-add-btn:disabled{opacity:0.5;cursor:not-allowed}
+        .split-status{text-align:center;font-size:0.75em;font-weight:700;margin-top:8px;padding:6px;border-radius:6px}
+        .split-status.ok{background:#dcfce7;color:#15803d}
+        .split-status.error{background:#fee2e2;color:#b91c1c}
+        .news-version{margin-bottom:18px}
+        .news-version-header{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;padding:0 4px}
+        .news-version-num{font-size:0.95em;font-weight:800;color:#1e293b;letter-spacing:0.3px}
+        .news-version-date{font-size:0.7em;color:#94a3b8;font-weight:600}
+        .news-version-badge{font-size:0.6em;font-weight:700;background:#dc2626;color:white;padding:2px 7px;border-radius:8px;text-transform:uppercase;letter-spacing:0.5px;margin-left:auto}
+        .news-version-badge.seen{display:none}
+        /* Dismiss (×) para ocultar una versión — persistente en Firebase */
+        .news-dismiss{
+            margin-left:6px;
+            width:22px;height:22px;
+            padding:0;
+            background:transparent;
+            border:none;
+            color:#cbd5e1;
+            font-size:1.3em;
+            font-weight:400;
+            line-height:1;
+            cursor:pointer;
+            border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            transition:background 0.15s,color 0.15s;
+            flex-shrink:0;
+        }
+        .news-dismiss:hover{background:#f1f5f9;color:#64748b}
+        .news-dismiss:active{background:#e2e8f0;color:#475569}
+        /* Si ya hay badge "Nuevo", el × va después y no compite por margin-left:auto */
+        .news-version-badge + .news-dismiss{margin-left:6px}
+        /* Si NO hay badge, el × debe ir al final */
+        .news-version-header > .news-dismiss:last-child{margin-left:auto}
+        .news-version-headline{font-size:0.78em;color:#475569;line-height:1.5;padding:0 4px;margin-bottom:10px;font-style:italic}
+        .news-card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
+        .news-card-tag{flex-shrink:0;font-size:0.55em;font-weight:800;padding:3px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:0.5px;line-height:1.4}
+        .news-card-tag.feature{background:#dbeafe;color:#1d4ed8}
+        .news-card-tag.improve{background:#fef3c7;color:#92400e}
+        .news-card-tag.fix{background:#fee2e2;color:#b91c1c}
+        .news-card-tag.perf{background:#dcfce7;color:#15803d}
+        .news-card-body{flex:1;min-width:0}
+        .news-card-title{font-size:0.82em;font-weight:700;color:#1e293b;line-height:1.35;margin-bottom:3px}
+        .news-card-desc{font-size:0.74em;color:#64748b;line-height:1.5}
+        .news-version-divider{height:1px;background:#e2e8f0;margin:18px 0 0}
+        /* Contenedor scrollable del Centro de Novedades — se adapta según dispositivo */
+        #noticiasContent{max-height:65vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 6px}
+        @media(max-width:767px){
+            /* Mobile full-screen: aprovechar toda la altura útil bajo el header sticky */
+            #noticiasContent{max-height:none;flex:1;padding:8px 4px 24px}
+            #modalNoticias .modal-content{display:flex;flex-direction:column}
+            #modalNoticias .modal-content > *:last-child{padding-bottom:env(safe-area-inset-bottom,0px)}
+            .news-version{margin-bottom:22px}
+            .news-card{padding:13px 14px;margin-bottom:9px}
+        }
+
+        /* "What's new" highlight modal */
+        .whatsnew-content{padding:28px 18px 22px;text-align:center;padding-top:max(28px,calc(28px + env(safe-area-inset-top,0px)))}
+        .whatsnew-icon{font-size:2.6em;margin-bottom:10px}
+        .whatsnew-version{font-size:0.72em;color:#94a3b8;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px}
+        .whatsnew-title{font-size:1.2em;font-weight:800;color:#1e293b;margin-bottom:10px}
+        .whatsnew-headline{font-size:0.88em;color:#475569;line-height:1.55;margin-bottom:20px;padding:0 4px}
+        .whatsnew-changes{text-align:left;background:#f8fafc;border-radius:12px;padding:14px 14px;margin-bottom:18px;max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid #f1f5f9}
+        .whatsnew-change{display:flex;gap:10px;align-items:flex-start;padding:7px 0;font-size:0.82em;color:#475569;line-height:1.5}
+        .whatsnew-change-dot{flex-shrink:0;width:7px;height:7px;border-radius:50%;background:#2563eb;margin-top:7px}
+        .whatsnew-change.feature .whatsnew-change-dot{background:#2563eb}
+        .whatsnew-change.improve .whatsnew-change-dot{background:#f59e0b}
+        .whatsnew-change.fix .whatsnew-change-dot{background:#dc2626}
+        .whatsnew-change.perf .whatsnew-change-dot{background:#16a34a}
+        .whatsnew-buttons{display:flex;gap:8px;padding-bottom:env(safe-area-inset-bottom,0px)}
+        .whatsnew-buttons .btn{flex:1}
+        /* Mobile: whatsnew ocupa más espacio con más breathing room */
+        @media(max-width:767px){
+            #modalWhatsNew.modal.active{align-items:flex-start}
+            #modalWhatsNew .modal-content{margin-top:max(40px,env(safe-area-inset-top,0px));max-width:calc(100vw - 24px);border-radius:16px !important}
+            .whatsnew-changes{max-height:50vh}
+        }
+        /* Full-screen menu panel (Instagram-style) */
+        .menu-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:1050;opacity:0;visibility:hidden;transition:opacity 0.3s,visibility 0.3s}
+        .menu-backdrop.active{opacity:1;visibility:visible}
+        .menu-panel{
+            position:fixed;
+            inset:0;
+            width:100%;
+            height:100vh;
+            height:100dvh;
+            background:#f8fafc;
+            z-index:1100;
+            transform:translateX(100%);
+            transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+            display:flex;
+            flex-direction:column;
+            overscroll-behavior:contain;
+        }
+        .menu-panel.active{transform:translateX(0)}
+        /* Desktop: behave as sidebar from the right */
+        @media (min-width: 768px){
+            .menu-panel{
+                left:auto;
+                width:420px;
+                max-width:420px;
+                box-shadow:-4px 0 24px rgba(0,0,0,0.12);
+            }
+        }
+        .menu-panel-header{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            padding:14px 14px;
+            padding-top:calc(14px + env(safe-area-inset-top,0px));
+            background:#f8fafc;
+            border-bottom:1px solid #e2e8f0;
+            flex-shrink:0;
+        }
+        .menu-back{background:none;border:none;font-size:1.5em;cursor:pointer;padding:4px 10px;color:#475569;line-height:1;border-radius:6px;transition:background 0.15s}
+        .menu-back:active{background:#f1f5f9}
+        .menu-panel-title{font-size:1.02em;font-weight:700;color:#1e293b;letter-spacing:-0.2px}
+        .menu-panel-body{flex:1;overflow-y:auto;padding:16px 14px 30px;padding-bottom:calc(30px + env(safe-area-inset-bottom,0px));-webkit-overflow-scrolling:touch}
+        .menu-panel-user{background:white;border-radius:12px;padding:14px 16px;margin-bottom:18px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px}
+        .menu-panel-user-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#4338ca);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1em;flex-shrink:0}
+        .menu-panel-user-info{min-width:0;flex:1}
+        .menu-panel-user-name{font-weight:700;color:#1e293b;font-size:0.98em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .menu-panel-user-email{color:#94a3b8;font-size:0.76em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .menu-group-title{font-size:0.66em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;padding:4px 14px 8px}
+        .menu-group{background:white;border-radius:12px;margin-bottom:18px;border:1px solid #e2e8f0;overflow:hidden}
+        .menu-row{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;border-top:1px solid #f1f5f9;transition:background 0.15s;min-height:52px}
+        .menu-row:first-child{border-top:none}
+        .menu-row:active{background:#f1f5f9}
+        .menu-row-icon{font-size:1.25em;width:26px;text-align:center;flex-shrink:0}
+        .menu-row-label{flex:1;font-size:0.92em;color:#1e293b;font-weight:500}
+        .menu-row-chevron{color:#cbd5e1;font-size:1.1em;font-weight:400}
+        .menu-row.danger .menu-row-label{color:#dc2626}
+        .menu-version{text-align:center;padding:24px 14px 8px;font-size:0.7em;color:#cbd5e1;font-weight:500;letter-spacing:0.3px}
+        .menu-version-label{color:#94a3b8}
+
