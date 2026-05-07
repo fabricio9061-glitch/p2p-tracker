@@ -17,7 +17,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const SRC = path.join(ROOT, 'src');
-const DIST = path.join(ROOT, 'dist');
+const DIST = path.join(ROOT, 'docs');
 const CSS_DIR = path.join(SRC, 'css');
 const JS_DIR = path.join(SRC, 'js');
 const TEMPLATE = path.join(SRC, 'index.template.html');
