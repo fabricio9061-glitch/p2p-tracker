@@ -12,13 +12,6 @@
     <link rel="apple-touch-icon" href="https://i.imgur.com/fK4ZCLV.png">
     <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUDJQIFRyYWNrZXIiLCJzaG9ydF9uYW1lIjoiUDJQIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmMGYwZWUiLCJ0aGVtZV9jb2xvciI6IiMyNTYzZWIiLCJpY29ucyI6W3sic3JjIjoiaHR0cHM6Ly9pLmltZ3VyLmNvbS9mSzRaQ0xWLnBuZyIsInNpemVzIjoiNTEyeDUxMiIsInR5cGUiOiJpbWFnZS9wbmciLCJwdXJwb3NlIjoiYW55IG1hc2thYmxlIn1dfQ==">
     <style>
-        
-/* ─── 01-base.css ─── */
-/* ═══════════════════════════════════════
-   01-base.css — Generated piece, do not edit directly in dist.
-   Source of truth: src/css/01-base.css
-   Final concatenation: dist/index.html via build/build.js
-   ═══════════════════════════════════════ */
         /* ═══ Reset & Base ═══ */
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f0ee;min-height:100vh;min-height:100dvh}
@@ -216,14 +209,6 @@
         .menu-version{text-align:center;padding:24px 14px 8px;font-size:0.7em;color:#cbd5e1;font-weight:500;letter-spacing:0.3px}
         .menu-version-label{color:#94a3b8}
 
-
-
-/* ─── 02-components.css ─── */
-/* ═══════════════════════════════════════
-   02-components.css — Generated piece, do not edit directly in dist.
-   Source of truth: src/css/02-components.css
-   Final concatenation: dist/index.html via build/build.js
-   ═══════════════════════════════════════ */
         /* ═══ Cards ═══ */
         .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
         .card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px}
@@ -721,14 +706,6 @@
         .app-container.active{display:block}
         .auth-container.hidden{display:none}
 
-
-
-/* ─── 03-features.css ─── */
-/* ═══════════════════════════════════════
-   03-features.css — Generated piece, do not edit directly in dist.
-   Source of truth: src/css/03-features.css
-   Final concatenation: dist/index.html via build/build.js
-   ═══════════════════════════════════════ */
         /* ═══ Calendar ═══ */
         .calendar-container{background:white;border-radius:10px;padding:14px;max-width:400px;margin:0 auto}
         .calendar-header{display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:14px;padding:0}
@@ -1074,7 +1051,6 @@
         .merge-confirm{margin-top:14px;padding:12px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;font-size:0.78em;color:#1e40af;line-height:1.4}
         .merge-confirm b{color:#1e3a8a;font-weight:700}
         .merge-confirm-warning{margin-top:6px;font-size:0.7em;color:#92400e;display:flex;align-items:center;gap:5px}
-
     </style>
 </head>
 <body>
@@ -1418,14 +1394,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script>
-        
-/* ─── 01-config.js ─── */
-/* ═══════════════════════════════════════════════════════════════════
-   01-config.js
-   Generated piece — concatenated into dist/index.html by build/build.js
-   Source of truth: src/js/01-config.js
-   Do NOT edit dist/index.html directly. Edit the source and re-run build.
-   ═══════════════════════════════════════════════════════════════════ */
 /* ╔═══════════════════════════════════════════════════════════╗
    ║  REGISTRO P2P — Código refactorizado                     ║
    ║  • Estado centralizado (AppState)                        ║
@@ -1457,7 +1425,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.31',
+    APP_VERSION: '4.7.32',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1490,6 +1458,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.32', date:'2026-05-07', headline:'🐛 Multi-device: items eliminados en otro device aparecían como fantasmas. Fix crítico.', changes:[
+        {type:'fix', title:'Items fantasma post-eliminación remota', desc:'BUG CRÍTICO: dispositivo A eliminaba una operación, dispositivo B recibía el snapshot pero el merge preservaba el item como "local-only" porque no estaba en _syncQueue. Resultado: la op fantasma seguía visible en B aunque A la eliminó. Fix: el merge ahora solo preserva items locales que tengan una entrada activa en _syncQueue (genuinamente pending). Items sin pending y sin remoto se descartan correctamente como "eliminados en otro device".'},
+        {type:'fix', title:'UI no se refrescaba con cambios escalares remotos', desc:'BUG: cuando otro device cambiaba comisión global, tags, o config bancaria, mergeRemoteState detectaba que los arrays no cambiaron y skipeaba el recalc. Pero TAMBIÉN olvidaba forzar un re-render — la UI quedaba con valores viejos hasta el siguiente evento. Fix: en el path "no array change" ahora se invalidan caches Y se llama actualizarVistaDebounced explícitamente.'},
+        {type:'perf', title:'Debounce inteligente para mutaciones críticas', desc:'Antes el debounce era 400ms uniforme. Ahora create/delete dispara en 100ms (apenas para batchear cascadas legítimas), mientras que updates de typing siguen con 400ms. Los flushes por tiempo (>2s) y cantidad (>=10 entries) se mantienen como red de seguridad. Resultado: crear/eliminar se siente 4x más rápido sin afectar throughput.'},
+        {type:'fix', title:'Hash del merge detecta más tipos de edición', desc:'El hash anterior cubría monto/tasa/tipo/aportes. Faltaban: banco, origen, destino, comisión, ganancia, descripción. Una edición remota de cualquiera de esos campos parecía no haber pasado y la UI no se actualizaba hasta que el usuario hiciera otra acción. Hash ampliado para detectar todos los campos visibles.'},
+        {type:'verified', title:'Pruebas multi-device sugeridas', desc:'1) Crear op en device A, verificar aparición en B en <2s. 2) Editar monto en A, verificar en B. 3) Eliminar en A, verificar desaparición en B (este era el bug). 4) Cambiar comisión global en A, verificar actualización en B sin recargar. 5) Hacer transferencia en A, verificar saldos en B. Si algo falla, exportar diagnóstico y enviarlo.'}
+    ]},
     {version:'4.7.31', date:'2026-05-06', headline:'🔍 Auditoría técnica: hash insuficiente, leak de syncQueue, fixNeg mal documentado.', changes:[
         {type:'fix', title:'Hash de mergeRemoteState detectaba pocos cambios', desc:'BUG REAL: el hash de v4.7.28 solo miraba id+timestamp, pero las ediciones de operaciones NO actualizan timestamp (solo updatedAt). Resultado: si otro device editaba el monto de una op, mi device skipeaba recalcularLotesYGanancias y la ganancia quedaba desactualizada. Ahora el hash incluye updatedAt + monto + tasa + tipo + aportes.length. Costo: 5ms para 2671 ops (antes 3ms).'},
         {type:'fix', title:'_syncQueue podía crecer sin límite', desc:'En escenarios offline largos con writes fallidos repetidos, _syncQueue acumulaba entries sin tope (memory leak lento). Cap defensivo de 500 entries con FIFO eviction. No afecta funcionalidad — el sync real depende de _localDirty, no de la queue.'},
@@ -1516,12 +1491,6 @@ const CHANGELOG = [
         {type:'perf', title:'Recalcular diferido a idle time', desc:'Cuando sí hace falta recalcular (cambio real en arrays remoto vs local), ahora corre via requestIdleCallback con timeout de 1.5s. La UI sigue respondiendo mientras la app procesa el recalc en background. En Safari (sin requestIdleCallback) cae a setTimeout(0). El badge "Reconciliando…" desaparece visualmente más rápido.'},
         {type:'verified', title:'Sin regresión en mutaciones de usuario', desc:'recalcularLotesYGanancias en agregarOperacion/editarOperacion/etc sigue corriendo sincrónicamente — el usuario debe ver la ganancia recalculada inmediatamente al crear una op. El defer solo aplica al path de snapshot remoto, donde el usuario no está esperando ese cómputo.'},
         {type:'verified', title:'Hash test cases verificados', desc:'El hash detecta correctamente: ops editadas (timestamp cambia), nuevas, borradas, reordenadas, e ignora correctamente cambios escalares. Tamaño del hash transitorio para 2671 ops: ~59KB (recolectado por GC al salir de la función).'}
-    ]},
-    {version:'4.7.27', date:'2026-04-25', headline:'🛡️ Persistencia: triple safety net + timeout de 30s + manejo de quota.', changes:[
-        {type:'feature', title:'Flush forzado por cantidad pendiente', desc:'El debounce ahora tiene 3 disparadores: tiempo (>2s), cantidad (>=10 entries en cola), o normal (400ms). Antes, una ráfaga de 50 mutaciones esperaba hasta el timeout por tiempo — ahora se dispara apenas pase el umbral de cantidad. Beneficio en imports rápidos y entrada masiva.'},
-        {type:'feature', title:'Timeout de seguridad en transacciones (30s)', desc:'Promise.race entre la transacción Firebase y un timer de 30s. Si la red se cuelga, _guardando ya no queda eterno bloqueando saves siguientes. El backup local ya está hecho, así que es seguro fallar y dejar al retry timer reintentar con backoff.'},
-        {type:'fix', title:'QuotaExceededError manejado', desc:'Cuando localStorage llega al límite (5MB en algunos browsers), backupToLocal detecta el error específicamente. Estrategia: liberar el backup _prev (rotación) y reintentar. Si aun así falla, avisar UNA vez por sesión vía sync status para no spamear.'},
-        {type:'verified', title:'Auditoría completa pasada', desc:'Sin más ventanas de pérdida: backup inmediato pre-debounce (v4.7.26), 3 lifecycle hooks, esDatosVacios guard, rotación con _prev, mergeRemoteState protege local-only, _puntajeDatos arbitra restauración. Sistema listo para escalar a miles de operaciones.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -1577,15 +1546,6 @@ function crearDatosVacios() {
 }
 AppState.datos = crearDatosVacios();
 
-
-
-/* ─── 02-helpers.js ─── */
-/* ═══════════════════════════════════════════════════════════════════
-   02-helpers.js
-   Generated piece — concatenated into dist/index.html by build/build.js
-   Source of truth: src/js/02-helpers.js
-   Do NOT edit dist/index.html directly. Edit the source and re-run build.
-   ═══════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════
    §3 — HELPERS DOM
    ═══════════════════════════════════════ */
@@ -2294,15 +2254,6 @@ function perfWrap(name,fn){return function(){const t0=performance.now();const r=
 let _vistaRAF=0;
 function actualizarVistaDebounced(){if(_vistaRAF)return;_vistaRAF=requestAnimationFrame(()=>{_vistaRAF=0;actualizarVista()})}
 
-
-
-/* ─── 03-utils-filters.js ─── */
-/* ═══════════════════════════════════════════════════════════════════
-   03-utils-filters.js
-   Generated piece — concatenated into dist/index.html by build/build.js
-   Source of truth: src/js/03-utils-filters.js
-   Do NOT edit dist/index.html directly. Edit the source and re-run build.
-   ═══════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════
    §4 — UTILIDADES PURAS
    ═══════════════════════════════════════ */
@@ -2747,14 +2698,6 @@ function colorBanco(n){return`<span style="color:${getBancoColor(n)};font-weight
 function getSym(mon){return mon==='USD'?'US$':'$'}
 function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=roundMoney(AppState.datos.lotes.reduce((s,l)=>roundMoney(s+l.disponible),0))}
 
-
-/* ─── 04-integrity.js ─── */
-/* ═══════════════════════════════════════════════════════════════════
-   04-integrity.js
-   Generated piece — concatenated into dist/index.html by build/build.js
-   Source of truth: src/js/04-integrity.js
-   Do NOT edit dist/index.html directly. Edit the source and re-run build.
-   ═══════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════════════════════════════════════
    §IG — INTEGRIDAD FINANCIERA (capa central de validación)
    Reglas duras: ningún saldo bancario o lote puede quedar negativo.
@@ -3399,15 +3342,6 @@ function inicializarSwipe(){
     });
 }
 
-
-
-/* ─── 05-bancos-fifo.js ─── */
-/* ═══════════════════════════════════════════════════════════════════
-   05-bancos-fifo.js
-   Generated piece — concatenated into dist/index.html by build/build.js
-   Source of truth: src/js/05-bancos-fifo.js
-   Do NOT edit dist/index.html directly. Edit the source and re-run build.
-   ═══════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════
    §5 — PAGINACIÓN GENÉRICA
    ═══════════════════════════════════════ */
@@ -3695,15 +3629,6 @@ function renderizarInventario(){
     setHtml('inventarioContent',h);
 }
 
-
-
-/* ─── 06-firebase.js ─── */
-/* ═══════════════════════════════════════════════════════════════════
-   06-firebase.js
-   Generated piece — concatenated into dist/index.html by build/build.js
-   Source of truth: src/js/06-firebase.js
-   Do NOT edit dist/index.html directly. Edit the source and re-run build.
-   ═══════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════
    §8 — FIREBASE & AUTH
    ═══════════════════════════════════════ */
@@ -3774,20 +3699,23 @@ function guardaOptimista(type,entity,id){
     const now=Date.now();
     if(!_guardaFirstPendingTs)_guardaFirstPendingTs=now;
     clearTimeout(_guardaDebounceTimer);
-    /* Triple safety net para forzar flush:
-       1. Flush por TIEMPO acumulado: >2s desde el primer pending
-       2. Flush por CANTIDAD acumulada: >=10 entries en la cola
-       3. Debounce normal: 400ms
+    /* ═══ Debounce inteligente — dispara antes para mutaciones críticas ═══
+       Triple safety net + tipo de mutación:
+       1. Flush por TIPO crítico: create/delete → 100ms (apenas lo justo para batchear 
+          mutaciones en cascada, ej. crear op + actualizar lote + sync)
+       2. Flush por TIEMPO acumulado: >2s desde el primer pending
+       3. Flush por CANTIDAD acumulada: >=10 entries en la cola
+       4. Debounce normal: 400ms para updates (typing, sliders)
        
-       (1) protege keyboards lentos / mutaciones espaciadas
-       (2) protege bursts (importaciones, entrada rápida) — sin esto, 50 ops creadas
-           en 1.5s esperarían el flush por tiempo y un crash perdería el batch en remoto
-       (3) optimiza el caso normal de mutación única */
+       Antes era 400ms uniforme, lo que hacía sentir "lenta" la app al crear/eliminar.
+       (v4.7.32: critical-fast path con 100ms para create/delete). */
     const elapsed=now-_guardaFirstPendingTs;
     const queueLen=_syncQueue.length;
+    const isCritical=type==='create'||type==='delete';
     let delay=400;
     if(elapsed>=2000)delay=0;
     else if(queueLen>=10)delay=0;
+    else if(isCritical)delay=100;
     _guardaDebounceTimer=setTimeout(()=>{
         _guardaDebounceTimer=null;
         _guardaFirstPendingTs=0;
@@ -3817,22 +3745,26 @@ function mergeRemoteState(d){
         let h=arr.length+'|';
         for(let i=0;i<arr.length;i++){
             const x=arr[i];if(!x||!x.id)continue;
-            /* Hash incluye:
-                 - id: identidad del registro
-                 - timestamp: orden cronológico (no cambia en ediciones)
-                 - updatedAt: marca cuando se editó (cambia en ediciones de op/mov/etc)
-                 - monto, tasa, tipo: campos que afectan FIFO/ganancia
-                 - aportes (split): cantidad de aportes afecta inventario
-               
-               Sin estos campos críticos, una edición de monto en otro device pasaba 
-               desapercibida → hash igual → skip recalc → ganancia desactualizada.
-               (Bug detectado en auditoría v4.7.31 — el hash de v4.7.28 era insuficiente). */
+            /* Hash incluye campos que afectan FIFO o son visibles en UI:
+                 - id, timestamp, updatedAt: identidad y orden cronológico
+                 - monto, tasa, tipo, ganancia: FIFO + display
+                 - banco, origen, destino: saldos por cuenta
+                 - comisionPlataforma, comision: validación y display
+                 - aportes (split): cantidad afecta inventario
+                 - descripcion, tipoMovimiento (movs): display y métricas
+               (v4.7.32: ampliado para detectar ediciones de banco/origen/destino/desc 
+                en remoto — antes solo detectaba monto+tasa+tipo, dejando bugs de UI). */
             h+=x.id+
                (x.timestamp||x.fecha||'')+'|'+
                (x.updatedAt||'')+'|'+
                (x.monto||0)+'|'+
                (x.tasa||0)+'|'+
                (x.tipo||x.tipoMovimiento||'')+'|'+
+               (x.banco||x.origen||'')+'|'+
+               (x.destino||'')+'|'+
+               (x.comisionPlataforma||x.comision||0)+'|'+
+               (x.ganancia||0)+'|'+
+               (x.descripcion||'')+'|'+
                (Array.isArray(x.aportes)?x.aportes.length:0)+'|';
         }
         return h;
@@ -3844,12 +3776,27 @@ function mergeRemoteState(d){
         conversiones:_hashArr(AppState.datos.conversiones),
         lotesManualLen:(AppState.datos.lotes||[]).filter(l=>l.manual).length
     };
+    /* ═══ IDs con writes pending locales por entidad ═══
+       BUG CRÍTICO PREVIO: el merge preservaba TODOS los items locales que no estuvieran 
+       en remoto, asumiendo que eran "pending local". Eso era incorrecto: si OTRO device 
+       eliminó un item ya sincronizado, el item desaparecía de remoto y este device lo 
+       preservaba como "local-only" → fantasma persistente.
+       
+       Fix: solo preservar items con entrada activa en _syncQueue (genuinamente pending 
+       desde este device). Items sin pending Y sin remoto → eliminados en otro device. */
+    const pendingIdsByEntity={};
+    _syncQueue.forEach(a=>{
+        if(a.type==='delete'||!a.entity||!a.id)return;
+        if(!pendingIdsByEntity[a.entity])pendingIdsByEntity[a.entity]=new Set();
+        pendingIdsByEntity[a.entity].add(a.id);
+    });
     ['operaciones','movimientos','transferencias','conversiones'].forEach(key=>{
         const local=AppState.datos[key]||[];
         const remote=d[key]||[];
         const remoteIds=new Set(remote.map(e=>e.id));
-        /* Local items not in remote → pending creates/edits → KEEP */
-        const localOnly=local.filter(e=>e.id&&!remoteIds.has(e.id));
+        const pendingIds=pendingIdsByEntity[key]||new Set();
+        /* Local-only: solo preservar si está en _syncQueue como pending genuino */
+        const localOnly=local.filter(e=>e.id&&!remoteIds.has(e.id)&&pendingIds.has(e.id));
         /* Remote items not deleted locally → ACCEPT */
         const remoteClean=remote.filter(e=>!delIds.has(e.id));
         AppState.datos[key]=[...localOnly,...remoteClean];
@@ -3935,9 +3882,13 @@ function mergeRemoteState(d){
             setTimeout(runRecalc,0);
         }
     }else{
-        /* Solo invalidar cachés livianos — no requiere FIFO */
+        /* Arrays no cambiaron, pero pudo cambiar: bancos, tags, comisión global, etc.
+           Invalidar cachés livianos Y forzar re-render — el caller llamará actualizarVista 
+           después igual, pero garantizamos que las listas y el dashboard reflejen 
+           cambios escalares aunque vengan de otro device. */
         if(typeof invalidarGananciaCache==='function')invalidarGananciaCache();
         if(typeof _invalidateListCache==='function')_invalidateListCache();
+        if(typeof actualizarVistaDebounced==='function')actualizarVistaDebounced();
     }
 }
 
@@ -4617,15 +4568,6 @@ function inicializarFirebase(){
     }catch(e){console.error('[P2P] Firebase init error:',e);setSyncStatus('offline','Error init');ocultarLoading()}
 }
 
-
-
-/* ─── 07-operations.js ─── */
-/* ═══════════════════════════════════════════════════════════════════
-   07-operations.js
-   Generated piece — concatenated into dist/index.html by build/build.js
-   Source of truth: src/js/07-operations.js
-   Do NOT edit dist/index.html directly. Edit the source and re-run build.
-   ═══════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════
    §9 — FORMULARIO OPERACIÓN
    ═══════════════════════════════════════ */
@@ -5599,15 +5541,6 @@ async function eliminarConversion(id){
     }catch(e){console.error('[P2P] Error eliminando conversión:',e)}
 }
 
-
-
-/* ─── 08-calendar-dashboard.js ─── */
-/* ═══════════════════════════════════════════════════════════════════
-   08-calendar-dashboard.js
-   Generated piece — concatenated into dist/index.html by build/build.js
-   Source of truth: src/js/08-calendar-dashboard.js
-   Do NOT edit dist/index.html directly. Edit the source and re-run build.
-   ═══════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════
    §12 — CALENDARIO
    ═══════════════════════════════════════ */
@@ -6185,15 +6118,6 @@ function _invalidateListCache(key){
     else Object.keys(_renderFingerprints).forEach(k=>delete _renderFingerprints[k]);
 }
 
-
-
-/* ─── 09-ui-glue.js ─── */
-/* ═══════════════════════════════════════════════════════════════════
-   09-ui-glue.js
-   Generated piece — concatenated into dist/index.html by build/build.js
-   Source of truth: src/js/09-ui-glue.js
-   Do NOT edit dist/index.html directly. Edit the source and re-run build.
-   ═══════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════
    §15 — LOTES MODAL
    ═══════════════════════════════════════ */
@@ -6920,7 +6844,6 @@ document.addEventListener('DOMContentLoaded',()=>{
         });
     })();
 });
-
     </script>
 </body>
 </html>
