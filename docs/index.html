@@ -1139,6 +1139,7 @@
                         <div class="menu-row" data-action="exportar-datos"><span class="menu-row-icon">📤</span><span class="menu-row-label">Exportar datos (.json)</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="importar-datos"><span class="menu-row-icon">📥</span><span class="menu-row-label">Importar datos (.json)</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="exportar-diagnostico"><span class="menu-row-icon">🔍</span><span class="menu-row-label">Exportar diagnóstico</span><span class="menu-row-chevron">›</span></div>
+                        <div class="menu-row" data-action="diagnostico-sync"><span class="menu-row-icon">🔧</span><span class="menu-row-label">Diagnóstico de sincronización</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon">🔄</span><span class="menu-row-label">Resetear aplicación</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon">🚪</span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron">›</span></div>
                     </div>
@@ -1311,6 +1312,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -1425,7 +1427,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.32',
+    APP_VERSION: '4.7.33',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1458,6 +1460,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.33', date:'2026-05-13', headline:'🐛 Crítico: dots amarillos eternos + datos perdidos al cerrar. Panel de diagnóstico nuevo.', changes:[
+        {type:'fix', title:'Dots amarillos quedaban permanentes — causa raíz', desc:'BUG: clearSyncQueue solo se ejecutaba si _syncPending llegaba a 0. Si el usuario hacía mutaciones constantemente, _syncPending nunca llegaba a 0 y los items quedaban marcados con _syncState="pending" para siempre. Además, al cerrar la app, esos pending eternos NO habían llegado al server → datos perdidos. Fix: cada transacción exitosa ahora limpia exactamente los IDs que confirmó, sin esperar a que la queue entera drene.'},
+        {type:'feature', title:'Panel de diagnóstico de sincronización', desc:'Nuevo en Menú → Diagnóstico de sincronización. Muestra en tiempo real: versiones local/remota, tamaño del syncQueue, estado de _guardando/_guardarPendiente/_localDirty, errors counter, retry pending, listener activo, log de los últimos 20 eventos (enqueue → save:start → save:confirmed → snapshot:received → merge). Botón "Forzar sync" seguro que no duplica writes. Botón "Copiar" para mandar el output como diagnóstico.'},
+        {type:'feature', title:'Logger estructurado del flujo de sync', desc:'Cada fase del sync ahora registra un evento (enqueue, save:start, save:confirmed, save:queue-drained, save:tx-timeout, save:stale-version, save:error, save:offline-deferred, snapshot:received). Cap circular de 100 eventos en memoria. Habilitar window._P2P_VERBOSE=true en consola para verlos en tiempo real.'},
+        {type:'fix', title:'Forzar sync manual seguro', desc:'Nueva función forzarSyncManual() expuesta vía botón. Cancela retry timers + flush del debounce + dispara guardarDatos. Si guardarDatos ya está en flight, NO duplica. Si no hay nada que sincronizar, NO crea writes vacíos. Útil cuando el usuario ve dots amarillos y quiere forzar la confirmación sin reiniciar la app.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Crear op → debe aparecer dot amarillo. 2) Esperar 2-3 segundos → dot debe desaparecer (= confirmed). 3) Abrir Diagnóstico → "_syncQueue size: 0" y "save:queue-drained" como último evento. Si querés ver verbose en consola: window._P2P_VERBOSE=true antes de las acciones.'}
+    ]},
     {version:'4.7.32', date:'2026-05-07', headline:'🐛 Multi-device: items eliminados en otro device aparecían como fantasmas. Fix crítico.', changes:[
         {type:'fix', title:'Items fantasma post-eliminación remota', desc:'BUG CRÍTICO: dispositivo A eliminaba una operación, dispositivo B recibía el snapshot pero el merge preservaba el item como "local-only" porque no estaba en _syncQueue. Resultado: la op fantasma seguía visible en B aunque A la eliminó. Fix: el merge ahora solo preserva items locales que tengan una entrada activa en _syncQueue (genuinamente pending). Items sin pending y sin remoto se descartan correctamente como "eliminados en otro device".'},
         {type:'fix', title:'UI no se refrescaba con cambios escalares remotos', desc:'BUG: cuando otro device cambiaba comisión global, tags, o config bancaria, mergeRemoteState detectaba que los arrays no cambiaron y skipeaba el recalc. Pero TAMBIÉN olvidaba forzar un re-render — la UI quedaba con valores viejos hasta el siguiente evento. Fix: en el path "no array change" ahora se invalidan caches Y se llama actualizarVistaDebounced explícitamente.'},
@@ -1485,12 +1494,6 @@ const CHANGELOG = [
         {type:'fix', title:'Recuperación automática de errores Firestore SDK', desc:'Bug conocido del SDK Firestore (issue #6256): a veces lanza "INTERNAL ASSERTION FAILED" en Samsung Browser/Android. Una vez ocurrido, todas las queries siguientes fallan hasta recargar. Ahora la app detecta el error, muestra banner amarillo claro, hace flush del backup local y recarga automáticamente. Los datos están a salvo en localStorage.'},
         {type:'fix', title:'Filtro de errores cross-origin', desc:'Los errores "Script error. @ :?" (errores cross-origin del SDK Firebase con stack hidden por CORS) inundaban el log de diagnóstico ocultando errores reales. Ahora se filtran como ruido conocido. Si necesitás ver el detalle real del error, mirá los entries no-Script-error que sí muestran el stack.'},
         {type:'verified', title:'Compatibilidad con v4.7.28 (hash skip)', desc:'El skip de recalcular vía hash en mergeRemoteState sigue funcionando para snapshots normales. El post-restore lock corta antes en el flujo, así no compite con el hash check.'}
-    ]},
-    {version:'4.7.28', date:'2026-05-06', headline:'⚡ Reconciliación 5–10× más rápida en datasets grandes (2k+ ops).', changes:[
-        {type:'perf', title:'Skip de FIFO recompute si no cambiaron las arrays', desc:'mergeRemoteState ahora calcula un hash ligero (3ms) de operaciones/movimientos/transferencias/conversiones antes y después del merge. Si el snapshot remoto solo trajo cambios escalares (tags, comisión global, lastSeenVersion, dismissedVersions), saltea recalcularLotesYGanancias completamente. Ahorro: ~300-500ms por reconcile en iOS con 2671 ops.'},
-        {type:'perf', title:'Recalcular diferido a idle time', desc:'Cuando sí hace falta recalcular (cambio real en arrays remoto vs local), ahora corre via requestIdleCallback con timeout de 1.5s. La UI sigue respondiendo mientras la app procesa el recalc en background. En Safari (sin requestIdleCallback) cae a setTimeout(0). El badge "Reconciliando…" desaparece visualmente más rápido.'},
-        {type:'verified', title:'Sin regresión en mutaciones de usuario', desc:'recalcularLotesYGanancias en agregarOperacion/editarOperacion/etc sigue corriendo sincrónicamente — el usuario debe ver la ganancia recalculada inmediatamente al crear una op. El defer solo aplica al path de snapshot remoto, donde el usuario no está esperando ese cómputo.'},
-        {type:'verified', title:'Hash test cases verificados', desc:'El hash detecta correctamente: ops editadas (timestamp cambia), nuevas, borradas, reordenadas, e ignora correctamente cambios escalares. Tamaño del hash transitorio para 2671 ops: ~59KB (recolectado por GC al salir de la función).'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -3650,6 +3653,7 @@ function enqueueSync(type,entity,id){
     if(_syncQueue.length>_SYNC_QUEUE_MAX){
         _syncQueue.splice(0,_syncQueue.length-_SYNC_QUEUE_MAX);
     }
+    if(typeof _syncLog==='function')_syncLog('enqueue',{type,entity,id,queueSize:_syncQueue.length});
     /* Marca la entidad como _syncState:'pending' — visible como dot sutil en la lista.
        'synced' es el default (no se setea para no inflar el doc en Firestore — la ausencia 
        del campo significa "todo OK"). */
@@ -3672,6 +3676,96 @@ function clearSyncQueue(){
     });
     _syncQueue.length=0;
     _localDirty=0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   §SYNCLOG — Logger estructurado del flujo de sincronización
+   ═══════════════════════════════════════════════════════════════════
+   Registra eventos clave del flujo para diagnóstico. Cap circular de 100.
+   Eventos típicos: enqueue, save:start, save:confirmed, save:queue-drained,
+   save:error, snapshot:received, snapshot:merge, snapshot:skip-echo,
+   tx-timeout, retry-scheduled, offline-deferred, recovery-start.
+   El panel de diagnóstico (Config → Herramientas) lee de acá. */
+const _SYNC_LOG_MAX=100;
+const _syncLogRing=[];
+function _syncLog(event,payload){
+    try{
+        _syncLogRing.push({ts:Date.now(),event,...(payload||{})});
+        if(_syncLogRing.length>_SYNC_LOG_MAX)_syncLogRing.shift();
+        /* Solo loguear a console si está habilitado el debug verbose */
+        if(window._P2P_VERBOSE)console.log('[P2P sync]',event,payload||'');
+    }catch(e){/* no-op */}
+}
+function getSyncDiagnostics(){
+    return {
+        version:CONFIG.APP_VERSION,
+        online:navigator.onLine,
+        syncState:AppState.ui.syncState||'unknown',
+        localVersion:AppState._localVersion,
+        dataVersion:(AppState.datos&&AppState.datos._version)||0,
+        localDirty:_localDirty,
+        syncQueueSize:_syncQueue.length,
+        syncQueueSample:_syncQueue.slice(0,5),
+        guardando:_guardando,
+        guardarPendiente:_guardarPendiente,
+        syncPending:_syncPending,
+        syncErrors:_syncErrors,
+        retryDelay:_retryDelay,
+        retryActive:_retryTimer!==null&&_retryTimer!==undefined,
+        debounceActive:_guardaDebounceTimer!==null,
+        listenerActive:AppState.unsubscribe!==null,
+        recoveryActive:!!(typeof iniciarRecuperacionFirestore!=='undefined'&&iniciarRecuperacionFirestore._activa),
+        restoredFrom:AppState._restoredFrom,
+        datosStale:AppState._datosStale,
+        postRestoreLockExpires:AppState._postRestoreLockTs?new Date(AppState._postRestoreLockTs).toISOString():null,
+        logTail:_syncLogRing.slice(-20).map(e=>({...e,ts:new Date(e.ts).toISOString()}))
+    };
+}
+/* Botón "Forzar sync" seguro:
+   - Si hay debounce pendiente → flush ahora
+   - Si _guardando es true → no hacer nada (ya está corriendo)
+   - Si hay items en _syncQueue pero nada corriendo → disparar guardarDatos
+   No duplica writes, no fuerza estado vacío, no toca _localVersion. */
+async function forzarSyncManual(){
+    if(!AppState.currentUser){
+        _syncLog('manual-sync:no-user');
+        return{ok:false,reason:'No hay sesión activa'};
+    }
+    if(typeof iniciarRecuperacionFirestore!=='undefined'&&iniciarRecuperacionFirestore._activa){
+        return{ok:false,reason:'Recovery en progreso — esperá a que termine'};
+    }
+    _syncLog('manual-sync:start',{queueSize:_syncQueue.length,guardando:_guardando});
+    /* 1. Flush del debounce si está pendiente */
+    if(_guardaDebounceTimer){
+        clearTimeout(_guardaDebounceTimer);
+        _guardaDebounceTimer=null;
+        _guardaFirstPendingTs=0;
+    }
+    /* 2. Cancelar retry y arrancar limpio */
+    clearTimeout(_retryTimer);
+    _retryTimer=null;
+    _syncErrors=0;
+    _retryDelay=2000;
+    updateSyncBadge();
+    /* 3. Si guardarDatos está en flight, dejar que termine naturalmente */
+    if(_guardando){
+        _syncLog('manual-sync:already-running');
+        return{ok:true,reason:'Sync ya está en progreso'};
+    }
+    /* 4. Si hay nada que sincronizar, NO disparar tx innecesario */
+    if(_syncQueue.length===0&&_localDirty===0){
+        _syncLog('manual-sync:nothing-to-sync');
+        return{ok:true,reason:'Todo está sincronizado'};
+    }
+    /* 5. Disparar el sync */
+    try{
+        await guardarDatos();
+        _syncLog('manual-sync:done');
+        return{ok:true,reason:'Sync ejecutado'};
+    }catch(e){
+        _syncLog('manual-sync:error',{err:e.message||e.code||'unknown'});
+        return{ok:false,reason:'Error: '+(e.message||e.code||'desconocido')};
+    }
 }
 function hasPendingLocal(){return _syncQueue.length>0||_localDirty>0||_guardando||_guardarPendiente}
 /* Debounce: agrupa cambios rápidos (typing, sliders) en una sola escritura a Firebase.
@@ -4052,6 +4146,14 @@ async function guardarDatos(forzar){
     }
     if(_guardando){_guardarPendiente=true;return}
     _guardando=true;_syncPending++;updateSyncBadge();
+    /* ═══ Captura del estado a sincronizar ANTES de empezar la tx ═══
+       Snapshot de los IDs que tienen _syncState='pending' AHORA. Cuando la tx confirme,
+       limpiamos solo esos IDs — no toda la queue. Esto resuelve el bug donde los dots 
+       amarillos quedaban permanentes: si _syncPending nunca llegaba a 0 (porque el usuario
+       mutaba constantemente), clearSyncQueue nunca corría y _syncState='pending' se 
+       acumulaba para siempre. Ahora cada tx exitosa limpia exactamente lo que confirmó. */
+    const idsSnapshot=_syncQueue.map(a=>({entity:a.entity,id:a.id,type:a.type}));
+    _syncLog('save:start',{queueSize:idsSnapshot.length,pending:_syncPending});
     /* ═══ Indicador "Sincronizando" diferido ═══
        En vez de mostrar el badge inmediatamente (genera ansiedad y hace que la app
        parezca lenta aunque la sync sea instantánea), esperamos 800ms.
@@ -4115,14 +4217,47 @@ async function guardarDatos(forzar){
         });
         const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject({code:'tx-timeout'}),TX_TIMEOUT));
         await Promise.race([txPromise,timeoutPromise]);
+        _syncLog('save:confirmed',{idsConfirmed:idsSnapshot.length,newVersion:AppState._localVersion});
         _syncPending=Math.max(0,_syncPending-1);_syncErrors=0;_retryDelay=2000;
         clearTimeout(_retryTimer);
-        if(_syncPending===0&&!_guardarPendiente){clearSyncQueue();setSyncStatus('online');clearLocalBackup()}
+        /* ═══ Limpiar _syncState solo de los IDs que esta tx confirmó ═══
+           Antes: clearSyncQueue() limpiaba TODO solo si _syncPending===0. Si el usuario 
+           mutaba constantemente, eso nunca pasaba y los dots amarillos eran eternos.
+           Ahora: limpiamos exactamente los IDs del idsSnapshot — los que se acaban de 
+           subir al server. Los pending nuevos que llegaron mientras la tx corría quedan
+           marcados y se limpiarán en el próximo ciclo. */
+        const confirmedIds=new Set();
+        idsSnapshot.forEach(a=>{
+            if(a.type==='delete'||!a.entity||!a.id)return;
+            const arr=AppState.datos[a.entity];
+            if(Array.isArray(arr)){
+                const item=arr.find(x=>x.id===a.id);
+                if(item&&item._syncState==='pending'){
+                    delete item._syncState;
+                    confirmedIds.add(a.id);
+                }
+            }
+        });
+        /* Remover del _syncQueue los entries de IDs ya confirmados */
+        if(confirmedIds.size>0){
+            for(let i=_syncQueue.length-1;i>=0;i--){
+                if(confirmedIds.has(_syncQueue[i].id))_syncQueue.splice(i,1);
+            }
+        }
+        _localDirty=Math.max(0,_localDirty-1);
+        if(_syncPending===0&&!_guardarPendiente){
+            /* Cleanup final: cualquier remanente (defensive) + clear local backup */
+            if(_syncQueue.length>0)_syncQueue.length=0;
+            _localDirty=0;
+            setSyncStatus('online');clearLocalBackup();
+            _syncLog('save:queue-drained',{});
+        }
         else setSyncStatus('syncing',_syncPending+' pendiente'+((_syncPending>1)?'s':''));
         updateSyncBadge();
     }catch(e){
         if(e.code==='offline-deferred'){
             /* Ya manejado arriba: no incrementar errores, no retry inmediato */
+            _syncLog('save:offline-deferred',{queueSize:idsSnapshot.length});
         }else if(e.code==='tx-timeout'){
             /* Timeout de seguridad: la transacción no respondió en 30s.
                El backup local ya está hecho — los datos están a salvo.
@@ -4130,6 +4265,7 @@ async function guardarDatos(forzar){
             _syncPending=Math.max(0,_syncPending-1);
             _syncErrors++;updateSyncBadge();
             setSyncStatus('offline','Tiempo de espera agotado — reintentando…');
+            _syncLog('save:tx-timeout',{retryIn:Math.min(_retryDelay,30000)});
             console.warn('[P2P] Transacción excedió timeout de 30s, reintentando');
             clearTimeout(_retryTimer);
             _retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();guardarDatos()},Math.min(_retryDelay,30000));
@@ -4139,9 +4275,11 @@ async function guardarDatos(forzar){
             if(e.code==='stale-version'){
                 AppState._datosStale=true;
                 setSyncStatus('syncing','Reconciliando…');
+                _syncLog('save:stale-version',{serverV:e.serverV,localV:e.localV});
             }else{
                 _syncErrors++;updateSyncBadge();
                 setSyncStatus('offline',_syncErrors>0?_syncErrors+' error'+((_syncErrors>1)?'es':''):'Error sync');
+                _syncLog('save:error',{code:e.code||'?',msg:(e.message||'').slice(0,120),retryIn:Math.min(_retryDelay,30000)});
                 /* Auto-retry with backoff */
                 clearTimeout(_retryTimer);
                 _retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();guardarDatos()},Math.min(_retryDelay,30000));
@@ -4179,6 +4317,7 @@ function cargarDatosUsuario(){
         if(iniciarRecuperacionFirestore._activa)return;
         const fromCache=doc.metadata.fromCache;
         const hasPending=doc.metadata.hasPendingWrites;
+        if(typeof _syncLog==='function')_syncLog('snapshot:received',{fromCache,hasPending,exists:doc.exists,v:doc.exists?(doc.data()._version||0):0});
 
         /* Skip echoes of our own pending writes */
         if(hasPending)return;
@@ -4483,6 +4622,78 @@ function instalarErrorBoundary(){
     };
 }
 /* Exportar log + snapshot de estado mínimo para diagnóstico */
+function abrirDiagnosticoSync(){
+    const modal=$('modalSyncDiag');if(!modal)return;
+    renderDiagnosticoSync();
+    modal.classList.add('active');
+}
+function renderDiagnosticoSync(){
+    const el=$('syncDiagContent');if(!el)return;
+    const d=getSyncDiagnostics();
+    const fmtBool=b=>b?'✓':'✗';
+    const fmtTime=t=>t?new Date(t).toLocaleTimeString():'—';
+    let html='';
+    html+='━━━ ESTADO GENERAL ━━━\n';
+    html+='Versión app:      '+d.version+'\n';
+    html+='Online:           '+fmtBool(d.online)+'\n';
+    html+='Estado sync:      '+d.syncState+'\n';
+    html+='Listener activo:  '+fmtBool(d.listenerActive)+'\n';
+    html+='Recovery activa:  '+fmtBool(d.recoveryActive)+'\n';
+    html+='\n━━━ VERSIONES ━━━\n';
+    html+='_localVersion:    '+d.localVersion+'\n';
+    html+='_datos._version:  '+d.dataVersion+'\n';
+    html+='Match:            '+fmtBool(d.localVersion===d.dataVersion)+'\n';
+    if(d.restoredFrom)html+='Restored from:    '+d.restoredFrom+'\n';
+    if(d.postRestoreLockExpires)html+='Lock expira:      '+d.postRestoreLockExpires+'\n';
+    if(d.datosStale)html+='⚠ Datos stale (esperando reconciliación)\n';
+    html+='\n━━━ QUEUE & FLAGS ━━━\n';
+    html+='_syncQueue size:  '+d.syncQueueSize+'\n';
+    html+='_localDirty:      '+d.localDirty+'\n';
+    html+='_guardando:       '+fmtBool(d.guardando)+'\n';
+    html+='_guardarPendiente:'+fmtBool(d.guardarPendiente)+'\n';
+    html+='_syncPending:     '+d.syncPending+'\n';
+    html+='_syncErrors:      '+d.syncErrors+'\n';
+    html+='_retryDelay:      '+(d.retryDelay/1000).toFixed(1)+'s\n';
+    html+='Retry pendiente:  '+fmtBool(d.retryActive)+'\n';
+    html+='Debounce activo:  '+fmtBool(d.debounceActive)+'\n';
+    if(d.syncQueueSample&&d.syncQueueSample.length){
+        html+='\nPrimeros pending:\n';
+        d.syncQueueSample.forEach(s=>{
+            html+='  '+s.type+' '+s.entity+' '+(s.id||'').slice(-8)+' ('+fmtTime(s.ts)+')\n';
+        });
+    }
+    html+='\n━━━ LOG RECIENTE (últimos 20) ━━━\n';
+    if(d.logTail&&d.logTail.length){
+        d.logTail.forEach(e=>{
+            const t=new Date(e.ts).toLocaleTimeString();
+            const {ts,event,...rest}=e;
+            const det=Object.keys(rest).length?' '+JSON.stringify(rest):'';
+            html+=t+' '+event+det+'\n';
+        });
+    }else{
+        html+='(sin eventos registrados aún)\n';
+    }
+    el.textContent=html;
+}
+async function ejecutarForzarSync(){
+    const btn=$('btnSyncDiagForceSync');if(btn){btn.disabled=true;btn.textContent='Sincronizando…'}
+    try{
+        const r=await forzarSyncManual();
+        setTimeout(()=>{renderDiagnosticoSync();if(btn){btn.disabled=false;btn.textContent='⚡ Forzar sync'}},500);
+        return r;
+    }catch(e){
+        if(btn){btn.disabled=false;btn.textContent='⚡ Forzar sync'}
+    }
+}
+function copiarDiagnosticoSync(){
+    const el=$('syncDiagContent');if(!el)return;
+    try{
+        navigator.clipboard.writeText(el.textContent).then(()=>{
+            const b=$('btnSyncDiagCopy');if(b){const o=b.textContent;b.textContent='✓ Copiado';setTimeout(()=>b.textContent=o,1500)}
+        });
+    }catch(e){console.warn(e)}
+}
+
 function exportarDiagnostico(){
     try{
         const log=_readErrLog();
@@ -6517,6 +6728,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='exportar-datos')exportarDatos();
         else if(a==='importar-datos')importarDatos();
         else if(a==='exportar-diagnostico')exportarDiagnostico();
+        else if(a==='diagnostico-sync')abrirDiagnosticoSync();
         else if(a==='borrar-todo')borrarTodo();
         else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
     });
@@ -6609,6 +6821,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'))}actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
     $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));
+    /* Diagnóstico de sincronización */
+    const _bCerrarSync=$('btnCerrarSyncDiag');if(_bCerrarSync)_bCerrarSync.addEventListener('click',()=>cerrarModal('modalSyncDiag'));
+    const _bRefSync=$('btnSyncDiagRefresh');if(_bRefSync)_bRefSync.addEventListener('click',renderDiagnosticoSync);
+    const _bForceSync=$('btnSyncDiagForceSync');if(_bForceSync)_bForceSync.addEventListener('click',ejecutarForzarSync);
+    const _bCopySync=$('btnSyncDiagCopy');if(_bCopySync)_bCopySync.addEventListener('click',copiarDiagnosticoSync);
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
     $('btnGuardarLote').addEventListener('click',guardarLote);
