@@ -1312,7 +1312,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button></div><div style="margin-top:8px"><button class="btn btn-cancel" id="btnCerrarSyncDiag" style="width:100%">Cerrar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -1427,7 +1427,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.39',
+    APP_VERSION: '4.7.40',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1460,6 +1460,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.40', date:'2026-05-14', headline:'🔍 Auditoría de comisionPlataforma — solo diagnóstico, sin strip.', changes:[
+        {type:'feature', title:'Auditoría financiera de comisionPlataforma', desc:'Nueva función auditarComisionPlataforma() que recorre TODAS las operaciones y compara comisionPlataforma guardada contra el valor canónico truncar(usdtBase × comisionPct/100, 2), donde usdtBase = roundMoney(monto/tasa,2) para compras y truncar(monto/tasa,2) para ventas. Esta es exactamente la fórmula que usa recalcularLotesYGanancias (línea 3611). Categoriza cada op en: exact (diff=0), tolerance (≤0.01), small (0.01-0.10), significant (>0.10), missing-pct (legacy sin comisionPct), missing-cp (sin comisionPlataforma), invalid (datos malformados).'},
+        {type:'feature', title:'Verdict claro: SAFE-TO-STRIP / DO-NOT-STRIP', desc:'Después del análisis, la auditoría emite un verdict explícito: SAFE-TO-STRIP solo si TODAS las ops son exact o tolerance. DO-NOT-STRIP si hay alguna small/significant/missing-pct. La auditoría también lista las top 10 discrepancias con detalle completo (id, fecha, tipo, monto, tasa, usdt, comisionPct, cpGuardada, cpEsperada, diff) para inspección humana antes de decidir.'},
+        {type:'feature', title:'Botón "💰 Auditar comisión" en panel diagnóstico', desc:'Nuevo botón cian al lado de "🔍 Auditar tamaño". Corre la auditoría en ~50-200ms (depende de N ops). El resultado queda cacheado en window._ultimaAuditoriaComision hasta el próximo análisis. El panel muestra: distribución por categoría, top 10 discrepancias, casos legacy, fórmula usada, verdict final con razón.'},
+        {type:'verified', title:'comisionPlataforma NO fue stripeada', desc:'Esta versión es exclusivamente diagnóstico. La comisionPlataforma sigue persistiéndose en Firestore exactamente igual que antes. Decisión consciente: la comisión es un dato financiero clave para trazabilidad histórica. Solo evaluaremos stripearla si la auditoría confirma SAFE-TO-STRIP con cero discrepancias relevantes. Si hay aunque sea UNA op con diff >0.01, NO se toca.'},
+        {type:'verified', title:'Cómo usar la auditoría', desc:'1) Hard refresh. 2) Menú → Diagnóstico de sincronización. 3) Tocar "💰 Auditar comisión". 4) Esperar 1-2 segundos. 5) Aparece sección "AUDITORÍA DE comisionPlataforma" con todo el detalle. 6) Tocar "📋 Copiar" y mandar el output. Si el verdict es SAFE-TO-STRIP, en una próxima versión podríamos stripear con confianza. Si es DO-NOT-STRIP, comisionPlataforma se queda en el payload.'}
+    ]},
     {version:'4.7.39', date:'2026-05-14', headline:'⚡ Payload -20% — strip de consumedLots y ganancia (derivables vía FIFO).', changes:[
         {type:'perf', title:'Strip de consumedLots dentro de cada operación', desc:'Auditoría v4.7.37 reveló que consumedLots ocupaba 167 KB en 2229 de 3092 ops. Es 100% reconstruible: recalcularLotesYGanancias() asigna op.consumedLots=fifo.consumed cuando hace el replay FIFO de cada venta. Strip aplicado solo a la COPIA del payload — AppState.datos.operaciones[i].consumedLots sigue intacto para la UI y los cálculos locales. Ahorro estimado: ~120-140 KB.'},
         {type:'perf', title:'Strip de ganancia dentro de cada operación', desc:'Similar a consumedLots: la ganancia se calcula durante el replay FIFO (op.ganancia=roundMoney(fifo.ganancia)). Ocupaba ~49 KB. Reconstruible. Strip aplicado. Combinado con consumedLots: ~170 KB de ahorro total (-20%).'},
@@ -1490,13 +1497,6 @@ const CHANGELOG = [
         {type:'perf', title:'Strip de campos derivables del payload', desc:'Payload era 1142 KB → cerca del límite de 1MB → writes fallaban silenciosamente. Fix: delete datosLimpios.lotes y delete datosLimpios.saldoUsdt antes del set(). Son derivables localmente vía recalcularLotesYGanancias(). Esperado: payload baja a ~600-700 KB (-40%), writes vuelven a confirmar. Compatible con docs legacy: cuando llegan con lotes embebidos, recalcular los sobrescribe.'},
         {type:'verified', title:'Cómo recuperarse del estado bloqueado', desc:'1) Cargar v4.7.36. 2) Si veías "Sync bloqueado", abrir Diagnóstico de sincronización. 3) Tocar "⚡ Forzar sync" — esto resetea el circuit breaker y el deadlock. 4) Esperar — payload ya es -40% más chico, debería confirmar en <10s. 5) En el log buscar "save:queue-drained" como último evento. Si vuelve a fallar, mandar copy del panel completo.'},
         {type:'verified', title:'IMPORTANTE — esto NO es la migración a subcolecciones', desc:'Estos son fixes incrementales para parar el sangrado. La migración real a /users/{uid}/operaciones/{opId} con sync incremental, deduplicación de queue, IndexedDB manual y bootstrap independiente del sync es un proyecto separado que requiere planificación, branch dedicado y migración de datos cuidadosa. Por ahora: estabilizar la versión actual y planificar la migración con tiempo.'}
-    ]},
-    {version:'4.7.35', date:'2026-05-13', headline:'⚡ Fix de latencia: -50% del tiempo de save al eliminar el get pre-write.', changes:[
-        {type:'perf', title:'Eliminado el tx.get del runTransaction', desc:'BUG: cada save hacía runTransaction { tx.get + tx.set }. El get descargaba el documento entero (~500-800KB con 2671 ops) antes de cada escritura, sumando ~14-24 segundos por save (log v4.7.34: 11:18:32 enqueue → 11:18:56 confirm). Ahora: ref.set() directo, sin lectura previa. Esperado -50% de latencia. La protección de versión la mantiene el snapshot listener + mergeRemoteState (mismo mecanismo que ya existía para multi-device simultáneo).'},
-        {type:'feature', title:'Instrumentación de timing por fase', desc:'Cada save ahora registra: save:prep-start, save:prep-end (con tamaño del payload en KB), save:write-start, save:write-end (con ms del write). El panel de diagnóstico ahora muestra al final una sección "TIMING DEL ÚLTIMO SAVE" con: total start→confirm, tiempo de write, payload size en KB. Eso permite ver si el cuello está en serialización, upload, o ack del server.'},
-        {type:'fix', title:'Rollback de versión si el write falla', desc:'El nuevo flow bumpea _localVersion optimísticamente antes de subir. Si el write falla (error de red, timeout), la versión se revierte automáticamente al valor previo. Sin esto, el snapshot listener pensaría que estamos sincronizados cuando en realidad no escribimos.'},
-        {type:'verified', title:'Protecciones que se mantienen', desc:'Anti-wipe (esDatosVacios check). Strip de _syncState antes del payload. Limpieza per-tx de IDs confirmados (idsSnapshot). Rollback en error. Snapshot listener detecta writes simultáneos de otros devices y mergea via mergeRemoteState (Branch 2). Repair de pending huérfanos después de cada save y snapshot.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Crear 2 operaciones seguidas desde mobile. 2) Abrir panel de diagnóstico. 3) En "TIMING DEL ÚLTIMO SAVE" debería verse: Total <10s (antes 24s), payload size 500-800KB, tiempo de write puro en ms. 4) En el log, secuencia: enqueue → save:start → save:prep-end → save:write-start → save:write-end → save:confirmed. Si el "Solo set() en server" todavía es >10s, el cuello es el upload del documento completo y entonces aplicamos Fix 2 (quitar lotes/saldoUsdt del payload).'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -3813,6 +3813,132 @@ function _syncLog(event,payload){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   §AUDIT-COMISION — Verificación de derivabilidad de comisionPlataforma
+   ═══════════════════════════════════════════════════════════════════
+   Objetivo: determinar si comisionPlataforma puede stripearse del payload
+   remoto sin perder trazabilidad financiera. Se considera "derivable" sí y
+   solo sí, para CADA operación, vale:
+     
+     comisionPlataforma guardada == truncar(usdtBase × comisionPct/100, 2)
+   
+   donde usdtBase = roundMoney(monto/tasa, 2) para compras
+                    truncar(monto/tasa, 2)    para ventas
+   
+   Esta es LA fórmula canónica que usa recalcularLotesYGanancias (línea ~3611).
+   
+   Categorías de discrepancia:
+     - exact:        100% coincidencia (centavo a centavo)
+     - tolerance:    discrepancia ≤0.01 USDT (redondeo aceptable)
+     - small:        0.01 < discrepancia ≤0.10 USDT (sospechoso pero menor)
+     - significant:  discrepancia >0.10 USDT (PRESERVAR comisionPlataforma)
+     - missing-pct:  op sin comisionPct (legacy, fórmula no aplicable)
+     - missing-cp:   op sin comisionPlataforma (campo ausente)
+     - invalid:      datos malformados (tasa<=0, monto<=0, etc)
+   
+   Verdict:
+     - SAFE-TO-STRIP: si todas las ops son exact o tolerance
+     - DO-NOT-STRIP:  si hay ANY small/significant/missing-pct */
+function auditarComisionPlataforma(){
+    const ops=Array.isArray(AppState.datos.operaciones)?AppState.datos.operaciones:[];
+    const result={
+        totalOps:ops.length,
+        exact:0,
+        tolerance:0,
+        small:0,
+        significant:0,
+        missingPct:0,
+        missingCp:0,
+        invalid:0,
+        worstCases:[],
+        legacyCases:[],
+        verdict:'unknown',
+        formula:'truncar(usdtBase × comisionPct/100, 2) donde usdtBase=roundMoney(m/t,2) para compras y truncar(m/t,2) para ventas',
+        tiempoAnalisisMs:0
+    };
+    if(ops.length===0){result.verdict='no-ops';return result}
+    const t0=performance.now();
+    /* Funciones puras locales — evitar dependencia de helpers globales por si la auditoría
+       se ejecuta en contextos donde estos pudieron redefinirse. */
+    const _trunc=(n,d=2)=>{if(isNaN(n)||!isFinite(n))return 0;const f=Number(n+'e'+d);return Number(Math.floor(f)+'e-'+d)};
+    const _round=(n,d=2)=>{if(isNaN(n)||!isFinite(n))return 0;const r=Number(Math.round(parseFloat(n+'e'+d))+'e-'+d);return Object.is(r,-0)?0:r};
+    const _usdtBase=(n,tipo)=>tipo==='compra'?_round(n,2):_trunc(n,2);
+    const discrepancias=[];
+    ops.forEach((op,idx)=>{
+        if(!op||typeof op!=='object'){result.invalid++;return}
+        /* Datos inválidos: tasa<=0, monto inválido, etc. */
+        if(!op.tasa||op.tasa<=0||!op.monto||op.monto<=0||!op.tipo){
+            result.invalid++;
+            return;
+        }
+        /* comisionPct ausente: legacy. NO podemos verificar derivabilidad. */
+        if(op.comisionPct===undefined||op.comisionPct===null){
+            result.missingPct++;
+            if(result.legacyCases.length<5){
+                result.legacyCases.push({
+                    idx,id:safeIdTail(op.id,10),
+                    fecha:op.fecha,tipo:op.tipo,
+                    cpGuardada:op.comisionPlataforma,
+                    razon:'sin comisionPct'
+                });
+            }
+            return;
+        }
+        /* comisionPlataforma ausente: campo no fue persistido. */
+        if(op.comisionPlataforma===undefined||op.comisionPlataforma===null){
+            result.missingCp++;
+            return;
+        }
+        /* Calcular el valor esperado con la fórmula canónica del FIFO replay */
+        const cpct=op.comisionPct/100;
+        const uBaseExpected=_usdtBase(op.monto/op.tasa,op.tipo);
+        const cpExpected=_trunc(uBaseExpected*cpct,2);
+        const cpGuardada=Number(op.comisionPlataforma)||0;
+        const diff=Math.abs(cpGuardada-cpExpected);
+        /* Categorizar la discrepancia */
+        if(diff===0){
+            result.exact++;
+        }else if(diff<=0.01){
+            result.tolerance++;
+            /* Aún registramos algunos para inspección visual */
+            if(discrepancias.length<20){
+                discrepancias.push({idx,id:safeIdTail(op.id,10),diff,cpGuardada,cpExpected,
+                                    monto:op.monto,tasa:op.tasa,usdt:op.usdt,comisionPct:op.comisionPct,
+                                    fecha:op.fecha,tipo:op.tipo,category:'tolerance'});
+            }
+        }else if(diff<=0.10){
+            result.small++;
+            discrepancias.push({idx,id:safeIdTail(op.id,10),diff,cpGuardada,cpExpected,
+                                monto:op.monto,tasa:op.tasa,usdt:op.usdt,comisionPct:op.comisionPct,
+                                fecha:op.fecha,tipo:op.tipo,category:'small'});
+        }else{
+            result.significant++;
+            discrepancias.push({idx,id:safeIdTail(op.id,10),diff,cpGuardada,cpExpected,
+                                monto:op.monto,tasa:op.tasa,usdt:op.usdt,comisionPct:op.comisionPct,
+                                fecha:op.fecha,tipo:op.tipo,category:'significant'});
+        }
+    });
+    /* Ordenar discrepancias por magnitud descendente, quedarnos con las top 10 */
+    result.worstCases=discrepancias.sort((a,b)=>b.diff-a.diff).slice(0,10);
+    /* Verdict */
+    const hasReal=result.significant>0||result.small>0||result.missingPct>0;
+    if(hasReal){
+        result.verdict='DO-NOT-STRIP';
+        result.verdictReason=
+            (result.significant>0?result.significant+' ops con discrepancia >0.10 USDT. ':'')+
+            (result.small>0?result.small+' ops con discrepancia 0.01-0.10 USDT. ':'')+
+            (result.missingPct>0?result.missingPct+' ops legacy sin comisionPct (no podemos derivar). ':'');
+    }else if(result.exact===0&&result.tolerance===0){
+        result.verdict='INSUFFICIENT-DATA';
+        result.verdictReason='No hay ops verificables (todas inválidas o sin comisionPlataforma)';
+    }else{
+        result.verdict='SAFE-TO-STRIP';
+        result.verdictReason='Todas las ops verificables coinciden con la fórmula (exact: '+result.exact+', tolerance: '+result.tolerance+')';
+    }
+    result.tiempoAnalisisMs=Math.round(performance.now()-t0);
+    return result;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    §PAYLOAD-AUDIT — Análisis exhaustivo de qué pesa en el documento
    ═══════════════════════════════════════════════════════════════════
    Mide tamaños reales (no estimaciones) de cada sección del payload.
@@ -5324,6 +5450,38 @@ function renderDiagnosticoSync(){
     }else{
         html+='\n━━━ AUDITORÍA DE TAMAÑO ━━━\n';
         html+='Tocá "🔍 Auditar tamaño" para analizar qué pesa en el documento.\n';
+    }
+    /* ═══ Auditoría de comisionPlataforma (bajo demanda) ═══ */
+    if(window._ultimaAuditoriaComision){
+        const c=window._ultimaAuditoriaComision;
+        html+='\n━━━ AUDITORÍA DE comisionPlataforma ━━━\n';
+        html+='Verdict: '+c.verdict+'\n';
+        if(c.verdictReason)html+='Razón: '+c.verdictReason+'\n';
+        html+='\nDistribución por categoría:\n';
+        html+='  exact (sin diff):     '+c.exact+'\n';
+        html+='  tolerance (≤0.01):    '+c.tolerance+'\n';
+        html+='  small (0.01-0.10):    '+c.small+(c.small>0?' ⚠':'')+'\n';
+        html+='  significant (>0.10):  '+c.significant+(c.significant>0?' 🛑':'')+'\n';
+        html+='  legacy (sin Pct):     '+c.missingPct+(c.missingPct>0?' ⚠':'')+'\n';
+        html+='  sin Plataforma:       '+c.missingCp+'\n';
+        html+='  inválidas:            '+c.invalid+'\n';
+        html+='  TOTAL ops:            '+c.totalOps+'\n';
+        if(c.worstCases&&c.worstCases.length>0){
+            html+='\nTop 10 discrepancias (mayor a menor):\n';
+            c.worstCases.forEach(w=>{
+                html+='  ['+w.category+'] id '+w.id+' fecha '+w.fecha+' '+w.tipo+'\n';
+                html+='    guardada: '+w.cpGuardada+' / esperada: '+w.cpExpected+' / diff: '+w.diff.toFixed(4)+'\n';
+                html+='    monto: '+w.monto+' tasa: '+w.tasa+' usdt: '+w.usdt+' pct: '+w.comisionPct+'\n';
+            });
+        }
+        if(c.legacyCases&&c.legacyCases.length>0){
+            html+='\nCasos legacy (sin comisionPct):\n';
+            c.legacyCases.forEach(l=>{
+                html+='  id '+l.id+' fecha '+l.fecha+' '+l.tipo+' cpGuardada: '+l.cpGuardada+'\n';
+            });
+        }
+        html+='\nFórmula usada: '+c.formula+'\n';
+        html+='(análisis hecho en '+c.tiempoAnalisisMs+' ms)\n';
     }
     el.textContent=html;
 }
@@ -7492,6 +7650,29 @@ document.addEventListener('DOMContentLoaded',()=>{
                 alert('Análisis falló: '+e.message);
             }finally{
                 if(_bAuditSync){_bAuditSync.disabled=false;_bAuditSync.textContent='🔍 Auditar tamaño'}
+            }
+        },50);
+    });
+    const _bAuditCp=$('btnSyncDiagAuditCp');if(_bAuditCp)_bAuditCp.addEventListener('click',()=>{
+        if(_bAuditCp){_bAuditCp.disabled=true;_bAuditCp.textContent='Verificando…'}
+        /* setTimeout para que el botón pueda actualizar UI antes del análisis */
+        setTimeout(()=>{
+            try{
+                window._ultimaAuditoriaComision=auditarComisionPlataforma();
+                _syncLog('audit-comision:done',{
+                    verdict:window._ultimaAuditoriaComision.verdict,
+                    exact:window._ultimaAuditoriaComision.exact,
+                    tolerance:window._ultimaAuditoriaComision.tolerance,
+                    small:window._ultimaAuditoriaComision.small,
+                    significant:window._ultimaAuditoriaComision.significant,
+                    missingPct:window._ultimaAuditoriaComision.missingPct
+                });
+                renderDiagnosticoSync();
+            }catch(e){
+                console.error('[P2P] Auditoría comisión falló:',e);
+                alert('Auditoría comisión falló: '+e.message);
+            }finally{
+                if(_bAuditCp){_bAuditCp.disabled=false;_bAuditCp.textContent='💰 Auditar comisión'}
             }
         },50);
     });
