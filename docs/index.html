@@ -1427,7 +1427,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.37',
+    APP_VERSION: '4.7.38',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1460,6 +1460,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.38', date:'2026-05-14', headline:'🎯 UI desacoplada del sync — el overlay "Cargando..." nunca más bloquea la app.', changes:[
+        {type:'fix', title:'Bootstrap independiente del sync remoto', desc:'BUG: la UI esperaba el primer snapshot de Firestore para renderizar. Si el snapshot tardaba o llegaba con hasPendingWrites=true (que el handler skipea con return), el overlay "Cargando..." quedaba visible indefinidamente aunque el cache local ya tenía datos válidos. Fix: showApp() ahora hidrata AppState.datos desde restoreFromLocal() inmediatamente al login, renderiza la UI completa en <100ms, oculta el overlay, y RECIÉN después dispara cargarDatosUsuario() que conecta el listener en background. La UI nunca espera a Firestore para ser usable.'},
+        {type:'fix', title:'Watchdog de 3 segundos contra overlay pegado', desc:'Aunque no haya backup local (primer login en cuenta nueva, cache corrupto), el watchdog garantiza que el overlay se oculte después de 3 segundos máximo. Si el snapshot no llegó, la UI muestra vista vacía con badge "Conectando…" y permite navegar. Cuando el snapshot llegue, los datos se renderizan naturalmente vía mergeRemoteState. Log: ui:forced-unlock.'},
+        {type:'feature', title:'Estados de UI separados del estado de sync', desc:'Nuevo flag AppState._uiHydratedFromCache distingue "UI lista desde cache" de "snapshot remoto confirmado". El badge muestra "Modo local activo" mientras la sync corre en background. Al llegar el primer snapshot real (no fromCache), transición a "En línea". La UI ya no depende de _guardando, _syncPending, hasPendingWrites, ni del estado de la queue remota para funcionar.'},
+        {type:'feature', title:'Logs estructurados del bootstrap visual', desc:'Nuevos eventos en el log: ui:bootstrap-start (login), ui:cache-hydrated (datos cargados desde local), ui:render-ready (UI renderizada), ui:overlay-hidden (loading oculto), ui:forced-unlock (watchdog activado), sync:background-mode (sync corriendo sin bloquear UI). Visible en Diagnóstico de sincronización.'},
+        {type:'verified', title:'Lo que NO cambió', desc:'No tocamos el formato de payload, mergeRemoteState, guardarDatos, _syncQueue, anti-wipe blindajes, ni la lógica de mergeo multi-device. Esta versión es exclusivamente desacople UI ↔ sync. La compactación de consumedLots/ganancia (que veníamos planeando) queda para v4.7.39.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Hard refresh en cualquier device. 2) La app debe cargar en <2s aunque la red esté lenta. 3) Si ves "Modo local activo" en el badge, significa que se hidrató desde cache (correcto). 4) Cuando llegue el primer snapshot real, el badge pasa a "En línea". 5) Probá modo avión: la app sigue funcionando y permite crear ops. 6) En Diagnóstico, el log debe mostrar la secuencia ui:bootstrap-start → ui:cache-hydrated → ui:render-ready → ui:overlay-hidden.'}
+    ]},
     {version:'4.7.37', date:'2026-05-14', headline:'🔍 Auditoría profunda del payload — herramienta forense para encontrar qué pesa 1117 KB.', changes:[
         {type:'feature', title:'analizarPayload(): forense de tamaño bajo demanda', desc:'Nueva función que mide el peso real (no estimado) de cada sección del payload. Mide: tamaño total raw, peso por sección de primer nivel con porcentaje, top 20 keys más pesadas, top 10 operaciones más pesadas (por bytes), promedio de bytes por operación, top 15 campos dentro de las operaciones por peso acumulado, valores repetidos como hora="17:10" × 2671 veces (candidatos a normalización), flags de campos sospechosos (lotes embebidos, _syncState huérfanos persistidos, tasasRecientes inflado, dismissedVersions sin limpiar). Incluye medición de heap JS usado vía performance.memory cuando esté disponible (Chrome/Edge).'},
         {type:'feature', title:'Botón "🔍 Auditar tamaño" en panel de diagnóstico', desc:'En Menú → Diagnóstico de sincronización aparece un botón violeta nuevo. Al tocarlo, hace stringify completo del documento, mide cada sección, y muestra el resultado en pantalla. Costo: 30-100ms en mobile (no automático para evitar lag). Resultado queda cacheado en window._ultimaAuditoria hasta el próximo análisis.'},
@@ -1488,13 +1496,6 @@ const CHANGELOG = [
         {type:'fix', title:'"Error al reconectar" no queda pegado', desc:'Nueva función reevaluarEstadoSync() detecta cuando el listener está activo, las versiones matchean, no hay pending y la red está OK — en ese caso baja _syncErrors a 0 y vuelve el badge a "online". Se ejecuta en evento online, al volver de background (visibilitychange), y cada 30s como safety net periódico mientras la app está en foreground.'},
         {type:'feature', title:'Separación real vs visual de pending', desc:'Antes el flag _syncState="pending" era la fuente de verdad visual indefinidamente — si quedaba huérfano, dot amarillo eterno. Ahora la fuente de verdad real es: _localDirty + _syncQueue + _localVersion vs _datos._version. El flag visual se sincroniza con esa verdad después de cada evento. Si el sistema YA está sano, el dot DEBE limpiarse aunque venga de un ciclo viejo.'},
         {type:'verified', title:'Cómo probar', desc:'1) Abrir Diagnóstico → ya NO crashea con IDs numéricos. 2) Ver typeof s.id en el panel — todos deberían decir "number". 3) Si veías dots amarillos eternos antes de v4.7.34, al abrir el panel ahora deberían desaparecer automáticamente. 4) Si veías "Error al reconectar" pegado, debería pasar a "En línea" dentro de 30s con buena conexión. 5) En el log buscar repair:orphans-cleaned y reconnect:auto-clear-errors para confirmar que las rutinas corrieron.'}
-    ]},
-    {version:'4.7.33', date:'2026-05-13', headline:'🐛 Crítico: dots amarillos eternos + datos perdidos al cerrar. Panel de diagnóstico nuevo.', changes:[
-        {type:'fix', title:'Dots amarillos quedaban permanentes — causa raíz', desc:'BUG: clearSyncQueue solo se ejecutaba si _syncPending llegaba a 0. Si el usuario hacía mutaciones constantemente, _syncPending nunca llegaba a 0 y los items quedaban marcados con _syncState="pending" para siempre. Además, al cerrar la app, esos pending eternos NO habían llegado al server → datos perdidos. Fix: cada transacción exitosa ahora limpia exactamente los IDs que confirmó, sin esperar a que la queue entera drene.'},
-        {type:'feature', title:'Panel de diagnóstico de sincronización', desc:'Nuevo en Menú → Diagnóstico de sincronización. Muestra en tiempo real: versiones local/remota, tamaño del syncQueue, estado de _guardando/_guardarPendiente/_localDirty, errors counter, retry pending, listener activo, log de los últimos 20 eventos (enqueue → save:start → save:confirmed → snapshot:received → merge). Botón "Forzar sync" seguro que no duplica writes. Botón "Copiar" para mandar el output como diagnóstico.'},
-        {type:'feature', title:'Logger estructurado del flujo de sync', desc:'Cada fase del sync ahora registra un evento (enqueue, save:start, save:confirmed, save:queue-drained, save:tx-timeout, save:stale-version, save:error, save:offline-deferred, snapshot:received). Cap circular de 100 eventos en memoria. Habilitar window._P2P_VERBOSE=true en consola para verlos en tiempo real.'},
-        {type:'fix', title:'Forzar sync manual seguro', desc:'Nueva función forzarSyncManual() expuesta vía botón. Cancela retry timers + flush del debounce + dispara guardarDatos. Si guardarDatos ya está en flight, NO duplica. Si no hay nada que sincronizar, NO crea writes vacíos. Útil cuando el usuario ve dots amarillos y quiere forzar la confirmación sin reiniciar la app.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Crear op → debe aparecer dot amarillo. 2) Esperar 2-3 segundos → dot debe desaparecer (= confirmed). 3) Abrir Diagnóstico → "_syncQueue size: 0" y "save:queue-drained" como último evento. Si querés ver verbose en consola: window._P2P_VERBOSE=true antes de las acciones.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -4855,6 +4856,13 @@ function cargarDatosUsuario(){
         if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=fmtNum(cv);setText('comisionPctLabel',fmtNum(cv))}
         actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();
         setSyncStatus(fromCache?'syncing':'online',fromCache?'Caché local':undefined);
+        /* Si veníamos del bootstrap hidratado desde cache, el primer snapshot real 
+           (no fromCache) marca la transición a "online". Limpiamos el flag para no 
+           seguir mostrando "Modo local activo" después de que el sync ya conectó. */
+        if(!fromCache&&AppState._uiHydratedFromCache){
+            AppState._uiHydratedFromCache=false;
+            _syncLog('sync:background-mode',{transitioned:'cache-to-online'});
+        }
         /* Centro de Novedades — actualizar badge en cada snapshot, mostrar whatsnew solo 1 vez */
         actualizarBadgeNoticias();
         if(!AppState.ui._noticiasInicializadas){
@@ -4869,7 +4877,87 @@ function cargarDatosUsuario(){
     });
 }
 
-function showApp(u){AppState.currentUser=u;const uname=emailToUser(u.email);setText('menuUserName',uname);setText('menuUserEmail',u.email);$('menuUserAvatar').textContent=(uname[0]||'U').toUpperCase();$('authContainer').classList.add('hidden');$('appContainer').classList.add('active');cargarDatosUsuario()}
+function showApp(u){
+    AppState.currentUser=u;
+    const uname=emailToUser(u.email);
+    setText('menuUserName',uname);
+    setText('menuUserEmail',u.email);
+    $('menuUserAvatar').textContent=(uname[0]||'U').toUpperCase();
+    $('authContainer').classList.add('hidden');
+    $('appContainer').classList.add('active');
+    /* ═══════════════════════════════════════════════════════════════════
+       §UI-BOOTSTRAP v4.7.38 — Hidratar UI desde cache local INMEDIATAMENTE
+       ═══════════════════════════════════════════════════════════════════
+       Antes (v4.7.37 y anteriores): la UI esperaba el primer snapshot de Firestore
+       para renderizar. Si el snapshot tardaba (red lenta, doc pesado, hasPending:true 
+       skipea el render), el overlay "Cargando..." quedaba visible indefinidamente.
+       
+       Ahora: leemos el backup local (que YA contiene un estado válido del último
+       cierre/sync exitoso), poblamos AppState.datos, renderizamos la UI completa,
+       y ocultamos el overlay en <100ms. Después, onSnapshot trae las novedades del 
+       servidor y mergeRemoteState las aplica encima — la UI se actualiza naturalmente.
+       
+       Garantías:
+       - Si NO hay backup local (primer login, cuenta nueva), se mantiene el flow
+         original — cargarDatosUsuario espera el snapshot, watchdog cubre timeouts.
+       - Si hay backup, AppState._localVersion queda con la versión del backup, así 
+         mergeRemoteState puede comparar correctamente cuando llegue el snapshot.
+       - El render desde cache marca AppState._uiHydratedFromCache=true para que el
+         badge muestre "Modo local — sincronizando…" hasta que llegue el snapshot real. */
+    _syncLog('ui:bootstrap-start',{uid:safeIdTail(u.uid,8)});
+    let hidratoDesdeCache=false;
+    try{
+        const backup=restoreFromLocal();
+        if(backup&&backup.datos&&!esDatosVacios(backup.datos)){
+            /* Solo hidratamos si el backup tiene contenido real — nunca con un estado
+               vacío (que sobrescribiría datos válidos si llegaran después por bug). */
+            AppState.datos=backup.datos;
+            AppState._localVersion=backup.v||0;
+            AppState._restoredFrom='backup-bootstrap';
+            AppState._uiHydratedFromCache=true;
+            /* Render inmediato — la UI queda usable. */
+            try{
+                inicializarBancos();
+                if(typeof recalcularLotesYGanancias==='function')recalcularLotesYGanancias();
+                actualizarVista();
+                actualizarFormulario();
+                actualizarColorSelect();
+                ocultarLoading();
+                setSyncStatus('syncing','Modo local activo');
+                hidratoDesdeCache=true;
+                _syncLog('ui:cache-hydrated',{v:AppState._localVersion,ops:(AppState.datos.operaciones||[]).length});
+                _syncLog('ui:render-ready',{from:'local-cache'});
+                _syncLog('ui:overlay-hidden',{reason:'cache-hydrate'});
+            }catch(e){
+                console.warn('[P2P] Render desde cache falló (no crítico):',e.message);
+                hidratoDesdeCache=false;
+            }
+        }
+    }catch(e){
+        console.warn('[P2P] Hidratación desde cache falló:',e.message);
+    }
+    /* ═══ Watchdog de 3 segundos ═══
+       Si por cualquier motivo el overlay sigue visible después de 3 segundos
+       (cache vacío Y snapshot no llegó), lo forzamos a ocultar. La app queda 
+       usable sobre los datos vacíos por defecto — el snapshot, cuando llegue, 
+       va a poblar todo correctamente. Sin esto, una red colgada congelaba la app. */
+    setTimeout(()=>{
+        const ov=$('loadingOverlay');
+        if(ov&&!ov.classList.contains('hidden')){
+            ov.classList.add('hidden');
+            _syncLog('ui:forced-unlock',{reason:'watchdog-3s',cacheHydrated:hidratoDesdeCache});
+            console.warn('[P2P] Watchdog desbloqueó la UI tras 3s — el sync continúa en background');
+            /* Si no había cache, al menos mostramos vista por defecto */
+            if(!hidratoDesdeCache){
+                try{actualizarVista();actualizarFormulario();actualizarColorSelect()}catch(e){}
+                setSyncStatus('syncing','Conectando…');
+            }
+        }
+    },3000);
+    /* Iniciar sync remota en background — la UI ya está usable */
+    _syncLog('sync:background-mode',{cacheHydrated:hidratoDesdeCache});
+    cargarDatosUsuario();
+}
 function showAuth(){AppState.currentUser=null;$('authContainer')?.classList.remove('hidden');$('appContainer')?.classList.remove('active');['loginBtn','registerBtn'].forEach(id=>{const b=$(id);if(b){b.disabled=false;b.textContent=id==='loginBtn'?'Iniciar Sesión':'Crear Cuenta'}});['loginUser','loginPass','regUser','regPass','regPassConfirm'].forEach(id=>{const e=$(id);if(e)e.value=''});ocultarLoading()}
 
 /* ═══════════════════════════════════════════════════════════════════
