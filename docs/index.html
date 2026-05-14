@@ -1312,7 +1312,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button></div><div style="margin-top:8px"><button class="btn btn-cancel" id="btnCerrarSyncDiag" style="width:100%">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -1427,7 +1427,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.36',
+    APP_VERSION: '4.7.37',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1460,6 +1460,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.37', date:'2026-05-14', headline:'🔍 Auditoría profunda del payload — herramienta forense para encontrar qué pesa 1117 KB.', changes:[
+        {type:'feature', title:'analizarPayload(): forense de tamaño bajo demanda', desc:'Nueva función que mide el peso real (no estimado) de cada sección del payload. Mide: tamaño total raw, peso por sección de primer nivel con porcentaje, top 20 keys más pesadas, top 10 operaciones más pesadas (por bytes), promedio de bytes por operación, top 15 campos dentro de las operaciones por peso acumulado, valores repetidos como hora="17:10" × 2671 veces (candidatos a normalización), flags de campos sospechosos (lotes embebidos, _syncState huérfanos persistidos, tasasRecientes inflado, dismissedVersions sin limpiar). Incluye medición de heap JS usado vía performance.memory cuando esté disponible (Chrome/Edge).'},
+        {type:'feature', title:'Botón "🔍 Auditar tamaño" en panel de diagnóstico', desc:'En Menú → Diagnóstico de sincronización aparece un botón violeta nuevo. Al tocarlo, hace stringify completo del documento, mide cada sección, y muestra el resultado en pantalla. Costo: 30-100ms en mobile (no automático para evitar lag). Resultado queda cacheado en window._ultimaAuditoria hasta el próximo análisis.'},
+        {type:'feature', title:'Veredicto de estado del documento', desc:'En base al tamaño total: ✓ Seguro (<700 KB), ⚠ Alto (700-850 KB), ⚠⚠ Muy alto (850-950 KB), 🛑 Crítico (>950 KB, cerca del límite 1MB de Firestore). Útil para saber rápidamente si el documento está sano o necesita acción.'},
+        {type:'verified', title:'Cómo usar esta auditoría', desc:'1) Cargar v4.7.37 en cualquier device. 2) Abrir Menú → Diagnóstico de sincronización. 3) Tocar "🔍 Auditar tamaño". 4) Esperar 1-2 segundos (botón dice "Analizando…"). 5) Aparece la sección "AUDITORÍA DE TAMAÑO" con todos los detalles. 6) Tocar "📋 Copiar" y mandarlo. Con ese output identificamos EXACTAMENTE qué está ocupando los 278 KB extras que el dataset sintético no predice.'},
+        {type:'verified', title:'Lo que NO hicimos todavía', desc:'NO bajamos el payload — primero hay que medir. NO migramos a subcolecciones — eso es proyecto separado. NO cambiamos el engine de sync. v4.7.37 es exclusivamente diagnóstico. Una vez que sepamos qué pesa, v4.7.38 va a poder hacer reducción dirigida con confianza.'}
+    ]},
     {version:'4.7.36', date:'2026-05-13', headline:'🚨 STOP-THE-BLEEDING: corta loops infinitos + payload -40% + fix rollback fantasma.', changes:[
         {type:'fix', title:'CIRCUIT BREAKER: corta loops de retry infinito', desc:'BUG MÁS GRAVE: si el write fallaba 3+ veces (típicamente por payload cerca de 1MB), la app entraba en loop eterno de retry con backoff. _guardando quedaba true, _localDirty acumulaba, _syncQueue crecía sin tope. Después de 3 timeouts consecutivos, AHORA: detener auto-retry, mantener datos a salvo localmente, mostrar "⚠ Sync bloqueado — abrí Diagnóstico", requerir botón "Forzar sync" manual.'},
         {type:'fix', title:'Deadlock detection: _guardando colgado >60s', desc:'Si "Forzar sync" se ejecuta y _guardando lleva más de 60 segundos en true (sin que se haya completado una transacción), asumimos deadlock. Reseteamos los flags (_guardando, _guardarPendiente, _syncPending) para que el siguiente intento pueda arrancar. Sin esto, una promesa huérfana podía bloquear la app indefinidamente.'},
@@ -1488,13 +1495,6 @@ const CHANGELOG = [
         {type:'feature', title:'Logger estructurado del flujo de sync', desc:'Cada fase del sync ahora registra un evento (enqueue, save:start, save:confirmed, save:queue-drained, save:tx-timeout, save:stale-version, save:error, save:offline-deferred, snapshot:received). Cap circular de 100 eventos en memoria. Habilitar window._P2P_VERBOSE=true en consola para verlos en tiempo real.'},
         {type:'fix', title:'Forzar sync manual seguro', desc:'Nueva función forzarSyncManual() expuesta vía botón. Cancela retry timers + flush del debounce + dispara guardarDatos. Si guardarDatos ya está en flight, NO duplica. Si no hay nada que sincronizar, NO crea writes vacíos. Útil cuando el usuario ve dots amarillos y quiere forzar la confirmación sin reiniciar la app.'},
         {type:'verified', title:'Cómo probar', desc:'1) Crear op → debe aparecer dot amarillo. 2) Esperar 2-3 segundos → dot debe desaparecer (= confirmed). 3) Abrir Diagnóstico → "_syncQueue size: 0" y "save:queue-drained" como último evento. Si querés ver verbose en consola: window._P2P_VERBOSE=true antes de las acciones.'}
-    ]},
-    {version:'4.7.32', date:'2026-05-07', headline:'🐛 Multi-device: items eliminados en otro device aparecían como fantasmas. Fix crítico.', changes:[
-        {type:'fix', title:'Items fantasma post-eliminación remota', desc:'BUG CRÍTICO: dispositivo A eliminaba una operación, dispositivo B recibía el snapshot pero el merge preservaba el item como "local-only" porque no estaba en _syncQueue. Resultado: la op fantasma seguía visible en B aunque A la eliminó. Fix: el merge ahora solo preserva items locales que tengan una entrada activa en _syncQueue (genuinamente pending). Items sin pending y sin remoto se descartan correctamente como "eliminados en otro device".'},
-        {type:'fix', title:'UI no se refrescaba con cambios escalares remotos', desc:'BUG: cuando otro device cambiaba comisión global, tags, o config bancaria, mergeRemoteState detectaba que los arrays no cambiaron y skipeaba el recalc. Pero TAMBIÉN olvidaba forzar un re-render — la UI quedaba con valores viejos hasta el siguiente evento. Fix: en el path "no array change" ahora se invalidan caches Y se llama actualizarVistaDebounced explícitamente.'},
-        {type:'perf', title:'Debounce inteligente para mutaciones críticas', desc:'Antes el debounce era 400ms uniforme. Ahora create/delete dispara en 100ms (apenas para batchear cascadas legítimas), mientras que updates de typing siguen con 400ms. Los flushes por tiempo (>2s) y cantidad (>=10 entries) se mantienen como red de seguridad. Resultado: crear/eliminar se siente 4x más rápido sin afectar throughput.'},
-        {type:'fix', title:'Hash del merge detecta más tipos de edición', desc:'El hash anterior cubría monto/tasa/tipo/aportes. Faltaban: banco, origen, destino, comisión, ganancia, descripción. Una edición remota de cualquiera de esos campos parecía no haber pasado y la UI no se actualizaba hasta que el usuario hiciera otra acción. Hash ampliado para detectar todos los campos visibles.'},
-        {type:'verified', title:'Pruebas multi-device sugeridas', desc:'1) Crear op en device A, verificar aparición en B en <2s. 2) Editar monto en A, verificar en B. 3) Eliminar en A, verificar desaparición en B (este era el bug). 4) Cambiar comisión global en A, verificar actualización en B sin recargar. 5) Hacer transferencia en A, verificar saldos en B. Si algo falla, exportar diagnóstico y enviarlo.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -3809,6 +3809,146 @@ function _syncLog(event,payload){
         if(window._P2P_VERBOSE)console.log('[P2P sync]',event,payload||'');
     }catch(e){/* no-op */}
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   §PAYLOAD-AUDIT — Análisis exhaustivo de qué pesa en el documento
+   ═══════════════════════════════════════════════════════════════════
+   Mide tamaños reales (no estimaciones) de cada sección del payload.
+   Útil para identificar campos inflados, datos derivados accidentalmente
+   persistidos, arrays repetidos, metadata UI persistida, etc.
+   
+   Costo: ~30-100ms en mobile (un JSON.stringify por sección). Se ejecuta
+   bajo demanda desde el panel de diagnóstico, no en cada save. */
+function analizarPayload(datos){
+    if(!datos||typeof datos!=='object')return null;
+    const t0=performance.now();
+    const result={
+        totalKB:0,
+        secciones:{},
+        topKeys:[],
+        topOperaciones:[],
+        avgBytesPerOp:0,
+        cantidadOps:0,
+        flags:{},
+        memUsedMB:null,
+        tiempoStringifyMs:0
+    };
+    /* Tamaño raw total */
+    const tStringify=performance.now();
+    let rawJson='';
+    try{rawJson=JSON.stringify(datos)}catch(e){return{error:'serializacion-fallo',msg:e.message}}
+    result.tiempoStringifyMs=Math.round(performance.now()-tStringify);
+    result.totalKB=Math.round(rawJson.length/1024);
+    /* Tamaño por sección de primer nivel */
+    Object.keys(datos).forEach(key=>{
+        try{
+            const val=datos[key];
+            const json=JSON.stringify(val);
+            const kb=Math.round(json.length/1024);
+            const bytes=json.length;
+            result.secciones[key]={
+                bytes,
+                kb,
+                pctTotal:rawJson.length?Math.round(100*bytes/rawJson.length):0,
+                tipo:Array.isArray(val)?'array':typeof val,
+                len:Array.isArray(val)?val.length:(val&&typeof val==='object'?Object.keys(val).length:1)
+            };
+        }catch(e){/* skip */}
+    });
+    /* Top 20 keys por bytes */
+    result.topKeys=Object.entries(result.secciones)
+        .sort((a,b)=>b[1].bytes-a[1].bytes)
+        .slice(0,20)
+        .map(([k,v])=>({key:k,kb:v.kb,pct:v.pctTotal,len:v.len,tipo:v.tipo}));
+    /* Análisis específico de operaciones */
+    const ops=datos.operaciones||[];
+    result.cantidadOps=ops.length;
+    if(ops.length>0){
+        let totalOpsBytes=0;
+        const opSizes=[];
+        const fieldFreq={};
+        const fieldBytes={};
+        ops.forEach((op,i)=>{
+            try{
+                const js=JSON.stringify(op);
+                totalOpsBytes+=js.length;
+                opSizes.push({idx:i,id:op&&op.id,bytes:js.length});
+                /* Contar uso de cada campo y bytes acumulados */
+                if(op&&typeof op==='object'){
+                    Object.keys(op).forEach(k=>{
+                        fieldFreq[k]=(fieldFreq[k]||0)+1;
+                        try{
+                            const fb=JSON.stringify(op[k]).length+k.length+4; /* "k":v, */
+                            fieldBytes[k]=(fieldBytes[k]||0)+fb;
+                        }catch(e){}
+                    });
+                }
+            }catch(e){}
+        });
+        result.avgBytesPerOp=Math.round(totalOpsBytes/ops.length);
+        /* Top 10 operaciones más pesadas */
+        result.topOperaciones=opSizes.sort((a,b)=>b.bytes-a.bytes).slice(0,10)
+            .map(o=>({id:safeIdTail(o.id,10),bytes:o.bytes,kb:Math.round(o.bytes/100)/10}));
+        /* Top campos dentro de operaciones por bytes acumulados */
+        result.campoOpsTop=Object.entries(fieldBytes)
+            .sort((a,b)=>b[1]-a[1])
+            .slice(0,15)
+            .map(([k,b])=>({campo:k,bytesTotal:b,kbTotal:Math.round(b/1024),
+                            freq:fieldFreq[k],pct:totalOpsBytes?Math.round(100*b/totalOpsBytes):0}));
+        /* Detección de duplicación: si un campo de string aparece miles de veces 
+           con valores repetidos, podría compactarse */
+        const stringRepetitions={};
+        ops.forEach(op=>{
+            if(!op||typeof op!=='object')return;
+            Object.keys(op).forEach(k=>{
+                const v=op[k];
+                if(typeof v==='string'&&v.length>2){
+                    if(!stringRepetitions[k])stringRepetitions[k]={};
+                    stringRepetitions[k][v]=(stringRepetitions[k][v]||0)+1;
+                }
+            });
+        });
+        /* Top valores repetidos: campo:valor con cuántas veces aparece */
+        const repTop=[];
+        Object.entries(stringRepetitions).forEach(([campo,valores])=>{
+            Object.entries(valores).forEach(([v,count])=>{
+                if(count>=10){
+                    repTop.push({campo,valor:v.slice(0,30),count,bytesGastadosUnnecesarios:count*v.length});
+                }
+            });
+        });
+        result.valoresRepetidos=repTop.sort((a,b)=>b.bytesGastadosUnnecesarios-a.bytesGastadosUnnecesarios).slice(0,10);
+    }
+    /* Detección de campos sospechosos */
+    result.flags.tieneLotes=Array.isArray(datos.lotes)&&datos.lotes.length>0;
+    result.flags.tieneLotesKB=result.secciones.lotes?result.secciones.lotes.kb:0;
+    result.flags.tieneSaldoUsdt=datos.saldoUsdt!==undefined;
+    result.flags.tieneTasasRecientes=Array.isArray(datos.tasasRecientes)&&datos.tasasRecientes.length>0;
+    result.flags.tasasRecientesLen=result.flags.tieneTasasRecientes?datos.tasasRecientes.length:0;
+    result.flags.dismissedVersionsLen=Array.isArray(datos.dismissedVersions)?datos.dismissedVersions.length:0;
+    result.flags.tagsLen=Array.isArray(datos.tags)?datos.tags.length:0;
+    /* Detección de campos _syncState que NO deberían haberse persistido */
+    let syncStateOrphans=0;
+    ['operaciones','movimientos','transferencias','conversiones'].forEach(k=>{
+        const arr=datos[k]||[];
+        arr.forEach(item=>{if(item&&item._syncState)syncStateOrphans++});
+    });
+    result.flags.syncStateOrphans=syncStateOrphans;
+    /* Memoria del heap (Chrome/Edge/Brave) */
+    try{
+        if(performance.memory&&performance.memory.usedJSHeapSize){
+            result.memUsedMB=Math.round(performance.memory.usedJSHeapSize/1024/1024);
+            result.memLimitMB=Math.round(performance.memory.jsHeapSizeLimit/1024/1024);
+        }
+    }catch(e){}
+    result.tiempoAnalisisMs=Math.round(performance.now()-t0);
+    /* Veredicto */
+    if(result.totalKB<700)result.estado='✓ Seguro';
+    else if(result.totalKB<850)result.estado='⚠ Alto';
+    else if(result.totalKB<950)result.estado='⚠⚠ Muy alto';
+    else result.estado='🛑 Crítico (cerca del límite 1MB)';
+    return result;
+}
 function getSyncDiagnostics(){
     return {
         version:CONFIG.APP_VERSION,
@@ -4986,6 +5126,54 @@ function renderDiagnosticoSync(){
         }
     }else{
         html+='(sin eventos registrados aún)\n';
+    }
+    /* ═══ Sección de auditoría de payload (bajo demanda) ═══
+       Si _ultimaAuditoria está cacheada (del botón "Auditar tamaño"), mostrarla.
+       NO la calculamos en cada render — es cara (~50ms). */
+    if(window._ultimaAuditoria){
+        const a=window._ultimaAuditoria;
+        html+='\n━━━ AUDITORÍA DE TAMAÑO DEL DOCUMENTO ━━━\n';
+        html+='Estado:                '+a.estado+'\n';
+        html+='Total KB:              '+a.totalKB+'\n';
+        html+='Cantidad ops:          '+a.cantidadOps+'\n';
+        if(a.avgBytesPerOp)html+='Promedio por op:       '+a.avgBytesPerOp+' bytes\n';
+        if(a.memUsedMB)html+='Heap JS usado:         '+a.memUsedMB+' MB / '+a.memLimitMB+' MB\n';
+        html+='Tiempo stringify:      '+a.tiempoStringifyMs+' ms\n';
+        html+='\nTop secciones por peso:\n';
+        a.topKeys.slice(0,10).forEach(k=>{
+            html+='  '+k.key.padEnd(22)+(k.kb+' KB').padStart(8)+'  ('+k.pct+'%)';
+            if(k.tipo==='array')html+=' ['+k.len+' items]';
+            html+='\n';
+        });
+        if(a.campoOpsTop&&a.campoOpsTop.length){
+            html+='\nTop campos DENTRO de operaciones:\n';
+            a.campoOpsTop.forEach(c=>{
+                html+='  '+c.campo.padEnd(22)+(c.kbTotal+' KB').padStart(8)+'  ('+c.pct+'% de ops, '+c.freq+'/'+a.cantidadOps+')\n';
+            });
+        }
+        if(a.topOperaciones&&a.topOperaciones.length){
+            html+='\nTop 10 ops más pesadas:\n';
+            a.topOperaciones.forEach(o=>{html+='  id '+o.id+': '+o.bytes+' bytes\n'});
+        }
+        if(a.valoresRepetidos&&a.valoresRepetidos.length){
+            html+='\nValores repetidos (candidatos a normalizar):\n';
+            a.valoresRepetidos.forEach(r=>{
+                html+='  '+r.campo+'="'+r.valor+'" × '+r.count+' (~'+r.bytesGastadosUnnecesarios+' bytes acumulados)\n';
+            });
+        }
+        if(a.flags){
+            html+='\nFlags:\n';
+            if(a.flags.tieneLotes)html+='  ⚠ lotes embebidos: '+a.flags.tieneLotesKB+' KB (debería ser 0)\n';
+            if(a.flags.tieneSaldoUsdt)html+='  ⚠ saldoUsdt persistido (debería ser local)\n';
+            if(a.flags.tasasRecientesLen>10)html+='  ⚠ tasasRecientes muy largo: '+a.flags.tasasRecientesLen+' items\n';
+            if(a.flags.dismissedVersionsLen>20)html+='  ⚠ dismissedVersions sin limpiar: '+a.flags.dismissedVersionsLen+' items\n';
+            if(a.flags.syncStateOrphans>0)html+='  ⚠ _syncState orphans en datos: '+a.flags.syncStateOrphans+'\n';
+            if(a.flags.tagsLen>50)html+='  • tags: '+a.flags.tagsLen+' (acumulación)\n';
+        }
+        html+='\n(análisis hecho en '+a.tiempoAnalisisMs+' ms)\n';
+    }else{
+        html+='\n━━━ AUDITORÍA DE TAMAÑO ━━━\n';
+        html+='Tocá "🔍 Auditar tamaño" para analizar qué pesa en el documento.\n';
     }
     el.textContent=html;
 }
@@ -7140,6 +7328,23 @@ document.addEventListener('DOMContentLoaded',()=>{
     const _bRefSync=$('btnSyncDiagRefresh');if(_bRefSync)_bRefSync.addEventListener('click',renderDiagnosticoSync);
     const _bForceSync=$('btnSyncDiagForceSync');if(_bForceSync)_bForceSync.addEventListener('click',ejecutarForzarSync);
     const _bCopySync=$('btnSyncDiagCopy');if(_bCopySync)_bCopySync.addEventListener('click',copiarDiagnosticoSync);
+    const _bAuditSync=$('btnSyncDiagAudit');if(_bAuditSync)_bAuditSync.addEventListener('click',()=>{
+        if(_bAuditSync){_bAuditSync.disabled=true;_bAuditSync.textContent='Analizando…'}
+        /* setTimeout para que el botón pueda actualizar UI antes del stringify pesado */
+        setTimeout(()=>{
+            try{
+                window._ultimaAuditoria=analizarPayload(AppState.datos);
+                _syncLog('audit:done',{totalKB:window._ultimaAuditoria&&window._ultimaAuditoria.totalKB,
+                                       estado:window._ultimaAuditoria&&window._ultimaAuditoria.estado});
+                renderDiagnosticoSync();
+            }catch(e){
+                console.error('[P2P] Análisis falló:',e);
+                alert('Análisis falló: '+e.message);
+            }finally{
+                if(_bAuditSync){_bAuditSync.disabled=false;_bAuditSync.textContent='🔍 Auditar tamaño'}
+            }
+        },50);
+    });
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
     $('btnGuardarLote').addEventListener('click',guardarLote);
