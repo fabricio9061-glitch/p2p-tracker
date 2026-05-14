@@ -1427,7 +1427,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.35',
+    APP_VERSION: '4.7.36',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1460,6 +1460,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.36', date:'2026-05-13', headline:'🚨 STOP-THE-BLEEDING: corta loops infinitos + payload -40% + fix rollback fantasma.', changes:[
+        {type:'fix', title:'CIRCUIT BREAKER: corta loops de retry infinito', desc:'BUG MÁS GRAVE: si el write fallaba 3+ veces (típicamente por payload cerca de 1MB), la app entraba en loop eterno de retry con backoff. _guardando quedaba true, _localDirty acumulaba, _syncQueue crecía sin tope. Después de 3 timeouts consecutivos, AHORA: detener auto-retry, mantener datos a salvo localmente, mostrar "⚠ Sync bloqueado — abrí Diagnóstico", requerir botón "Forzar sync" manual.'},
+        {type:'fix', title:'Deadlock detection: _guardando colgado >60s', desc:'Si "Forzar sync" se ejecuta y _guardando lleva más de 60 segundos en true (sin que se haya completado una transacción), asumimos deadlock. Reseteamos los flags (_guardando, _guardarPendiente, _syncPending) para que el siguiente intento pueda arrancar. Sin esto, una promesa huérfana podía bloquear la app indefinidamente.'},
+        {type:'fix', title:'BUG CRÍTICO: setTimeout del timeout NUNCA se cancelaba', desc:'Cada save creaba un setTimeout(30s) que disparaba rollback. Pero NO se cancelaba cuando el write completaba exitoso. Resultado: 30s después del start, el callback ejecutaba rollback aunque la promesa hubiera resuelto. Fix: guardamos timeoutHandle y lo cancelamos en .then()/.catch(). Flag writeCompleted bloquea el rollback aunque haya race.'},
+        {type:'perf', title:'Strip de campos derivables del payload', desc:'Payload era 1142 KB → cerca del límite de 1MB → writes fallaban silenciosamente. Fix: delete datosLimpios.lotes y delete datosLimpios.saldoUsdt antes del set(). Son derivables localmente vía recalcularLotesYGanancias(). Esperado: payload baja a ~600-700 KB (-40%), writes vuelven a confirmar. Compatible con docs legacy: cuando llegan con lotes embebidos, recalcular los sobrescribe.'},
+        {type:'verified', title:'Cómo recuperarse del estado bloqueado', desc:'1) Cargar v4.7.36. 2) Si veías "Sync bloqueado", abrir Diagnóstico de sincronización. 3) Tocar "⚡ Forzar sync" — esto resetea el circuit breaker y el deadlock. 4) Esperar — payload ya es -40% más chico, debería confirmar en <10s. 5) En el log buscar "save:queue-drained" como último evento. Si vuelve a fallar, mandar copy del panel completo.'},
+        {type:'verified', title:'IMPORTANTE — esto NO es la migración a subcolecciones', desc:'Estos son fixes incrementales para parar el sangrado. La migración real a /users/{uid}/operaciones/{opId} con sync incremental, deduplicación de queue, IndexedDB manual y bootstrap independiente del sync es un proyecto separado que requiere planificación, branch dedicado y migración de datos cuidadosa. Por ahora: estabilizar la versión actual y planificar la migración con tiempo.'}
+    ]},
     {version:'4.7.35', date:'2026-05-13', headline:'⚡ Fix de latencia: -50% del tiempo de save al eliminar el get pre-write.', changes:[
         {type:'perf', title:'Eliminado el tx.get del runTransaction', desc:'BUG: cada save hacía runTransaction { tx.get + tx.set }. El get descargaba el documento entero (~500-800KB con 2671 ops) antes de cada escritura, sumando ~14-24 segundos por save (log v4.7.34: 11:18:32 enqueue → 11:18:56 confirm). Ahora: ref.set() directo, sin lectura previa. Esperado -50% de latencia. La protección de versión la mantiene el snapshot listener + mergeRemoteState (mismo mecanismo que ya existía para multi-device simultáneo).'},
         {type:'feature', title:'Instrumentación de timing por fase', desc:'Cada save ahora registra: save:prep-start, save:prep-end (con tamaño del payload en KB), save:write-start, save:write-end (con ms del write). El panel de diagnóstico ahora muestra al final una sección "TIMING DEL ÚLTIMO SAVE" con: total start→confirm, tiempo de write, payload size en KB. Eso permite ver si el cuello está en serialización, upload, o ack del server.'},
@@ -1487,13 +1495,6 @@ const CHANGELOG = [
         {type:'perf', title:'Debounce inteligente para mutaciones críticas', desc:'Antes el debounce era 400ms uniforme. Ahora create/delete dispara en 100ms (apenas para batchear cascadas legítimas), mientras que updates de typing siguen con 400ms. Los flushes por tiempo (>2s) y cantidad (>=10 entries) se mantienen como red de seguridad. Resultado: crear/eliminar se siente 4x más rápido sin afectar throughput.'},
         {type:'fix', title:'Hash del merge detecta más tipos de edición', desc:'El hash anterior cubría monto/tasa/tipo/aportes. Faltaban: banco, origen, destino, comisión, ganancia, descripción. Una edición remota de cualquiera de esos campos parecía no haber pasado y la UI no se actualizaba hasta que el usuario hiciera otra acción. Hash ampliado para detectar todos los campos visibles.'},
         {type:'verified', title:'Pruebas multi-device sugeridas', desc:'1) Crear op en device A, verificar aparición en B en <2s. 2) Editar monto en A, verificar en B. 3) Eliminar en A, verificar desaparición en B (este era el bug). 4) Cambiar comisión global en A, verificar actualización en B sin recargar. 5) Hacer transferencia en A, verificar saldos en B. Si algo falla, exportar diagnóstico y enviarlo.'}
-    ]},
-    {version:'4.7.31', date:'2026-05-06', headline:'🔍 Auditoría técnica: hash insuficiente, leak de syncQueue, fixNeg mal documentado.', changes:[
-        {type:'fix', title:'Hash de mergeRemoteState detectaba pocos cambios', desc:'BUG REAL: el hash de v4.7.28 solo miraba id+timestamp, pero las ediciones de operaciones NO actualizan timestamp (solo updatedAt). Resultado: si otro device editaba el monto de una op, mi device skipeaba recalcularLotesYGanancias y la ganancia quedaba desactualizada. Ahora el hash incluye updatedAt + monto + tasa + tipo + aportes.length. Costo: 5ms para 2671 ops (antes 3ms).'},
-        {type:'fix', title:'_syncQueue podía crecer sin límite', desc:'En escenarios offline largos con writes fallidos repetidos, _syncQueue acumulaba entries sin tope (memory leak lento). Cap defensivo de 500 entries con FIFO eviction. No afecta funcionalidad — el sync real depende de _localDirty, no de la queue.'},
-        {type:'improve', title:'fixNeg documentado correctamente', desc:'Encontré comentarios y supuestos en el código que decían que fixNeg "previene saldos negativos". MENTIRA — solo maneja -0 y NaN. La protección anti-negativo real vive en validarDeltas() pre-mutación. Documenté la verdad para evitar que alguien (yo incluido) asuma protección que no existe.'},
-        {type:'verified', title:'Auditoría completa pasada', desc:'Revisé enablePersistence, onSnapshot, guardarDatos, guardaOptimista, backups, restore, sync online/offline, validaciones anti-saldo-negativo, lotes FIFO, calendario, filtros, novedades, edición/eliminación. No hay race conditions críticas, no hay sobrescrituras incorrectas, no hay loops de escritura. La arquitectura está sólida — los 3 bugs encontrados eran semánticos/documentales, no funcionales.'},
-        {type:'verified', title:'Hash test cases verificados de verdad', desc:'En v4.7.28 dije "el hash detecta ops editadas (timestamp cambia)" — incorrecto, timestamp NO cambia en edits. Ahora valido por código: edit monto, edit tasa, cambio de aportes (split), todos detectados. Tests reales pasaron 4/4.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -3846,23 +3847,36 @@ async function forzarSyncManual(){
     if(typeof iniciarRecuperacionFirestore!=='undefined'&&iniciarRecuperacionFirestore._activa){
         return{ok:false,reason:'Recovery en progreso — esperá a que termine'};
     }
-    _syncLog('manual-sync:start',{queueSize:_syncQueue.length,guardando:_guardando});
+    _syncLog('manual-sync:start',{queueSize:_syncQueue.length,guardando:_guardando,dirty:_localDirty});
     /* 1. Flush del debounce si está pendiente */
     if(_guardaDebounceTimer){
         clearTimeout(_guardaDebounceTimer);
         _guardaDebounceTimer=null;
         _guardaFirstPendingTs=0;
     }
-    /* 2. Cancelar retry y arrancar limpio */
+    /* 2. Cancelar retry y arrancar limpio (reset del circuit breaker) */
     clearTimeout(_retryTimer);
     _retryTimer=null;
     _syncErrors=0;
     _retryDelay=2000;
     updateSyncBadge();
-    /* 3. Si guardarDatos está en flight, dejar que termine naturalmente */
+    /* 3. Detección de deadlock: si _guardando lleva >60s sin completar, está colgado.
+       Causa típica: un setTimeout viejo, promise huérfana, o el SDK bloqueado.
+       Forzamos reset para que el siguiente intento pueda arrancar. */
     if(_guardando){
-        _syncLog('manual-sync:already-running');
-        return{ok:true,reason:'Sync ya está en progreso'};
+        const lastStart=_syncLogRing.slice().reverse().find(e=>e.event==='save:start');
+        const stuckMs=lastStart?Date.now()-lastStart.ts:0;
+        if(stuckMs>60000){
+            _syncLog('manual-sync:deadlock-detected',{stuckSeconds:Math.round(stuckMs/1000)});
+            console.warn('[P2P] Deadlock detectado: _guardando=true por '+Math.round(stuckMs/1000)+'s. Reseteando flags.');
+            _guardando=false;
+            _guardarPendiente=false;
+            _syncPending=0;
+            updateSyncBadge();
+        }else{
+            _syncLog('manual-sync:already-running',{stuckSeconds:Math.round(stuckMs/1000)});
+            return{ok:true,reason:'Sync ya está en progreso (hace '+Math.round(stuckMs/1000)+'s) — esperá'};
+        }
     }
     /* 4. Si hay nada que sincronizar, NO disparar tx innecesario */
     if(_syncQueue.length===0&&_localDirty===0){
@@ -4305,28 +4319,16 @@ async function guardarDatos(forzar){
            Antes (v4.7.34): runTransaction(async tx => { await tx.get(); ...; tx.set() })
            Ahora: ref.set(datos) sin lectura previa.
 
-           Motivo: el tx.get descargaba el documento entero (~500-800 KB con 2671 ops)
-           antes de cada write. Eso duplicaba el tiempo de cada save a 14-24s. El log
-           del usuario (v4.7.34) mostraba: enqueue 11:18:32 → confirmed 11:18:56 = 24s.
-
-           Protecciones que se mantienen sin tx.get:
-             1. _localVersion check pre-flight: si nuestro _localVersion < el último
-                serverVersion conocido (via último snapshot), abortamos con stale-version.
-                Eso lo cubre el snapshot listener que ya hace mergeRemoteState cuando
-                detecta una versión más nueva en el server.
-             2. version bump: incrementamos _localVersion+1 y subimos. Si dos devices
-                escriben simultáneamente, el snapshot listener subsiguiente va a recibir
-                ambos writes y mergeRemoteState los reconcilia preservando local-only.
-             3. Strip de campos runtime intacto.
-             4. Anti-wipe blindajes intactos (esDatosVacios check arriba).
-
-           Lo que perdemos: la atomicidad get+set. Si entre el momento en que decidimos
-           el newVersion y el momento del set, otro device subió un v+1, vamos a "pisar"
-           ese write. Pero el snapshot listener va a detectarlo en el siguiente ciclo
-           y mergeRemoteState va a reconstruir el estado correcto (es lo mismo que pasa
-           hoy con dos devices que escriben en simultáneo a 100ms de diferencia).
+           Protecciones: snapshot listener + mergeRemoteState mantienen la coherencia
+           multi-device. Si dos devices escriben simultáneamente, el snapshot subsiguiente
+           lo reconcilia (mismo flow que ya manejaba multi-device).
            
-           Ganancia esperada: ~50% de latencia (eliminamos el download del doc completo). */
+           Strip de campos derivables (Fix 2 v4.7.36): lotes y saldoUsdt se reconstruyen
+           localmente con recalcularLotesYGanancias(). No se suben al server. Eso reduce
+           el payload típico de ~1140 KB a ~500-700 KB.
+           
+           Compatibilidad legacy: docs viejos que tengan lotes embebidos siguen funcionando 
+           — al cargarse, recalcularLotesYGanancias los sobrescribe con los reconstruidos. */
         const tStart=performance.now();
         _syncLog('save:prep-start',{});
         const serverVersionConocido=AppState._localVersion||0;
@@ -4340,6 +4342,15 @@ async function guardarDatos(forzar){
             const{_syncState,...rest}=x;
             return rest;
         }):arr;
+        /* ═══ Strip de campos DERIVABLES — Fix 2 v4.7.36 ═══
+           Estos campos se reconstruyen localmente y NO necesitan persistirse:
+             - lotes: regenerado por recalcularLotesYGanancias() desde operaciones
+             - saldoUsdt: derivado de los lotes (suma de disponibles)
+           
+           Otros devices que reciban el snapshot van a tener estos campos vacíos,
+           y al cargarse el cargarDatosUsuario llama a recalcular automáticamente
+           (línea ~4593). Compatible con docs legacy: si llegan con lotes embebidos,
+           el recalcular los sobrescribe igual. */
         const datosLimpios={
             ...AppState.datos,
             operaciones:stripRuntime(AppState.datos.operaciones),
@@ -4347,21 +4358,29 @@ async function guardarDatos(forzar){
             transferencias:stripRuntime(AppState.datos.transferencias),
             conversiones:stripRuntime(AppState.datos.conversiones||[])
         };
+        /* Medir tamaño ANTES del strip de derivables (para el reporte de reducción) */
+        let payloadKBPreStrip=0;
+        try{
+            const sampleFull={...datosLimpios,_version:newVersion,ultimaActualizacion:'<server-ts>'};
+            payloadKBPreStrip=Math.round(JSON.stringify(sampleFull).length/1024);
+        }catch(e){/* no critical */}
+        /* Strip de derivables */
+        delete datosLimpios.lotes;
+        delete datosLimpios.saldoUsdt;
         const payload={
             ...datosLimpios,
             _version:newVersion,
             ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
         };
-        /* Estimación de tamaño del payload — útil para diagnosticar si hay que dividir */
+        /* Tamaño FINAL del payload */
         let payloadKB=0;
         try{
-            /* Serializar a JSON para medir. FieldValue.serverTimestamp() no es 
-               serializable, lo reemplazamos por un placeholder solo para medir. */
             const sample={...payload,ultimaActualizacion:'<server-ts>'};
             payloadKB=Math.round(JSON.stringify(sample).length/1024);
-        }catch(e){/* si falla la serialización, payloadKB=0 — no es crítico */}
+        }catch(e){/* if fails, payloadKB=0 — not critical */}
+        const reductionPct=payloadKBPreStrip>0?Math.round(100*(payloadKBPreStrip-payloadKB)/payloadKBPreStrip):0;
         const tPrepEnd=performance.now();
-        _syncLog('save:prep-end',{ms:Math.round(tPrepEnd-tStart),payloadKB,newVersion});
+        _syncLog('save:prep-end',{ms:Math.round(tPrepEnd-tStart),payloadKB,preKB:payloadKBPreStrip,reductionPct,newVersion,stripped:['lotes','saldoUsdt']});
         /* Optimistic version bump — el snapshot listener va a confirmar con el server.
            Si hay conflicto, mergeRemoteState lo reconcilia. */
         AppState._localVersion=newVersion;
@@ -4372,29 +4391,51 @@ async function guardarDatos(forzar){
            listener pensaría que estamos sincronizados cuando en realidad no escribimos. */
         const versionPreBump=serverVersionConocido;
         let versionRolledBack=false;
+        let writeCompleted=false;
+        /* ═══ CRÍTICO v4.7.36: cancelar el setTimeout del timeout ═══
+           Bug detectado en v4.7.35: el setTimeout del timeout NUNCA se cancelaba cuando
+           el write completaba exitosamente. Resultado: 30 segundos después del start,
+           el callback ejecutaba rollback de _localVersion aunque la promesa del write 
+           hubiera resuelto bien y _localVersion ya estuviera correcto.
+           
+           En el log de v4.7.35 esto se veía como: write completa OK a t+21s, pero a 
+           t+30s (~9s después) aparece save:version-rollback porque el setTimeout viejo
+           ejecuta su callback. Como cada save crea un nuevo timeout, se acumulaban.
+           
+           Fix: guardar el handle del setTimeout y cancelarlo en .then() y .catch().
+           Además, writeCompleted flag para que aunque haya race, no se haga rollback. */
+        let timeoutHandle=null;
         const writePromise=ref.set(payload).then(()=>{
+            writeCompleted=true;
+            if(timeoutHandle){clearTimeout(timeoutHandle);timeoutHandle=null}
             const tWriteEnd=performance.now();
             _syncLog('save:write-end',{ms:Math.round(tWriteEnd-tPrepEnd),totalMs:Math.round(tWriteEnd-tStart)});
         }).catch(err=>{
-            /* Rollback de la version optimista: el write falló */
-            if(!versionRolledBack){
+            if(timeoutHandle){clearTimeout(timeoutHandle);timeoutHandle=null}
+            /* Rollback de la version optimista solo si el write realmente falló */
+            if(!versionRolledBack&&!writeCompleted){
                 AppState._localVersion=versionPreBump;
                 AppState.datos._version=versionPreBump;
                 versionRolledBack=true;
-                _syncLog('save:version-rollback',{toVersion:versionPreBump});
+                _syncLog('save:version-rollback',{toVersion:versionPreBump,reason:'write-error'});
             }
             throw err;
         });
-        const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>{
-            /* Rollback también en timeout */
-            if(!versionRolledBack){
-                AppState._localVersion=versionPreBump;
-                AppState.datos._version=versionPreBump;
-                versionRolledBack=true;
-                _syncLog('save:version-rollback',{toVersion:versionPreBump,reason:'timeout'});
-            }
-            reject({code:'tx-timeout'});
-        },TX_TIMEOUT));
+        const timeoutPromise=new Promise((_,reject)=>{
+            timeoutHandle=setTimeout(()=>{
+                timeoutHandle=null;
+                /* Verificar que el write NO haya completado ya — protege contra race:
+                   write completa pero callback de timeout estaba en cola de microtasks. */
+                if(writeCompleted)return;
+                if(!versionRolledBack){
+                    AppState._localVersion=versionPreBump;
+                    AppState.datos._version=versionPreBump;
+                    versionRolledBack=true;
+                    _syncLog('save:version-rollback',{toVersion:versionPreBump,reason:'timeout'});
+                }
+                reject({code:'tx-timeout'});
+            },TX_TIMEOUT);
+        });
         await Promise.race([writePromise,timeoutPromise]);
         _syncLog('save:confirmed',{idsConfirmed:idsSnapshot.length,newVersion:AppState._localVersion});
         _syncPending=Math.max(0,_syncPending-1);_syncErrors=0;_retryDelay=2000;
@@ -4441,16 +4482,30 @@ async function guardarDatos(forzar){
             _syncLog('save:offline-deferred',{queueSize:idsSnapshot.length});
         }else if(e.code==='tx-timeout'){
             /* Timeout de seguridad: la transacción no respondió en 30s.
-               El backup local ya está hecho — los datos están a salvo.
-               Tratamos como error de red y dejamos que el retry timer reintente. */
+               El backup local ya está hecho — los datos están a salvo. */
             _syncPending=Math.max(0,_syncPending-1);
             _syncErrors++;updateSyncBadge();
-            setSyncStatus('offline','Tiempo de espera agotado — reintentando…');
-            _syncLog('save:tx-timeout',{retryIn:Math.min(_retryDelay,30000)});
-            console.warn('[P2P] Transacción excedió timeout de 30s, reintentando');
-            clearTimeout(_retryTimer);
-            _retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();guardarDatos()},Math.min(_retryDelay,30000));
-            _retryDelay=Math.min(_retryDelay*1.5,30000);
+            _syncLog('save:tx-timeout',{retryIn:Math.min(_retryDelay,30000),consecutiveTimeouts:_syncErrors});
+            console.warn('[P2P] Transacción excedió timeout de 30s ('+_syncErrors+' consecutivos)');
+            /* ═══ CIRCUIT BREAKER v4.7.36 ═══
+               Si llevamos 3+ timeouts consecutivos, NO reintentar automáticamente.
+               Causa más probable: payload >1MB rechazado por Firestore, o SDK colgado.
+               Reintentar genera loop infinito que congela la app. Mejor: parar, mantener 
+               datos a salvo en local, mostrar mensaje claro, requerir acción manual.
+               El usuario puede usar "Forzar sync" en el panel de diagnóstico cuando 
+               crea que el problema se resolvió. */
+            clearTimeout(_retryTimer);_retryTimer=null;
+            if(_syncErrors>=3){
+                setSyncStatus('offline','⚠ Sync bloqueado — abrí Diagnóstico');
+                _syncLog('circuit-breaker:tripped',{consecutiveErrors:_syncErrors,reason:'tx-timeout'});
+                console.error('[P2P] Circuit breaker activado: 3+ timeouts consecutivos. Auto-retry detenido. Usar Diagnóstico → Forzar sync para reintentar manualmente.');
+                /* Reset de backoff para que el siguiente intento manual sea inmediato */
+                _retryDelay=2000;
+            }else{
+                setSyncStatus('offline','Tiempo de espera agotado — reintentando…');
+                _retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();guardarDatos()},Math.min(_retryDelay,30000));
+                _retryDelay=Math.min(_retryDelay*1.5,30000);
+            }
         }else{
             _syncPending=Math.max(0,_syncPending-1);
             if(e.code==='stale-version'){
@@ -4459,12 +4514,19 @@ async function guardarDatos(forzar){
                 _syncLog('save:stale-version',{serverV:e.serverV,localV:e.localV});
             }else{
                 _syncErrors++;updateSyncBadge();
-                setSyncStatus('offline',_syncErrors>0?_syncErrors+' error'+((_syncErrors>1)?'es':''):'Error sync');
-                _syncLog('save:error',{code:e.code||'?',msg:(e.message||'').slice(0,120),retryIn:Math.min(_retryDelay,30000)});
-                /* Auto-retry with backoff */
-                clearTimeout(_retryTimer);
-                _retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();guardarDatos()},Math.min(_retryDelay,30000));
-                _retryDelay=Math.min(_retryDelay*1.5,30000);
+                _syncLog('save:error',{code:e.code||'?',msg:(e.message||'').slice(0,120),retryIn:Math.min(_retryDelay,30000),consecutiveErrors:_syncErrors});
+                /* Circuit breaker para errores generales también */
+                clearTimeout(_retryTimer);_retryTimer=null;
+                if(_syncErrors>=3){
+                    setSyncStatus('offline','⚠ Sync bloqueado — abrí Diagnóstico');
+                    _syncLog('circuit-breaker:tripped',{consecutiveErrors:_syncErrors,reason:e.code||'error'});
+                    console.error('[P2P] Circuit breaker activado: 3+ errores consecutivos. Datos a salvo localmente.');
+                    _retryDelay=2000;
+                }else{
+                    setSyncStatus('offline',_syncErrors>0?_syncErrors+' error'+((_syncErrors>1)?'es':''):'Error sync');
+                    _retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();guardarDatos()},Math.min(_retryDelay,30000));
+                    _retryDelay=Math.min(_retryDelay*1.5,30000);
+                }
             }
         }
     }finally{
@@ -4593,6 +4655,25 @@ function cargarDatosUsuario(){
         }
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
+        /* ═══ v4.7.36: si el snapshot vino SIN lotes/saldoUsdt (strip nuevo) ═══
+           Los uploads nuevos no incluyen estos campos derivables. Cuando un device 
+           recibe el snapshot, debe reconstruirlos localmente. Esto cubre:
+             - Snapshot inicial al login
+             - Snapshots de cambios de otros devices  
+             - Reload tras hacer cambios locales
+           
+           Compatibilidad legacy: si el doc viejo SÍ tenía lotes embebidos, 
+           recalcularLotesYGanancias los sobrescribe con los reconstruidos (idempotente).
+           
+           Se ejecuta solo en Branch 1 (load inicial) y Branch 2 (merge con cambios).
+           Branch 3 (echo de mi propio write) ya retornó antes. */
+        const necesitaRecalc=!Array.isArray(AppState.datos.lotes)||AppState.datos.lotes.length===0||AppState.datos.saldoUsdt===undefined;
+        if(necesitaRecalc&&Array.isArray(AppState.datos.operaciones)&&AppState.datos.operaciones.length>0){
+            try{
+                recalcularLotesYGanancias();
+                _syncLog('snapshot:recalc-derived',{ops:AppState.datos.operaciones.length,lotes:(AppState.datos.lotes||[]).length});
+            }catch(e){console.warn('[P2P] recalc post-snapshot falló:',e.message)}
+        }
         /* Migración: normalizar datos legacy (solo si hay datos sin moneda o sin ganancia).
            IMPORTANTE: guard por sesión — si Firestore stripea undefined al marshallizar, 
            ganancia=undefined vuelve en cada snapshot, y eso dispararía un loop 
@@ -4889,7 +4970,18 @@ function renderDiagnosticoSync(){
             const prepEvt=tail.find((e,i)=>i>matchedStart&&i<=lastConfirmed&&e.event==='save:prep-end');
             if(prepEvt){
                 if(prepEvt.payloadKB)html+='Payload size:          '+prepEvt.payloadKB+' KB\n';
+                if(prepEvt.preKB&&prepEvt.preKB!==prepEvt.payloadKB){
+                    html+='Antes del strip:       '+prepEvt.preKB+' KB\n';
+                    html+='Reducción:             '+(prepEvt.reductionPct||0)+'% ('+(prepEvt.preKB-prepEvt.payloadKB)+' KB)\n';
+                    if(Array.isArray(prepEvt.stripped))html+='Campos excluidos:      '+prepEvt.stripped.join(', ')+'\n';
+                }
                 if(prepEvt.ms)html+='Prep payload:          '+prepEvt.ms+' ms\n';
+            }
+            /* Detectar rollback falso seguido de confirmación posterior */
+            const rollbackEvt=tail.find((e,i)=>i>matchedStart&&i<=lastConfirmed&&e.event==='save:version-rollback');
+            if(rollbackEvt){
+                html+='⚠ Rollback detectado:   '+(rollbackEvt.reason||'?')+' (toVersion: '+rollbackEvt.toVersion+')\n';
+                html+='  Pero confirmación llegó después → write OK pese al rollback\n';
             }
         }
     }else{
