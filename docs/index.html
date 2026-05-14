@@ -1427,7 +1427,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.40',
+    APP_VERSION: '4.7.41',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1460,6 +1460,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.41', date:'2026-05-14', headline:'⚡ Strip comisionPlataforma (verificado 3092/3092 exact) + fix analizador.', changes:[
+        {type:'perf', title:'Strip de comisionPlataforma — verificación exhaustiva', desc:'Auditoría v4.7.40 reportó SAFE-TO-STRIP con 3092/3092 exact match. La fórmula canónica truncar(usdtBase × comisionPct/100, 2) — donde usdtBase = roundMoney(monto/tasa,2) para compras y truncar(monto/tasa,2) para ventas — reproduce el valor guardado en TODAS las ops del usuario. Strip aplicado solo a la copia del payload — AppState.datos.operaciones[i].comisionPlataforma sigue intacta para la UI. Ahorro estimado adicional: ~75 KB.'},
+        {type:'fix', title:'Analizador medía AppState.datos en vez del payload remoto', desc:'BUG: el analizador hacía JSON.stringify(AppState.datos) y reportaba ese tamaño como veredicto. Pero AppState.datos contiene los campos derivables (lotes, saldoUsdt, ganancia, consumedLots) porque recalcularLotesYGanancias los reconstruye después de cada snapshot. El payload remoto NO los incluye. Resultado: el panel decía "🛑 Crítico 1143 KB" cuando el payload real era 905 KB. Fix: el analizador ahora simula exactamente el mismo strip que guardarDatos y reporta ambos: "Payload REMOTO (real)" y "Estado LOCAL completo".'},
+        {type:'fix', title:'Falsas alarmas en flags "lotes embebidos" y "saldoUsdt persistido"', desc:'Las flags marcaban estos campos como problemas cuando en realidad son comportamiento esperado: el state local SIEMPRE los tiene porque recalc los reconstruye. El payload remoto NO los lleva (verificable comparando remoteKB vs totalKB). Las flags ahora solo aparecen para problemas reales: syncStateOrphans, tasasRecientes inflado, dismissedVersions sin limpiar, tagsLen acumulado. Si no hay nada, muestra "✓ ningún problema detectado".'},
+        {type:'fix', title:'Recalc post-snapshot también detecta comisionPlataforma faltante', desc:'El check necesitaRecalc ahora samplea las primeras 10 ops (no 5) buscando ganancia, consumedLots O comisionPlataforma faltantes. Si cualquiera falta, dispara recalc. Esto garantiza que al recibir un snapshot stripeado (de v4.7.41+), todos los campos derivables se reconstruyen automáticamente antes de renderizar la UI.'},
+        {type:'verified', title:'Veredicto basado en payload remoto', desc:'El estado (✓ Seguro / ⚠ Alto / 🛑 Crítico) ahora se calcula sobre remoteKB, no sobre totalKB. Esperado para tu cuenta: payload remoto baja de 905 KB → ~830 KB. Veredicto debería pasar de "⚠⚠ Muy alto" a "⚠ Alto". Tiempo de write esperado: ~14-15s (vs 17s actual).'},
+        {type:'verified', title:'Cómo probar', desc:'1) Hard refresh. 2) Crear una op cualquiera. 3) Menú → Diagnóstico → 🔍 Auditar tamaño. 4) Buscar las líneas: "Payload REMOTO (real): ~830 KB" + "Estado LOCAL completo: ~1140 KB" + "Ahorrado por strip: ~310 KB". 5) Las flags NO deberían marcar lotes/saldoUsdt como problema. 6) En "TIMING DEL ÚLTIMO SAVE" payload enviado <850 KB. 7) Verificar que las ganancias y comisiones se ven correctamente en la lista de ops.'}
+    ]},
     {version:'4.7.40', date:'2026-05-14', headline:'🔍 Auditoría de comisionPlataforma — solo diagnóstico, sin strip.', changes:[
         {type:'feature', title:'Auditoría financiera de comisionPlataforma', desc:'Nueva función auditarComisionPlataforma() que recorre TODAS las operaciones y compara comisionPlataforma guardada contra el valor canónico truncar(usdtBase × comisionPct/100, 2), donde usdtBase = roundMoney(monto/tasa,2) para compras y truncar(monto/tasa,2) para ventas. Esta es exactamente la fórmula que usa recalcularLotesYGanancias (línea 3611). Categoriza cada op en: exact (diff=0), tolerance (≤0.01), small (0.01-0.10), significant (>0.10), missing-pct (legacy sin comisionPct), missing-cp (sin comisionPlataforma), invalid (datos malformados).'},
         {type:'feature', title:'Verdict claro: SAFE-TO-STRIP / DO-NOT-STRIP', desc:'Después del análisis, la auditoría emite un verdict explícito: SAFE-TO-STRIP solo si TODAS las ops son exact o tolerance. DO-NOT-STRIP si hay alguna small/significant/missing-pct. La auditoría también lista las top 10 discrepancias con detalle completo (id, fecha, tipo, monto, tasa, usdt, comisionPct, cpGuardada, cpEsperada, diff) para inspección humana antes de decidir.'},
@@ -1489,14 +1497,6 @@ const CHANGELOG = [
         {type:'feature', title:'Veredicto de estado del documento', desc:'En base al tamaño total: ✓ Seguro (<700 KB), ⚠ Alto (700-850 KB), ⚠⚠ Muy alto (850-950 KB), 🛑 Crítico (>950 KB, cerca del límite 1MB de Firestore). Útil para saber rápidamente si el documento está sano o necesita acción.'},
         {type:'verified', title:'Cómo usar esta auditoría', desc:'1) Cargar v4.7.37 en cualquier device. 2) Abrir Menú → Diagnóstico de sincronización. 3) Tocar "🔍 Auditar tamaño". 4) Esperar 1-2 segundos (botón dice "Analizando…"). 5) Aparece la sección "AUDITORÍA DE TAMAÑO" con todos los detalles. 6) Tocar "📋 Copiar" y mandarlo. Con ese output identificamos EXACTAMENTE qué está ocupando los 278 KB extras que el dataset sintético no predice.'},
         {type:'verified', title:'Lo que NO hicimos todavía', desc:'NO bajamos el payload — primero hay que medir. NO migramos a subcolecciones — eso es proyecto separado. NO cambiamos el engine de sync. v4.7.37 es exclusivamente diagnóstico. Una vez que sepamos qué pesa, v4.7.38 va a poder hacer reducción dirigida con confianza.'}
-    ]},
-    {version:'4.7.36', date:'2026-05-13', headline:'🚨 STOP-THE-BLEEDING: corta loops infinitos + payload -40% + fix rollback fantasma.', changes:[
-        {type:'fix', title:'CIRCUIT BREAKER: corta loops de retry infinito', desc:'BUG MÁS GRAVE: si el write fallaba 3+ veces (típicamente por payload cerca de 1MB), la app entraba en loop eterno de retry con backoff. _guardando quedaba true, _localDirty acumulaba, _syncQueue crecía sin tope. Después de 3 timeouts consecutivos, AHORA: detener auto-retry, mantener datos a salvo localmente, mostrar "⚠ Sync bloqueado — abrí Diagnóstico", requerir botón "Forzar sync" manual.'},
-        {type:'fix', title:'Deadlock detection: _guardando colgado >60s', desc:'Si "Forzar sync" se ejecuta y _guardando lleva más de 60 segundos en true (sin que se haya completado una transacción), asumimos deadlock. Reseteamos los flags (_guardando, _guardarPendiente, _syncPending) para que el siguiente intento pueda arrancar. Sin esto, una promesa huérfana podía bloquear la app indefinidamente.'},
-        {type:'fix', title:'BUG CRÍTICO: setTimeout del timeout NUNCA se cancelaba', desc:'Cada save creaba un setTimeout(30s) que disparaba rollback. Pero NO se cancelaba cuando el write completaba exitoso. Resultado: 30s después del start, el callback ejecutaba rollback aunque la promesa hubiera resuelto. Fix: guardamos timeoutHandle y lo cancelamos en .then()/.catch(). Flag writeCompleted bloquea el rollback aunque haya race.'},
-        {type:'perf', title:'Strip de campos derivables del payload', desc:'Payload era 1142 KB → cerca del límite de 1MB → writes fallaban silenciosamente. Fix: delete datosLimpios.lotes y delete datosLimpios.saldoUsdt antes del set(). Son derivables localmente vía recalcularLotesYGanancias(). Esperado: payload baja a ~600-700 KB (-40%), writes vuelven a confirmar. Compatible con docs legacy: cuando llegan con lotes embebidos, recalcular los sobrescribe.'},
-        {type:'verified', title:'Cómo recuperarse del estado bloqueado', desc:'1) Cargar v4.7.36. 2) Si veías "Sync bloqueado", abrir Diagnóstico de sincronización. 3) Tocar "⚡ Forzar sync" — esto resetea el circuit breaker y el deadlock. 4) Esperar — payload ya es -40% más chico, debería confirmar en <10s. 5) En el log buscar "save:queue-drained" como último evento. Si vuelve a fallar, mandar copy del panel completo.'},
-        {type:'verified', title:'IMPORTANTE — esto NO es la migración a subcolecciones', desc:'Estos son fixes incrementales para parar el sangrado. La migración real a /users/{uid}/operaciones/{opId} con sync incremental, deduplicación de queue, IndexedDB manual y bootstrap independiente del sync es un proyecto separado que requiere planificación, branch dedicado y migración de datos cuidadosa. Por ahora: estabilizar la versión actual y planificar la migración con tiempo.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -3952,6 +3952,9 @@ function analizarPayload(datos){
     const t0=performance.now();
     const result={
         totalKB:0,
+        remoteKB:0,
+        savedByStripKB:0,
+        savedByStripPct:0,
         secciones:{},
         topKeys:[],
         topOperaciones:[],
@@ -3967,6 +3970,40 @@ function analizarPayload(datos){
     try{rawJson=JSON.stringify(datos)}catch(e){return{error:'serializacion-fallo',msg:e.message}}
     result.tiempoStringifyMs=Math.round(performance.now()-tStringify);
     result.totalKB=Math.round(rawJson.length/1024);
+    /* ═══ v4.7.41: medir tamaño REAL del payload remoto ═══
+       Hasta v4.7.40, el panel reportaba el tamaño de AppState.datos (estado local).
+       Pero AppState.datos local SIEMPRE tiene lotes, saldoUsdt, ganancia, consumedLots
+       porque recalcularLotesYGanancias los reconstruye. El payload remoto NO los lleva.
+       
+       Ahora simulamos el strip exacto que guardarDatos aplica:
+         - Per-op: _syncState, consumedLots, ganancia
+         - Top-level: lotes, saldoUsdt
+       Y medimos el resultado. Eso es lo que realmente sube a Firestore. */
+    try{
+        const stripPerOp=arr=>Array.isArray(arr)?arr.map(x=>{
+            if(!x||typeof x!=='object')return x;
+            const{_syncState,consumedLots,ganancia,comisionPlataforma,...rest}=x;
+            return rest;
+        }):arr;
+        const stripRuntimeOnly=arr=>Array.isArray(arr)?arr.map(x=>{
+            if(!x||typeof x!=='object'||!x._syncState)return x;
+            const{_syncState,...rest}=x;
+            return rest;
+        }):arr;
+        const simulado={
+            ...datos,
+            operaciones:stripPerOp(datos.operaciones),
+            movimientos:stripRuntimeOnly(datos.movimientos),
+            transferencias:stripRuntimeOnly(datos.transferencias),
+            conversiones:stripRuntimeOnly(datos.conversiones||[])
+        };
+        delete simulado.lotes;
+        delete simulado.saldoUsdt;
+        const remoteJson=JSON.stringify(simulado);
+        result.remoteKB=Math.round(remoteJson.length/1024);
+        result.savedByStripKB=Math.max(0,result.totalKB-result.remoteKB);
+        result.savedByStripPct=result.totalKB>0?Math.round(100*result.savedByStripKB/result.totalKB):0;
+    }catch(e){result.remoteKB=0}
     /* Tamaño por sección de primer nivel */
     Object.keys(datos).forEach(key=>{
         try{
@@ -4047,10 +4084,19 @@ function analizarPayload(datos){
         });
         result.valoresRepetidos=repTop.sort((a,b)=>b.bytesGastadosUnnecesarios-a.bytesGastadosUnnecesarios).slice(0,10);
     }
-    /* Detección de campos sospechosos */
-    result.flags.tieneLotes=Array.isArray(datos.lotes)&&datos.lotes.length>0;
+    /* ═══ v4.7.41: flags ahora distinguen "local enriquecido" (esperado) de 
+       "problemas reales" (algo que está mal). 
+       
+       AppState.datos local SIEMPRE tiene lotes/saldoUsdt/ganancia/consumedLots después
+       de recalcular — eso es por diseño. Marcar esos como ⚠ era falso positivo.
+       
+       Problemas reales que sí marcamos:
+         - syncStateOrphans: items con _syncState pending sin razón
+         - tasasRecientes/dismissedVersions inflados (acumulación sin limpiar)
+         - tagsLen muy grande (acumulación) */
+    result.flags.tieneLotesLocal=Array.isArray(datos.lotes)&&datos.lotes.length>0;
     result.flags.tieneLotesKB=result.secciones.lotes?result.secciones.lotes.kb:0;
-    result.flags.tieneSaldoUsdt=datos.saldoUsdt!==undefined;
+    result.flags.tieneSaldoUsdtLocal=datos.saldoUsdt!==undefined;
     result.flags.tieneTasasRecientes=Array.isArray(datos.tasasRecientes)&&datos.tasasRecientes.length>0;
     result.flags.tasasRecientesLen=result.flags.tieneTasasRecientes?datos.tasasRecientes.length:0;
     result.flags.dismissedVersionsLen=Array.isArray(datos.dismissedVersions)?datos.dismissedVersions.length:0;
@@ -4070,10 +4116,13 @@ function analizarPayload(datos){
         }
     }catch(e){}
     result.tiempoAnalisisMs=Math.round(performance.now()-t0);
-    /* Veredicto */
-    if(result.totalKB<700)result.estado='✓ Seguro';
-    else if(result.totalKB<850)result.estado='⚠ Alto';
-    else if(result.totalKB<950)result.estado='⚠⚠ Muy alto';
+    /* ═══ Veredicto basado en payload REMOTO (lo que realmente sube a Firestore) ═══
+       Antes (v4.7.40-): el verdict usaba totalKB (state local), reportando "Crítico"
+       aunque el payload remoto fuera mucho más chico. Ahora usa remoteKB. */
+    const judgeKB=result.remoteKB||result.totalKB;
+    if(judgeKB<700)result.estado='✓ Seguro';
+    else if(judgeKB<850)result.estado='⚠ Alto';
+    else if(judgeKB<950)result.estado='⚠⚠ Muy alto';
     else result.estado='🛑 Crítico (cerca del límite 1MB)';
     return result;
 }
@@ -4624,12 +4673,33 @@ async function guardarDatos(forzar){
            Si por algún bug el recalc no corre, la UI ve "ganancia: 0" temporal hasta
            que recalc se dispare (en cada snapshot vía necesitaRecalc check de v4.7.36).
            
+        /* ═══ v4.7.39 — Strip de campos derivables DENTRO de cada operación ═══
+           Estos campos viven dentro de cada op pero son 100% reconstruibles vía 
+           recalcularLotesYGanancias() (función pura: replay FIFO sobre operaciones):
+             - consumedLots[]: lotes consumidos por una venta (FIFO replay lo reconstruye)
+             - ganancia: ganancia de la op (FIFO replay la calcula)
+           
+           v4.7.41 — sumamos comisionPlataforma al strip:
+             - comisionPlataforma: derivable como truncar(usdtBase × comisionPct/100, 2)
+               donde usdtBase = roundMoney(monto/tasa,2) para compras
+                                truncar(monto/tasa,2)    para ventas
+             - Verificado: auditarComisionPlataforma() reportó 3092/3092 exact en datos
+               reales. SAFE-TO-STRIP con cero discrepancias. La fórmula es exactamente
+               la que usa recalcularLotesYGanancias() línea ~3611.
+             - Si una op carece de comisionPct (legacy), el recalc usa 0.14 como default.
+           
+           Comprobado en código (líneas ~3611, 3626):
+             const cp = truncar(uBase * cpct, 2)
+             op.ganancia = roundMoney(fifo.ganancia)
+             op.consumedLots = fifo.consumed
+             op.comisionPlataforma = cp
+           
            CRÍTICO: NO mutar la op original — solo la copia para el payload remoto. 
-           AppState.datos.operaciones[i].ganancia sigue intacto para la UI. */
+           AppState.datos.operaciones[i] sigue intacta para la UI. */
         const stripDerived=arr=>Array.isArray(arr)?arr.map(x=>{
             if(!x||typeof x!=='object')return x;
             /* Crear copia sin los campos derivables */
-            const{_syncState,consumedLots,ganancia,...rest}=x;
+            const{_syncState,consumedLots,ganancia,comisionPlataforma,...rest}=x;
             return rest;
         }):arr;
         const datosLimpios={
@@ -4675,7 +4745,7 @@ async function guardarDatos(forzar){
         const tPrepEnd=performance.now();
         _syncLog('save:prep-end',{ms:Math.round(tPrepEnd-tStart),payloadKB,preKB:payloadKBPreStrip,
                                   baselineKB:payloadKBBaseline,reductionPct,reductionTotalKB,reductionTotalPct,
-                                  newVersion,stripped:['consumedLots','ganancia','lotes','saldoUsdt']});
+                                  newVersion,stripped:['consumedLots','ganancia','comisionPlataforma','lotes','saldoUsdt']});
         _syncLog('payload:compact-end',{baselineKB:payloadKBBaseline,finalKB:payloadKB,
                                         savedPerOpKB:reductionPerOpKB,savedTotalKB:reductionTotalKB});
         /* Optimistic version bump — el snapshot listener va a confirmar con el server.
@@ -4970,13 +5040,26 @@ function cargarDatosUsuario(){
            Branch 3 (echo de mi propio write) ya retornó antes. */
         let necesitaRecalc=!Array.isArray(AppState.datos.lotes)||AppState.datos.lotes.length===0||AppState.datos.saldoUsdt===undefined;
         if(!necesitaRecalc&&Array.isArray(AppState.datos.operaciones)){
-            /* Detección rápida: si alguna venta no tiene ganancia o consumedLots, recalcular.
-               Sampleamos las primeras 5 ventas para no recorrer 3000+ ops cada snapshot. */
+            /* Detección rápida: si alguna op (compra o venta) no tiene los campos derivados,
+               recalcular. Sampleamos las primeras 10 ops para no recorrer 3000+ cada snapshot.
+               
+               Triggers:
+                 - venta sin ganancia o consumedLots (v4.7.39)
+                 - cualquier op sin comisionPlataforma (v4.7.41)
+                 
+               Sampleamos 10 (no 5) porque ahora chequeamos compras también, no solo ventas. */
             let checked=0;
-            for(let i=0;i<AppState.datos.operaciones.length&&checked<5;i++){
+            for(let i=0;i<AppState.datos.operaciones.length&&checked<10;i++){
                 const op=AppState.datos.operaciones[i];
-                if(op&&op.tipo==='venta'){
-                    checked++;
+                if(!op||typeof op!=='object')continue;
+                checked++;
+                /* Cualquier op debería tener comisionPlataforma (strip v4.7.41) */
+                if(op.comisionPlataforma===undefined){
+                    necesitaRecalc=true;
+                    break;
+                }
+                /* Solo las ventas tienen ganancia + consumedLots */
+                if(op.tipo==='venta'){
                     if(op.ganancia===undefined||!Array.isArray(op.consumedLots)){
                         necesitaRecalc=true;
                         break;
@@ -5409,20 +5492,27 @@ function renderDiagnosticoSync(){
     if(window._ultimaAuditoria){
         const a=window._ultimaAuditoria;
         html+='\n━━━ AUDITORÍA DE TAMAÑO DEL DOCUMENTO ━━━\n';
-        html+='Estado:                '+a.estado+'\n';
-        html+='Total KB:              '+a.totalKB+'\n';
-        html+='Cantidad ops:          '+a.cantidadOps+'\n';
-        if(a.avgBytesPerOp)html+='Promedio por op:       '+a.avgBytesPerOp+' bytes\n';
-        if(a.memUsedMB)html+='Heap JS usado:         '+a.memUsedMB+' MB / '+a.memLimitMB+' MB\n';
-        html+='Tiempo stringify:      '+a.tiempoStringifyMs+' ms\n';
-        html+='\nTop secciones por peso:\n';
+        html+='Estado (payload remoto): '+a.estado+'\n';
+        /* v4.7.41: separar lo que va a Firestore de lo que vive solo en memoria */
+        if(a.remoteKB){
+            html+='Payload REMOTO (real):   '+a.remoteKB+' KB ← lo que sube a Firestore\n';
+            html+='Estado LOCAL completo:   '+a.totalKB+' KB (incluye derivables)\n';
+            html+='Ahorrado por strip:      '+a.savedByStripKB+' KB ('+a.savedByStripPct+'%)\n';
+        }else{
+            html+='Total KB:                '+a.totalKB+'\n';
+        }
+        html+='Cantidad ops:            '+a.cantidadOps+'\n';
+        if(a.avgBytesPerOp)html+='Promedio por op:         '+a.avgBytesPerOp+' bytes\n';
+        if(a.memUsedMB)html+='Heap JS usado:           '+a.memUsedMB+' MB / '+a.memLimitMB+' MB\n';
+        html+='Tiempo stringify:        '+a.tiempoStringifyMs+' ms\n';
+        html+='\nTop secciones por peso (state local):\n';
         a.topKeys.slice(0,10).forEach(k=>{
             html+='  '+k.key.padEnd(22)+(k.kb+' KB').padStart(8)+'  ('+k.pct+'%)';
             if(k.tipo==='array')html+=' ['+k.len+' items]';
             html+='\n';
         });
         if(a.campoOpsTop&&a.campoOpsTop.length){
-            html+='\nTop campos DENTRO de operaciones:\n';
+            html+='\nTop campos DENTRO de operaciones (state local):\n';
             a.campoOpsTop.forEach(c=>{
                 html+='  '+c.campo.padEnd(22)+(c.kbTotal+' KB').padStart(8)+'  ('+c.pct+'% de ops, '+c.freq+'/'+a.cantidadOps+')\n';
             });
@@ -5438,13 +5528,22 @@ function renderDiagnosticoSync(){
             });
         }
         if(a.flags){
-            html+='\nFlags:\n';
-            if(a.flags.tieneLotes)html+='  ⚠ lotes embebidos: '+a.flags.tieneLotesKB+' KB (debería ser 0)\n';
-            if(a.flags.tieneSaldoUsdt)html+='  ⚠ saldoUsdt persistido (debería ser local)\n';
-            if(a.flags.tasasRecientesLen>10)html+='  ⚠ tasasRecientes muy largo: '+a.flags.tasasRecientesLen+' items\n';
-            if(a.flags.dismissedVersionsLen>20)html+='  ⚠ dismissedVersions sin limpiar: '+a.flags.dismissedVersionsLen+' items\n';
-            if(a.flags.syncStateOrphans>0)html+='  ⚠ _syncState orphans en datos: '+a.flags.syncStateOrphans+'\n';
-            if(a.flags.tagsLen>50)html+='  • tags: '+a.flags.tagsLen+' (acumulación)\n';
+            /* v4.7.41: solo mostrar flags cuando hay un problema real.
+               Antes marcábamos "lotes embebidos" y "saldoUsdt persistido" como ⚠ pero 
+               eran falsos positivos — el state local SIEMPRE tiene esos campos porque 
+               recalcular los reconstruye. El payload remoto NO los lleva (verificable
+               en remoteKB vs totalKB). Ahora solo flags cuando son problemas reales. */
+            const flagLines=[];
+            if(a.flags.tasasRecientesLen>10)flagLines.push('⚠ tasasRecientes muy largo: '+a.flags.tasasRecientesLen+' items');
+            if(a.flags.dismissedVersionsLen>20)flagLines.push('⚠ dismissedVersions sin limpiar: '+a.flags.dismissedVersionsLen+' items');
+            if(a.flags.syncStateOrphans>0)flagLines.push('⚠ _syncState orphans en datos: '+a.flags.syncStateOrphans);
+            if(a.flags.tagsLen>50)flagLines.push('• tags: '+a.flags.tagsLen+' (acumulación)');
+            if(flagLines.length>0){
+                html+='\nFlags (problemas reales):\n';
+                flagLines.forEach(l=>{html+='  '+l+'\n'});
+            }else{
+                html+='\nFlags: ✓ ningún problema detectado\n';
+            }
         }
         html+='\n(análisis hecho en '+a.tiempoAnalisisMs+' ms)\n';
     }else{
