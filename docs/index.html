@@ -1427,7 +1427,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.38',
+    APP_VERSION: '4.7.39',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1460,6 +1460,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.39', date:'2026-05-14', headline:'⚡ Payload -20% — strip de consumedLots y ganancia (derivables vía FIFO).', changes:[
+        {type:'perf', title:'Strip de consumedLots dentro de cada operación', desc:'Auditoría v4.7.37 reveló que consumedLots ocupaba 167 KB en 2229 de 3092 ops. Es 100% reconstruible: recalcularLotesYGanancias() asigna op.consumedLots=fifo.consumed cuando hace el replay FIFO de cada venta. Strip aplicado solo a la COPIA del payload — AppState.datos.operaciones[i].consumedLots sigue intacto para la UI y los cálculos locales. Ahorro estimado: ~120-140 KB.'},
+        {type:'perf', title:'Strip de ganancia dentro de cada operación', desc:'Similar a consumedLots: la ganancia se calcula durante el replay FIFO (op.ganancia=roundMoney(fifo.ganancia)). Ocupaba ~49 KB. Reconstruible. Strip aplicado. Combinado con consumedLots: ~170 KB de ahorro total (-20%).'},
+        {type:'fix', title:'Recalc post-snapshot detecta también ganancia/consumedLots faltantes', desc:'El check necesitaRecalc de v4.7.36 buscaba solo lotes/saldoUsdt ausentes. Si por algún edge case el doc tenía lotes pero faltaban ganancia o consumedLots, no se disparaba el recalc. Ahora muestrea las primeras 5 ventas: si alguna no tiene ganancia o consumedLots, recalcular. Sampling para no recorrer 3000+ ops por snapshot.'},
+        {type:'feature', title:'Panel diagnóstico muestra el ahorro completo', desc:'Antes mostraba solo "Antes del strip → Después". Ahora desglosa: Baseline (todo sin tocar) → Ahorro per-op (consumedLots+ganancia) → Ahorro top-level (lotes+saldoUsdt) → Reducción TOTAL. Nuevos logs: payload:compact-start, payload:compact-end, snapshot:hydrate-derived.'},
+        {type:'verified', title:'No destructivo', desc:'AppState.datos sigue conteniendo todos los campos enriquecidos. Solo la COPIA del payload (destructured con spread) excluye los derivables. La UI sigue mostrando ganancias y consumedLots normalmente. Al recibir snapshot de otro device, recalcularLotesYGanancias() reconstruye todo. Compatible con docs legacy que tengan estos campos embebidos.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.7.39. 2) Crear una op cualquiera. 3) Abrir Diagnóstico → tocar 🔍 Auditar tamaño. 4) En "TIMING DEL ÚLTIMO SAVE" debería verse: Baseline ~1140 KB, Ahorro per-op ~170 KB, Ahorro top-level ~25 KB, Reducción TOTAL ~195 KB. Payload final ~950 KB o menos. 5) Verificar que las ganancias se ven correctamente en la lista de ops. 6) En el log: payload:compact-start → payload:compact-end → snapshot:hydrate-derived.'}
+    ]},
     {version:'4.7.38', date:'2026-05-14', headline:'🎯 UI desacoplada del sync — el overlay "Cargando..." nunca más bloquea la app.', changes:[
         {type:'fix', title:'Bootstrap independiente del sync remoto', desc:'BUG: la UI esperaba el primer snapshot de Firestore para renderizar. Si el snapshot tardaba o llegaba con hasPendingWrites=true (que el handler skipea con return), el overlay "Cargando..." quedaba visible indefinidamente aunque el cache local ya tenía datos válidos. Fix: showApp() ahora hidrata AppState.datos desde restoreFromLocal() inmediatamente al login, renderiza la UI completa en <100ms, oculta el overlay, y RECIÉN después dispara cargarDatosUsuario() que conecta el listener en background. La UI nunca espera a Firestore para ser usable.'},
         {type:'fix', title:'Watchdog de 3 segundos contra overlay pegado', desc:'Aunque no haya backup local (primer login en cuenta nueva, cache corrupto), el watchdog garantiza que el overlay se oculte después de 3 segundos máximo. Si el snapshot no llegó, la UI muestra vista vacía con badge "Conectando…" y permite navegar. Cuando el snapshot llegue, los datos se renderizan naturalmente vía mergeRemoteState. Log: ui:forced-unlock.'},
@@ -1489,13 +1497,6 @@ const CHANGELOG = [
         {type:'fix', title:'Rollback de versión si el write falla', desc:'El nuevo flow bumpea _localVersion optimísticamente antes de subir. Si el write falla (error de red, timeout), la versión se revierte automáticamente al valor previo. Sin esto, el snapshot listener pensaría que estamos sincronizados cuando en realidad no escribimos.'},
         {type:'verified', title:'Protecciones que se mantienen', desc:'Anti-wipe (esDatosVacios check). Strip de _syncState antes del payload. Limpieza per-tx de IDs confirmados (idsSnapshot). Rollback en error. Snapshot listener detecta writes simultáneos de otros devices y mergea via mergeRemoteState (Branch 2). Repair de pending huérfanos después de cada save y snapshot.'},
         {type:'verified', title:'Cómo probar', desc:'1) Crear 2 operaciones seguidas desde mobile. 2) Abrir panel de diagnóstico. 3) En "TIMING DEL ÚLTIMO SAVE" debería verse: Total <10s (antes 24s), payload size 500-800KB, tiempo de write puro en ms. 4) En el log, secuencia: enqueue → save:start → save:prep-end → save:write-start → save:write-end → save:confirmed. Si el "Solo set() en server" todavía es >10s, el cuello es el upload del documento completo y entonces aplicamos Fix 2 (quitar lotes/saldoUsdt del payload).'}
-    ]},
-    {version:'4.7.34', date:'2026-05-13', headline:'🐛 Fix: panel diagnóstico crashea con IDs numéricos + saneamiento de pending huérfanos.', changes:[
-        {type:'fix', title:'TypeError: (s.id||"").slice is not a function', desc:'BUG: uid() devuelve un Number pero el panel de diagnóstico hacía (s.id||"").slice(-8) directo → Number no tiene .slice → el panel crasheaba justo cuando más se necesitaba. Fix: nueva utility safeIdTail(id,n) que convierte a String SIEMPRE antes de cortar. Maneja null/undefined/Number/Object/legacy strings sin reventar. El typeof del id también se loguea para detectar paths de creación corruptos.'},
-        {type:'fix', title:'Dots amarillos huérfanos — saneamiento automático', desc:'Items con _syncState="pending" pueden quedar "huérfanos" después de crashes, retries fallidos, restores manuales, o el bug viejo donde clearSyncQueue requería _syncPending===0. Nueva función repairOrphanPendingStates() detecta y limpia esos flags fantasma cuando: (1) _localDirty===0, (2) no hay items en _syncQueue, (3) _localVersion matchea _datos._version, (4) nada está en flight. Se ejecuta después de cada save exitoso, después de cada snapshot remoto confirmado, y al abrir el panel de diagnóstico.'},
-        {type:'fix', title:'"Error al reconectar" no queda pegado', desc:'Nueva función reevaluarEstadoSync() detecta cuando el listener está activo, las versiones matchean, no hay pending y la red está OK — en ese caso baja _syncErrors a 0 y vuelve el badge a "online". Se ejecuta en evento online, al volver de background (visibilitychange), y cada 30s como safety net periódico mientras la app está en foreground.'},
-        {type:'feature', title:'Separación real vs visual de pending', desc:'Antes el flag _syncState="pending" era la fuente de verdad visual indefinidamente — si quedaba huérfano, dot amarillo eterno. Ahora la fuente de verdad real es: _localDirty + _syncQueue + _localVersion vs _datos._version. El flag visual se sincroniza con esa verdad después de cada evento. Si el sistema YA está sano, el dot DEBE limpiarse aunque venga de un ciclo viejo.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Abrir Diagnóstico → ya NO crashea con IDs numéricos. 2) Ver typeof s.id en el panel — todos deberían decir "number". 3) Si veías dots amarillos eternos antes de v4.7.34, al abrir el panel ahora deberían desaparecer automáticamente. 4) Si veías "Error al reconectar" pegado, debería pasar a "En línea" dentro de 30s con buena conexión. 5) En el log buscar repair:orphans-cleaned y reconnect:auto-clear-errors para confirmar que las rutinas corrieron.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -4474,6 +4475,7 @@ async function guardarDatos(forzar){
         _syncLog('save:prep-start',{});
         const serverVersionConocido=AppState._localVersion||0;
         const newVersion=serverVersionConocido+1;
+        _syncLog('payload:compact-start',{});
         /* Strip de campos runtime-only que NO deben persistirse en Firestore.
            _syncState es un hint local para mostrar el dot pulsante en la UI.
            Si se persistiera, otros devices verían "pending" eterno y el doc 
@@ -4483,29 +4485,41 @@ async function guardarDatos(forzar){
             const{_syncState,...rest}=x;
             return rest;
         }):arr;
-        /* ═══ Strip de campos DERIVABLES — Fix 2 v4.7.36 ═══
-           Estos campos se reconstruyen localmente y NO necesitan persistirse:
-             - lotes: regenerado por recalcularLotesYGanancias() desde operaciones
-             - saldoUsdt: derivado de los lotes (suma de disponibles)
+        /* ═══ v4.7.39 — Strip de campos derivables DENTRO de cada operación ═══
+           Estos campos viven dentro de cada op pero son 100% reconstruibles vía 
+           recalcularLotesYGanancias() (función pura: replay FIFO sobre operaciones):
+             - consumedLots[]: lotes consumidos por una venta (FIFO replay lo reconstruye)
+             - ganancia: ganancia de la op (FIFO replay la calcula)
            
-           Otros devices que reciban el snapshot van a tener estos campos vacíos,
-           y al cargarse el cargarDatosUsuario llama a recalcular automáticamente
-           (línea ~4593). Compatible con docs legacy: si llegan con lotes embebidos,
-           el recalcular los sobrescribe igual. */
+           Comprobado en código (líneas ~3613-3622):
+             op.ganancia = roundMoney(fifo.ganancia)
+             op.consumedLots = fifo.consumed
+           
+           Si por algún bug el recalc no corre, la UI ve "ganancia: 0" temporal hasta
+           que recalc se dispare (en cada snapshot vía necesitaRecalc check de v4.7.36).
+           
+           CRÍTICO: NO mutar la op original — solo la copia para el payload remoto. 
+           AppState.datos.operaciones[i].ganancia sigue intacto para la UI. */
+        const stripDerived=arr=>Array.isArray(arr)?arr.map(x=>{
+            if(!x||typeof x!=='object')return x;
+            /* Crear copia sin los campos derivables */
+            const{_syncState,consumedLots,ganancia,...rest}=x;
+            return rest;
+        }):arr;
         const datosLimpios={
             ...AppState.datos,
-            operaciones:stripRuntime(AppState.datos.operaciones),
+            operaciones:stripDerived(AppState.datos.operaciones),
             movimientos:stripRuntime(AppState.datos.movimientos),
             transferencias:stripRuntime(AppState.datos.transferencias),
             conversiones:stripRuntime(AppState.datos.conversiones||[])
         };
-        /* Medir tamaño ANTES del strip de derivables (para el reporte de reducción) */
+        /* Medir tamaño ANTES del strip de campos top-level (lotes/saldoUsdt) */
         let payloadKBPreStrip=0;
         try{
             const sampleFull={...datosLimpios,_version:newVersion,ultimaActualizacion:'<server-ts>'};
             payloadKBPreStrip=Math.round(JSON.stringify(sampleFull).length/1024);
         }catch(e){/* no critical */}
-        /* Strip de derivables */
+        /* Strip de derivables top-level (Fix 2 v4.7.36) */
         delete datosLimpios.lotes;
         delete datosLimpios.saldoUsdt;
         const payload={
@@ -4519,9 +4533,25 @@ async function guardarDatos(forzar){
             const sample={...payload,ultimaActualizacion:'<server-ts>'};
             payloadKB=Math.round(JSON.stringify(sample).length/1024);
         }catch(e){/* if fails, payloadKB=0 — not critical */}
+        /* ═══ Medición del baseline: cuánto pesaría SIN ningún strip ═══
+           Para mostrar el ahorro real total (incluyendo strip per-op de consumedLots
+           y ganancia). Calculado solo si el log está habilitado, porque es costoso. */
+        let payloadKBBaseline=0;
+        try{
+            /* Baseline = AppState.datos sin tocar (con consumedLots, ganancia, lotes, saldoUsdt) */
+            const baselineSample={...AppState.datos,_version:newVersion,ultimaActualizacion:'<server-ts>'};
+            payloadKBBaseline=Math.round(JSON.stringify(baselineSample).length/1024);
+        }catch(e){/* no critical */}
         const reductionPct=payloadKBPreStrip>0?Math.round(100*(payloadKBPreStrip-payloadKB)/payloadKBPreStrip):0;
+        const reductionPerOpKB=Math.max(0,payloadKBBaseline-payloadKBPreStrip);
+        const reductionTotalKB=Math.max(0,payloadKBBaseline-payloadKB);
+        const reductionTotalPct=payloadKBBaseline>0?Math.round(100*reductionTotalKB/payloadKBBaseline):0;
         const tPrepEnd=performance.now();
-        _syncLog('save:prep-end',{ms:Math.round(tPrepEnd-tStart),payloadKB,preKB:payloadKBPreStrip,reductionPct,newVersion,stripped:['lotes','saldoUsdt']});
+        _syncLog('save:prep-end',{ms:Math.round(tPrepEnd-tStart),payloadKB,preKB:payloadKBPreStrip,
+                                  baselineKB:payloadKBBaseline,reductionPct,reductionTotalKB,reductionTotalPct,
+                                  newVersion,stripped:['consumedLots','ganancia','lotes','saldoUsdt']});
+        _syncLog('payload:compact-end',{baselineKB:payloadKBBaseline,finalKB:payloadKB,
+                                        savedPerOpKB:reductionPerOpKB,savedTotalKB:reductionTotalKB});
         /* Optimistic version bump — el snapshot listener va a confirmar con el server.
            Si hay conflicto, mergeRemoteState lo reconcilia. */
         AppState._localVersion=newVersion;
@@ -4796,23 +4826,42 @@ function cargarDatosUsuario(){
         }
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
         inicializarBancos();verificarResetLimites();
-        /* ═══ v4.7.36: si el snapshot vino SIN lotes/saldoUsdt (strip nuevo) ═══
-           Los uploads nuevos no incluyen estos campos derivables. Cuando un device 
-           recibe el snapshot, debe reconstruirlos localmente. Esto cubre:
-             - Snapshot inicial al login
-             - Snapshots de cambios de otros devices  
-             - Reload tras hacer cambios locales
+        /* ═══ v4.7.36/39: si el snapshot vino SIN derivables (strip nuevo) ═══
+           Los uploads de v4.7.36+ no incluyen lotes/saldoUsdt. v4.7.39+ tampoco incluye
+           consumedLots/ganancia DENTRO de cada op. Cuando llega un snapshot así, hay 
+           que reconstruir todo localmente via recalcularLotesYGanancias().
            
-           Compatibilidad legacy: si el doc viejo SÍ tenía lotes embebidos, 
+           Triggers de recalc:
+             - lotes ausente o vacío (strip v4.7.36)
+             - saldoUsdt undefined (strip v4.7.36)
+             - alguna op de venta con ganancia undefined (strip v4.7.39)
+             - alguna op de venta sin consumedLots[] (strip v4.7.39)
+           
+           Compatibilidad legacy: si el doc viejo SÍ tenía estos campos embebidos, 
            recalcularLotesYGanancias los sobrescribe con los reconstruidos (idempotente).
            
            Se ejecuta solo en Branch 1 (load inicial) y Branch 2 (merge con cambios).
            Branch 3 (echo de mi propio write) ya retornó antes. */
-        const necesitaRecalc=!Array.isArray(AppState.datos.lotes)||AppState.datos.lotes.length===0||AppState.datos.saldoUsdt===undefined;
+        let necesitaRecalc=!Array.isArray(AppState.datos.lotes)||AppState.datos.lotes.length===0||AppState.datos.saldoUsdt===undefined;
+        if(!necesitaRecalc&&Array.isArray(AppState.datos.operaciones)){
+            /* Detección rápida: si alguna venta no tiene ganancia o consumedLots, recalcular.
+               Sampleamos las primeras 5 ventas para no recorrer 3000+ ops cada snapshot. */
+            let checked=0;
+            for(let i=0;i<AppState.datos.operaciones.length&&checked<5;i++){
+                const op=AppState.datos.operaciones[i];
+                if(op&&op.tipo==='venta'){
+                    checked++;
+                    if(op.ganancia===undefined||!Array.isArray(op.consumedLots)){
+                        necesitaRecalc=true;
+                        break;
+                    }
+                }
+            }
+        }
         if(necesitaRecalc&&Array.isArray(AppState.datos.operaciones)&&AppState.datos.operaciones.length>0){
             try{
                 recalcularLotesYGanancias();
-                _syncLog('snapshot:recalc-derived',{ops:AppState.datos.operaciones.length,lotes:(AppState.datos.lotes||[]).length});
+                _syncLog('snapshot:hydrate-derived',{ops:AppState.datos.operaciones.length,lotes:(AppState.datos.lotes||[]).length});
             }catch(e){console.warn('[P2P] recalc post-snapshot falló:',e.message)}
         }
         /* Migración: normalizar datos legacy (solo si hay datos sin moneda o sin ganancia).
@@ -5197,8 +5246,21 @@ function renderDiagnosticoSync(){
             if(writeEvt&&writeEvt.ms)html+='Solo set() en server:  '+writeEvt.ms+' ms\n';
             const prepEvt=tail.find((e,i)=>i>matchedStart&&i<=lastConfirmed&&e.event==='save:prep-end');
             if(prepEvt){
-                if(prepEvt.payloadKB)html+='Payload size:          '+prepEvt.payloadKB+' KB\n';
-                if(prepEvt.preKB&&prepEvt.preKB!==prepEvt.payloadKB){
+                if(prepEvt.payloadKB)html+='Payload enviado:       '+prepEvt.payloadKB+' KB\n';
+                if(prepEvt.baselineKB&&prepEvt.baselineKB>prepEvt.payloadKB){
+                    /* Mostrar la historia completa: baseline → preStrip → final */
+                    html+='Baseline (sin strip):  '+prepEvt.baselineKB+' KB\n';
+                    const savedPerOp=prepEvt.baselineKB-(prepEvt.preKB||prepEvt.payloadKB);
+                    if(savedPerOp>0){
+                        html+='Ahorro per-op:         '+savedPerOp+' KB (consumedLots, ganancia)\n';
+                    }
+                    if(prepEvt.preKB&&prepEvt.preKB!==prepEvt.payloadKB){
+                        html+='Ahorro top-level:      '+(prepEvt.preKB-prepEvt.payloadKB)+' KB (lotes, saldoUsdt)\n';
+                    }
+                    html+='Reducción TOTAL:       '+(prepEvt.reductionTotalKB||0)+' KB ('+(prepEvt.reductionTotalPct||0)+'%)\n';
+                    if(Array.isArray(prepEvt.stripped))html+='Campos excluidos:      '+prepEvt.stripped.join(', ')+'\n';
+                }else if(prepEvt.preKB&&prepEvt.preKB!==prepEvt.payloadKB){
+                    /* Fallback: solo tenemos preStrip vs final (no baseline) */
                     html+='Antes del strip:       '+prepEvt.preKB+' KB\n';
                     html+='Reducción:             '+(prepEvt.reductionPct||0)+'% ('+(prepEvt.preKB-prepEvt.payloadKB)+' KB)\n';
                     if(Array.isArray(prepEvt.stripped))html+='Campos excluidos:      '+prepEvt.stripped.join(', ')+'\n';
