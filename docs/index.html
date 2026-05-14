@@ -1427,7 +1427,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.33',
+    APP_VERSION: '4.7.34',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1460,6 +1460,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.34', date:'2026-05-13', headline:'🐛 Fix: panel diagnóstico crashea con IDs numéricos + saneamiento de pending huérfanos.', changes:[
+        {type:'fix', title:'TypeError: (s.id||"").slice is not a function', desc:'BUG: uid() devuelve un Number pero el panel de diagnóstico hacía (s.id||"").slice(-8) directo → Number no tiene .slice → el panel crasheaba justo cuando más se necesitaba. Fix: nueva utility safeIdTail(id,n) que convierte a String SIEMPRE antes de cortar. Maneja null/undefined/Number/Object/legacy strings sin reventar. El typeof del id también se loguea para detectar paths de creación corruptos.'},
+        {type:'fix', title:'Dots amarillos huérfanos — saneamiento automático', desc:'Items con _syncState="pending" pueden quedar "huérfanos" después de crashes, retries fallidos, restores manuales, o el bug viejo donde clearSyncQueue requería _syncPending===0. Nueva función repairOrphanPendingStates() detecta y limpia esos flags fantasma cuando: (1) _localDirty===0, (2) no hay items en _syncQueue, (3) _localVersion matchea _datos._version, (4) nada está en flight. Se ejecuta después de cada save exitoso, después de cada snapshot remoto confirmado, y al abrir el panel de diagnóstico.'},
+        {type:'fix', title:'"Error al reconectar" no queda pegado', desc:'Nueva función reevaluarEstadoSync() detecta cuando el listener está activo, las versiones matchean, no hay pending y la red está OK — en ese caso baja _syncErrors a 0 y vuelve el badge a "online". Se ejecuta en evento online, al volver de background (visibilitychange), y cada 30s como safety net periódico mientras la app está en foreground.'},
+        {type:'feature', title:'Separación real vs visual de pending', desc:'Antes el flag _syncState="pending" era la fuente de verdad visual indefinidamente — si quedaba huérfano, dot amarillo eterno. Ahora la fuente de verdad real es: _localDirty + _syncQueue + _localVersion vs _datos._version. El flag visual se sincroniza con esa verdad después de cada evento. Si el sistema YA está sano, el dot DEBE limpiarse aunque venga de un ciclo viejo.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Abrir Diagnóstico → ya NO crashea con IDs numéricos. 2) Ver typeof s.id en el panel — todos deberían decir "number". 3) Si veías dots amarillos eternos antes de v4.7.34, al abrir el panel ahora deberían desaparecer automáticamente. 4) Si veías "Error al reconectar" pegado, debería pasar a "En línea" dentro de 30s con buena conexión. 5) En el log buscar repair:orphans-cleaned y reconnect:auto-clear-errors para confirmar que las rutinas corrieron.'}
+    ]},
     {version:'4.7.33', date:'2026-05-13', headline:'🐛 Crítico: dots amarillos eternos + datos perdidos al cerrar. Panel de diagnóstico nuevo.', changes:[
         {type:'fix', title:'Dots amarillos quedaban permanentes — causa raíz', desc:'BUG: clearSyncQueue solo se ejecutaba si _syncPending llegaba a 0. Si el usuario hacía mutaciones constantemente, _syncPending nunca llegaba a 0 y los items quedaban marcados con _syncState="pending" para siempre. Además, al cerrar la app, esos pending eternos NO habían llegado al server → datos perdidos. Fix: cada transacción exitosa ahora limpia exactamente los IDs que confirmó, sin esperar a que la queue entera drene.'},
         {type:'feature', title:'Panel de diagnóstico de sincronización', desc:'Nuevo en Menú → Diagnóstico de sincronización. Muestra en tiempo real: versiones local/remota, tamaño del syncQueue, estado de _guardando/_guardarPendiente/_localDirty, errors counter, retry pending, listener activo, log de los últimos 20 eventos (enqueue → save:start → save:confirmed → snapshot:received → merge). Botón "Forzar sync" seguro que no duplica writes. Botón "Copiar" para mandar el output como diagnóstico.'},
@@ -1487,13 +1494,6 @@ const CHANGELOG = [
         {type:'fix', title:'guardarDatos aborta durante recovery', desc:'Cualquier write nuevo durante terminate + clearPersistence sería sobre instancia inválida → INTERNAL ASSERTION garantizado. El backup local ya tiene los datos, así que abortar es seguro — al recargar, restoreFromLocal recupera todo.'},
         {type:'improve', title:'Recovery con cleanup ordenado', desc:'iniciarRecuperacionFirestore ahora cancela TODO trabajo en flight (retry timer, debounce timer, snapshot listener) ANTES de tocar terminate(). Promise.race con timeout de 4s evita colgarse en terminate eterno. Si cualquier paso falla, igual recargamos — la página fresh re-inicializa todo correctamente.'},
         {type:'verified', title:'Anti-loop de retries', desc:'Los retry timers existentes ya estaban OK porque guardarDatos aborta apenas detecta recovery. Triple guard (en guardarDatos, en cargarDatosUsuario, en el handler de onSnapshot) garantiza que ninguna ruta accidentalmente toque el SDK durante la limpieza.'}
-    ]},
-    {version:'4.7.29', date:'2026-05-06', headline:'⚡ Restaurar respaldo: instantáneo + recuperación automática de errores Firestore SDK.', changes:[
-        {type:'perf', title:'Restore manual sin "Reconciliando…" eterno', desc:'Después de restaurar un respaldo, la app se sentía bloqueada 1-2 segundos en "Reconciliando…". Causa: con _localVersion=0, cualquier snapshot de Firebase caía en Branch 2 (merge) → recalcularLotesYGanancias completo. Fix: post-restore lock de 6s que ignora snapshots durante la ventana, y recalcular diferido a idle. La UI muestra los datos restaurados inmediatamente.'},
-        {type:'perf', title:'Trust en datos del backup', desc:'El backup ya contiene op.ganancia y lotes consistentes (fueron persistidos así). Antes el restore corría recalcularLotesYGanancias sincrónicamente (~300ms con 1k+ ops). Ahora se difiere a idle como red de seguridad — la UI funciona instantáneamente con los datos del backup, y el recalc defensivo corre en background.'},
-        {type:'fix', title:'Recuperación automática de errores Firestore SDK', desc:'Bug conocido del SDK Firestore (issue #6256): a veces lanza "INTERNAL ASSERTION FAILED" en Samsung Browser/Android. Una vez ocurrido, todas las queries siguientes fallan hasta recargar. Ahora la app detecta el error, muestra banner amarillo claro, hace flush del backup local y recarga automáticamente. Los datos están a salvo en localStorage.'},
-        {type:'fix', title:'Filtro de errores cross-origin', desc:'Los errores "Script error. @ :?" (errores cross-origin del SDK Firebase con stack hidden por CORS) inundaban el log de diagnóstico ocultando errores reales. Ahora se filtran como ruido conocido. Si necesitás ver el detalle real del error, mirá los entries no-Script-error que sí muestran el stack.'},
-        {type:'verified', title:'Compatibilidad con v4.7.28 (hash skip)', desc:'El skip de recalcular vía hash en mergeRemoteState sigue funcionando para snapshots normales. El post-restore lock corta antes en el flujo, así no compite con el hash check.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -1631,11 +1631,35 @@ function inicializarConectividad(){
         if(AppState.ui.syncState==='offline')reconnectFirebase();
         /* Si quedó pending local por offline, re-disparar guardado con debounce */
         if(_syncQueue.length>0||_localDirty>0)guardaOptimista('resync','pending','online');
+        /* Reevaluar el estado del badge: si la red ya está OK, no debe quedar 
+           "Error al reconectar" pegado de un evento viejo. */
+        if(typeof _syncLog==='function')_syncLog('connectivity:online',{queue:_syncQueue.length,dirty:_localDirty});
+        setTimeout(()=>{
+            if(typeof repairOrphanPendingStates==='function')repairOrphanPendingStates();
+            if(typeof reevaluarEstadoSync==='function')reevaluarEstadoSync();
+        },500);
     });
-    window.addEventListener('offline',()=>setSyncStatus('offline'));
+    window.addEventListener('offline',()=>{
+        if(typeof _syncLog==='function')_syncLog('connectivity:offline',{});
+        setSyncStatus('offline');
+    });
+    /* ═══ Safety net periódico ═══
+       Cada 30s, si la app está en foreground, re-evaluamos el estado real de sync.
+       Esto cubre el caso donde una transición de estado se perdió por algún motivo
+       (background tabs en mobile, browser throttling, etc). Costo: <1ms cada 30s.
+       Solo limpia errores residuales si el sistema YA está en estado sano. */
+    setInterval(()=>{
+        if(!AppState.currentUser)return;
+        if(document.visibilityState!=='visible')return;
+        if(typeof reevaluarEstadoSync==='function')reevaluarEstadoSync();
+    },30000);
     /* Flush del debounce al perder foco — evita que cambios queden en buffer al cerrar pestaña/app */
     document.addEventListener('visibilitychange',()=>{
         if(document.visibilityState==='hidden'&&AppState.currentUser)flushGuardaDebounce();
+        else if(document.visibilityState==='visible'&&AppState.currentUser){
+            /* Al volver a foreground, reevaluar — el estado pudo cambiar mientras estuvimos hidden */
+            if(typeof reevaluarEstadoSync==='function')reevaluarEstadoSync();
+        }
     });
     window.addEventListener('beforeunload',()=>{
         if(AppState.currentUser)flushGuardaDebounce();
@@ -2269,6 +2293,17 @@ function actualizarVistaDebounced(){if(_vistaRAF)return;_vistaRAF=requestAnimati
 function fixNeg(n){if(Object.is(n,-0))return 0;const r=Number(Math.round(parseFloat(n+'e2'))+'e-2');return isNaN(r)?0:r}
 let _idCounter=Math.floor(Math.random()*1000);
 function uid(){return Date.now()*1000+((_idCounter++)%1000)}
+/* ═══ safeIdTail — corte defensivo de la cola de un ID ═══
+   uid() devuelve un Number, pero hay paths donde IDs viejos pueden ser string,
+   null, o incluso objetos legacy. Cualquier .slice(-N) directo sobre un ID 
+   numérico tira "TypeError: ... .slice is not a function" y rompe el panel
+   de diagnóstico. Esta utility convierte a string SIEMPRE y devuelve los 
+   últimos N caracteres, o '?' si el input es nulo. */
+function safeIdTail(id,n){
+    if(id===null||id===undefined)return '?';
+    const s=String(id);
+    return s.length<=n?s:s.slice(-n);
+}
 function truncar(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const f=Number(n+'e'+d);return Number(Math.floor(f)+'e-'+d)}
 function roundMoney(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const r=Number(Math.round(parseFloat(n+'e'+d))+'e-'+d);return Object.is(r,-0)?0:r}
 /* truncUsdt: truncar a 2dp — uso conservador para FIFO, lotes, saldos internos */
@@ -3679,6 +3714,83 @@ function clearSyncQueue(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   §SANEAMIENTO — Limpieza de _syncState huérfanos
+   ═══════════════════════════════════════════════════════════════════
+   Un item puede quedar con _syncState:'pending' "huérfano" si:
+   - Una transacción falla y se reintenta varias veces — entries quedan duplicados
+   - Un crash de la app deja el flag pero el item ya fue confirmado en otro device
+   - Bug viejo donde clearSyncQueue solo corría con _syncPending===0
+   - Restore manual donde el flag se conservó del backup
+   
+   Reglas para decidir si un pending es "huérfano":
+   1. No hay entry en _syncQueue para ese id
+   2. _localDirty === 0
+   3. _localVersion === AppState.datos._version (sincronizados con server)
+   4. !_guardando && !_guardarPendiente (nada en flight ni encolado)
+   
+   Si TODAS las condiciones se cumplen, NO HAY RAZÓN para tener _syncState='pending'.
+   El item ya está confirmado, el flag es solo "deuda visual" de un ciclo viejo.
+   
+   Esta función se llama:
+   - Después de cada save:queue-drained (sync exitoso completo)
+   - Después de cada snapshot:received con serverVersion === localVersion
+   - Al abrir el panel de diagnóstico (limpia antes de mostrar números) */
+function repairOrphanPendingStates(){
+    /* Salvavidas: si CUALQUIER condición de "no es seguro limpiar" se cumple, abortamos.
+       Mejor dejar dots amarillos transitorios que limpiar pending real → datos perdidos. */
+    if(_localDirty>0)return 0;
+    if(_guardando||_guardarPendiente)return 0;
+    if(AppState._datosStale)return 0;
+    const dataVersion=(AppState.datos&&AppState.datos._version)||0;
+    if(AppState._localVersion!==dataVersion)return 0;
+    /* IDs que SÍ tienen razón legítima para estar pending: están en _syncQueue */
+    const pendingIds=new Set();
+    _syncQueue.forEach(a=>{if(a.id!==null&&a.id!==undefined)pendingIds.add(String(a.id))});
+    let cleaned=0;
+    ['operaciones','movimientos','transferencias','conversiones','lotes'].forEach(key=>{
+        const arr=AppState.datos[key];if(!Array.isArray(arr))return;
+        arr.forEach(item=>{
+            if(item&&item._syncState==='pending'&&!pendingIds.has(String(item.id))){
+                delete item._syncState;
+                cleaned++;
+            }
+        });
+    });
+    if(cleaned>0){
+        if(typeof _syncLog==='function')_syncLog('repair:orphans-cleaned',{count:cleaned});
+        if(typeof _invalidateListCache==='function')_invalidateListCache();
+        if(typeof actualizarVistaDebounced==='function')actualizarVistaDebounced();
+    }
+    return cleaned;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   §STATE-RECOVERY — "Error al reconectar" no debe quedar pegado
+   ═══════════════════════════════════════════════════════════════════
+   Si el listener está activo, la versión local matchea con la del documento,
+   no hay nada en _syncQueue ni _localDirty, y el SDK no reporta recovery:
+   el sistema YA está reconectado. Cualquier _syncErrors residual es ruido.
+   Esta función verifica el estado real y baja el badge si corresponde. */
+function reevaluarEstadoSync(){
+    if(!AppState.currentUser)return;
+    if(typeof iniciarRecuperacionFirestore!=='undefined'&&iniciarRecuperacionFirestore._activa)return;
+    /* Síntomas de que en realidad estamos OK aunque el badge diga error */
+    const listenerActivo=AppState.unsubscribe!==null&&AppState.unsubscribe!==undefined;
+    const versionesMatch=AppState._localVersion===((AppState.datos&&AppState.datos._version)||0);
+    const sinPending=_syncQueue.length===0&&_localDirty===0;
+    const sinFlight=!_guardando&&!_guardarPendiente;
+    const online=navigator.onLine;
+    if(listenerActivo&&versionesMatch&&sinPending&&sinFlight&&online&&_syncErrors>0){
+        if(typeof _syncLog==='function')_syncLog('reconnect:auto-clear-errors',{prevErrors:_syncErrors});
+        _syncErrors=0;
+        _retryDelay=2000;
+        clearTimeout(_retryTimer);_retryTimer=null;
+        if(typeof setSyncStatus==='function')setSyncStatus('online');
+        if(typeof updateSyncBadge==='function')updateSyncBadge();
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    §SYNCLOG — Logger estructurado del flujo de sincronización
    ═══════════════════════════════════════════════════════════════════
    Registra eventos clave del flujo para diagnóstico. Cap circular de 100.
@@ -4251,6 +4363,8 @@ async function guardarDatos(forzar){
             _localDirty=0;
             setSyncStatus('online');clearLocalBackup();
             _syncLog('save:queue-drained',{});
+            /* Saneamiento de _syncState huérfanos justo después de drenar */
+            if(typeof repairOrphanPendingStates==='function')repairOrphanPendingStates();
         }
         else setSyncStatus('syncing',_syncPending+' pendiente'+((_syncPending>1)?'s':''));
         updateSyncBadge();
@@ -4392,6 +4506,12 @@ function cargarDatosUsuario(){
             }
             /* Solo limpiar backup si el servidor confirmó estado con contenido real */
             if(!fromCache&&!hasPending&&!pending&&!remoteEmpty&&!esDatosVacios(AppState.datos))clearLocalBackup();
+            /* Saneamiento post-snapshot: si el server confirmó nuestra versión, 
+               cualquier _syncState='pending' sin entry real en queue es huérfano. */
+            if(!fromCache&&!hasPending&&!AppState._datosStale){
+                if(typeof repairOrphanPendingStates==='function')repairOrphanPendingStates();
+                if(typeof reevaluarEstadoSync==='function')reevaluarEstadoSync();
+            }
         }else{
             /* doc no existe — intentar backup local antes de crear vacío */
             const backup=restoreFromLocal();
@@ -4624,6 +4744,12 @@ function instalarErrorBoundary(){
 /* Exportar log + snapshot de estado mínimo para diagnóstico */
 function abrirDiagnosticoSync(){
     const modal=$('modalSyncDiag');if(!modal)return;
+    /* Antes de mostrar: sanear estados huérfanos + reevaluar errores residuales.
+       Esto evita que el panel muestre síntomas de bug que ya están resueltos. */
+    try{
+        if(typeof repairOrphanPendingStates==='function')repairOrphanPendingStates();
+        if(typeof reevaluarEstadoSync==='function')reevaluarEstadoSync();
+    }catch(e){console.warn('[P2P] saneamiento pre-diagnóstico falló:',e.message)}
     renderDiagnosticoSync();
     modal.classList.add('active');
 }
@@ -4659,7 +4785,10 @@ function renderDiagnosticoSync(){
     if(d.syncQueueSample&&d.syncQueueSample.length){
         html+='\nPrimeros pending:\n';
         d.syncQueueSample.forEach(s=>{
-            html+='  '+s.type+' '+s.entity+' '+(s.id||'').slice(-8)+' ('+fmtTime(s.ts)+')\n';
+            /* safeIdTail evita el bug "(s.id||'').slice is not a function" cuando uid 
+               devuelve Number. Adicionalmente logeamos typeof para forensia: si vemos
+               typeof inesperado, hay un path de creación de IDs corrupto. */
+            html+='  '+s.type+' '+s.entity+' '+safeIdTail(s.id,8)+' ['+typeof s.id+'] ('+fmtTime(s.ts)+')\n';
         });
     }
     html+='\n━━━ LOG RECIENTE (últimos 20) ━━━\n';
