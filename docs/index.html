@@ -1427,7 +1427,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.41',
+    APP_VERSION: '4.7.42',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1460,6 +1460,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.42', date:'2026-05-14', headline:'🛑 Manejo seguro del error "client has already been terminated".', changes:[
+        {type:'fix', title:'Detección del estado terminated del SDK Firebase', desc:'Log de v4.7.41 reveló error específico: failed-precondition "The client has already been terminated". Es un estado interno del SDK Firebase (probablemente por bug del SDK o recovery mal finalizado) donde TODOS los writes futuros fallan instantáneamente. Los retries automáticos son inútiles — el cliente nunca se recupera solo. Solución conservadora (acordada): detectar este error específico y detener TODO el sync remoto hasta que el usuario recargue la app. NO intentar re-inicialización en caliente (firebase.app().delete() + initializeApp()) que es riesgosa.'},
+        {type:'feature', title:'Banner persistente con opciones claras', desc:'Cuando el SDK queda terminated, aparece un banner naranja en la parte inferior: "Firebase quedó en estado interno inválido. Tus datos están guardados localmente. Recargá la app para reactivar la sincronización." Dos botones: 🔄 Recargar ahora (verde, hace flush + backup local + reload) y "Seguir en modo local" (oculta el banner pero mantiene el bloqueo de sync). La app sigue 100% usable en modo local en ambos casos.'},
+        {type:'feature', title:'Bloqueo seguro de saves futuros', desc:'Una vez detectado el estado terminated: AppState._clientTerminated=true bloquea TODO intento de guardarDatos() y forzarSyncManual() hasta el reload. Se resetean _guardando, _syncPending, _guardarPendiente, _retryTimer. Pero se PRESERVAN intactos _syncQueue y _localDirty — los datos pending se mantienen para sincronizarse después del reload.'},
+        {type:'feature', title:'Estado en panel de Diagnóstico', desc:'Nuevo campo "Firebase client" en la sección General del panel. Muestra "✓ activo" o "🛑 TERMINATED — requiere recarga" con la hora exacta en que pasó al estado terminated. Logs nuevos: firebase:client-terminated y sync:requires-reload.'},
+        {type:'verified', title:'Lo que NO se toca', desc:'NO se ejecuta firebase.app().delete() en caliente. NO se reinicializa el SDK sin reload. NO se reintenta el write fallido (sería loop infinito). NO se modifica payload, formato, ni se hace migración. Solo manejo seguro del error específico.'},
+        {type:'verified', title:'Cómo probar', desc:'Difícil reproducir el bug a propósito (es un error interno del SDK que aparece esporádicamente). Cuando aparezca: 1) Aparece banner naranja abajo. 2) Tocar "Recargar ahora" → la app se reinicia, lee del cache local, los datos pending se sincronizan automáticamente. 3) Si tocás "Seguir en modo local", podés seguir usando la app pero el sync remoto queda bloqueado hasta que recargues manualmente. 4) En Diagnóstico: "Firebase client: 🛑 TERMINATED" + log con firebase:client-terminated.'}
+    ]},
     {version:'4.7.41', date:'2026-05-14', headline:'⚡ Strip comisionPlataforma (verificado 3092/3092 exact) + fix analizador.', changes:[
         {type:'perf', title:'Strip de comisionPlataforma — verificación exhaustiva', desc:'Auditoría v4.7.40 reportó SAFE-TO-STRIP con 3092/3092 exact match. La fórmula canónica truncar(usdtBase × comisionPct/100, 2) — donde usdtBase = roundMoney(monto/tasa,2) para compras y truncar(monto/tasa,2) para ventas — reproduce el valor guardado en TODAS las ops del usuario. Strip aplicado solo a la copia del payload — AppState.datos.operaciones[i].comisionPlataforma sigue intacta para la UI. Ahorro estimado adicional: ~75 KB.'},
         {type:'fix', title:'Analizador medía AppState.datos en vez del payload remoto', desc:'BUG: el analizador hacía JSON.stringify(AppState.datos) y reportaba ese tamaño como veredicto. Pero AppState.datos contiene los campos derivables (lotes, saldoUsdt, ganancia, consumedLots) porque recalcularLotesYGanancias los reconstruye después de cada snapshot. El payload remoto NO los incluye. Resultado: el panel decía "🛑 Crítico 1143 KB" cuando el payload real era 905 KB. Fix: el analizador ahora simula exactamente el mismo strip que guardarDatos y reporta ambos: "Payload REMOTO (real)" y "Estado LOCAL completo".'},
@@ -1490,13 +1498,6 @@ const CHANGELOG = [
         {type:'feature', title:'Logs estructurados del bootstrap visual', desc:'Nuevos eventos en el log: ui:bootstrap-start (login), ui:cache-hydrated (datos cargados desde local), ui:render-ready (UI renderizada), ui:overlay-hidden (loading oculto), ui:forced-unlock (watchdog activado), sync:background-mode (sync corriendo sin bloquear UI). Visible en Diagnóstico de sincronización.'},
         {type:'verified', title:'Lo que NO cambió', desc:'No tocamos el formato de payload, mergeRemoteState, guardarDatos, _syncQueue, anti-wipe blindajes, ni la lógica de mergeo multi-device. Esta versión es exclusivamente desacople UI ↔ sync. La compactación de consumedLots/ganancia (que veníamos planeando) queda para v4.7.39.'},
         {type:'verified', title:'Cómo probar', desc:'1) Hard refresh en cualquier device. 2) La app debe cargar en <2s aunque la red esté lenta. 3) Si ves "Modo local activo" en el badge, significa que se hidrató desde cache (correcto). 4) Cuando llegue el primer snapshot real, el badge pasa a "En línea". 5) Probá modo avión: la app sigue funcionando y permite crear ops. 6) En Diagnóstico, el log debe mostrar la secuencia ui:bootstrap-start → ui:cache-hydrated → ui:render-ready → ui:overlay-hidden.'}
-    ]},
-    {version:'4.7.37', date:'2026-05-14', headline:'🔍 Auditoría profunda del payload — herramienta forense para encontrar qué pesa 1117 KB.', changes:[
-        {type:'feature', title:'analizarPayload(): forense de tamaño bajo demanda', desc:'Nueva función que mide el peso real (no estimado) de cada sección del payload. Mide: tamaño total raw, peso por sección de primer nivel con porcentaje, top 20 keys más pesadas, top 10 operaciones más pesadas (por bytes), promedio de bytes por operación, top 15 campos dentro de las operaciones por peso acumulado, valores repetidos como hora="17:10" × 2671 veces (candidatos a normalización), flags de campos sospechosos (lotes embebidos, _syncState huérfanos persistidos, tasasRecientes inflado, dismissedVersions sin limpiar). Incluye medición de heap JS usado vía performance.memory cuando esté disponible (Chrome/Edge).'},
-        {type:'feature', title:'Botón "🔍 Auditar tamaño" en panel de diagnóstico', desc:'En Menú → Diagnóstico de sincronización aparece un botón violeta nuevo. Al tocarlo, hace stringify completo del documento, mide cada sección, y muestra el resultado en pantalla. Costo: 30-100ms en mobile (no automático para evitar lag). Resultado queda cacheado en window._ultimaAuditoria hasta el próximo análisis.'},
-        {type:'feature', title:'Veredicto de estado del documento', desc:'En base al tamaño total: ✓ Seguro (<700 KB), ⚠ Alto (700-850 KB), ⚠⚠ Muy alto (850-950 KB), 🛑 Crítico (>950 KB, cerca del límite 1MB de Firestore). Útil para saber rápidamente si el documento está sano o necesita acción.'},
-        {type:'verified', title:'Cómo usar esta auditoría', desc:'1) Cargar v4.7.37 en cualquier device. 2) Abrir Menú → Diagnóstico de sincronización. 3) Tocar "🔍 Auditar tamaño". 4) Esperar 1-2 segundos (botón dice "Analizando…"). 5) Aparece la sección "AUDITORÍA DE TAMAÑO" con todos los detalles. 6) Tocar "📋 Copiar" y mandarlo. Con ese output identificamos EXACTAMENTE qué está ocupando los 278 KB extras que el dataset sintético no predice.'},
-        {type:'verified', title:'Lo que NO hicimos todavía', desc:'NO bajamos el payload — primero hay que medir. NO migramos a subcolecciones — eso es proyecto separado. NO cambiamos el engine de sync. v4.7.37 es exclusivamente diagnóstico. Una vez que sepamos qué pesa, v4.7.38 va a poder hacer reducción dirigida con confianza.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -2268,6 +2269,51 @@ async function cargarHistorialMensual(){
     }
 }
 function ocultarLoading() { $('loadingOverlay')?.classList.add('hidden'); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   §CLIENT-TERMINATED BANNER v4.7.42
+   ═══════════════════════════════════════════════════════════════════
+   Banner persistente cuando Firebase SDK queda en estado 'terminated'.
+   La app sigue 100% usable en modo local. El banner sirve para:
+     - informar al usuario que sus datos están guardados localmente
+     - ofrecer recarga inmediata (reinicializa el SDK desde cero)
+     - ofrecer seguir trabajando en modo local hasta que el usuario decida
+   
+   Idempotente: si ya está visible, no se duplica.
+   Cierre por usuario: oculta el banner PERO mantiene AppState._clientTerminated=true
+   para que ningún save remoto se ejecute hasta el reload. */
+function mostrarBannerClienteTerminado(){
+    if(document.getElementById('clientTerminatedBanner'))return;
+    const banner=document.createElement('div');
+    banner.id='clientTerminatedBanner';
+    banner.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#7c2d12;color:#fff;padding:14px 16px;box-shadow:0 -4px 12px rgba(0,0,0,0.3);font-size:0.92em;line-height:1.4;border-top:3px solid #f59e0b';
+    banner.innerHTML=
+        '<div style="max-width:600px;margin:0 auto">'+
+            '<div style="font-weight:600;margin-bottom:6px">⚠ Sincronización detenida</div>'+
+            '<div style="margin-bottom:10px;color:#fed7aa">Firebase quedó en estado interno inválido. Tus datos están guardados localmente. Recargá la app para reactivar la sincronización.</div>'+
+            '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+                '<button id="btnClientTermReload" style="flex:1;min-width:140px;background:#16a34a;color:#fff;border:none;padding:10px 14px;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.95em">🔄 Recargar ahora</button>'+
+                '<button id="btnClientTermDismiss" style="flex:1;min-width:140px;background:transparent;color:#fed7aa;border:1px solid #fed7aa;padding:10px 14px;border-radius:6px;font-weight:500;cursor:pointer;font-size:0.95em">Seguir en modo local</button>'+
+            '</div>'+
+        '</div>';
+    document.body.appendChild(banner);
+    const btnReload=document.getElementById('btnClientTermReload');
+    if(btnReload)btnReload.addEventListener('click',()=>{
+        try{if(typeof flushGuardaDebounce==='function')flushGuardaDebounce()}catch(_){}
+        try{if(typeof backupToLocal==='function')backupToLocal()}catch(_){}
+        setTimeout(()=>location.reload(),100);
+    });
+    const btnDismiss=document.getElementById('btnClientTermDismiss');
+    if(btnDismiss)btnDismiss.addEventListener('click',()=>{
+        banner.style.display='none';
+        /* IMPORTANTE: solo ocultamos visualmente. AppState._clientTerminated sigue true
+           para bloquear nuevos saves. Eso lo gestiona guardarDatos directamente. */
+    });
+}
+function ocultarBannerClienteTerminado(){
+    const b=document.getElementById('clientTerminatedBanner');
+    if(b)b.remove();
+}
 function activarCooldown() {
     AppState.ui.enCooldown=true;
     setTimeout(()=>{ AppState.ui.enCooldown=false; },CONFIG.COOLDOWN_MS);
@@ -4145,6 +4191,8 @@ function getSyncDiagnostics(){
         debounceActive:_guardaDebounceTimer!==null,
         listenerActive:AppState.unsubscribe!==null,
         recoveryActive:!!(typeof iniciarRecuperacionFirestore!=='undefined'&&iniciarRecuperacionFirestore._activa),
+        clientTerminated:!!AppState._clientTerminated,
+        clientTerminatedAt:AppState._clientTerminatedAt||null,
         restoredFrom:AppState._restoredFrom,
         datosStale:AppState._datosStale,
         postRestoreLockExpires:AppState._postRestoreLockTs?new Date(AppState._postRestoreLockTs).toISOString():null,
@@ -4160,6 +4208,12 @@ async function forzarSyncManual(){
     if(!AppState.currentUser){
         _syncLog('manual-sync:no-user');
         return{ok:false,reason:'No hay sesión activa'};
+    }
+    /* v4.7.42: si el cliente está terminado, "Forzar sync" no puede hacer nada útil.
+       Solo recargar la app reinicializa el SDK. Mostrar el banner si no está visible. */
+    if(AppState._clientTerminated){
+        try{if(typeof mostrarBannerClienteTerminado==='function')mostrarBannerClienteTerminado()}catch(_){}
+        return{ok:false,reason:'Firebase quedó en estado inválido. Recargá la app para reactivar.'};
     }
     if(typeof iniciarRecuperacionFirestore!=='undefined'&&iniciarRecuperacionFirestore._activa){
         return{ok:false,reason:'Recovery en progreso — esperá a que termine'};
@@ -4563,6 +4617,16 @@ function updateSyncBadge(){
 
 async function guardarDatos(forzar){
     if(!AppState.currentUser)return;
+    /* ═══ Guard contra cliente Firestore terminado (v4.7.42) ═══
+       Si en algún save anterior detectamos 'failed-precondition: client terminated',
+       no intentamos más writes. Cada call fallaría instantáneamente con el mismo error
+       y solo agregaría ruido al log + presión sobre el SDK ya inválido.
+       Los datos están a salvo localmente; al recargar la app se reinicializa todo. */
+    if(AppState._clientTerminated){
+        console.warn('[P2P] guardarDatos abortado: Firebase client terminated. Recargá la app.');
+        try{if(typeof mostrarBannerClienteTerminado==='function')mostrarBannerClienteTerminado()}catch(_){}
+        return;
+    }
     /* ═══ Guard contra recovery en progreso ═══
        Si iniciarRecuperacionFirestore está limpiando el SDK (terminate + clearPersistence),
        cualquier write nuevo sería sobre una instancia inválida → INTERNAL ASSERTION garantizado.
@@ -4875,13 +4939,62 @@ async function guardarDatos(forzar){
             }
         }else{
             _syncPending=Math.max(0,_syncPending-1);
-            if(e.code==='stale-version'){
+            /* ═══════════════════════════════════════════════════════════════════
+               §CLIENT-TERMINATED v4.7.42 — Detección de SDK en estado inválido
+               ═══════════════════════════════════════════════════════════════════
+               Firebase puede dejar el cliente Firestore en estado "terminated" 
+               (por bugs internos, recovery mal finalizado, o paths raros del SDK).
+               Una vez en ese estado, TODO write futuro falla instantáneamente con:
+                 code: 'failed-precondition'
+                 message: 'The client has already been terminated.'
+               
+               Los retries automáticos son inútiles — el cliente nunca se recupera 
+               solo. Cada call falla en <1s, lo que rápidamente acumula errores y 
+               saturaría el circuit breaker, pero el problema raíz no es de red.
+               
+               Acción correcta (acordada con el usuario):
+                 1. Detener retries automáticos
+                 2. Resetear _guardando, _syncPending (sin tocar _localDirty ni la queue)
+                 3. Backup local inmediato (defensivo)
+                 4. Mostrar banner con botones "Recargar ahora" / "Seguir en modo local"
+                 5. Marcar AppState._clientTerminated = true (flag global)
+                 6. Bloquear NUEVOS intentos de save hasta reload
+               
+               Lo que NO hacemos (acordado con el usuario):
+                 - NO firebase.app().delete() + initializeApp() en caliente
+                 - NO tocar payload, formato de datos, ni la queue
+                 - NO recargar automáticamente — solo a pedido del usuario */
+            const errMsg=(e.message||'').toString();
+            const esClientTerminated=e.code==='failed-precondition'&&/client has already been terminated/i.test(errMsg);
+            if(esClientTerminated){
+                _syncLog('firebase:client-terminated',{msg:errMsg.slice(0,120),queueSize:_syncQueue.length,dirty:_localDirty});
+                _syncLog('sync:requires-reload',{});
+                /* Reset de flags de save en curso — pero NO tocar _localDirty ni _syncQueue.
+                   Los datos pending deben preservarse para que después del reload se sincronicen. */
+                _guardando=false;
+                _syncPending=0;
+                _guardarPendiente=false;
+                clearTimeout(_retryTimer);_retryTimer=null;
+                _syncErrors=0;
+                _retryDelay=2000;
+                /* Flag global para bloquear futuros saves hasta reload */
+                AppState._clientTerminated=true;
+                AppState._clientTerminatedAt=Date.now();
+                /* Backup local defensivo — última red de seguridad */
+                try{if(typeof backupToLocal==='function')backupToLocal()}catch(_){}
+                setSyncStatus('offline','⚠ Recargá para reactivar sync');
+                updateSyncBadge();
+                /* Mostrar banner si la función está disponible (DOM ready) */
+                try{if(typeof mostrarBannerClienteTerminado==='function')mostrarBannerClienteTerminado()}catch(_){}
+                console.error('[P2P] Firebase client terminated — sync detenido. Recargar para reactivar.');
+                /* Salir del catch SIN reintentar */
+            }else if(e.code==='stale-version'){
                 AppState._datosStale=true;
                 setSyncStatus('syncing','Reconciliando…');
                 _syncLog('save:stale-version',{serverV:e.serverV,localV:e.localV});
             }else{
                 _syncErrors++;updateSyncBadge();
-                _syncLog('save:error',{code:e.code||'?',msg:(e.message||'').slice(0,120),retryIn:Math.min(_retryDelay,30000),consecutiveErrors:_syncErrors});
+                _syncLog('save:error',{code:e.code||'?',msg:errMsg.slice(0,120),retryIn:Math.min(_retryDelay,30000),consecutiveErrors:_syncErrors});
                 /* Circuit breaker para errores generales también */
                 clearTimeout(_retryTimer);_retryTimer=null;
                 if(_syncErrors>=3){
@@ -5399,6 +5512,13 @@ function renderDiagnosticoSync(){
     html+='Estado sync:      '+d.syncState+'\n';
     html+='Listener activo:  '+fmtBool(d.listenerActive)+'\n';
     html+='Recovery activa:  '+fmtBool(d.recoveryActive)+'\n';
+    /* v4.7.42: estado del cliente Firebase. Si está terminado, sync remoto bloqueado. */
+    if(d.clientTerminated){
+        html+='Firebase client:  🛑 TERMINATED — requiere recarga\n';
+        if(d.clientTerminatedAt)html+='Terminó a las:    '+new Date(d.clientTerminatedAt).toLocaleTimeString()+'\n';
+    }else{
+        html+='Firebase client:  ✓ activo\n';
+    }
     html+='\n━━━ VERSIONES ━━━\n';
     html+='_localVersion:    '+d.localVersion+'\n';
     html+='_datos._version:  '+d.dataVersion+'\n';
