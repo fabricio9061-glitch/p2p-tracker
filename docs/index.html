@@ -1410,7 +1410,7 @@
    §1 — CONFIGURACIÓN
    ═══════════════════════════════════════ */
 const CONFIG = {
-    firebase: {apiKey:"AIzaSyCL2uxQMNIxC0oo35uN-lYQXaOWLxXNg7k",authDomain:"p2p-tracker-dc9cc.firebaseapp.com",projectId:"p2p-tracker-dc9cc",storageBucket:"p2p-tracker-dc9cc.firebasestorage.app",messagingSenderId:"670856094446",appId:"1:670856094446:web:390946887212a97e36c9ff"},
+    firebase: {apiKey:"AIzaSyC5GPlXKziT4XdGpcdUR_gtnQE5RIrricw",authDomain:"binancp2p-f831f.firebaseapp.com",projectId:"binancp2p-f831f",storageBucket:"binancp2p-f831f.firebasestorage.app",messagingSenderId:"118313786206",appId:"1:118313786206:web:a964400f85dac298a78dcf"},
     /* ═══════════════════════════════════════════════════════════════════════
      * 📌 VERSION BUMP POLICY — REGLA OBLIGATORIA
      * ═══════════════════════════════════════════════════════════════════════
@@ -1427,7 +1427,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.42',
+    APP_VERSION: '4.7.43',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1460,6 +1460,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.43', date:'2026-05-15', headline:'🇧🇷 Migración a Firebase Brasil (São Paulo) — latencia mucho menor desde Uruguay.', changes:[
+        {type:'perf', title:'Cambio de proyecto Firebase: us-central → southamerica-east1', desc:'El proyecto viejo (p2p-tracker-dc9cc) estaba en us-central1 (Iowa). Latencia desde Uruguay: 180-250 ms por roundtrip, contribuyendo a writes de 17-20s con payload de 840 KB. Nuevo proyecto (binancp2p-f831f) en southamerica-east1 (São Paulo). Latencia esperada: 30-60 ms. Esperado: writes en 3-6 segundos. Esto es lo único que cambió — la arquitectura interna del sync engine es idéntica.'},
+        {type:'verified', title:'Lo que NO se tocó', desc:'Strip de payload (consumedLots, ganancia, comisionPlataforma, lotes, saldoUsdt) sigue activo. Circuit breaker, bootstrap independiente, repair de orphans, fix de setTimeout fantasma, manejo de client-terminated — todo intacto. Solo cambiaron las credenciales del proyecto Firebase.'},
+        {type:'verified', title:'Migración: pasos exactos', desc:'1) Desde iPhone con datos buenos: Menú → Exportar datos → guardar JSON. 2) Subir v4.7.43 a GitHub Pages. 3) Hard refresh en iPhone → app conecta al proyecto nuevo (vacío). 4) Registrarte (no login — es cuenta nueva en proyecto nuevo). 5) Importar el JSON guardado. 6) La app pushea todo al server en Brasil. 7) En PC y Galaxy: hard refresh + login con el mismo email/password registrado en paso 4. Datos aparecen automáticamente.'},
+        {type:'verified', title:'Si algo sale mal', desc:'El proyecto viejo (p2p-tracker-dc9cc) NO se borra todavía. Si necesitás volver atrás: cambiar las credenciales en index.html a las del proyecto viejo y subir. Todos los datos siguen ahí. Recomendación: mantener el proyecto viejo durante 1-2 semanas como red de seguridad antes de borrarlo.'},
+        {type:'verified', title:'Verificar que la migración funcionó', desc:'Después del primer write, abrir Diagnóstico de sincronización. En "TIMING DEL ÚLTIMO SAVE": Tiempo de write esperado <6 segundos (vs 17s antes). Si sigue tardando >10s, hay otra causa (red local, ISP, persistence corrupta) y vemos.'}
+    ]},
     {version:'4.7.42', date:'2026-05-14', headline:'🛑 Manejo seguro del error "client has already been terminated".', changes:[
         {type:'fix', title:'Detección del estado terminated del SDK Firebase', desc:'Log de v4.7.41 reveló error específico: failed-precondition "The client has already been terminated". Es un estado interno del SDK Firebase (probablemente por bug del SDK o recovery mal finalizado) donde TODOS los writes futuros fallan instantáneamente. Los retries automáticos son inútiles — el cliente nunca se recupera solo. Solución conservadora (acordada): detectar este error específico y detener TODO el sync remoto hasta que el usuario recargue la app. NO intentar re-inicialización en caliente (firebase.app().delete() + initializeApp()) que es riesgosa.'},
         {type:'feature', title:'Banner persistente con opciones claras', desc:'Cuando el SDK queda terminated, aparece un banner naranja en la parte inferior: "Firebase quedó en estado interno inválido. Tus datos están guardados localmente. Recargá la app para reactivar la sincronización." Dos botones: 🔄 Recargar ahora (verde, hace flush + backup local + reload) y "Seguir en modo local" (oculta el banner pero mantiene el bloqueo de sync). La app sigue 100% usable en modo local en ambos casos.'},
@@ -1490,14 +1497,6 @@ const CHANGELOG = [
         {type:'feature', title:'Panel diagnóstico muestra el ahorro completo', desc:'Antes mostraba solo "Antes del strip → Después". Ahora desglosa: Baseline (todo sin tocar) → Ahorro per-op (consumedLots+ganancia) → Ahorro top-level (lotes+saldoUsdt) → Reducción TOTAL. Nuevos logs: payload:compact-start, payload:compact-end, snapshot:hydrate-derived.'},
         {type:'verified', title:'No destructivo', desc:'AppState.datos sigue conteniendo todos los campos enriquecidos. Solo la COPIA del payload (destructured con spread) excluye los derivables. La UI sigue mostrando ganancias y consumedLots normalmente. Al recibir snapshot de otro device, recalcularLotesYGanancias() reconstruye todo. Compatible con docs legacy que tengan estos campos embebidos.'},
         {type:'verified', title:'Cómo probar', desc:'1) Subir v4.7.39. 2) Crear una op cualquiera. 3) Abrir Diagnóstico → tocar 🔍 Auditar tamaño. 4) En "TIMING DEL ÚLTIMO SAVE" debería verse: Baseline ~1140 KB, Ahorro per-op ~170 KB, Ahorro top-level ~25 KB, Reducción TOTAL ~195 KB. Payload final ~950 KB o menos. 5) Verificar que las ganancias se ven correctamente en la lista de ops. 6) En el log: payload:compact-start → payload:compact-end → snapshot:hydrate-derived.'}
-    ]},
-    {version:'4.7.38', date:'2026-05-14', headline:'🎯 UI desacoplada del sync — el overlay "Cargando..." nunca más bloquea la app.', changes:[
-        {type:'fix', title:'Bootstrap independiente del sync remoto', desc:'BUG: la UI esperaba el primer snapshot de Firestore para renderizar. Si el snapshot tardaba o llegaba con hasPendingWrites=true (que el handler skipea con return), el overlay "Cargando..." quedaba visible indefinidamente aunque el cache local ya tenía datos válidos. Fix: showApp() ahora hidrata AppState.datos desde restoreFromLocal() inmediatamente al login, renderiza la UI completa en <100ms, oculta el overlay, y RECIÉN después dispara cargarDatosUsuario() que conecta el listener en background. La UI nunca espera a Firestore para ser usable.'},
-        {type:'fix', title:'Watchdog de 3 segundos contra overlay pegado', desc:'Aunque no haya backup local (primer login en cuenta nueva, cache corrupto), el watchdog garantiza que el overlay se oculte después de 3 segundos máximo. Si el snapshot no llegó, la UI muestra vista vacía con badge "Conectando…" y permite navegar. Cuando el snapshot llegue, los datos se renderizan naturalmente vía mergeRemoteState. Log: ui:forced-unlock.'},
-        {type:'feature', title:'Estados de UI separados del estado de sync', desc:'Nuevo flag AppState._uiHydratedFromCache distingue "UI lista desde cache" de "snapshot remoto confirmado". El badge muestra "Modo local activo" mientras la sync corre en background. Al llegar el primer snapshot real (no fromCache), transición a "En línea". La UI ya no depende de _guardando, _syncPending, hasPendingWrites, ni del estado de la queue remota para funcionar.'},
-        {type:'feature', title:'Logs estructurados del bootstrap visual', desc:'Nuevos eventos en el log: ui:bootstrap-start (login), ui:cache-hydrated (datos cargados desde local), ui:render-ready (UI renderizada), ui:overlay-hidden (loading oculto), ui:forced-unlock (watchdog activado), sync:background-mode (sync corriendo sin bloquear UI). Visible en Diagnóstico de sincronización.'},
-        {type:'verified', title:'Lo que NO cambió', desc:'No tocamos el formato de payload, mergeRemoteState, guardarDatos, _syncQueue, anti-wipe blindajes, ni la lógica de mergeo multi-device. Esta versión es exclusivamente desacople UI ↔ sync. La compactación de consumedLots/ganancia (que veníamos planeando) queda para v4.7.39.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Hard refresh en cualquier device. 2) La app debe cargar en <2s aunque la red esté lenta. 3) Si ves "Modo local activo" en el badge, significa que se hidrató desde cache (correcto). 4) Cuando llegue el primer snapshot real, el badge pasa a "En línea". 5) Probá modo avión: la app sigue funcionando y permite crear ops. 6) En Diagnóstico, el log debe mostrar la secuencia ui:bootstrap-start → ui:cache-hydrated → ui:render-ready → ui:overlay-hidden.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
