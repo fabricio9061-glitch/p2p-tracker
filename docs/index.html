@@ -1091,13 +1091,19 @@
         .card.main-card .card-title{font-size:0.74em;letter-spacing:0.04em;
             color:#15803d;font-weight:700}
         .card.main-card.negative .card-title{color:#b91c1c}
-        .card.main-card #gananciaHoy{font-size:2.5em!important;font-weight:850;
-            letter-spacing:-0.03em;margin:2px 0 6px;line-height:1}
-        #cardGananciaHoy .spark-wrap{position:absolute;right:16px;bottom:14px;
-            width:140px;height:62px;pointer-events:none;opacity:0.9}
+        /* v4.7.45 — Número más chico para que NO tape el sparkline.
+           Se le reserva ~45% del ancho al gráfico a la derecha. */
+        .card.main-card #gananciaHoy{font-size:1.85em!important;font-weight:850;
+            letter-spacing:-0.03em;margin:2px 0 6px;line-height:1.05;
+            max-width:55%;position:relative;z-index:2}
+        #cardGananciaHoy .spark-wrap{position:absolute;right:14px;top:50%;
+            transform:translateY(-50%);width:150px;height:70px;
+            pointer-events:none;opacity:0.85;z-index:1}
         #cardGananciaHoy .hoy-meta{display:flex;align-items:center;gap:10px;
-            font-size:0.72em;color:#475569;flex-wrap:wrap}
+            font-size:0.72em;color:#475569;flex-wrap:wrap;max-width:60%;
+            position:relative;z-index:2}
         #cardGananciaHoy .hoy-meta b{color:#0284c7}
+        #cardGananciaHoy [id="fechaHoy"]{position:relative;z-index:2}
         .spread-trend{font-size:0.92em;padding:1px 7px;border-radius:9px;font-weight:700}
         .spread-trend.up{background:#dcfce7;color:#15803d}
         .spread-trend.down{background:#fee2e2;color:#dc2626}
@@ -1112,7 +1118,7 @@
             border-left:4px solid #22c55e}
         .card-venta{background:linear-gradient(135deg,#fef2f2,#fee2e2);
             border-left:4px solid #ef4444}
-        .card-compra [id^=total],.card-venta [id^=total]{font-size:1.3em!important;
+        .card-compra [id^=total],.card-venta [id^=total]{font-size:1.05em!important;
             font-weight:800;letter-spacing:-0.02em}
 
         /* ── Mis Saldos: scroll horizontal ── */
@@ -1144,13 +1150,13 @@
         #saldosTotales{background:#fff;border:1px solid #e8edf3;border-radius:16px;
             padding:15px 18px;display:flex;align-items:center;gap:10px;
             margin-bottom:12px;box-shadow:0 1px 3px rgba(15,23,42,0.04)}
-        .saldos-hero-label{font-size:0.9em;font-weight:650;color:#334155}
-        .saldos-hero-value{font-size:1.2em;font-weight:800}
+        .saldos-hero-label{font-size:0.88em;font-weight:650;color:#334155}
+        .saldos-hero-value{font-size:1.05em;font-weight:800}
         #bancosGrid{display:flex!important;grid-template-columns:none!important;
             gap:12px;overflow-x:auto;padding:2px 2px 10px;
             scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
         #bancosGrid::-webkit-scrollbar{height:0}
-        #bancosGrid>*{scroll-snap-align:start;flex:0 0 auto;min-width:148px;
+        #bancosGrid>*{scroll-snap-align:start;flex:0 0 auto;min-width:124px;
             border-radius:15px!important}
         @media(min-width:640px){
             #bancosGrid{flex-wrap:nowrap}
@@ -1542,7 +1548,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.44',
+    APP_VERSION: '4.7.45',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1575,6 +1581,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.45', date:'2026-05-19', headline:'🔧 Ajustes de tamaño del rediseño — el número de ganancia ya no tapa el gráfico.', changes:[
+        {type:'fix', title:'Número de ganancia más chico', desc:'En v4.7.44 el monto de "Ganancia Hoy" era 2.5em y con montos de varios dígitos se superponía con el sparkline. Bajado a 1.85em y limitado a 55% del ancho, dejando espacio reservado al gráfico a la derecha. Ya no colisionan.'},
+        {type:'fix', title:'Sparkline reposicionado', desc:'El mini-gráfico ahora se centra verticalmente en la tarjeta y ocupa el 45% derecho, sin pisar el número ni los metadatos. z-index ordenado: texto adelante, gráfico detrás.'},
+        {type:'improve', title:'Montos de Compras/Ventas más compactos', desc:'Los totales de la sección "Actividad del período" bajaron de 1.3em a 1.05em — antes casi tocaban los bordes de las tarjetas con montos de millones.'},
+        {type:'improve', title:'Total Bancos más proporcionado', desc:'El valor de "Total Bancos" bajó de 1.2em a 1.05em para equilibrarse con el resto.'},
+        {type:'improve', title:'Tarjetas de saldo más angostas', desc:'Las tarjetas de cuentas (USDT, bancos) pasaron de 148px a 124px de ancho mínimo, así entran más en pantalla antes de tener que deslizar.'},
+        {type:'verified', title:'Solo CSS', desc:'Estos ajustes son exclusivamente de tamaños en el bloque CSS del rediseño. No se tocó HTML, JS, navegación, sync, ni la lógica del sparkline. Reversible.'}
+    ]},
     {version:'4.7.44', date:'2026-05-19', headline:'🎨 Rediseño visual de la pantalla principal (sin tocar navegación ni sync).', changes:[
         {type:'feature', title:'Header rediseñado', desc:'Título y badge de estado alineados a la izquierda en columna, cluster de campana + menú a la derecha con estilo de tarjeta redondeada. Badge "En línea" estilo pill verde con punto luminoso. Sin cambios funcionales — el menú hamburguesa y la campana de novedades funcionan igual que antes.'},
         {type:'feature', title:'Tarjeta Ganancia Hoy con mini-gráfico', desc:'Nuevo sparkline SVG que muestra la tendencia de ganancia de los últimos 14 días, integrado en la esquina de la tarjeta. Color verde si el día está sobre el promedio, rojo si está debajo. Usa calcularGananciaDiaria() que ya existía (cacheada). Defensivo: si falla, se oculta sin afectar el resto del dashboard.'},
@@ -1606,13 +1620,6 @@ const CHANGELOG = [
         {type:'fix', title:'Recalc post-snapshot también detecta comisionPlataforma faltante', desc:'El check necesitaRecalc ahora samplea las primeras 10 ops (no 5) buscando ganancia, consumedLots O comisionPlataforma faltantes. Si cualquiera falta, dispara recalc. Esto garantiza que al recibir un snapshot stripeado (de v4.7.41+), todos los campos derivables se reconstruyen automáticamente antes de renderizar la UI.'},
         {type:'verified', title:'Veredicto basado en payload remoto', desc:'El estado (✓ Seguro / ⚠ Alto / 🛑 Crítico) ahora se calcula sobre remoteKB, no sobre totalKB. Esperado para tu cuenta: payload remoto baja de 905 KB → ~830 KB. Veredicto debería pasar de "⚠⚠ Muy alto" a "⚠ Alto". Tiempo de write esperado: ~14-15s (vs 17s actual).'},
         {type:'verified', title:'Cómo probar', desc:'1) Hard refresh. 2) Crear una op cualquiera. 3) Menú → Diagnóstico → 🔍 Auditar tamaño. 4) Buscar las líneas: "Payload REMOTO (real): ~830 KB" + "Estado LOCAL completo: ~1140 KB" + "Ahorrado por strip: ~310 KB". 5) Las flags NO deberían marcar lotes/saldoUsdt como problema. 6) En "TIMING DEL ÚLTIMO SAVE" payload enviado <850 KB. 7) Verificar que las ganancias y comisiones se ven correctamente en la lista de ops.'}
-    ]},
-    {version:'4.7.40', date:'2026-05-14', headline:'🔍 Auditoría de comisionPlataforma — solo diagnóstico, sin strip.', changes:[
-        {type:'feature', title:'Auditoría financiera de comisionPlataforma', desc:'Nueva función auditarComisionPlataforma() que recorre TODAS las operaciones y compara comisionPlataforma guardada contra el valor canónico truncar(usdtBase × comisionPct/100, 2), donde usdtBase = roundMoney(monto/tasa,2) para compras y truncar(monto/tasa,2) para ventas. Esta es exactamente la fórmula que usa recalcularLotesYGanancias (línea 3611). Categoriza cada op en: exact (diff=0), tolerance (≤0.01), small (0.01-0.10), significant (>0.10), missing-pct (legacy sin comisionPct), missing-cp (sin comisionPlataforma), invalid (datos malformados).'},
-        {type:'feature', title:'Verdict claro: SAFE-TO-STRIP / DO-NOT-STRIP', desc:'Después del análisis, la auditoría emite un verdict explícito: SAFE-TO-STRIP solo si TODAS las ops son exact o tolerance. DO-NOT-STRIP si hay alguna small/significant/missing-pct. La auditoría también lista las top 10 discrepancias con detalle completo (id, fecha, tipo, monto, tasa, usdt, comisionPct, cpGuardada, cpEsperada, diff) para inspección humana antes de decidir.'},
-        {type:'feature', title:'Botón "💰 Auditar comisión" en panel diagnóstico', desc:'Nuevo botón cian al lado de "🔍 Auditar tamaño". Corre la auditoría en ~50-200ms (depende de N ops). El resultado queda cacheado en window._ultimaAuditoriaComision hasta el próximo análisis. El panel muestra: distribución por categoría, top 10 discrepancias, casos legacy, fórmula usada, verdict final con razón.'},
-        {type:'verified', title:'comisionPlataforma NO fue stripeada', desc:'Esta versión es exclusivamente diagnóstico. La comisionPlataforma sigue persistiéndose en Firestore exactamente igual que antes. Decisión consciente: la comisión es un dato financiero clave para trazabilidad histórica. Solo evaluaremos stripearla si la auditoría confirma SAFE-TO-STRIP con cero discrepancias relevantes. Si hay aunque sea UNA op con diff >0.01, NO se toca.'},
-        {type:'verified', title:'Cómo usar la auditoría', desc:'1) Hard refresh. 2) Menú → Diagnóstico de sincronización. 3) Tocar "💰 Auditar comisión". 4) Esperar 1-2 segundos. 5) Aparece sección "AUDITORÍA DE comisionPlataforma" con todo el detalle. 6) Tocar "📋 Copiar" y mandar el output. Si el verdict es SAFE-TO-STRIP, en una próxima versión podríamos stripear con confianza. Si es DO-NOT-STRIP, comisionPlataforma se queda en el payload.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
