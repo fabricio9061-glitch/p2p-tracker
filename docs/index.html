@@ -1344,27 +1344,58 @@
         .saldos-hero-label{font-size:0.88em;font-weight:650;color:#334155}
         .saldos-hero-value{font-size:1.05em;font-weight:800}
         #bancosGrid{display:flex!important;grid-template-columns:none!important;
-            gap:10px;overflow-x:auto;padding:2px 2px 10px;
+            gap:8px;overflow-x:auto;padding:2px 2px 10px;
             scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
         #bancosGrid::-webkit-scrollbar{height:0}
-        /* v4.7.47 — Proporciones del mockup: tarjeta lo bastante ancha para
-           que el saldo completo (5-6 dígitos) NUNCA se corte. Se ven ~2.3
-           tarjetas en pantalla, indicando que hay más para deslizar.
-           Sin ellipsis en el saldo — el número manda el ancho. */
+        /* ════════════════════════════════════════════════════════════════
+           §FASE 2B v4.7.50 — Tarjetas de bancos: LAS 3 SIEMPRE EN PANTALLA
+           ════════════════════════════════════════════════════════════════
+           Solución de fondo (no más parches de ancho):
+           1. Ancho FIJO = exactamente 1/3 del viewport menos gaps. Las 3
+              entran siempre, en cualquier teléfono. No se desliza.
+           2. El MONTO se adapta: clamp() reduce la fuente si el número es
+              largo ($103.694,49) para caber en el ancho fijo SIN cortar.
+           3. El límite de Itau (US$10.251/12.500) pasa a ser mínimo y
+              discreto — es info secundaria, no dicta el ancho.
+           4. Layout vertical compacto tipo mockup.
+           ════════════════════════════════════════════════════════════════ */
         #bancosGrid>*{scroll-snap-align:start;flex:0 0 auto;
-            width:auto;min-width:168px;max-width:230px;
-            padding:14px 16px!important;border-radius:16px!important}
-        #bancosGrid .banco-nombre{font-size:0.92em!important;font-weight:700;
+            /* 1/3 del ancho del contenedor, menos los 2 gaps de 8px */
+            width:calc((100% - 16px) / 3)!important;
+            min-width:0!important;max-width:none!important;
+            padding:12px 9px!important;border-radius:var(--r-md)!important;
+            box-shadow:var(--sh-sm);display:flex;flex-direction:column;
+            justify-content:center;min-height:88px;overflow:hidden}
+        #bancosGrid .banco-nombre{
+            font-size:clamp(0.62rem,2.9vw,0.78rem)!important;
+            font-weight:var(--fw-bold)!important;margin-bottom:3px;
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-            margin-bottom:3px}
-        #bancosGrid .banco-saldo{font-size:1.32em!important;font-weight:850;
-            white-space:nowrap;letter-spacing:-0.02em}
-        #bancosGrid .banco-moneda{font-size:0.7em!important;margin-top:1px}
-        #bancosGrid .banco-limite-txt{font-size:0.66em!important;
-            white-space:nowrap;margin-top:3px;color:#94a3b8}
+            max-width:100%}
+        /* El monto se achica solo si es largo, para nunca cortarse.
+           clamp(min, escala-por-viewport, max): en pantallas chicas y
+           números grandes baja hasta 0.82rem; nunca usa ellipsis. */
+        #bancosGrid .banco-saldo{
+            font-size:clamp(0.82rem,3.7vw,1.18rem)!important;
+            font-weight:var(--fw-extra)!important;
+            font-variant-numeric:tabular-nums;letter-spacing:-0.03em;
+            white-space:nowrap;overflow:visible;line-height:1.12;
+            max-width:100%}
+        #bancosGrid .banco-moneda{
+            font-size:clamp(0.55rem,2.2vw,0.66rem)!important;
+            margin-top:2px;color:var(--c-text-mute)}
+        /* Límite Itau: mínimo y discreto, no ensancha la tarjeta */
+        #bancosGrid .banco-limite-txt{
+            font-size:clamp(0.5rem,2vw,0.6rem)!important;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+            margin-top:2px;color:var(--c-text-faint);max-width:100%}
+        #bancosGrid>*:active{transform:scale(0.97)}
+        /* Desktop: las tarjetas pueden ser más anchas (hay espacio) */
         @media(min-width:640px){
-            #bancosGrid{flex-wrap:nowrap}
-            #bancosGrid>*{min-width:170px}
+            #bancosGrid{flex-wrap:nowrap;gap:12px}
+            #bancosGrid>*{width:auto!important;min-width:150px!important;
+                padding:14px 16px!important}
+            #bancosGrid .banco-saldo{font-size:1.2rem!important}
+            #bancosGrid .banco-nombre{font-size:0.85rem!important}
         }
 
         /* ════════════════════════════════════════════════════════════════
@@ -1856,7 +1887,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.49',
+    APP_VERSION: '4.7.50',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1889,6 +1920,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.50', date:'2026-05-19', headline:'✅ Fase 2B (tarjetas): las 3 tarjetas de bancos SIEMPRE visibles, sin deslizar.', changes:[
+        {type:'fix', title:'Las 3 tarjetas entran en pantalla — solución de fondo', desc:'Reconozco que en v4.7.46/47/49 fallé en esto 3 veces parcheando el ancho. La causa raíz: usaba width:auto, así cada tarjeta se estiraba para que entrara el monto y nunca entraban las 3. Ahora el ancho es FIJO: exactamente (100% - gaps) / 3. Las 3 tarjetas entran siempre, en cualquier teléfono, sin deslizar — como el mockup.'},
+        {type:'fix', title:'El monto se adapta al ancho fijo (sin cortar)', desc:'En vez de que la tarjeta crezca según el monto, ahora el monto se achica solo con clamp(0.82rem, 3.7vw, 1.18rem) si el número es largo ($103.694,49). Nunca usa "..." ni se corta — el número completo siempre se ve, solo cambia su tamaño según largo y pantalla.'},
+        {type:'improve', title:'Límite de Itau discreto', desc:'El texto US$10.251/12.500 pasó a ser mínimo y gris tenue. Era info secundaria que antes ensanchaba la tarjeta y rompía el cálculo del ancho. Ahora no dicta el layout.'},
+        {type:'improve', title:'Layout vertical compacto tipo mockup', desc:'Nombre arriba chico, monto grande centrado, moneda/límite abajo mínimos. Altura mínima uniforme, contenido centrado verticalmente. Micro-press al tocar.'},
+        {type:'verified', title:'Solo CSS — nada más tocado', desc:'Exclusivamente el bloque de tarjetas en CSS. No se tocó JS, navegación, sync, Firebase (binancp2p-f831f), FIFO, ni el resto del rediseño Fase 2A. Pantallas del menú intactas. DIVs balanceados, JS válido.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) Mirar Mis Saldos: las 3 tarjetas (USDT, Itau, Mercado Pago) deben verse COMPLETAS en pantalla SIN deslizar. 3) Los montos completos, sin "..." (aunque la fuente sea más chica en los largos). 4) Verificar que el resto del home Fase 2A sigue bien. 5) Probar el menú hamburguesa. 6) Crear una operación. 7) Si OK, subir. Después seguimos con el resto de Fase 2B (pulir pantallas del menú).'}
+    ]},
     {version:'4.7.49', date:'2026-05-19', headline:'✨ Fase 2A: pulido visual mobile premium de la pantalla principal.', changes:[
         {type:'feature', title:'Tipografía Inter aplicada', desc:'El body ahora usa Inter (con fallback a SF Pro/-apple-system si Google Fonts no responde). Antialiasing y optimizeLegibility activados. Esto afecta TODO el texto de la app — es global e inevitable con un cambio de tipografía. Las pantallas del menú heredan la fuente nueva pero su layout NO se rediseñó.'},
         {type:'feature', title:'Fondo premium + superficies flotantes', desc:'De gris plano (#f0f0ee) a #f5f7fb. Las cards usan sombras estilo iOS (blur amplio, suaves) vía tokens. Bordes tenues, radius grandes (14-28px).'},
@@ -1916,14 +1955,6 @@ const CHANGELOG = [
         {type:'fix', title:'Tarjetas de bancos más compactas', desc:'En v4.7.45 las tarjetas de cuentas todavía eran muy anchas y la tercera (Mercado Pago) quedaba cortada. Ahora el ancho se calcula como (100% - gaps)/3, así entran exactamente 3 tarjetas completas en pantalla como en el diseño objetivo. Padding reducido, textos del límite y moneda más chicos, con ellipsis para no desbordar.'},
         {type:'improve', title:'Ancho adaptable', desc:'Mínimo 108px (pantallas muy chicas) y máximo 150px (pantallas grandes) para que las tarjetas nunca se aplasten ni se estiren de más. En desktop (≥640px) vuelven a ancho automático.'},
         {type:'verified', title:'Solo CSS', desc:'Exclusivamente ajustes de tamaño y overflow en el bloque CSS del rediseño. No se tocó HTML, JS, navegación, sync, ni la lógica de cálculo de saldos. Reversible.'}
-    ]},
-    {version:'4.7.45', date:'2026-05-19', headline:'🔧 Ajustes de tamaño del rediseño — el número de ganancia ya no tapa el gráfico.', changes:[
-        {type:'fix', title:'Número de ganancia más chico', desc:'En v4.7.44 el monto de "Ganancia Hoy" era 2.5em y con montos de varios dígitos se superponía con el sparkline. Bajado a 1.85em y limitado a 55% del ancho, dejando espacio reservado al gráfico a la derecha. Ya no colisionan.'},
-        {type:'fix', title:'Sparkline reposicionado', desc:'El mini-gráfico ahora se centra verticalmente en la tarjeta y ocupa el 45% derecho, sin pisar el número ni los metadatos. z-index ordenado: texto adelante, gráfico detrás.'},
-        {type:'improve', title:'Montos de Compras/Ventas más compactos', desc:'Los totales de la sección "Actividad del período" bajaron de 1.3em a 1.05em — antes casi tocaban los bordes de las tarjetas con montos de millones.'},
-        {type:'improve', title:'Total Bancos más proporcionado', desc:'El valor de "Total Bancos" bajó de 1.2em a 1.05em para equilibrarse con el resto.'},
-        {type:'improve', title:'Tarjetas de saldo más angostas', desc:'Las tarjetas de cuentas (USDT, bancos) pasaron de 148px a 124px de ancho mínimo, así entran más en pantalla antes de tener que deslizar.'},
-        {type:'verified', title:'Solo CSS', desc:'Estos ajustes son exclusivamente de tamaños en el bloque CSS del rediseño. No se tocó HTML, JS, navegación, sync, ni la lógica del sparkline. Reversible.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
