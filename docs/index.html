@@ -1366,6 +1366,109 @@
             #bancosGrid{flex-wrap:nowrap}
             #bancosGrid>*{min-width:170px}
         }
+
+        /* ════════════════════════════════════════════════════════════════
+           §FASE 2A v4.7.49 — Pulido visual mobile premium (mockup)
+           ════════════════════════════════════════════════════════════════
+           Consume los tokens de Fase 1 (§DESIGN SYSTEM v4.7.48).
+           Bloque al final → sobrescribe lo anterior por cascada.
+           SOLO afecta pantalla principal (home). Las pantallas del menú
+           hamburguesa heredan únicamente fuente+fondo global (inevitable
+           con un cambio de tipografía), su layout NO se rediseña.
+           No se toca JS, navegación, sync, ni estructura HTML.
+           ════════════════════════════════════════════════════════════════ */
+
+        /* ── Tipografía Inter + fondo premium (global, intencional) ── */
+        body{font-family:var(--ff-sans)!important;
+            background:var(--c-bg)!important;
+            -webkit-font-smoothing:antialiased;
+            text-rendering:optimizeLegibility}
+        .container{max-width:560px}
+
+        /* ── Header premium ── */
+        .header h1{font-size:var(--fs-xl)!important;font-weight:var(--fw-extra)!important;
+            letter-spacing:var(--tracking-tight);color:var(--c-text)}
+        .header .sync-status{border-radius:var(--r-pill);font-weight:var(--fw-semi);
+            padding:5px 13px;font-size:var(--fs-xs)}
+        .sync-status.online{background:var(--c-success-bg);color:var(--c-brand-strong)}
+        .sync-status.online .sync-dot{background:#22c55e;box-shadow:var(--sh-glow-success)}
+        .news-bell,.menu-btn{background:var(--c-surface);border:1px solid var(--c-border);
+            border-radius:var(--r-md);box-shadow:var(--sh-sm);width:46px;height:46px;
+            transition:transform var(--dur-fast) var(--ease-out)}
+        .news-bell:active,.menu-btn:active{transform:scale(0.94)}
+
+        /* ── Tarjeta GANANCIA HOY: hero premium con glow sutil ── */
+        .card.main-card{border-radius:var(--r-2xl);padding:var(--sp-5);
+            background:linear-gradient(150deg,var(--c-brand-softer) 0%,var(--c-brand-soft) 100%);
+            border:1.5px solid #bbf7d0;box-shadow:var(--sh-md),0 0 32px rgba(34,197,94,0.07);
+            position:relative;overflow:hidden}
+        .card.main-card.negative{background:linear-gradient(150deg,#fef2f2 0%,var(--c-danger-bg) 100%);
+            border-color:#fecaca;box-shadow:var(--sh-md),0 0 32px rgba(239,68,68,0.06)}
+        .card.main-card .card-title{font-size:var(--fs-sm);font-weight:var(--fw-bold);
+            letter-spacing:var(--tracking-wide);color:var(--c-brand-strong)}
+        .card.main-card.negative .card-title{color:#b91c1c}
+        .card.main-card #gananciaHoy{font-size:var(--fs-2xl)!important;
+            font-weight:var(--fw-extra);letter-spacing:var(--tracking-tight);
+            font-variant-numeric:tabular-nums;line-height:var(--lh-tight);
+            margin:var(--sp-1) 0 var(--sp-2);max-width:55%;position:relative;z-index:2}
+        #cardGananciaHoy .hoy-meta{font-size:var(--fs-sm);color:var(--c-text-soft);
+            gap:var(--sp-3)}
+
+        /* ── Cards generales: superficie flotante ── */
+        .card{border-radius:var(--r-lg);border:1px solid var(--c-border);
+            box-shadow:var(--sh-sm)}
+        .card-compra,.card-venta{border-radius:var(--r-lg);
+            box-shadow:var(--sh-sm);border:none}
+        .card-compra{background:linear-gradient(145deg,var(--c-brand-softer),var(--c-brand-soft));
+            border-left:4px solid #22c55e}
+        .card-venta{background:linear-gradient(145deg,#fef2f2,var(--c-danger-bg));
+            border-left:4px solid #ef4444}
+        .card-compra [id^=total],.card-venta [id^=total]{
+            font-size:var(--fs-md)!important;font-weight:var(--fw-bold);
+            font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-tight)}
+
+        /* ── Section titles premium ── */
+        .section-title{font-size:var(--fs-md);font-weight:var(--fw-bold);
+            color:var(--c-text);letter-spacing:var(--tracking-tight);
+            margin:var(--sp-6) 0 var(--sp-3)}
+
+        /* ── Mis Saldos premium ── */
+        #saldosTotales{background:var(--c-surface);border:1px solid var(--c-border);
+            border-radius:var(--r-lg);box-shadow:var(--sh-sm);padding:var(--sp-4) var(--sp-5)}
+        .saldos-hero-label{font-size:var(--fs-sm);font-weight:var(--fw-semi);
+            color:var(--c-text-soft)}
+        .saldos-hero-value{font-size:var(--fs-md);font-weight:var(--fw-extra);
+            font-variant-numeric:tabular-nums}
+        #bancosGrid>*{border-radius:var(--r-md)!important;box-shadow:var(--sh-sm);
+            transition:transform var(--dur-fast) var(--ease-out)}
+        #bancosGrid>*:active{transform:scale(0.98)}
+        #bancosGrid .banco-saldo{font-variant-numeric:tabular-nums;
+            letter-spacing:var(--tracking-tight)}
+
+        /* ── Nueva Operación: inputs y botones premium ── */
+        .form-group input,.form-group select,#monto,#tasa,#comisionBanco{
+            border-radius:var(--r-md)!important;border:1.5px solid var(--c-border)!important;
+            font-size:var(--fs-md)!important;padding:13px 14px!important;
+            transition:border-color var(--dur-fast) var(--ease-out),
+                       box-shadow var(--dur-fast) var(--ease-out);
+            background:var(--c-surface)}
+        .form-group input:focus,.form-group select:focus,
+        #monto:focus,#tasa:focus,#comisionBanco:focus{
+            border-color:var(--c-accent)!important;
+            box-shadow:var(--sh-glow-accent)!important;outline:none}
+        .quick-amt-btn{border-radius:var(--r-pill);background:var(--c-surface-2);
+            border:1px solid var(--c-border);font-weight:var(--fw-semi);
+            color:var(--c-text-soft);padding:10px 6px;
+            transition:all var(--dur-fast) var(--ease-out)}
+        .quick-amt-btn:active{transform:scale(0.95)}
+        .quick-amt-btn.sel{background:var(--c-accent-soft);
+            border-color:var(--c-accent);color:var(--c-accent-strong)}
+
+        /* ── Microinteracción global suave en cards del home ── */
+        .cards .card,.cards-actividad .card-compra,.cards-actividad .card-venta{
+            animation:uFadeIn var(--dur-base) var(--ease-out)}
+
+        /* ════════════ FIN FASE 2A v4.7.49 ════════════ */
     </style>
 </head>
 <body>
@@ -1753,7 +1856,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.48',
+    APP_VERSION: '4.7.49',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1786,6 +1889,16 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.49', date:'2026-05-19', headline:'✨ Fase 2A: pulido visual mobile premium de la pantalla principal.', changes:[
+        {type:'feature', title:'Tipografía Inter aplicada', desc:'El body ahora usa Inter (con fallback a SF Pro/-apple-system si Google Fonts no responde). Antialiasing y optimizeLegibility activados. Esto afecta TODO el texto de la app — es global e inevitable con un cambio de tipografía. Las pantallas del menú heredan la fuente nueva pero su layout NO se rediseñó.'},
+        {type:'feature', title:'Fondo premium + superficies flotantes', desc:'De gris plano (#f0f0ee) a #f5f7fb. Las cards usan sombras estilo iOS (blur amplio, suaves) vía tokens. Bordes tenues, radius grandes (14-28px).'},
+        {type:'feature', title:'Tarjeta Ganancia Hoy premium', desc:'Gradiente verde sutil en diagonal, glow muy leve alrededor (0 0 32px), número protagonista con tabular-nums, título con tracking amplio. Versión negativa con su propio gradiente rojo suave.'},
+        {type:'feature', title:'Compras/Ventas y Saldos refinados', desc:'Acento de color lateral elegante, montos protagonistas con números tabulares, gradientes suaves. Tarjetas de saldo con sombra suave y micro-press al tocar.'},
+        {type:'feature', title:'Nueva Operación: inputs y pills premium', desc:'Inputs grandes con radius generoso, focus elegante con glow azul (sin outline duro). Quick amounts como pills redondeadas con estado seleccionado claro y micro-press.'},
+        {type:'feature', title:'Microinteracciones', desc:'Fade-in suave en las cards del home al renderizar, scale al tocar (cards de saldo, botones, pills, campana/menú). Respeta prefers-reduced-motion.'},
+        {type:'verified', title:'Solo visual — lo que NO se tocó', desc:'Cero cambios en JS, navegación, bottom nav (no existe aún), sync engine, Firebase (binancp2p-f831f), FIFO, lógica financiera. Las pantallas del menú hamburguesa NO se rediseñaron — solo heredan fuente+fondo global. Estructura HTML intacta. DIVs balanceados, JS válido. Todo consume los tokens de Fase 1.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) El HOME debe verse premium (Inter, fondo claro, cards flotantes, glow sutil en ganancia, pills modernas). 3) Abrir CADA pantalla del menú hamburguesa (transferencias, movimientos, calendario, diagnóstico, etc.) y verificar que funcionan igual y no quedaron rotas — solo con fuente/fondo nuevo. 4) Crear una operación completa. 5) Verificar sync OK. 6) Si todo bien, subir. Después Fase 2B pule el resto.'}
+    ]},
     {version:'4.7.48', date:'2026-05-19', headline:'🧱 Fase 1 del rediseño: design system base (infraestructura, sin cambios visibles).', changes:[
         {type:'feature', title:'Sistema de tokens CSS centralizados', desc:'Variables CSS en :root para colores semánticos, spacing scale (base 4px), radius scale, sombras estilo iOS (blur amplio, suaves), escala tipográfica, pesos de fuente, z-index scale y motion. Tokens separados para mobile (--mo-*) y desktop (--dk-*). Esta es la fundación para que las fases siguientes apliquen el rediseño premium SIN seguir agregando CSS desordenado.'},
         {type:'feature', title:'Tipografía Inter cargada (no aplicada aún)', desc:'Se carga la fuente Inter de forma no bloqueante con preconnect. Si Google Fonts no responde, el stack cae automáticamente a -apple-system/SF Pro. IMPORTANTE: el body NO usa Inter todavía — eso sería un cambio visual. La fuente queda lista para que la Fase 2 la adopte a propósito.'},
@@ -1811,15 +1924,6 @@ const CHANGELOG = [
         {type:'improve', title:'Total Bancos más proporcionado', desc:'El valor de "Total Bancos" bajó de 1.2em a 1.05em para equilibrarse con el resto.'},
         {type:'improve', title:'Tarjetas de saldo más angostas', desc:'Las tarjetas de cuentas (USDT, bancos) pasaron de 148px a 124px de ancho mínimo, así entran más en pantalla antes de tener que deslizar.'},
         {type:'verified', title:'Solo CSS', desc:'Estos ajustes son exclusivamente de tamaños en el bloque CSS del rediseño. No se tocó HTML, JS, navegación, sync, ni la lógica del sparkline. Reversible.'}
-    ]},
-    {version:'4.7.44', date:'2026-05-19', headline:'🎨 Rediseño visual de la pantalla principal (sin tocar navegación ni sync).', changes:[
-        {type:'feature', title:'Header rediseñado', desc:'Título y badge de estado alineados a la izquierda en columna, cluster de campana + menú a la derecha con estilo de tarjeta redondeada. Badge "En línea" estilo pill verde con punto luminoso. Sin cambios funcionales — el menú hamburguesa y la campana de novedades funcionan igual que antes.'},
-        {type:'feature', title:'Tarjeta Ganancia Hoy con mini-gráfico', desc:'Nuevo sparkline SVG que muestra la tendencia de ganancia de los últimos 14 días, integrado en la esquina de la tarjeta. Color verde si el día está sobre el promedio, rojo si está debajo. Usa calcularGananciaDiaria() que ya existía (cacheada). Defensivo: si falla, se oculta sin afectar el resto del dashboard.'},
-        {type:'feature', title:'Botones de monto rápido', desc:'En el formulario de Nueva Operación: botones 1.000 / 2.000 / 5.000 / 10.000 / Otro. Tocar uno setea el monto y dispara el mismo cálculo de preview que la escritura manual. Si tipeás un monto que coincide con un preset, se marca solo. "Otro" limpia y enfoca el campo.'},
-        {type:'improve', title:'Mis Saldos con scroll horizontal', desc:'Las tarjetas de cuentas (USDT, bancos) ahora se deslizan horizontalmente con snap, ocupando menos espacio vertical. El total de bancos se muestra como tarjeta destacada arriba. Solo CSS — la lógica de cálculo de saldos no se tocó.'},
-        {type:'improve', title:'Restyle general', desc:'Bordes más redondeados, sombras suaves, tipografía más contundente en los números clave, fondo gris claro, tarjetas de Compras/Ventas con acento de color lateral. Todo vía bloque CSS nuevo al final del style — no se borró ninguna regla previa, es reversible.'},
-        {type:'verified', title:'Lo que NO se tocó', desc:'Navegación (menú hamburguesa intacto), sync engine, guardarDatos, mergeRemoteState, circuit breaker, client-terminated handler, migración Brasil (binancp2p-f831f), cálculos de ganancia/FIFO, render diffing. DIVs balanceados 638/638. JS válido. Es exclusivamente restyle + 2 features visuales (sparkline, montos rápidos) que solo leen datos existentes.'},
-        {type:'verified', title:'Cómo probar', desc:'Abrir la app. Verificar: 1) Header con título arriba-izquierda y badge pill. 2) Tarjeta de ganancia con mini-gráfico en la esquina. 3) Tarjetas de saldos que se deslizan al costado. 4) Botones de monto rápido en Nueva Operación. 5) Que el menú hamburguesa siga abriendo todo igual. 6) Que crear una operación siga funcionando. 7) Diagnóstico → todo debe seguir en orden, sync OK.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
