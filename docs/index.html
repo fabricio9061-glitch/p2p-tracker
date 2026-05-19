@@ -1051,6 +1051,110 @@
         .merge-confirm{margin-top:14px;padding:12px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;font-size:0.78em;color:#1e40af;line-height:1.4}
         .merge-confirm b{color:#1e3a8a;font-weight:700}
         .merge-confirm-warning{margin-top:6px;font-size:0.7em;color:#92400e;display:flex;align-items:center;gap:5px}
+
+        /* ════════════════════════════════════════════════════════════════
+           §REDISEÑO v4.7.44 — Restyle visual (mockup) sin tocar navegación
+           Bloque al final del <style> → sobrescribe reglas previas por
+           cascada/especificidad sin borrar el CSS original (reversible).
+           ════════════════════════════════════════════════════════════════ */
+        body{background:#f1f5f9}
+        .container{max-width:560px}
+
+        /* ── Header rediseñado: título izquierda + cluster derecha ── */
+        .header{text-align:left!important;display:flex!important;align-items:flex-start;
+            justify-content:space-between;gap:12px;margin-bottom:20px;padding-top:4px;
+            min-height:auto}
+        .header h1{transform:none!important;font-size:1.5em!important;font-weight:800;
+            letter-spacing:-0.02em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .header .header-left{display:flex;flex-direction:column;gap:7px}
+        .header .sync-status{transform:none!important;margin-top:0!important;align-self:flex-start;
+            font-weight:600;padding:5px 13px;font-size:0.72em}
+        .sync-status.online{background:#dcfce7;color:#15803d}
+        .sync-status.online .sync-dot{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,0.18)}
+        .menu-container{position:static!important;display:flex;gap:9px;align-items:center}
+        .news-bell,.menu-btn{background:#fff;border:1px solid #e8edf3;border-radius:14px;
+            box-shadow:0 1px 3px rgba(15,23,42,0.05);width:46px;height:46px;
+            display:flex;align-items:center;justify-content:center;padding:0}
+        .news-bell-icon{font-size:1.1em}
+        .menu-btn{flex-direction:column;gap:4px}
+        .menu-btn span{width:18px}
+
+        /* ── Tarjeta GANANCIA HOY (hero con sparkline) ── */
+        .cards{grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:22px}
+        .card{border-radius:16px;border:1px solid #e8edf3;padding:15px;
+            box-shadow:0 1px 3px rgba(15,23,42,0.04)}
+        .card.main-card{grid-column:span 2;border-radius:20px;padding:20px;
+            background:linear-gradient(135deg,#f0fdf4 0%,#e7f9ed 100%);
+            border:1.5px solid #bbf7d0;position:relative;overflow:hidden}
+        .card.main-card.negative{background:linear-gradient(135deg,#fef2f2 0%,#fde8e8 100%);
+            border-color:#fecaca}
+        .card.main-card .card-title{font-size:0.74em;letter-spacing:0.04em;
+            color:#15803d;font-weight:700}
+        .card.main-card.negative .card-title{color:#b91c1c}
+        .card.main-card #gananciaHoy{font-size:2.5em!important;font-weight:850;
+            letter-spacing:-0.03em;margin:2px 0 6px;line-height:1}
+        #cardGananciaHoy .spark-wrap{position:absolute;right:16px;bottom:14px;
+            width:140px;height:62px;pointer-events:none;opacity:0.9}
+        #cardGananciaHoy .hoy-meta{display:flex;align-items:center;gap:10px;
+            font-size:0.72em;color:#475569;flex-wrap:wrap}
+        #cardGananciaHoy .hoy-meta b{color:#0284c7}
+        .spread-trend{font-size:0.92em;padding:1px 7px;border-radius:9px;font-weight:700}
+        .spread-trend.up{background:#dcfce7;color:#15803d}
+        .spread-trend.down{background:#fee2e2;color:#dc2626}
+
+        /* ── Actividad del período ── */
+        .section-title{font-size:1.05em;font-weight:750;color:#1e293b;
+            margin:22px 0 12px;letter-spacing:-0.01em}
+        .cards-actividad{gap:12px}
+        .card-compra,.card-venta{border-radius:16px;padding:16px;border:none;
+            box-shadow:0 1px 3px rgba(15,23,42,0.05)}
+        .card-compra{background:linear-gradient(135deg,#f0fdf4,#dcfce7);
+            border-left:4px solid #22c55e}
+        .card-venta{background:linear-gradient(135deg,#fef2f2,#fee2e2);
+            border-left:4px solid #ef4444}
+        .card-compra [id^=total],.card-venta [id^=total]{font-size:1.3em!important;
+            font-weight:800;letter-spacing:-0.02em}
+
+        /* ── Mis Saldos: scroll horizontal ── */
+        .bancos-total-card{background:#fff;border:1px solid #e8edf3;border-radius:16px;
+            padding:15px 18px;display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:12px;box-shadow:0 1px 3px rgba(15,23,42,0.04)}
+        .bancos-total-card .bt-label{font-size:0.92em;font-weight:650;color:#334155;
+            display:flex;align-items:center;gap:8px}
+        .bancos-total-card .bt-value{font-size:1.25em;font-weight:800;color:#15803d}
+        .bancos-scroll{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 8px;
+            scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+        .bancos-scroll::-webkit-scrollbar{height:0}
+        .bancos-scroll>*{scroll-snap-align:start;flex:0 0 auto;min-width:150px}
+
+        /* ── Formulario Nueva Operación: quick amounts ── */
+        .quick-amounts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+        .quick-amt-btn{flex:1;min-width:62px;background:#f8fafc;border:1px solid #e8edf3;
+            border-radius:11px;padding:10px 4px;font-size:0.86em;font-weight:650;
+            color:#475569;cursor:pointer;text-align:center;transition:all 0.15s}
+        .quick-amt-btn:active{transform:scale(0.96)}
+        .quick-amt-btn.sel{background:#dbeafe;border-color:#3b82f6;color:#1d4ed8}
+
+        @media(min-width:640px){
+            .card.main-card{grid-column:span 2}
+            .cards-actividad{grid-template-columns:repeat(2,1fr)}
+        }
+
+        /* ── Mis Saldos: hero como tarjeta + scroll horizontal de cuentas ── */
+        #saldosTotales{background:#fff;border:1px solid #e8edf3;border-radius:16px;
+            padding:15px 18px;display:flex;align-items:center;gap:10px;
+            margin-bottom:12px;box-shadow:0 1px 3px rgba(15,23,42,0.04)}
+        .saldos-hero-label{font-size:0.9em;font-weight:650;color:#334155}
+        .saldos-hero-value{font-size:1.2em;font-weight:800}
+        #bancosGrid{display:flex!important;grid-template-columns:none!important;
+            gap:12px;overflow-x:auto;padding:2px 2px 10px;
+            scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+        #bancosGrid::-webkit-scrollbar{height:0}
+        #bancosGrid>*{scroll-snap-align:start;flex:0 0 auto;min-width:148px;
+            border-radius:15px!important}
+        @media(min-width:640px){
+            #bancosGrid{flex-wrap:nowrap}
+        }
     </style>
 </head>
 <body>
@@ -1087,8 +1191,10 @@
     <div class="app-container" id="appContainer">
         <div class="container">
             <div class="header">
-                <h1>💱 Registro P2P</h1>
-                <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
+                <div class="header-left">
+                    <h1>💱 Registro P2P</h1>
+                    <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
+                </div>
                 <div class="menu-container">
                     <button class="news-bell" id="newsBellBtn" aria-label="Centro de novedades">
                         <span class="news-bell-icon">🔔</span>
@@ -1152,8 +1258,9 @@
                 <div class="card main-card" id="cardGananciaHoy">
                     <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title">📈 Ganancia Hoy</div><span style="font-size:0.65em;color:#64748b" id="fechaHoy">--</span></div>
                     <div class="card-value positive" id="gananciaHoy">$0</div>
-                    <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:0.7em;color:#64748b"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span class="spread-wrap">Spread <b style="color:#0284c7" id="spreadPromedio">$0</b><span id="spreadTrend" class="spread-trend" style="display:none"></span></span></div>
+                    <div class="hoy-meta"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span class="spread-wrap">Spread <b style="color:#0284c7" id="spreadPromedio">$0</b><span id="spreadTrend" class="spread-trend" style="display:none"></span></span></div>
                     <div id="cardIngresosExt" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;font-size:0.68em;color:#64748b;justify-content:space-between;align-items:center"><span>💵 Otros ingresos</span><span style="font-weight:700;color:#475569" id="ingresosExtHoy">$0</span></div>
+                    <div class="spark-wrap" id="gananciaSparkline" aria-hidden="true"></div>
                 </div>
                 <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title">💵 Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
             </div>
@@ -1189,7 +1296,15 @@
                             <div class="op-toggle-btn" id="opToggleVenta">📤 Vender USDT</div>
                         </div>
 
-                        <div class="form-group"><label id="montoLabel">Comprás por (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3.900"></div>
+                        <div class="form-group"><label id="montoLabel">Comprás por (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3.900">
+                            <div class="quick-amounts" id="quickAmounts">
+                                <button type="button" class="quick-amt-btn" data-amt="1000">1.000</button>
+                                <button type="button" class="quick-amt-btn" data-amt="2000">2.000</button>
+                                <button type="button" class="quick-amt-btn" data-amt="5000">5.000</button>
+                                <button type="button" class="quick-amt-btn" data-amt="10000">10.000</button>
+                                <button type="button" class="quick-amt-btn" data-amt="" id="quickAmtOtro">Otro</button>
+                            </div>
+                        </div>
 
                         <div class="tasa-block">
                             <label>Tasa por USDT</label>
@@ -1427,7 +1542,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.43',
+    APP_VERSION: '4.7.44',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1460,6 +1575,15 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.44', date:'2026-05-19', headline:'🎨 Rediseño visual de la pantalla principal (sin tocar navegación ni sync).', changes:[
+        {type:'feature', title:'Header rediseñado', desc:'Título y badge de estado alineados a la izquierda en columna, cluster de campana + menú a la derecha con estilo de tarjeta redondeada. Badge "En línea" estilo pill verde con punto luminoso. Sin cambios funcionales — el menú hamburguesa y la campana de novedades funcionan igual que antes.'},
+        {type:'feature', title:'Tarjeta Ganancia Hoy con mini-gráfico', desc:'Nuevo sparkline SVG que muestra la tendencia de ganancia de los últimos 14 días, integrado en la esquina de la tarjeta. Color verde si el día está sobre el promedio, rojo si está debajo. Usa calcularGananciaDiaria() que ya existía (cacheada). Defensivo: si falla, se oculta sin afectar el resto del dashboard.'},
+        {type:'feature', title:'Botones de monto rápido', desc:'En el formulario de Nueva Operación: botones 1.000 / 2.000 / 5.000 / 10.000 / Otro. Tocar uno setea el monto y dispara el mismo cálculo de preview que la escritura manual. Si tipeás un monto que coincide con un preset, se marca solo. "Otro" limpia y enfoca el campo.'},
+        {type:'improve', title:'Mis Saldos con scroll horizontal', desc:'Las tarjetas de cuentas (USDT, bancos) ahora se deslizan horizontalmente con snap, ocupando menos espacio vertical. El total de bancos se muestra como tarjeta destacada arriba. Solo CSS — la lógica de cálculo de saldos no se tocó.'},
+        {type:'improve', title:'Restyle general', desc:'Bordes más redondeados, sombras suaves, tipografía más contundente en los números clave, fondo gris claro, tarjetas de Compras/Ventas con acento de color lateral. Todo vía bloque CSS nuevo al final del style — no se borró ninguna regla previa, es reversible.'},
+        {type:'verified', title:'Lo que NO se tocó', desc:'Navegación (menú hamburguesa intacto), sync engine, guardarDatos, mergeRemoteState, circuit breaker, client-terminated handler, migración Brasil (binancp2p-f831f), cálculos de ganancia/FIFO, render diffing. DIVs balanceados 638/638. JS válido. Es exclusivamente restyle + 2 features visuales (sparkline, montos rápidos) que solo leen datos existentes.'},
+        {type:'verified', title:'Cómo probar', desc:'Abrir la app. Verificar: 1) Header con título arriba-izquierda y badge pill. 2) Tarjeta de ganancia con mini-gráfico en la esquina. 3) Tarjetas de saldos que se deslizan al costado. 4) Botones de monto rápido en Nueva Operación. 5) Que el menú hamburguesa siga abriendo todo igual. 6) Que crear una operación siga funcionando. 7) Diagnóstico → todo debe seguir en orden, sync OK.'}
+    ]},
     {version:'4.7.43', date:'2026-05-15', headline:'🇧🇷 Migración a Firebase Brasil (São Paulo) — latencia mucho menor desde Uruguay.', changes:[
         {type:'perf', title:'Cambio de proyecto Firebase: us-central → southamerica-east1', desc:'El proyecto viejo (p2p-tracker-dc9cc) estaba en us-central1 (Iowa). Latencia desde Uruguay: 180-250 ms por roundtrip, contribuyendo a writes de 17-20s con payload de 840 KB. Nuevo proyecto (binancp2p-f831f) en southamerica-east1 (São Paulo). Latencia esperada: 30-60 ms. Esperado: writes en 3-6 segundos. Esto es lo único que cambió — la arquitectura interna del sync engine es idéntica.'},
         {type:'verified', title:'Lo que NO se tocó', desc:'Strip de payload (consumedLots, ganancia, comisionPlataforma, lotes, saldoUsdt) sigue activo. Circuit breaker, bootstrap independiente, repair de orphans, fix de setTimeout fantasma, manejo de client-terminated — todo intacto. Solo cambiaron las credenciales del proyecto Firebase.'},
@@ -1489,14 +1613,6 @@ const CHANGELOG = [
         {type:'feature', title:'Botón "💰 Auditar comisión" en panel diagnóstico', desc:'Nuevo botón cian al lado de "🔍 Auditar tamaño". Corre la auditoría en ~50-200ms (depende de N ops). El resultado queda cacheado en window._ultimaAuditoriaComision hasta el próximo análisis. El panel muestra: distribución por categoría, top 10 discrepancias, casos legacy, fórmula usada, verdict final con razón.'},
         {type:'verified', title:'comisionPlataforma NO fue stripeada', desc:'Esta versión es exclusivamente diagnóstico. La comisionPlataforma sigue persistiéndose en Firestore exactamente igual que antes. Decisión consciente: la comisión es un dato financiero clave para trazabilidad histórica. Solo evaluaremos stripearla si la auditoría confirma SAFE-TO-STRIP con cero discrepancias relevantes. Si hay aunque sea UNA op con diff >0.01, NO se toca.'},
         {type:'verified', title:'Cómo usar la auditoría', desc:'1) Hard refresh. 2) Menú → Diagnóstico de sincronización. 3) Tocar "💰 Auditar comisión". 4) Esperar 1-2 segundos. 5) Aparece sección "AUDITORÍA DE comisionPlataforma" con todo el detalle. 6) Tocar "📋 Copiar" y mandar el output. Si el verdict es SAFE-TO-STRIP, en una próxima versión podríamos stripear con confianza. Si es DO-NOT-STRIP, comisionPlataforma se queda en el payload.'}
-    ]},
-    {version:'4.7.39', date:'2026-05-14', headline:'⚡ Payload -20% — strip de consumedLots y ganancia (derivables vía FIFO).', changes:[
-        {type:'perf', title:'Strip de consumedLots dentro de cada operación', desc:'Auditoría v4.7.37 reveló que consumedLots ocupaba 167 KB en 2229 de 3092 ops. Es 100% reconstruible: recalcularLotesYGanancias() asigna op.consumedLots=fifo.consumed cuando hace el replay FIFO de cada venta. Strip aplicado solo a la COPIA del payload — AppState.datos.operaciones[i].consumedLots sigue intacto para la UI y los cálculos locales. Ahorro estimado: ~120-140 KB.'},
-        {type:'perf', title:'Strip de ganancia dentro de cada operación', desc:'Similar a consumedLots: la ganancia se calcula durante el replay FIFO (op.ganancia=roundMoney(fifo.ganancia)). Ocupaba ~49 KB. Reconstruible. Strip aplicado. Combinado con consumedLots: ~170 KB de ahorro total (-20%).'},
-        {type:'fix', title:'Recalc post-snapshot detecta también ganancia/consumedLots faltantes', desc:'El check necesitaRecalc de v4.7.36 buscaba solo lotes/saldoUsdt ausentes. Si por algún edge case el doc tenía lotes pero faltaban ganancia o consumedLots, no se disparaba el recalc. Ahora muestrea las primeras 5 ventas: si alguna no tiene ganancia o consumedLots, recalcular. Sampling para no recorrer 3000+ ops por snapshot.'},
-        {type:'feature', title:'Panel diagnóstico muestra el ahorro completo', desc:'Antes mostraba solo "Antes del strip → Después". Ahora desglosa: Baseline (todo sin tocar) → Ahorro per-op (consumedLots+ganancia) → Ahorro top-level (lotes+saldoUsdt) → Reducción TOTAL. Nuevos logs: payload:compact-start, payload:compact-end, snapshot:hydrate-derived.'},
-        {type:'verified', title:'No destructivo', desc:'AppState.datos sigue conteniendo todos los campos enriquecidos. Solo la COPIA del payload (destructured con spread) excluye los derivables. La UI sigue mostrando ganancias y consumedLots normalmente. Al recibir snapshot de otro device, recalcularLotesYGanancias() reconstruye todo. Compatible con docs legacy que tengan estos campos embebidos.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.7.39. 2) Crear una op cualquiera. 3) Abrir Diagnóstico → tocar 🔍 Auditar tamaño. 4) En "TIMING DEL ÚLTIMO SAVE" debería verse: Baseline ~1140 KB, Ahorro per-op ~170 KB, Ahorro top-level ~25 KB, Reducción TOTAL ~195 KB. Payload final ~950 KB o menos. 5) Verificar que las ganancias se ven correctamente en la lista de ops. 6) En el log: payload:compact-start → payload:compact-end → snapshot:hydrate-derived.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -7273,6 +7389,57 @@ function _renderSpreadConTendencia(spreadHoy,ref,spreadFallback){
     trEl.style.display='inline-flex';
 }
 
+/* ════════════════════════════════════════════════════════════════
+   §SPARKLINE v4.7.44 — Mini-gráfico de ganancia (últimos 14 días)
+   Usa calcularGananciaDiaria() (ya existe, cacheada). Dibuja un SVG
+   ligero sin librerías. Pura lectura — no muta estado. Defensivo:
+   si falla, oculta el contenedor sin romper actualizarVista().
+   ════════════════════════════════════════════════════════════════ */
+function _renderGananciaSparkline(){
+    const cont=$('gananciaSparkline');
+    if(!cont)return;
+    try{
+        const diaria=calcularGananciaDiaria();
+        /* Construir serie de los últimos 14 días calendario hasta hoy */
+        const hoy=getUDate();
+        const dias=[];
+        for(let i=13;i>=0;i--){
+            const d=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()-i);
+            const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            dias.push(diaria[k]||0);
+        }
+        const n=dias.length;
+        if(n<2){cont.innerHTML='';return}
+        const min=Math.min(...dias),max=Math.max(...dias);
+        const range=(max-min)||1;
+        const W=140,H=62,pad=4;
+        const xStep=(W-pad*2)/(n-1);
+        const pts=dias.map((v,i)=>{
+            const x=pad+i*xStep;
+            const y=H-pad-((v-min)/range)*(H-pad*2);
+            return[x,y];
+        });
+        const pathD=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+        const areaD=pathD+` L${pts[n-1][0].toFixed(1)} ${H-pad} L${pts[0][0].toFixed(1)} ${H-pad} Z`;
+        /* Color según tendencia del último valor vs promedio */
+        const ult=dias[n-1];
+        const prom=dias.reduce((a,b)=>a+b,0)/n;
+        const pos=ult>=prom;
+        const stroke=pos?'#16a34a':'#dc2626';
+        const fill=pos?'rgba(34,197,94,0.14)':'rgba(239,68,68,0.12)';
+        cont.innerHTML=
+            `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg">`+
+            `<path d="${areaD}" fill="${fill}"/>`+
+            `<path d="${pathD}" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`+
+            `<circle cx="${pts[n-1][0].toFixed(1)}" cy="${pts[n-1][1].toFixed(1)}" r="3" fill="${stroke}"/>`+
+            `</svg>`;
+    }catch(e){
+        /* Nunca romper el dashboard por el sparkline */
+        cont.innerHTML='';
+        console.warn('[P2P] sparkline falló (no crítico):',e&&e.message);
+    }
+}
+
 function actualizarVista(){
     const hoy=getUDate(),mesA=getMesActivo(),ops=opsMes();
     let tp=0,tr=0,stc=0,stv=0,cc=0,cv=0;
@@ -7341,6 +7508,8 @@ function actualizarVista(){
         return `${AppState.datos._version||0}|${AppState.ui.paginaTrans}|${f.origen}|${f.destino}|${f.fecha}|${AppState.datos.transferencias.length}`;
     });
     _renderListIfChanged('pagConv',pagConv,()=>`${AppState.datos._version||0}|${AppState.ui.paginaConv||1}|${(AppState.datos.conversiones||[]).length}`);
+    /* v4.7.44: sparkline de ganancia (defensivo, no crítico) */
+    _renderGananciaSparkline();
 }
 
 /* Registro de fingerprints para evitar re-render de listas cuyo contenido no cambió */
@@ -7774,6 +7943,37 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('opToggleVenta').addEventListener('click',()=>setTipoOp('venta'));
     $('tipo').addEventListener('change',()=>{AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;AppState.ui.splitExtras=[];actualizarFormulario();actualizarColorSelect();renderSplitPanel()});
     $('monto').addEventListener('input',()=>{calcularPreview();renderSplitPanel()});
+    /* v4.7.44: botones de monto rápido. Setea el input y dispara el mismo
+       flujo que una escritura manual (calcularPreview + renderSplitPanel).
+       "Otro" limpia y enfoca el campo para entrada libre. */
+    (function wireQuickAmounts(){
+        const qc=$('quickAmounts');if(!qc)return;
+        qc.addEventListener('click',e=>{
+            const btn=e.target.closest('.quick-amt-btn');if(!btn)return;
+            const amt=btn.getAttribute('data-amt');
+            qc.querySelectorAll('.quick-amt-btn').forEach(b=>b.classList.remove('sel'));
+            btn.classList.add('sel');
+            const inp=$('monto');
+            if(amt){
+                inp.value=amt;
+                calcularPreview();renderSplitPanel();
+            }else{
+                inp.value='';
+                inp.focus();
+            }
+        });
+        /* Si el usuario tipea manualmente, deseleccionar los presets */
+        $('monto').addEventListener('input',()=>{
+            const v=$('monto').value.replace(/\./g,'');
+            let match=false;
+            qc.querySelectorAll('.quick-amt-btn').forEach(b=>{
+                const a=b.getAttribute('data-amt');
+                if(a&&a===v){b.classList.add('sel');match=true}
+                else b.classList.remove('sel');
+            });
+            if(!match){const o=$('quickAmtOtro');if(o)o.classList.remove('sel')}
+        });
+    })();
     $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview()});
     $('banco').addEventListener('change',()=>{AppState.ui.splitExtras=[];mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect();renderSplitPanel()});
     $('comisionBanco').addEventListener('input',()=>{calcularPreview();renderSplitPanel()});
