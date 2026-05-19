@@ -1153,13 +1153,25 @@
         .saldos-hero-label{font-size:0.88em;font-weight:650;color:#334155}
         .saldos-hero-value{font-size:1.05em;font-weight:800}
         #bancosGrid{display:flex!important;grid-template-columns:none!important;
-            gap:12px;overflow-x:auto;padding:2px 2px 10px;
+            gap:10px;overflow-x:auto;padding:2px 2px 10px;
             scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
         #bancosGrid::-webkit-scrollbar{height:0}
-        #bancosGrid>*{scroll-snap-align:start;flex:0 0 auto;min-width:124px;
-            border-radius:15px!important}
+        /* v4.7.46 — Tarjetas compactas: ancho calculado para que entren ~3
+           en pantalla (como el mockup). calc((100% - 2 gaps) / 3) con un
+           mínimo para que no se aplasten en pantallas muy chicas. */
+        #bancosGrid>*{scroll-snap-align:start;flex:0 0 auto;
+            width:calc((100% - 20px) / 3);min-width:108px;max-width:150px;
+            padding:11px 10px!important;border-radius:14px!important}
+        #bancosGrid .banco-nombre{font-size:0.82em!important;font-weight:700;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        #bancosGrid .banco-saldo{font-size:1em!important;font-weight:800;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        #bancosGrid .banco-moneda{font-size:0.68em!important}
+        #bancosGrid .banco-limite-txt{font-size:0.62em!important;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         @media(min-width:640px){
             #bancosGrid{flex-wrap:nowrap}
+            #bancosGrid>*{width:auto;min-width:130px}
         }
     </style>
 </head>
@@ -1548,7 +1560,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.45',
+    APP_VERSION: '4.7.46',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1581,6 +1593,11 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.46', date:'2026-05-19', headline:'🔧 Tarjetas de saldos compactas — ahora entran 3 en pantalla sin cortarse.', changes:[
+        {type:'fix', title:'Tarjetas de bancos más compactas', desc:'En v4.7.45 las tarjetas de cuentas todavía eran muy anchas y la tercera (Mercado Pago) quedaba cortada. Ahora el ancho se calcula como (100% - gaps)/3, así entran exactamente 3 tarjetas completas en pantalla como en el diseño objetivo. Padding reducido, textos del límite y moneda más chicos, con ellipsis para no desbordar.'},
+        {type:'improve', title:'Ancho adaptable', desc:'Mínimo 108px (pantallas muy chicas) y máximo 150px (pantallas grandes) para que las tarjetas nunca se aplasten ni se estiren de más. En desktop (≥640px) vuelven a ancho automático.'},
+        {type:'verified', title:'Solo CSS', desc:'Exclusivamente ajustes de tamaño y overflow en el bloque CSS del rediseño. No se tocó HTML, JS, navegación, sync, ni la lógica de cálculo de saldos. Reversible.'}
+    ]},
     {version:'4.7.45', date:'2026-05-19', headline:'🔧 Ajustes de tamaño del rediseño — el número de ganancia ya no tapa el gráfico.', changes:[
         {type:'fix', title:'Número de ganancia más chico', desc:'En v4.7.44 el monto de "Ganancia Hoy" era 2.5em y con montos de varios dígitos se superponía con el sparkline. Bajado a 1.85em y limitado a 55% del ancho, dejando espacio reservado al gráfico a la derecha. Ya no colisionan.'},
         {type:'fix', title:'Sparkline reposicionado', desc:'El mini-gráfico ahora se centra verticalmente en la tarjeta y ocupa el 45% derecho, sin pisar el número ni los metadatos. z-index ordenado: texto adelante, gráfico detrás.'},
@@ -1612,14 +1629,6 @@ const CHANGELOG = [
         {type:'feature', title:'Estado en panel de Diagnóstico', desc:'Nuevo campo "Firebase client" en la sección General del panel. Muestra "✓ activo" o "🛑 TERMINATED — requiere recarga" con la hora exacta en que pasó al estado terminated. Logs nuevos: firebase:client-terminated y sync:requires-reload.'},
         {type:'verified', title:'Lo que NO se toca', desc:'NO se ejecuta firebase.app().delete() en caliente. NO se reinicializa el SDK sin reload. NO se reintenta el write fallido (sería loop infinito). NO se modifica payload, formato, ni se hace migración. Solo manejo seguro del error específico.'},
         {type:'verified', title:'Cómo probar', desc:'Difícil reproducir el bug a propósito (es un error interno del SDK que aparece esporádicamente). Cuando aparezca: 1) Aparece banner naranja abajo. 2) Tocar "Recargar ahora" → la app se reinicia, lee del cache local, los datos pending se sincronizan automáticamente. 3) Si tocás "Seguir en modo local", podés seguir usando la app pero el sync remoto queda bloqueado hasta que recargues manualmente. 4) En Diagnóstico: "Firebase client: 🛑 TERMINATED" + log con firebase:client-terminated.'}
-    ]},
-    {version:'4.7.41', date:'2026-05-14', headline:'⚡ Strip comisionPlataforma (verificado 3092/3092 exact) + fix analizador.', changes:[
-        {type:'perf', title:'Strip de comisionPlataforma — verificación exhaustiva', desc:'Auditoría v4.7.40 reportó SAFE-TO-STRIP con 3092/3092 exact match. La fórmula canónica truncar(usdtBase × comisionPct/100, 2) — donde usdtBase = roundMoney(monto/tasa,2) para compras y truncar(monto/tasa,2) para ventas — reproduce el valor guardado en TODAS las ops del usuario. Strip aplicado solo a la copia del payload — AppState.datos.operaciones[i].comisionPlataforma sigue intacta para la UI. Ahorro estimado adicional: ~75 KB.'},
-        {type:'fix', title:'Analizador medía AppState.datos en vez del payload remoto', desc:'BUG: el analizador hacía JSON.stringify(AppState.datos) y reportaba ese tamaño como veredicto. Pero AppState.datos contiene los campos derivables (lotes, saldoUsdt, ganancia, consumedLots) porque recalcularLotesYGanancias los reconstruye después de cada snapshot. El payload remoto NO los incluye. Resultado: el panel decía "🛑 Crítico 1143 KB" cuando el payload real era 905 KB. Fix: el analizador ahora simula exactamente el mismo strip que guardarDatos y reporta ambos: "Payload REMOTO (real)" y "Estado LOCAL completo".'},
-        {type:'fix', title:'Falsas alarmas en flags "lotes embebidos" y "saldoUsdt persistido"', desc:'Las flags marcaban estos campos como problemas cuando en realidad son comportamiento esperado: el state local SIEMPRE los tiene porque recalc los reconstruye. El payload remoto NO los lleva (verificable comparando remoteKB vs totalKB). Las flags ahora solo aparecen para problemas reales: syncStateOrphans, tasasRecientes inflado, dismissedVersions sin limpiar, tagsLen acumulado. Si no hay nada, muestra "✓ ningún problema detectado".'},
-        {type:'fix', title:'Recalc post-snapshot también detecta comisionPlataforma faltante', desc:'El check necesitaRecalc ahora samplea las primeras 10 ops (no 5) buscando ganancia, consumedLots O comisionPlataforma faltantes. Si cualquiera falta, dispara recalc. Esto garantiza que al recibir un snapshot stripeado (de v4.7.41+), todos los campos derivables se reconstruyen automáticamente antes de renderizar la UI.'},
-        {type:'verified', title:'Veredicto basado en payload remoto', desc:'El estado (✓ Seguro / ⚠ Alto / 🛑 Crítico) ahora se calcula sobre remoteKB, no sobre totalKB. Esperado para tu cuenta: payload remoto baja de 905 KB → ~830 KB. Veredicto debería pasar de "⚠⚠ Muy alto" a "⚠ Alto". Tiempo de write esperado: ~14-15s (vs 17s actual).'},
-        {type:'verified', title:'Cómo probar', desc:'1) Hard refresh. 2) Crear una op cualquiera. 3) Menú → Diagnóstico → 🔍 Auditar tamaño. 4) Buscar las líneas: "Payload REMOTO (real): ~830 KB" + "Estado LOCAL completo: ~1140 KB" + "Ahorrado por strip: ~310 KB". 5) Las flags NO deberían marcar lotes/saldoUsdt como problema. 6) En "TIMING DEL ÚLTIMO SAVE" payload enviado <850 KB. 7) Verificar que las ganancias y comisiones se ven correctamente en la lista de ops.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
