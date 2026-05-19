@@ -11,7 +11,198 @@
     <link rel="icon" type="image/png" href="https://i.imgur.com/fK4ZCLV.png">
     <link rel="apple-touch-icon" href="https://i.imgur.com/fK4ZCLV.png">
     <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUDJQIFRyYWNrZXIiLCJzaG9ydF9uYW1lIjoiUDJQIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmMGYwZWUiLCJ0aGVtZV9jb2xvciI6IiMyNTYzZWIiLCJpY29ucyI6W3sic3JjIjoiaHR0cHM6Ly9pLmltZ3VyLmNvbS9mSzRaQ0xWLnBuZyIsInNpemVzIjoiNTEyeDUxMiIsInR5cGUiOiJpbWFnZS9wbmciLCJwdXJwb3NlIjoiYW55IG1hc2thYmxlIn1dfQ==">
+    <!-- v4.7.48: Inter font, carga no bloqueante. Si Google Fonts no responde,
+         el stack --ff-sans cae a -apple-system / SF Pro automáticamente. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <style>
+        /* ════════════════════════════════════════════════════════════════
+           §DESIGN SYSTEM v4.7.48 — Fase 1: tokens centralizados
+           ════════════════════════════════════════════════════════════════
+           SOLO infraestructura. Define variables CSS en :root para que las
+           fases siguientes (pulido visual mobile premium) las consuman en
+           lugar de seguir agregando CSS suelto.
+
+           ⚠️ Esta versión NO cambia el aspecto de la app: ningún selector
+           existente referencia estas variables todavía. Es la fundación.
+           Las fases 2+ irán migrando reglas a usar var(--token).
+
+           Convención de nombres:
+             --c-*       colores (semánticos + de marca)
+             --sp-*      spacing scale (4px base)
+             --r-*       radius scale
+             --sh-*      sombras (estilo iOS, blur amplio, suaves)
+             --fs-*      font-size scale
+             --fw-*      font-weight scale
+             --ff-*      font-family stacks
+             --z-*       z-index scale
+             --mo-* / --dk-*  tokens específicos mobile / desktop
+           ════════════════════════════════════════════════════════════════ */
+        :root{
+            /* ── Colores de marca ── */
+            --c-brand:#16a34a;
+            --c-brand-strong:#15803d;
+            --c-brand-soft:#dcfce7;
+            --c-brand-softer:#f0fdf4;
+            --c-accent:#3b82f6;
+            --c-accent-strong:#1d4ed8;
+            --c-accent-soft:#dbeafe;
+
+            /* ── Colores semánticos ── */
+            --c-success:#16a34a;
+            --c-success-bg:#dcfce7;
+            --c-danger:#dc2626;
+            --c-danger-bg:#fee2e2;
+            --c-warning:#d97706;
+            --c-warning-bg:#fef3c7;
+            --c-info:#0284c7;
+            --c-info-bg:#e0f2fe;
+
+            /* ── Texto ── */
+            --c-text:#1e293b;
+            --c-text-soft:#475569;
+            --c-text-mute:#94a3b8;
+            --c-text-faint:#cbd5e1;
+            --c-text-inverse:#ffffff;
+
+            /* ── Superficies y fondo ── */
+            --c-bg:#f5f7fb;
+            --c-bg-alt:#eef2f7;
+            --c-surface:#ffffff;
+            --c-surface-2:#f8fafc;
+            --c-border:#e8edf3;
+            --c-border-soft:#f1f5f9;
+
+            /* ── Spacing scale (base 4px) ── */
+            --sp-0:0;
+            --sp-1:4px;
+            --sp-2:8px;
+            --sp-3:12px;
+            --sp-4:16px;
+            --sp-5:20px;
+            --sp-6:24px;
+            --sp-8:32px;
+            --sp-10:40px;
+            --sp-12:48px;
+            --sp-16:64px;
+
+            /* ── Radius scale ── */
+            --r-xs:6px;
+            --r-sm:10px;
+            --r-md:14px;
+            --r-lg:18px;
+            --r-xl:22px;
+            --r-2xl:28px;
+            --r-pill:999px;
+
+            /* ── Sombras (iOS: blur amplio, suaves, no oscuras) ── */
+            --sh-xs:0 1px 2px rgba(15,23,42,0.04);
+            --sh-sm:0 1px 3px rgba(15,23,42,0.05);
+            --sh-md:0 4px 12px rgba(15,23,42,0.07);
+            --sh-lg:0 8px 28px rgba(15,23,42,0.10);
+            --sh-xl:0 16px 48px rgba(15,23,42,0.13);
+            --sh-glow-success:0 0 0 3px rgba(34,197,94,0.16);
+            --sh-glow-accent:0 0 0 3px rgba(59,130,246,0.16);
+
+            /* ── Tipografía ── */
+            --ff-sans:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;
+            --ff-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+            --fs-xs:0.68rem;
+            --fs-sm:0.8rem;
+            --fs-base:0.94rem;
+            --fs-md:1.05rem;
+            --fs-lg:1.25rem;
+            --fs-xl:1.5rem;
+            --fs-2xl:1.85rem;
+            --fs-3xl:2.4rem;
+            --fs-display:3rem;
+            --fw-normal:400;
+            --fw-medium:550;
+            --fw-semi:650;
+            --fw-bold:750;
+            --fw-extra:850;
+            --lh-tight:1.1;
+            --lh-snug:1.3;
+            --lh-normal:1.5;
+            --tracking-tight:-0.02em;
+            --tracking-normal:0;
+            --tracking-wide:0.04em;
+
+            /* ── z-index scale ── */
+            --z-base:1;
+            --z-card:10;
+            --z-header:100;
+            --z-dropdown:500;
+            --z-overlay:1000;
+            --z-modal:2000;
+            --z-toast:3000;
+            --z-banner:9999;
+
+            /* ── Motion ── */
+            --ease-out:cubic-bezier(0.16,1,0.3,1);
+            --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+            --dur-fast:0.15s;
+            --dur-base:0.25s;
+            --dur-slow:0.4s;
+
+            /* ── Tokens específicos MOBILE (premium app nativa) ── */
+            --mo-page-pad:18px;
+            --mo-card-pad:18px;
+            --mo-card-radius:var(--r-xl);
+            --mo-card-gap:14px;
+            --mo-section-gap:24px;
+            --mo-hero-amount:var(--fs-2xl);
+            --mo-bottomnav-h:64px;
+
+            /* ── Tokens específicos DESKTOP (dashboard denso) ── */
+            --dk-page-pad:24px;
+            --dk-card-pad:16px;
+            --dk-card-radius:var(--r-md);
+            --dk-card-gap:12px;
+            --dk-max-width:1400px;
+        }
+
+        /* ── Dark mode PREPARADO (no activo). Cuando se active, basta con
+           togglear [data-theme="dark"] en <html> y estos overrides aplican.
+           No se activa en v4.7.48 — solo queda la estructura lista. ── */
+        :root[data-theme="dark"]{
+            --c-text:#e2e8f0;
+            --c-text-soft:#94a3b8;
+            --c-text-mute:#64748b;
+            --c-bg:#0f172a;
+            --c-bg-alt:#1e293b;
+            --c-surface:#1e293b;
+            --c-surface-2:#0f172a;
+            --c-border:#334155;
+            --c-border-soft:#1e293b;
+        }
+
+        /* ── Clases utilitarias mínimas (opt-in, no afectan nada existente) ──
+           Solo las usarán los componentes nuevos de las fases siguientes. */
+        .u-card{background:var(--c-surface);border:1px solid var(--c-border);
+            border-radius:var(--mo-card-radius);box-shadow:var(--sh-sm)}
+        .u-stack{display:flex;flex-direction:column}
+        .u-row{display:flex;align-items:center}
+        .u-between{display:flex;align-items:center;justify-content:space-between}
+        .u-pill{border-radius:var(--r-pill)}
+        .u-press{transition:transform var(--dur-fast) var(--ease-out)}
+        .u-press:active{transform:scale(0.97)}
+        .u-fade-in{animation:uFadeIn var(--dur-base) var(--ease-out)}
+        .u-num{font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-tight)}
+        .u-mute{color:var(--c-text-mute)}
+        .u-soft{color:var(--c-text-soft)}
+        @keyframes uFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+        @keyframes uSkeleton{0%{background-position:-200% 0}100%{background-position:200% 0}}
+        .u-skeleton{background:linear-gradient(90deg,#eef2f7 25%,#e2e8f0 37%,#eef2f7 63%);
+            background-size:200% 100%;animation:uSkeleton 1.4s ease-in-out infinite;
+            border-radius:var(--r-sm)}
+        @media(prefers-reduced-motion:reduce){
+            .u-press,.u-fade-in,.u-skeleton{animation:none!important;transition:none!important}
+        }
+        /* ════════════ FIN DESIGN SYSTEM v4.7.48 ════════════ */
+
         /* ═══ Reset & Base ═══ */
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f0ee;min-height:100vh;min-height:100dvh}
@@ -1562,7 +1753,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.47',
+    APP_VERSION: '4.7.48',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1595,6 +1786,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.48', date:'2026-05-19', headline:'🧱 Fase 1 del rediseño: design system base (infraestructura, sin cambios visibles).', changes:[
+        {type:'feature', title:'Sistema de tokens CSS centralizados', desc:'Variables CSS en :root para colores semánticos, spacing scale (base 4px), radius scale, sombras estilo iOS (blur amplio, suaves), escala tipográfica, pesos de fuente, z-index scale y motion. Tokens separados para mobile (--mo-*) y desktop (--dk-*). Esta es la fundación para que las fases siguientes apliquen el rediseño premium SIN seguir agregando CSS desordenado.'},
+        {type:'feature', title:'Tipografía Inter cargada (no aplicada aún)', desc:'Se carga la fuente Inter de forma no bloqueante con preconnect. Si Google Fonts no responde, el stack cae automáticamente a -apple-system/SF Pro. IMPORTANTE: el body NO usa Inter todavía — eso sería un cambio visual. La fuente queda lista para que la Fase 2 la adopte a propósito.'},
+        {type:'feature', title:'Dark mode preparado (inactivo)', desc:'Overrides de tokens bajo :root[data-theme="dark"]. No se activa en esta versión — solo queda la estructura lista para el futuro.'},
+        {type:'feature', title:'Clases utilitarias mínimas opt-in', desc:'u-card, u-stack, u-row, u-between, u-press, u-fade-in, u-skeleton, u-num, u-mute. No afectan nada existente — solo las usarán los componentes nuevos de fases siguientes. Incluye respeto a prefers-reduced-motion.'},
+        {type:'verified', title:'Riesgo bajo — sin cambios visibles', desc:'Ningún selector existente referencia las variables nuevas todavía. La app se ve EXACTAMENTE igual que v4.7.47. No se tocó: navegación, bottom nav, estructura HTML, sync engine, Firebase, lógica financiera, FIFO. DIVs balanceados, JS válido. Es pura infraestructura preparatoria.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) La app debe verse IGUAL que v4.7.47 — si algo cambió visualmente, es un bug, avisar. 3) Verificar que todo sigue funcionando: crear op, menú, sync, diagnóstico. 4) Si todo OK, subir. 5) Después seguimos con Fase 2: pulido visual mobile premium usando estos tokens.'}
+    ]},
     {version:'4.7.47', date:'2026-05-19', headline:'🔧 Tarjetas de saldos con proporciones del mockup — montos completos, sin cortar.', changes:[
         {type:'fix', title:'Saldos ya no se cortan', desc:'v4.7.46 forzaba 3 tarjetas por pantalla, pero con saldos de 5-6 dígitos ($104.694, $43.205) los números quedaban cortados con "...". Error de criterio: priricé la cantidad de tarjetas visibles sobre la legibilidad del dato. Ahora cada tarjeta usa ancho automático (mínimo 168px) y crece lo necesario para mostrar el saldo COMPLETO sin ellipsis. Se ven ~2.3 tarjetas en pantalla, indicando que hay más para deslizar — igual que el mockup.'},
         {type:'improve', title:'Jerarquía visual del mockup', desc:'Saldo grande y prominente (1.32em, peso 850), nombre del banco arriba más discreto, moneda y límite en gris chico debajo. El número es lo que manda el ancho de la tarjeta, no se comprime nunca.'},
@@ -1621,13 +1820,6 @@ const CHANGELOG = [
         {type:'improve', title:'Restyle general', desc:'Bordes más redondeados, sombras suaves, tipografía más contundente en los números clave, fondo gris claro, tarjetas de Compras/Ventas con acento de color lateral. Todo vía bloque CSS nuevo al final del style — no se borró ninguna regla previa, es reversible.'},
         {type:'verified', title:'Lo que NO se tocó', desc:'Navegación (menú hamburguesa intacto), sync engine, guardarDatos, mergeRemoteState, circuit breaker, client-terminated handler, migración Brasil (binancp2p-f831f), cálculos de ganancia/FIFO, render diffing. DIVs balanceados 638/638. JS válido. Es exclusivamente restyle + 2 features visuales (sparkline, montos rápidos) que solo leen datos existentes.'},
         {type:'verified', title:'Cómo probar', desc:'Abrir la app. Verificar: 1) Header con título arriba-izquierda y badge pill. 2) Tarjeta de ganancia con mini-gráfico en la esquina. 3) Tarjetas de saldos que se deslizan al costado. 4) Botones de monto rápido en Nueva Operación. 5) Que el menú hamburguesa siga abriendo todo igual. 6) Que crear una operación siga funcionando. 7) Diagnóstico → todo debe seguir en orden, sync OK.'}
-    ]},
-    {version:'4.7.43', date:'2026-05-15', headline:'🇧🇷 Migración a Firebase Brasil (São Paulo) — latencia mucho menor desde Uruguay.', changes:[
-        {type:'perf', title:'Cambio de proyecto Firebase: us-central → southamerica-east1', desc:'El proyecto viejo (p2p-tracker-dc9cc) estaba en us-central1 (Iowa). Latencia desde Uruguay: 180-250 ms por roundtrip, contribuyendo a writes de 17-20s con payload de 840 KB. Nuevo proyecto (binancp2p-f831f) en southamerica-east1 (São Paulo). Latencia esperada: 30-60 ms. Esperado: writes en 3-6 segundos. Esto es lo único que cambió — la arquitectura interna del sync engine es idéntica.'},
-        {type:'verified', title:'Lo que NO se tocó', desc:'Strip de payload (consumedLots, ganancia, comisionPlataforma, lotes, saldoUsdt) sigue activo. Circuit breaker, bootstrap independiente, repair de orphans, fix de setTimeout fantasma, manejo de client-terminated — todo intacto. Solo cambiaron las credenciales del proyecto Firebase.'},
-        {type:'verified', title:'Migración: pasos exactos', desc:'1) Desde iPhone con datos buenos: Menú → Exportar datos → guardar JSON. 2) Subir v4.7.43 a GitHub Pages. 3) Hard refresh en iPhone → app conecta al proyecto nuevo (vacío). 4) Registrarte (no login — es cuenta nueva en proyecto nuevo). 5) Importar el JSON guardado. 6) La app pushea todo al server en Brasil. 7) En PC y Galaxy: hard refresh + login con el mismo email/password registrado en paso 4. Datos aparecen automáticamente.'},
-        {type:'verified', title:'Si algo sale mal', desc:'El proyecto viejo (p2p-tracker-dc9cc) NO se borra todavía. Si necesitás volver atrás: cambiar las credenciales en index.html a las del proyecto viejo y subir. Todos los datos siguen ahí. Recomendación: mantener el proyecto viejo durante 1-2 semanas como red de seguridad antes de borrarlo.'},
-        {type:'verified', title:'Verificar que la migración funcionó', desc:'Después del primer write, abrir Diagnóstico de sincronización. En "TIMING DEL ÚLTIMO SAVE": Tiempo de write esperado <6 segundos (vs 17s antes). Si sigue tardando >10s, hay otra causa (red local, ISP, persistence corrupta) y vemos.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
