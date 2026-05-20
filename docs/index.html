@@ -1507,6 +1507,88 @@
             animation:uFadeIn var(--dur-base) var(--ease-out)}
 
         /* ════════════ FIN FASE 2A v4.7.49 ════════════ */
+
+        /* ════════════════════════════════════════════════════════════════
+           §v4.7.53 — Mini-cajas operativas en GANANCIA HOY + chevrons
+           ════════════════════════════════════════════════════════════════
+           Filosofía: herramienta operativa premium, no fintech casual.
+           Mini-cajas compactas que dan info útil de un vistazo, sin scroll
+           extra ni decoración. Cada caja vale más que un párrafo de texto.
+           ════════════════════════════════════════════════════════════════ */
+
+        /* La línea original "X ops hoy" queda chiquita arriba de las cajas */
+        #cardGananciaHoy .hoy-meta-line{font-size:var(--fs-xs);
+            color:var(--c-text-soft);margin:2px 0 var(--sp-2);
+            max-width:55%;position:relative;z-index:2}
+
+        /* Grid de mini-cajas: 3 cajas + botón "Ver detalle" alineado a la
+           derecha. En mobile las cajas son pequeñas, alta densidad. */
+        #cardGananciaHoy .hoy-cells{display:grid;
+            grid-template-columns:repeat(3,minmax(0,1fr)) auto;
+            gap:var(--sp-2);align-items:center;
+            margin-top:var(--sp-3);position:relative;z-index:2;
+            max-width:100%}
+        .hoy-cell{background:rgba(255,255,255,0.55);
+            border:1px solid rgba(34,197,94,0.18);
+            border-radius:var(--r-sm);padding:6px 7px;
+            min-width:0;position:relative;
+            backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+        .card.main-card.negative .hoy-cell{
+            border-color:rgba(239,68,68,0.18);
+            background:rgba(255,255,255,0.6)}
+        .hoy-cell-v{font-size:clamp(0.78rem,3.3vw,0.95rem);
+            font-weight:var(--fw-extra);color:var(--c-text);
+            font-variant-numeric:tabular-nums;
+            letter-spacing:var(--tracking-tight);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+            line-height:1.1;display:flex;align-items:center;gap:3px}
+        .hoy-cell-l{font-size:clamp(0.56rem,2.3vw,0.68rem);
+            color:var(--c-text-soft);font-weight:var(--fw-medium);
+            line-height:1.15;margin-top:2px;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+        /* Color semántico de flechas/porcentajes */
+        .hc-up{color:var(--c-success)!important}
+        .hc-down{color:var(--c-danger)!important}
+        .hc-flat{color:var(--c-text-mute)!important}
+        .hc-arrow{font-weight:var(--fw-bold);font-size:0.92em}
+
+        /* Botón "Ver detalle ›" — compacto, alineado a la derecha del grid */
+        .hoy-detail-btn{background:transparent;border:none;
+            color:var(--c-brand-strong);font-size:var(--fs-xs);
+            font-weight:var(--fw-semi);font-family:inherit;
+            padding:6px 4px;cursor:pointer;white-space:nowrap;
+            display:flex;align-items:center;gap:2px;
+            transition:opacity var(--dur-fast) var(--ease-out)}
+        .hoy-detail-btn:active{opacity:0.6}
+        .card.main-card.negative .hoy-detail-btn{color:#b91c1c}
+        .hd-chev{font-size:1.15em;font-weight:var(--fw-bold);
+            line-height:0.8;margin-left:1px}
+
+        /* En pantallas muy chicas (<360px), si las 3 cajas + botón no entran,
+           el botón pasa abajo a la derecha en una fila propia */
+        @media(max-width:359px){
+            #cardGananciaHoy .hoy-cells{
+                grid-template-columns:repeat(3,minmax(0,1fr));
+                grid-template-rows:auto auto}
+            .hoy-detail-btn{grid-column:1/-1;justify-self:end;
+                padding:2px 4px}
+        }
+
+        /* ── Chevron › en tarjetas de saldo (cosmético, indica clickeable) ── */
+        .banco-mini-card{position:relative}
+        .banco-mini-card::after{content:'›';position:absolute;
+            top:8px;right:10px;font-size:0.95rem;
+            color:var(--c-text-mute);font-weight:var(--fw-bold);
+            line-height:1;opacity:0.55;pointer-events:none;
+            transition:opacity var(--dur-fast) var(--ease-out),
+                       transform var(--dur-fast) var(--ease-out)}
+        .banco-mini-card:active::after{opacity:1;transform:translateX(2px)}
+        /* Si la tarjeta tiene gauge (límite), el chevron se mueve un poco
+           para no superponerse con el indicador del gauge */
+        .banco-mini-card.has-gauge::after{top:8px;right:8px}
+
+        /* ════════════ FIN v4.7.53 ════════════ */
     </style>
 </head>
 <body>
@@ -1610,7 +1692,14 @@
                 <div class="card main-card" id="cardGananciaHoy">
                     <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title">📈 Ganancia Hoy</div><span style="font-size:0.65em;color:#64748b" id="fechaHoy">--</span></div>
                     <div class="card-value positive" id="gananciaHoy">$0</div>
-                    <div class="hoy-meta"><span id="opsHoy">0 ops</span><span style="opacity:0.3">·</span><span class="spread-wrap">Spread <b style="color:#0284c7" id="spreadPromedio">$0</b><span id="spreadTrend" class="spread-trend" style="display:none"></span></span></div>
+                    <div class="hoy-meta hoy-meta-line"><span id="opsHoy">0 ops</span></div>
+                    <!-- v4.7.53: mini-cajas con métricas operativas + Ver detalle -->
+                    <div class="hoy-cells" id="hoyCells">
+                        <div class="hoy-cell" id="hoyCellSpread"><div class="hoy-cell-v" id="spreadPromedio">$0</div><div class="hoy-cell-l">Spread prom.</div><span id="spreadTrend" class="spread-trend" style="display:none"></span></div>
+                        <div class="hoy-cell" id="hoyCellVsAyer"><div class="hoy-cell-v"><span id="vsAyerArrow" class="hc-arrow">—</span><span id="vsAyerPct">—</span></div><div class="hoy-cell-l">vs ayer</div></div>
+                        <div class="hoy-cell" id="hoyCellVsSem"><div class="hoy-cell-v"><span id="vsSemArrow" class="hc-arrow">—</span><span id="vsSemPct">—</span></div><div class="hoy-cell-l">vs prom. semanal</div></div>
+                        <button type="button" class="hoy-detail-btn" id="hoyDetalleBtn" data-action="calendario" aria-label="Ver detalle del día en calendario">Ver detalle <span class="hd-chev">›</span></button>
+                    </div>
                     <div id="cardIngresosExt" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;font-size:0.68em;color:#64748b;justify-content:space-between;align-items:center"><span>💵 Otros ingresos</span><span style="font-weight:700;color:#475569" id="ingresosExtHoy">$0</span></div>
                     <div class="spark-wrap" id="gananciaSparkline" aria-hidden="true"></div>
                 </div>
@@ -1907,7 +1996,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.52',
+    APP_VERSION: '4.7.53',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -1940,6 +2029,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.53', date:'2026-05-19', headline:'📊 Mini-cajas operativas en GANANCIA HOY + chevrons en saldos.', changes:[
+        {type:'feature', title:'3 mini-cajas operativas: Spread / vs ayer / vs prom. semanal', desc:'Reemplazado el texto corrido "Spread $X.XX ↓Y%" por 3 mini-cajas compactas con info útil de un vistazo: (1) Spread promedio del día, (2) Hoy vs ayer en %, (3) Hoy vs promedio de los últimos 7 días en %. Cada caja con flecha ↑↓→ y color semántico (verde sube, rojo baja, gris estable). Umbral de ±2% para no mostrar movimientos insignificantes. Filosofía operativa: densidad alta de info útil, no decoración.'},
+        {type:'feature', title:'"Ver detalle ›" → Calendario', desc:'Botón compacto a la derecha del grid de mini-cajas que abre el Calendario de operaciones (la vista de timeline diario). Reutiliza data-action="calendario" que ya existía wireado al modal — cero JS nuevo de navegación. Si no entra en la fila (pantallas <360px) baja a una segunda fila a la derecha.'},
+        {type:'feature', title:'Chevrons › en tarjetas de saldo', desc:'Cada tarjeta de banco/USDT muestra un chevron tenue arriba a la derecha, indicando que es clickeable. Implementado como pseudo-elemento ::after — cero cambio en el render JS, puramente CSS. Al tocar la tarjeta el chevron se anima ligero.'},
+        {type:'feature', title:'vs prom. semanal = hoy vs promedio últimos 7 días', desc:'Cálculo: suma de ganancia de días -1 a -7 (excluye hoy para comparar contra "norma"), dividido por 7. Pura lectura desde calcularGananciaDiaria() que ya existe — no muta nada. Defensivo: si no hay base válida (días sin operar), muestra "—" en vez de números raros.'},
+        {type:'verified', title:'Lo que NO se tocó', desc:'Sync engine, navegación, Firebase (binancp2p-f831f), FIFO, lógica financiera, formulario de operaciones (decidimos mantenerlo single-screen ultra-operativo, NO migrar a wizard). DIVs balanceados, JS válido. Mini-gráficos en saldos descartados por preferencia del usuario (ruido visual vs claridad operativa).'},
+        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) En la tarjeta GANANCIA HOY deberías ver 3 mini-cajas: Spread / vs ayer / vs prom. semanal con sus % y flechas. 3) Tocar "Ver detalle ›" → abre el Calendario. 4) Cada tarjeta de saldo tiene un chevron sutil arriba a la derecha. 5) Verificar que el resto del home sigue bien y los logos limpios. 6) Crear una operación. 7) Si todo OK, subir.'}
+    ]},
     {version:'4.7.52', date:'2026-05-19', headline:'🎨 Logos sin fondo negro + nombre Mercado Pago ya no se corta.', changes:[
         {type:'fix', title:'Eliminado el fondo/borde negro de los logos', desc:'Las imágenes de Itau y Mercado Pago venían con fondo negro sólido que se veía como un recuadro alrededor del logo (USDT lo disimulaba por su círculo verde). Ahora el negro se hizo transparente y se recortó al contenido visible, así los 3 logos se integran limpiamente con la tarjeta sin importar su color de fondo.'},
         {type:'fix', title:'"Mercado Pago" ya no se corta', desc:'El nombre largo + logo no entraba en la tarjeta de ancho fijo (1/3) y quedaba "Mercado ...". Ahora: logo un poco más chico (17px), gap menor, y el nombre usa tamaño adaptativo (clamp 0.56-0.78rem) que se achica lo justo para entrar COMPLETO sin "...".'},
@@ -1971,14 +2068,6 @@ const CHANGELOG = [
         {type:'feature', title:'Microinteracciones', desc:'Fade-in suave en las cards del home al renderizar, scale al tocar (cards de saldo, botones, pills, campana/menú). Respeta prefers-reduced-motion.'},
         {type:'verified', title:'Solo visual — lo que NO se tocó', desc:'Cero cambios en JS, navegación, bottom nav (no existe aún), sync engine, Firebase (binancp2p-f831f), FIFO, lógica financiera. Las pantallas del menú hamburguesa NO se rediseñaron — solo heredan fuente+fondo global. Estructura HTML intacta. DIVs balanceados, JS válido. Todo consume los tokens de Fase 1.'},
         {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) El HOME debe verse premium (Inter, fondo claro, cards flotantes, glow sutil en ganancia, pills modernas). 3) Abrir CADA pantalla del menú hamburguesa (transferencias, movimientos, calendario, diagnóstico, etc.) y verificar que funcionan igual y no quedaron rotas — solo con fuente/fondo nuevo. 4) Crear una operación completa. 5) Verificar sync OK. 6) Si todo bien, subir. Después Fase 2B pule el resto.'}
-    ]},
-    {version:'4.7.48', date:'2026-05-19', headline:'🧱 Fase 1 del rediseño: design system base (infraestructura, sin cambios visibles).', changes:[
-        {type:'feature', title:'Sistema de tokens CSS centralizados', desc:'Variables CSS en :root para colores semánticos, spacing scale (base 4px), radius scale, sombras estilo iOS (blur amplio, suaves), escala tipográfica, pesos de fuente, z-index scale y motion. Tokens separados para mobile (--mo-*) y desktop (--dk-*). Esta es la fundación para que las fases siguientes apliquen el rediseño premium SIN seguir agregando CSS desordenado.'},
-        {type:'feature', title:'Tipografía Inter cargada (no aplicada aún)', desc:'Se carga la fuente Inter de forma no bloqueante con preconnect. Si Google Fonts no responde, el stack cae automáticamente a -apple-system/SF Pro. IMPORTANTE: el body NO usa Inter todavía — eso sería un cambio visual. La fuente queda lista para que la Fase 2 la adopte a propósito.'},
-        {type:'feature', title:'Dark mode preparado (inactivo)', desc:'Overrides de tokens bajo :root[data-theme="dark"]. No se activa en esta versión — solo queda la estructura lista para el futuro.'},
-        {type:'feature', title:'Clases utilitarias mínimas opt-in', desc:'u-card, u-stack, u-row, u-between, u-press, u-fade-in, u-skeleton, u-num, u-mute. No afectan nada existente — solo las usarán los componentes nuevos de fases siguientes. Incluye respeto a prefers-reduced-motion.'},
-        {type:'verified', title:'Riesgo bajo — sin cambios visibles', desc:'Ningún selector existente referencia las variables nuevas todavía. La app se ve EXACTAMENTE igual que v4.7.47. No se tocó: navegación, bottom nav, estructura HTML, sync engine, Firebase, lógica financiera, FIFO. DIVs balanceados, JS válido. Es pura infraestructura preparatoria.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) La app debe verse IGUAL que v4.7.47 — si algo cambió visualmente, es un bug, avisar. 3) Verificar que todo sigue funcionando: crear op, menú, sync, diagnóstico. 4) Si todo OK, subir. 5) Después seguimos con Fase 2: pulido visual mobile premium usando estos tokens.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -7756,6 +7845,68 @@ function _renderSpreadConTendencia(spreadHoy,ref,spreadFallback){
 }
 
 /* ════════════════════════════════════════════════════════════════
+   §HOY-MINI-CAJAS v4.7.53 — vs ayer / vs prom. semanal
+   ════════════════════════════════════════════════════════════════
+   Calcula y renderiza los indicadores "vs ayer" y "vs prom. semanal"
+   en las mini-cajas de la tarjeta GANANCIA HOY.
+   - vs ayer: ganancia de HOY vs ganancia de ayer (mismo día calendario -1)
+   - vs prom. semanal: ganancia de HOY vs promedio de los últimos 7 días
+     (días -1 a -7, EXCLUYE hoy para que la comparación sea contra "norma")
+   Pura lectura desde calcularGananciaDiaria() — no muta nada.
+   Defensivo: si los IDs no existen o algo falla, no rompe nada.
+   Formato: ↑/↓/→ + porcentaje; si no hay base válida muestra "—".
+   ════════════════════════════════════════════════════════════════ */
+function _renderHoyMiniCajas(){
+    try{
+        const arrAyer=$('vsAyerArrow'),pctAyer=$('vsAyerPct');
+        const arrSem=$('vsSemArrow'),pctSem=$('vsSemPct');
+        if(!arrAyer||!pctAyer||!arrSem||!pctSem)return;
+        const diaria=calcularGananciaDiaria();
+        const hoy=getUDate();
+        const kDay=(d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const valHoy=diaria[kDay(hoy)]||0;
+        /* — vs ayer — */
+        const ayer=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()-1);
+        const valAyer=diaria[kDay(ayer)]||0;
+        _pintarComparacion(arrAyer,pctAyer,valHoy,valAyer);
+        /* — vs prom. semanal: media de últimos 7 días EXCLUYENDO hoy — */
+        let suma=0,n=0;
+        for(let i=1;i<=7;i++){
+            const d=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()-i);
+            suma+=diaria[kDay(d)]||0;
+            n++;
+        }
+        const promSem=n>0?suma/n:0;
+        _pintarComparacion(arrSem,pctSem,valHoy,promSem);
+    }catch(e){
+        console.warn('[P2P] mini-cajas hoy (no crítico):',e&&e.message);
+    }
+}
+/* Helper: pinta flecha + porcentaje según comparación de hoy vs base.
+   Umbral de "estable" ±2% para no mostrar movimientos insignificantes. */
+function _pintarComparacion(arrEl,pctEl,actual,base){
+    arrEl.classList.remove('hc-up','hc-down','hc-flat');
+    if(!isFinite(actual)||!isFinite(base)||base===0){
+        /* Sin base válida → no se puede comparar */
+        arrEl.textContent='—';arrEl.classList.add('hc-flat');
+        pctEl.textContent='—';pctEl.classList.remove('hc-up','hc-down','hc-flat');
+        pctEl.classList.add('hc-flat');
+        return;
+    }
+    const pct=((actual-base)/Math.abs(base))*100;
+    const abs=Math.abs(pct);
+    let cls,arr;
+    if(abs<2){cls='hc-flat';arr='→';}
+    else if(pct>0){cls='hc-up';arr='↑';}
+    else{cls='hc-down';arr='↓';}
+    arrEl.classList.add(cls);
+    arrEl.textContent=arr;
+    pctEl.classList.remove('hc-up','hc-down','hc-flat');
+    pctEl.classList.add(cls);
+    pctEl.textContent=(abs>=10?fmtNum(abs,0):fmtNum(abs,1))+'%';
+}
+
+/* ════════════════════════════════════════════════════════════════
    §SPARKLINE v4.7.44 — Mini-gráfico de ganancia (últimos 14 días)
    Usa calcularGananciaDiaria() (ya existe, cacheada). Dibuja un SVG
    ligero sin librerías. Pura lectura — no muta estado. Defensivo:
@@ -7876,6 +8027,8 @@ function actualizarVista(){
     _renderListIfChanged('pagConv',pagConv,()=>`${AppState.datos._version||0}|${AppState.ui.paginaConv||1}|${(AppState.datos.conversiones||[]).length}`);
     /* v4.7.44: sparkline de ganancia (defensivo, no crítico) */
     _renderGananciaSparkline();
+    /* v4.7.53: mini-cajas vs ayer / vs prom. semanal (defensivo) */
+    _renderHoyMiniCajas();
 }
 
 /* Registro de fingerprints para evitar re-render de listas cuyo contenido no cambió */
