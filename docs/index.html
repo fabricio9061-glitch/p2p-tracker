@@ -1749,7 +1749,23 @@
                en una columna estrecha. Solo se ajusta el input. */
             .form-row{gap:7px;margin-bottom:7px}
             .form-row .form-group{margin-bottom:0}
-            #comisionBanco{text-align:right;font-variant-numeric:tabular-nums}
+            /* v4.7.58: simetría visual Sale de ↔ Com. banco.
+               Ambos campos ocupan el 50% por el grid, pero el select tiene
+               chevron a la derecha que lo hace ver más "lleno". El input de
+               comisión queda visualmente más chico/centrado. Igualamos:
+               mismo width:100%, mismo padding, misma min-height, mismo radius.
+               El text-align:right de la comisión se mantiene (es lo natural
+               para un valor numérico de input) pero ahora con el mismo aire
+               interno que el select. */
+            #banco,#comisionBanco{
+                width:100%!important;box-sizing:border-box;
+                padding:11px 13px!important;min-height:42px;
+                font-size:1rem!important;
+                border-radius:var(--r-md)!important;
+                border:1.5px solid var(--c-border)!important;
+                background:var(--c-surface)}
+            #comisionBanco{text-align:right;font-variant-numeric:tabular-nums;
+                font-weight:var(--fw-semi)}
 
             /* — Bloque "Comisión Binance / 0,14%": más denso — */
             .com-row{padding:7px 11px!important;font-size:0.88em!important;
@@ -2172,7 +2188,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.57',
+    APP_VERSION: '4.7.58',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2205,6 +2221,11 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.58', date:'2026-05-20', headline:'🎨 Simetría visual: "Sale de" y "Com. banco" ahora iguales en altura y padding.', changes:[
+        {type:'fix', title:'Sale de ↔ Com. banco simétricos', desc:'En v4.7.57 quedaban al 50/50 (grid correcto) pero visualmente desiguales: el select de banco se sentía completo (chevron a la derecha) y el input de comisión chico/centrado. Ahora ambos comparten exactamente: width:100%, padding 11px 13px, min-height 42px, font-size 1rem, radius var(--r-md), border 1.5px. Se mantiene text-align:right en comisión (natural para un valor numérico).'},
+        {type:'verified', title:'Cambio acotado y reversible', desc:'1 regla CSS nueva (#banco,#comisionBanco) en el bloque mobile v4.7.56. No se tocó: HTML, JS (incluido el switcher dinámico de grid 1fr 1fr ↔ 1fr según compra/venta), sync, Firebase (binancp2p-f831f), navegación, desktop. DIVs balanceados, JS válido.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Mobile, Comprar USDT. 2) "Sale de" y "Com. banco" deben verse del MISMO alto, mismo padding interno, lado a lado al 50/50. 3) Vender USDT: solo Sale de a ancho completo. 4) Resto del formulario denso sigue igual. 5) Sync OK. 6) Si OK, subir.'}
+    ]},
     {version:'4.7.57', date:'2026-05-19', headline:'🐛 Fix layout Com. banco — label e input vuelven a su fila correcta.', changes:[
         {type:'fix', title:'"Com. banco" ya NO queda en columna estrecha', desc:'En v4.7.56 limité #comisionBancoGroup a max-width:38% intentando comprimir el bloque. Esa regla peleó con el grid 1fr 1fr de .form-row (que el JS setea en compra para "Sale de" + "Com. banco" al 50/50). Resultado: el contenedor quedó en una columna estrecha con label "Com. banco" arriba e input cuadrado debajo, en vez de label+input lado a lado dentro de su mitad de fila. Fix: removida la regla max-width. El grid maneja la división al 50/50 correctamente; solo se ajusta el input (text-align derecha + tabular-nums) para densificar visualmente sin romper layout.'},
         {type:'verified', title:'Solo CSS — 3 líneas tocadas', desc:'Cambio quirúrgico de una regla en el bloque v4.7.56. No se tocó: HTML, lógica del JS que setea grid-template-columns dinámicamente según tipo (compra/venta), sync, Firebase (binancp2p-f831f), navegación. Resto del formulario denso intacto, pills REF intactas, desktop intacto.'},
@@ -2230,14 +2251,6 @@ const CHANGELOG = [
         {type:'verified', title:'Mobile INTACTO', desc:'Regla de oro: 0 cambios en <1024px. El bloque v4.7.54 está completamente dentro de @media (min-width:1024px) y @media (min-width:1440px). No reescribe nada del mobile, solo agrega comportamiento desktop. El v4.7.53 (mini-cajas + chevrons) se preserva exacto en mobile.'},
         {type:'verified', title:'Lo que NO se tocó', desc:'Cero cambios en: HTML (estructura), JS, navegación, bottom nav (no existe), sync engine, Firebase (binancp2p-f831f), FIFO, lógica financiera, formulario interno, render de operaciones. Pantallas del menú (Transferencias, Movimientos, etc) NO se rediseñaron desktop — heredan el container ancho pero conservan su layout interno. Estrategia explícita: convivir unos días con esto antes de decidir si rediseñar esas pantallas.'},
         {type:'verified', title:'Cómo probar', desc:'CRÍTICO: probar AMBOS tamaños. 1) MOBILE (iPhone/Galaxy o DevTools mobile): la app debe verse EXACTAMENTE igual que v4.7.53 — si algo cambió en mobile es bug. 2) DESKTOP (PC con ventana ancha): aprovecha el ancho, Nueva Op + Operaciones lado a lado, saldos en fila, sin espacio muerto lateral. 3) Probar redimensionando la ventana: transición fluida ≥1024px. 4) Pantallas secundarias del menú: funcionan igual aunque visualmente sean "anchas". Si todo OK en ambos tamaños → subir.'}
-    ]},
-    {version:'4.7.53', date:'2026-05-19', headline:'📊 Mini-cajas operativas en GANANCIA HOY + chevrons en saldos.', changes:[
-        {type:'feature', title:'3 mini-cajas operativas: Spread / vs ayer / vs prom. semanal', desc:'Reemplazado el texto corrido "Spread $X.XX ↓Y%" por 3 mini-cajas compactas con info útil de un vistazo: (1) Spread promedio del día, (2) Hoy vs ayer en %, (3) Hoy vs promedio de los últimos 7 días en %. Cada caja con flecha ↑↓→ y color semántico (verde sube, rojo baja, gris estable). Umbral de ±2% para no mostrar movimientos insignificantes. Filosofía operativa: densidad alta de info útil, no decoración.'},
-        {type:'feature', title:'"Ver detalle ›" → Calendario', desc:'Botón compacto a la derecha del grid de mini-cajas que abre el Calendario de operaciones (la vista de timeline diario). Reutiliza data-action="calendario" que ya existía wireado al modal — cero JS nuevo de navegación. Si no entra en la fila (pantallas <360px) baja a una segunda fila a la derecha.'},
-        {type:'feature', title:'Chevrons › en tarjetas de saldo', desc:'Cada tarjeta de banco/USDT muestra un chevron tenue arriba a la derecha, indicando que es clickeable. Implementado como pseudo-elemento ::after — cero cambio en el render JS, puramente CSS. Al tocar la tarjeta el chevron se anima ligero.'},
-        {type:'feature', title:'vs prom. semanal = hoy vs promedio últimos 7 días', desc:'Cálculo: suma de ganancia de días -1 a -7 (excluye hoy para comparar contra "norma"), dividido por 7. Pura lectura desde calcularGananciaDiaria() que ya existe — no muta nada. Defensivo: si no hay base válida (días sin operar), muestra "—" en vez de números raros.'},
-        {type:'verified', title:'Lo que NO se tocó', desc:'Sync engine, navegación, Firebase (binancp2p-f831f), FIFO, lógica financiera, formulario de operaciones (decidimos mantenerlo single-screen ultra-operativo, NO migrar a wizard). DIVs balanceados, JS válido. Mini-gráficos en saldos descartados por preferencia del usuario (ruido visual vs claridad operativa).'},
-        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) En la tarjeta GANANCIA HOY deberías ver 3 mini-cajas: Spread / vs ayer / vs prom. semanal con sus % y flechas. 3) Tocar "Ver detalle ›" → abre el Calendario. 4) Cada tarjeta de saldo tiene un chevron sutil arriba a la derecha. 5) Verificar que el resto del home sigue bien y los logos limpios. 6) Crear una operación. 7) Si todo OK, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
