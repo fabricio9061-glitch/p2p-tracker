@@ -1742,11 +1742,14 @@
                 font-weight:var(--fw-bold);
                 box-shadow:0 0 0 2px rgba(59,130,246,0.08)}
 
-            /* — Fila Banco + Comisión: más compacta, comisión más chica — */
+            /* — Fila Banco + Comisión: más compacta — */
+            /* v4.7.57 fix: NO limitar el ancho de #comisionBancoGroup —
+               el grid .form-row ya lo divide al 50/50 con .col anterior.
+               Limitarlo rompía el layout y dejaba label/input separados
+               en una columna estrecha. Solo se ajusta el input. */
             .form-row{gap:7px;margin-bottom:7px}
             .form-row .form-group{margin-bottom:0}
-            #comisionBancoGroup{max-width:38%}
-            #comisionBanco{text-align:right}
+            #comisionBanco{text-align:right;font-variant-numeric:tabular-nums}
 
             /* — Bloque "Comisión Binance / 0,14%": más denso — */
             .com-row{padding:7px 11px!important;font-size:0.88em!important;
@@ -2169,7 +2172,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.56',
+    APP_VERSION: '4.7.57',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2202,6 +2205,11 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.57', date:'2026-05-19', headline:'🐛 Fix layout Com. banco — label e input vuelven a su fila correcta.', changes:[
+        {type:'fix', title:'"Com. banco" ya NO queda en columna estrecha', desc:'En v4.7.56 limité #comisionBancoGroup a max-width:38% intentando comprimir el bloque. Esa regla peleó con el grid 1fr 1fr de .form-row (que el JS setea en compra para "Sale de" + "Com. banco" al 50/50). Resultado: el contenedor quedó en una columna estrecha con label "Com. banco" arriba e input cuadrado debajo, en vez de label+input lado a lado dentro de su mitad de fila. Fix: removida la regla max-width. El grid maneja la división al 50/50 correctamente; solo se ajusta el input (text-align derecha + tabular-nums) para densificar visualmente sin romper layout.'},
+        {type:'verified', title:'Solo CSS — 3 líneas tocadas', desc:'Cambio quirúrgico de una regla en el bloque v4.7.56. No se tocó: HTML, lógica del JS que setea grid-template-columns dinámicamente según tipo (compra/venta), sync, Firebase (binancp2p-f831f), navegación. Resto del formulario denso intacto, pills REF intactas, desktop intacto.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Abrir local en mobile. 2) Nueva Operación → Comprar USDT. 3) Verificar que "Sale de" y "Com. banco" se ven LADO A LADO al 50/50, cada uno con su label arriba e input debajo (no apilados ni con el input cuadrado pequeño). 4) Cambiar a Vender USDT: solo "Sale de" debe verse a ancho completo (sin Com. banco). 5) Verificar que el resto del formulario denso v4.7.56 sigue igual (pills REF, +/- 30px, etc). 6) Si OK, subir.'}
+    ]},
     {version:'4.7.56', date:'2026-05-19', headline:'⚡ Formulario denso — quick amounts fuera, pills de tasa REF visibles.', changes:[
         {type:'fix', title:'Quick amounts (1.000/2.000/5.000/10.000/Otro) eliminados', desc:'Decisión operativa del usuario para su flujo real (~40 ops/día): los montos vienen de la orden o saldo, no son redondos. Los botones generaban ruido visual sin valor real. Espacio vertical recuperado para densificar el resto del formulario. Función wireQuickAmounts removida del JS para no dejar código muerto.'},
         {type:'feature', title:'Pills de tasas recientes destacadas (REF)', desc:'La feature ya existía en el código (tasasRecientes en AppState, renderizarTasasRecientes wireado al input). Estaba visualmente subdesarrollada. Ahora: la pill MÁS reciente se resalta como "REF" (fondo azul, borde, peso visual claro). Las otras 4 quedan como secundarias. Al tocar cualquier pill se setea el input — feature ya funcionaba, solo se mejoró su jerarquía visual. Cero JS nuevo.'},
@@ -2230,13 +2238,6 @@ const CHANGELOG = [
         {type:'feature', title:'vs prom. semanal = hoy vs promedio últimos 7 días', desc:'Cálculo: suma de ganancia de días -1 a -7 (excluye hoy para comparar contra "norma"), dividido por 7. Pura lectura desde calcularGananciaDiaria() que ya existe — no muta nada. Defensivo: si no hay base válida (días sin operar), muestra "—" en vez de números raros.'},
         {type:'verified', title:'Lo que NO se tocó', desc:'Sync engine, navegación, Firebase (binancp2p-f831f), FIFO, lógica financiera, formulario de operaciones (decidimos mantenerlo single-screen ultra-operativo, NO migrar a wizard). DIVs balanceados, JS válido. Mini-gráficos en saldos descartados por preferencia del usuario (ruido visual vs claridad operativa).'},
         {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) En la tarjeta GANANCIA HOY deberías ver 3 mini-cajas: Spread / vs ayer / vs prom. semanal con sus % y flechas. 3) Tocar "Ver detalle ›" → abre el Calendario. 4) Cada tarjeta de saldo tiene un chevron sutil arriba a la derecha. 5) Verificar que el resto del home sigue bien y los logos limpios. 6) Crear una operación. 7) Si todo OK, subir.'}
-    ]},
-    {version:'4.7.52', date:'2026-05-19', headline:'🎨 Logos sin fondo negro + nombre Mercado Pago ya no se corta.', changes:[
-        {type:'fix', title:'Eliminado el fondo/borde negro de los logos', desc:'Las imágenes de Itau y Mercado Pago venían con fondo negro sólido que se veía como un recuadro alrededor del logo (USDT lo disimulaba por su círculo verde). Ahora el negro se hizo transparente y se recortó al contenido visible, así los 3 logos se integran limpiamente con la tarjeta sin importar su color de fondo.'},
-        {type:'fix', title:'"Mercado Pago" ya no se corta', desc:'El nombre largo + logo no entraba en la tarjeta de ancho fijo (1/3) y quedaba "Mercado ...". Ahora: logo un poco más chico (17px), gap menor, y el nombre usa tamaño adaptativo (clamp 0.56-0.78rem) que se achica lo justo para entrar COMPLETO sin "...".'},
-        {type:'verified', title:'Sin mini-gráficos en tarjetas', desc:'Confirmado: NO se agregan los mini-gráficos de fondo en las tarjetas de saldo (los del mockup). La versión actual no los tiene y se mantienen sin ellos por preferencia del usuario.'},
-        {type:'verified', title:'Cambio acotado', desc:'Solo se reemplazaron las 3 constantes base64 de logos (versiones transparentes) + 2 ajustes de tamaño en el render/CSS de tarjetas. No se tocó JS de sync, navegación, Firebase (binancp2p-f831f), FIFO, lógica financiera. DIVs balanceados, JS válido.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) Mis Saldos: los 3 logos deben verse SIN recuadro negro alrededor, integrados a la tarjeta. 3) "Mercado Pago" debe verse el nombre COMPLETO, no "Mercado ...". 4) Las 3 tarjetas siguen entrando en pantalla. 5) Montos completos. 6) Menú y crear operación OK. 7) Si bien, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
