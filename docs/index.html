@@ -1681,6 +1681,95 @@
         }
 
         /* ════════════ FIN v4.7.54 ════════════ */
+
+        /* ════════════════════════════════════════════════════════════════
+           §v4.7.56 — Formulario denso (mobile only) + pills de tasa REF
+           ════════════════════════════════════════════════════════════════
+           Filosofía: herramienta operativa, no fintech casual.
+           Quirúrgico: NO reescribe el formulario, solo comprime alturas y
+           paddings de elementos que ocupaban demasiado espacio vertical
+           para el flujo de 40 ops/día. Resalta la última tasa usada como
+           "REF" (pill principal con borde grueso y fondo) para tocarla en
+           1 click sin tipear.
+           Desktop NO se toca: el bloque está dentro de @media max-width:1023px.
+           ════════════════════════════════════════════════════════════════ */
+
+        @media (max-width: 1023px) {
+            /* — Toggle Comprar/Vender más bajo, sin perder claridad — */
+            .op-toggle{margin-bottom:8px;border-width:1.5px}
+            .op-toggle-btn{padding:7px 4px;font-size:0.84em}
+
+            /* — Input de monto más compacto — */
+            .form-group{margin-bottom:7px}
+            .form-group label{font-size:0.72em;margin-bottom:3px;
+                color:var(--c-text-soft);font-weight:var(--fw-semi)}
+            .form-group input,.form-group select{
+                padding:9px 12px!important;font-size:15.5px!important;
+                border-radius:var(--r-md)!important;min-height:0}
+            #monto{padding:11px 12px!important;font-size:1.05rem!important;
+                font-weight:var(--fw-semi);font-variant-numeric:tabular-nums}
+
+            /* — Tasa: número grande pero contenedor más bajo,
+                 botones +/- más chicos para que el número sea protagonista — */
+            .tasa-block{padding:6px 8px;margin-bottom:8px}
+            .tasa-block label{font-size:0.68em;color:var(--c-text-soft);
+                font-weight:var(--fw-semi);margin-bottom:2px}
+            .tasa-block input{font-size:1.45rem!important;padding:0!important;
+                font-weight:var(--fw-extra);font-variant-numeric:tabular-nums}
+            .tasa-input-row{gap:6px}
+            .tasa-block .tasa-step-btn{
+                width:30px!important;height:30px!important;
+                font-size:1em!important;border-radius:var(--r-sm)!important}
+
+            /* — Pills de tasas recientes: la primera (más reciente) como REF — */
+            #tasaTagsContainer{display:flex;flex-wrap:wrap;gap:5px;
+                margin-top:6px;justify-content:center}
+            #tasaTagsContainer .tag-pill{
+                font-size:0.78em!important;padding:5px 10px!important;
+                border-radius:var(--r-pill)!important;
+                background:var(--c-surface)!important;
+                border:1px solid var(--c-border)!important;
+                color:var(--c-text-soft)!important;
+                font-weight:var(--fw-semi);
+                font-variant-numeric:tabular-nums;
+                transition:transform var(--dur-fast) var(--ease-out)}
+            #tasaTagsContainer .tag-pill:active{transform:scale(0.94)}
+            /* Primera pill (más reciente) destacada como REF */
+            #tasaTagsContainer .tag-pill:first-child{
+                background:var(--c-accent-soft)!important;
+                border-color:var(--c-accent)!important;
+                color:var(--c-accent-strong)!important;
+                font-weight:var(--fw-bold);
+                box-shadow:0 0 0 2px rgba(59,130,246,0.08)}
+
+            /* — Fila Banco + Comisión: más compacta, comisión más chica — */
+            .form-row{gap:7px;margin-bottom:7px}
+            .form-row .form-group{margin-bottom:0}
+            #comisionBancoGroup{max-width:38%}
+            #comisionBanco{text-align:right}
+
+            /* — Bloque "Comisión Binance / 0,14%": más denso — */
+            .com-row{padding:7px 11px!important;font-size:0.88em!important;
+                margin-bottom:8px!important}
+            .com-edit input{font-size:0.86em!important;width:42px!important}
+
+            /* — Botón principal "Comprar/Vender USDT": un poco más bajo — */
+            .op-btn-wrap{margin-top:8px;padding:6px 0 0}
+            .op-btn-wrap .btn{padding:11px 16px;font-size:0.95em;
+                border-radius:var(--r-md)}
+
+            /* — Resumen / preview op (Recibirás aprox.): más compacto — */
+            .op-summary{padding:7px 10px!important;margin-top:6px!important}
+            .op-summary-row{padding:2px 0!important;font-size:0.78em!important}
+            .op-summary-row.main{padding:3px 0!important;font-size:0.95em!important}
+            .op-meta{font-size:0.66em!important}
+
+            /* — Help text del banco más chico — */
+            #bancoHelp,#tasaHelp{font-size:0.68em!important;
+                margin-top:2px!important}
+        }
+
+        /* ════════════ FIN v4.7.56 ════════════ */
     </style>
 </head>
 <body>
@@ -1829,15 +1918,7 @@
                             <div class="op-toggle-btn" id="opToggleVenta">📤 Vender USDT</div>
                         </div>
 
-                        <div class="form-group"><label id="montoLabel">Comprás por (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3.900">
-                            <div class="quick-amounts" id="quickAmounts">
-                                <button type="button" class="quick-amt-btn" data-amt="1000">1.000</button>
-                                <button type="button" class="quick-amt-btn" data-amt="2000">2.000</button>
-                                <button type="button" class="quick-amt-btn" data-amt="5000">5.000</button>
-                                <button type="button" class="quick-amt-btn" data-amt="10000">10.000</button>
-                                <button type="button" class="quick-amt-btn" data-amt="" id="quickAmtOtro">Otro</button>
-                            </div>
-                        </div>
+                        <div class="form-group"><label id="montoLabel">Comprás por (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="3.900"></div>
 
                         <div class="tasa-block">
                             <label>Tasa por USDT</label>
@@ -2088,7 +2169,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.55',
+    APP_VERSION: '4.7.56',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2121,6 +2202,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.56', date:'2026-05-19', headline:'⚡ Formulario denso — quick amounts fuera, pills de tasa REF visibles.', changes:[
+        {type:'fix', title:'Quick amounts (1.000/2.000/5.000/10.000/Otro) eliminados', desc:'Decisión operativa del usuario para su flujo real (~40 ops/día): los montos vienen de la orden o saldo, no son redondos. Los botones generaban ruido visual sin valor real. Espacio vertical recuperado para densificar el resto del formulario. Función wireQuickAmounts removida del JS para no dejar código muerto.'},
+        {type:'feature', title:'Pills de tasas recientes destacadas (REF)', desc:'La feature ya existía en el código (tasasRecientes en AppState, renderizarTasasRecientes wireado al input). Estaba visualmente subdesarrollada. Ahora: la pill MÁS reciente se resalta como "REF" (fondo azul, borde, peso visual claro). Las otras 4 quedan como secundarias. Al tocar cualquier pill se setea el input — feature ya funcionaba, solo se mejoró su jerarquía visual. Cero JS nuevo.'},
+        {type:'improve', title:'Compactación quirúrgica del formulario mobile', desc:'Todo el bloque @media (max-width:1023px) reduce alturas y paddings sin cambiar lógica: (1) toggle Comprar/Vender más bajo (7px/0.84em), (2) input de monto más compacto (9-11px padding), (3) tasa-block más estrecho con botones +/- reducidos (30px), (4) fila Banco+Comisión más densa, (5) bloque Comisión Binance compactado, (6) op-summary y op-meta más chicos, (7) botón principal con padding reducido. Resultado: el formulario ocupa ~25-30% menos de alto vertical.'},
+        {type:'verified', title:'Lo que NO se tocó', desc:'Cero cambios en: lógica de cálculo (calcularPreview, FIFO, comisiones), sync engine, Firebase (binancp2p-f831f), navegación, desktop (todo dentro de @media max-width:1023px), wireado de tasas recientes (ya existía), validaciones del formulario. DIVs balanceados, JS válido.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) Ir al formulario Nueva Operación: los 5 botones de monto ya NO están. 3) El formulario debe verse más compacto que v4.7.55 (mismo contenido, menos alto). 4) Crear una operación con tasa nueva. 5) Volver al formulario: la última tasa usada aparece como pill REF destacada en azul. 6) Tocarla: se setea automáticamente. 7) Tipear monto, tasa, banco — todo funciona igual. 8) Sync OK en Diagnóstico. 9) En desktop (>1024px) el formulario se ve igual que v4.7.55. 10) Si OK, subir.'}
+    ]},
     {version:'4.7.55', date:'2026-05-19', headline:'🔧 Fix signo "-" alineado en ganancia + "Ver detalle" abre calendario.', changes:[
         {type:'fix', title:'Signo negativo en línea con el monto', desc:'En mobile, cuando la ganancia era negativa con muchos dígitos (ej. -$15.091,33), el max-width:55% forzaba wrap y el signo "-" quedaba en una línea, el monto debajo. Ahora: white-space:nowrap defensivo + clamp() adaptativo de font-size en mobile, así el bloque "-$X" es UNA sola unidad tipográfica que nunca se parte. Si el monto es muy largo, la fuente se achica antes que romperse en dos líneas.'},
         {type:'fix', title:'Botón "Ver detalle" ahora abre el Calendario', desc:'En v4.7.53 el botón tenía data-action="calendario" asumiendo un dispatcher global que en realidad solo existe scopeado al menú hamburguesa. Por eso el click no hacía nada. Ahora: listener directo en el botón que abre el modalCalendario enfocado al día actual, mismo flujo que la entrada del menú. Log defensivo si _syncLog está disponible.'},
@@ -2149,13 +2237,6 @@ const CHANGELOG = [
         {type:'verified', title:'Sin mini-gráficos en tarjetas', desc:'Confirmado: NO se agregan los mini-gráficos de fondo en las tarjetas de saldo (los del mockup). La versión actual no los tiene y se mantienen sin ellos por preferencia del usuario.'},
         {type:'verified', title:'Cambio acotado', desc:'Solo se reemplazaron las 3 constantes base64 de logos (versiones transparentes) + 2 ajustes de tamaño en el render/CSS de tarjetas. No se tocó JS de sync, navegación, Firebase (binancp2p-f831f), FIFO, lógica financiera. DIVs balanceados, JS válido.'},
         {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) Mis Saldos: los 3 logos deben verse SIN recuadro negro alrededor, integrados a la tarjeta. 3) "Mercado Pago" debe verse el nombre COMPLETO, no "Mercado ...". 4) Las 3 tarjetas siguen entrando en pantalla. 5) Montos completos. 6) Menú y crear operación OK. 7) Si bien, subir.'}
-    ]},
-    {version:'4.7.51', date:'2026-05-19', headline:'🎨 Logos reales de USDT, Itau y Mercado Pago en las tarjetas de saldo.', changes:[
-        {type:'feature', title:'Logos embebidos (Opción B — sin dependencia externa)', desc:'Reemplazado el emoji 🪙 de USDT y el texto plano de Itau/Mercado Pago por los logos reales de cada uno. Los logos están EMBEBIDOS en el HTML como base64 (igual que el favicon del proyecto) — NO se cargan desde Wikimedia ni ninguna CDN. La app no depende de internet para mostrarlos, cargan instantáneo y nunca quedan rotos.'},
-        {type:'improve', title:'Optimizados', desc:'Las imágenes originales (hasta 128 KB, 1875px) se redimensionaron a 96px y se recomprimieron. Los 3 logos juntos suman ~29 KB embebidos en vez de ~177 KB originales. Cada uno se muestra a 20px en la tarjeta.'},
-        {type:'verified', title:'Defensivo', desc:'Cada img tiene onerror que la oculta si por algún motivo el data-URI fallara, sin romper el layout de la tarjeta. Helper _bancoLogoImg() mapea nombre→logo; si un banco no tiene logo mapeado, no muestra nada (comportamiento anterior).'},
-        {type:'verified', title:'Solo presentación — nada crítico tocado', desc:'Cambio acotado a 2 líneas del render de tarjetas + bloque de constantes base64. No se tocó JS de sync, navegación, Firebase (binancp2p-f831f), FIFO, lógica financiera, ni el resto del rediseño. DIVs balanceados, JS válido.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) Mirar Mis Saldos: USDT debe mostrar el logo verde de Tether, Itau el logo naranja, Mercado Pago su logo azul — en vez de emoji/texto. 3) Verificar que las 3 tarjetas siguen entrando en pantalla (Fase 2B). 4) Que los montos siguen completos. 5) Probar menú y crear operación. 6) Si OK, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -8553,34 +8634,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     /* v4.7.44: botones de monto rápido. Setea el input y dispara el mismo
        flujo que una escritura manual (calcularPreview + renderSplitPanel).
        "Otro" limpia y enfoca el campo para entrada libre. */
-    (function wireQuickAmounts(){
-        const qc=$('quickAmounts');if(!qc)return;
-        qc.addEventListener('click',e=>{
-            const btn=e.target.closest('.quick-amt-btn');if(!btn)return;
-            const amt=btn.getAttribute('data-amt');
-            qc.querySelectorAll('.quick-amt-btn').forEach(b=>b.classList.remove('sel'));
-            btn.classList.add('sel');
-            const inp=$('monto');
-            if(amt){
-                inp.value=amt;
-                calcularPreview();renderSplitPanel();
-            }else{
-                inp.value='';
-                inp.focus();
-            }
-        });
-        /* Si el usuario tipea manualmente, deseleccionar los presets */
-        $('monto').addEventListener('input',()=>{
-            const v=$('monto').value.replace(/\./g,'');
-            let match=false;
-            qc.querySelectorAll('.quick-amt-btn').forEach(b=>{
-                const a=b.getAttribute('data-amt');
-                if(a&&a===v){b.classList.add('sel');match=true}
-                else b.classList.remove('sel');
-            });
-            if(!match){const o=$('quickAmtOtro');if(o)o.classList.remove('sel')}
-        });
-    })();
+    /* v4.7.56: quick-amounts eliminados del HTML (decisión operativa del
+       usuario — no usa montos redondos en su flujo de 40 ops/día).
+       La función wireQuickAmounts y sus listeners se retiraron para no
+       dejar código muerto. La pieza que quita la "selección" al tipear
+       en #monto también se removió porque ya no hay selección que quitar. */
     /* v4.7.55: "Ver detalle ›" en la tarjeta GANANCIA HOY → abrir calendario.
        El handler global del menú panel no lo capturaba porque el botón vive
        en el home, fuera de #menuPanel. Lo conecto directo y reuso la MISMA
