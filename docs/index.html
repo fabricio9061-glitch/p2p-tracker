@@ -1283,10 +1283,13 @@
             color:#15803d;font-weight:700}
         .card.main-card.negative .card-title{color:#b91c1c}
         /* v4.7.45 — Número más chico para que NO tape el sparkline.
-           Se le reserva ~45% del ancho al gráfico a la derecha. */
+           Se le reserva ~45% del ancho al gráfico a la derecha.
+           v4.7.55: white-space:nowrap defensivo para que el bloque "-$N" no
+           se parta en dos líneas dejando el "-" arriba solo. */
         .card.main-card #gananciaHoy{font-size:1.85em!important;font-weight:850;
             letter-spacing:-0.03em;margin:2px 0 6px;line-height:1.05;
-            max-width:55%;position:relative;z-index:2}
+            max-width:55%;position:relative;z-index:2;
+            white-space:nowrap;overflow:visible}
         #cardGananciaHoy .spark-wrap{position:absolute;right:14px;top:50%;
             transform:translateY(-50%);width:150px;height:70px;
             pointer-events:none;opacity:0.85;z-index:1}
@@ -1448,7 +1451,13 @@
         .card.main-card #gananciaHoy{font-size:var(--fs-2xl)!important;
             font-weight:var(--fw-extra);letter-spacing:var(--tracking-tight);
             font-variant-numeric:tabular-nums;line-height:var(--lh-tight);
-            margin:var(--sp-1) 0 var(--sp-2);max-width:55%;position:relative;z-index:2}
+            margin:var(--sp-1) 0 var(--sp-2);max-width:55%;position:relative;z-index:2;
+            /* v4.7.55 fix: el monto es UN bloque tipográfico — nunca debe
+               envolver. Si por algún motivo no entra en 55%, baja el font-size
+               adaptativamente. Resuelve "-" en línea separada con montos grandes. */
+            white-space:nowrap;overflow:visible;
+            font-size:clamp(1.05rem,5.6vw,var(--fs-2xl))!important;
+            display:inline-block;width:max-content}
         #cardGananciaHoy .hoy-meta{font-size:var(--fs-sm);color:var(--c-text-soft);
             gap:var(--sp-3)}
 
@@ -1781,7 +1790,7 @@
                         <div class="hoy-cell" id="hoyCellSpread"><div class="hoy-cell-v" id="spreadPromedio">$0</div><div class="hoy-cell-l">Spread prom.</div><span id="spreadTrend" class="spread-trend" style="display:none"></span></div>
                         <div class="hoy-cell" id="hoyCellVsAyer"><div class="hoy-cell-v"><span id="vsAyerArrow" class="hc-arrow">—</span><span id="vsAyerPct">—</span></div><div class="hoy-cell-l">vs ayer</div></div>
                         <div class="hoy-cell" id="hoyCellVsSem"><div class="hoy-cell-v"><span id="vsSemArrow" class="hc-arrow">—</span><span id="vsSemPct">—</span></div><div class="hoy-cell-l">vs prom. semanal</div></div>
-                        <button type="button" class="hoy-detail-btn" id="hoyDetalleBtn" data-action="calendario" aria-label="Ver detalle del día en calendario">Ver detalle <span class="hd-chev">›</span></button>
+                        <button type="button" class="hoy-detail-btn" id="hoyDetalleBtn" aria-label="Ver detalle del día en calendario">Ver detalle <span class="hd-chev">›</span></button>
                     </div>
                     <div id="cardIngresosExt" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;font-size:0.68em;color:#64748b;justify-content:space-between;align-items:center"><span>💵 Otros ingresos</span><span style="font-weight:700;color:#475569" id="ingresosExtHoy">$0</span></div>
                     <div class="spark-wrap" id="gananciaSparkline" aria-hidden="true"></div>
@@ -2079,7 +2088,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.54',
+    APP_VERSION: '4.7.55',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2112,6 +2121,12 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.55', date:'2026-05-19', headline:'🔧 Fix signo "-" alineado en ganancia + "Ver detalle" abre calendario.', changes:[
+        {type:'fix', title:'Signo negativo en línea con el monto', desc:'En mobile, cuando la ganancia era negativa con muchos dígitos (ej. -$15.091,33), el max-width:55% forzaba wrap y el signo "-" quedaba en una línea, el monto debajo. Ahora: white-space:nowrap defensivo + clamp() adaptativo de font-size en mobile, así el bloque "-$X" es UNA sola unidad tipográfica que nunca se parte. Si el monto es muy largo, la fuente se achica antes que romperse en dos líneas.'},
+        {type:'fix', title:'Botón "Ver detalle" ahora abre el Calendario', desc:'En v4.7.53 el botón tenía data-action="calendario" asumiendo un dispatcher global que en realidad solo existe scopeado al menú hamburguesa. Por eso el click no hacía nada. Ahora: listener directo en el botón que abre el modalCalendario enfocado al día actual, mismo flujo que la entrada del menú. Log defensivo si _syncLog está disponible.'},
+        {type:'verified', title:'Acotado y de bajo riesgo', desc:'Cambios: 2 reglas CSS de #gananciaHoy (nowrap + clamp) + 1 listener nuevo wireHoyDetalleBtn + remoción de data-action obsoleto. No se tocó: HTML estructural, sync, navegación, Firebase (binancp2p-f831f), FIFO, lógica financiera, layout desktop v4.7.54, mini-cajas v4.7.53. DIVs balanceados, JS válido.'},
+        {type:'verified', title:'Cómo probar', desc:'1) En mobile: si tenés un día con pérdida, verificá que "-$X,XX" se muestra en UNA línea, con el signo bien pegado al $. Si hoy tu ganancia es positiva, podés simular cambiando la fecha del dispositivo o esperando a un día negativo. 2) Tocar "Ver detalle ›" debe abrir el modal Calendario con el día de hoy enfocado. 3) Verificar que el resto del home, mobile y desktop, siguen iguales. 4) Si OK, subir.'}
+    ]},
     {version:'4.7.54', date:'2026-05-19', headline:'🖥️ Camino C: desktop responsive — fin del "celular gigante centrado".', changes:[
         {type:'fix', title:'Container amplía en desktop (≥1024px)', desc:'En Fase 2A se había fijado max-width:560px sin media query, lo que en desktop dejaba la app como "columna de teléfono centrada con espacio muerto a los lados". Ahora en desktop el container usa --dk-max-width (1400px), padding 24/32px, aprovechando el ancho real. Mobile NO se toca: <1024px mantiene los 560px premium intactos.'},
         {type:'feature', title:'Layout dashboard real en desktop', desc:'Reactivada la infraestructura desktop que ya existía pero estaba anulada: (1) Ganancia + Actividad lado a lado arriba, (2) Saldos como grid horizontal real con tarjetas auto-fill (minmax 180px), (3) Nueva Operación (360px sticky a la izquierda) + Operaciones (densa, terminal-style) a la derecha. La estructura HTML ya estaba lista (desktop-columns/col-left/col-right), solo se restauró el CSS que la activaba.'},
@@ -2141,14 +2156,6 @@ const CHANGELOG = [
         {type:'verified', title:'Defensivo', desc:'Cada img tiene onerror que la oculta si por algún motivo el data-URI fallara, sin romper el layout de la tarjeta. Helper _bancoLogoImg() mapea nombre→logo; si un banco no tiene logo mapeado, no muestra nada (comportamiento anterior).'},
         {type:'verified', title:'Solo presentación — nada crítico tocado', desc:'Cambio acotado a 2 líneas del render de tarjetas + bloque de constantes base64. No se tocó JS de sync, navegación, Firebase (binancp2p-f831f), FIFO, lógica financiera, ni el resto del rediseño. DIVs balanceados, JS válido.'},
         {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) Mirar Mis Saldos: USDT debe mostrar el logo verde de Tether, Itau el logo naranja, Mercado Pago su logo azul — en vez de emoji/texto. 3) Verificar que las 3 tarjetas siguen entrando en pantalla (Fase 2B). 4) Que los montos siguen completos. 5) Probar menú y crear operación. 6) Si OK, subir.'}
-    ]},
-    {version:'4.7.50', date:'2026-05-19', headline:'✅ Fase 2B (tarjetas): las 3 tarjetas de bancos SIEMPRE visibles, sin deslizar.', changes:[
-        {type:'fix', title:'Las 3 tarjetas entran en pantalla — solución de fondo', desc:'Reconozco que en v4.7.46/47/49 fallé en esto 3 veces parcheando el ancho. La causa raíz: usaba width:auto, así cada tarjeta se estiraba para que entrara el monto y nunca entraban las 3. Ahora el ancho es FIJO: exactamente (100% - gaps) / 3. Las 3 tarjetas entran siempre, en cualquier teléfono, sin deslizar — como el mockup.'},
-        {type:'fix', title:'El monto se adapta al ancho fijo (sin cortar)', desc:'En vez de que la tarjeta crezca según el monto, ahora el monto se achica solo con clamp(0.82rem, 3.7vw, 1.18rem) si el número es largo ($103.694,49). Nunca usa "..." ni se corta — el número completo siempre se ve, solo cambia su tamaño según largo y pantalla.'},
-        {type:'improve', title:'Límite de Itau discreto', desc:'El texto US$10.251/12.500 pasó a ser mínimo y gris tenue. Era info secundaria que antes ensanchaba la tarjeta y rompía el cálculo del ancho. Ahora no dicta el layout.'},
-        {type:'improve', title:'Layout vertical compacto tipo mockup', desc:'Nombre arriba chico, monto grande centrado, moneda/límite abajo mínimos. Altura mínima uniforme, contenido centrado verticalmente. Micro-press al tocar.'},
-        {type:'verified', title:'Solo CSS — nada más tocado', desc:'Exclusivamente el bloque de tarjetas en CSS. No se tocó JS, navegación, sync, Firebase (binancp2p-f831f), FIFO, ni el resto del rediseño Fase 2A. Pantallas del menú intactas. DIVs balanceados, JS válido.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) Mirar Mis Saldos: las 3 tarjetas (USDT, Itau, Mercado Pago) deben verse COMPLETAS en pantalla SIN deslizar. 3) Los montos completos, sin "..." (aunque la fuente sea más chica en los largos). 4) Verificar que el resto del home Fase 2A sigue bien. 5) Probar el menú hamburguesa. 6) Crear una operación. 7) Si OK, subir. Después seguimos con el resto de Fase 2B (pulir pantallas del menú).'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -8572,6 +8579,24 @@ document.addEventListener('DOMContentLoaded',()=>{
                 else b.classList.remove('sel');
             });
             if(!match){const o=$('quickAmtOtro');if(o)o.classList.remove('sel')}
+        });
+    })();
+    /* v4.7.55: "Ver detalle ›" en la tarjeta GANANCIA HOY → abrir calendario.
+       El handler global del menú panel no lo capturaba porque el botón vive
+       en el home, fuera de #menuPanel. Lo conecto directo y reuso la MISMA
+       lógica que la entrada del menú (consistencia: mismo enfoque al hoy). */
+    (function wireHoyDetalleBtn(){
+        const btn=$('hoyDetalleBtn');if(!btn)return;
+        btn.addEventListener('click',()=>{
+            try{
+                AppState.ui.calendarDate=new Date();
+                AppState.ui.calSelectedDay=null;
+                renderizarCalendario();
+                abrirModal('modalCalendario');
+                if(typeof _syncLog==='function')_syncLog('ui:ver-detalle-calendario',{from:'hero'});
+            }catch(e){
+                console.warn('[P2P] ver-detalle (no crítico):',e&&e.message);
+            }
         });
     })();
     $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview()});
