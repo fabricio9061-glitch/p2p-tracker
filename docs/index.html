@@ -2224,7 +2224,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.59',
+    APP_VERSION: '4.7.60',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2257,6 +2257,14 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.60', date:'2026-05-22', headline:'✨ Lote A mínimo: sparkline más legible (padding, gradiente, punto final).', changes:[
+        {type:'improve', title:'Padding real del sparkline', desc:'Antes pad=4 (apenas 4px), la curva tocaba los bordes del card en días extremos. Ahora padY=8, padX=6: la línea respira correctamente dentro del contenedor sin cambiar el tamaño del SVG (sigue siendo 140×62). Cero cambio de layout — solo el SVG interno usa el espacio mejor.'},
+        {type:'improve', title:'Línea más fina + gradiente sutil', desc:'Stroke-width de 2 a 1.5 (más elegante, menos pesado). Área inferior antes era un fill plano (rgba con 0.14 opacidad) → ahora un <linearGradient> vertical: 0.28 arriba, 0 abajo. Da sensación de profundidad sin ser decorativo. Cero impacto de performance — solo 4 líneas más de SVG por render.'},
+        {type:'improve', title:'Último punto destacado con halo', desc:'Antes: un círculo plano r=3 del color de la línea. Ahora: un círculo blanco r=4 con borde del color de la línea, y un punto interno r=2 del color. Da un efecto "marcador con halo" — el ojo va directo al valor de hoy. El resto de la curva queda como tendencia, el último punto como foco.'},
+        {type:'fix', title:'Color responde a ganancia de HOY (no a tendencia)', desc:'Antes la línea era verde si "último >= promedio" (técnicamente correcto pero confuso: el monto podía ser rojo y la línea verde si el promedio era peor). Ahora la línea es verde si la ganancia de HOY es ≥ 0, roja si es < 0. Mismo criterio que el monto principal — el usuario lee una señal coherente: si el monto es rojo, la línea es roja.'},
+        {type:'verified', title:'Lote A acotado, cero cambios fuera del sparkline', desc:'NO se tocó: layout del hero, mini-cajas (v4.7.53), métricas (sigue siendo ganancia diaria últimos 14 días), tamaño del SVG, fondo de la card (sigue verde aunque la línea sea roja), desktop. Sync verificado online v504 con audit-splits CLEAN antes de tocar nada. La tarjeta principal sigue cambiando a "negative" cuando la ganancia es <0 pero eso ya existía — solo se alineó la línea con esa señal.'},
+        {type:'verified', title:'Cómo probar', desc:'1) En mobile y desktop debe verse el sparkline igual de posicionado que antes, pero la curva NO toca los bordes (padding 6-8px visible). 2) La línea se ve más fina y elegante. 3) Hay un gradiente vertical sutil debajo de la curva. 4) El último punto tiene un anillo blanco con halo del color de la línea. 5) Si tu ganancia de hoy es positiva: línea verde. Si es negativa: línea roja (la card sigue verde si es positiva, roja si es negativa — eso no cambió). 6) Sync sigue funcionando OK. 7) Si visualmente está bien, subir.'}
+    ]},
     {version:'4.7.59', date:'2026-05-20', headline:'🛡️ Fix split crítico: no permite crear ops con banco vacío + auditoría + feedback visual.', changes:[
         {type:'fix', title:'BUG CRÍTICO corregido: split con banco vacío ya NO crea operación', desc:'Antes: si una fila de split tenía monto pero SIN banco seleccionado, getAportes() la ignoraba silenciosamente y la operación se creaba con aportes incompletos — los $ que debían descontarse de "otro banco" no salían de ningún lado, dejando el cuadre de saldos corrupto. Ahora: doble red. (1) UI: botón "Comprar" deshabilitado visualmente (opacidad 0.45 + cursor not-allowed + filter saturate). (2) Submit: validarAportes detecta _hasEmptyBank y bloquea con mensaje claro.'},
         {type:'fix', title:'Feedback visual en la fila inválida (no solo el botón)', desc:'Crítico para uso operativo a velocidad: si solo el botón se ve gris, el usuario no sabe DÓNDE está el problema. Ahora la fila sin banco se pinta con fondo rojo claro (#fef2f2), borde rojo en el select, y un mensaje "⚠ Falta seleccionar un banco para esta fila" debajo. Atributo aria-invalid="true" para accesibilidad.'},
@@ -2282,12 +2290,6 @@ const CHANGELOG = [
         {type:'improve', title:'Compactación quirúrgica del formulario mobile', desc:'Todo el bloque @media (max-width:1023px) reduce alturas y paddings sin cambiar lógica: (1) toggle Comprar/Vender más bajo (7px/0.84em), (2) input de monto más compacto (9-11px padding), (3) tasa-block más estrecho con botones +/- reducidos (30px), (4) fila Banco+Comisión más densa, (5) bloque Comisión Binance compactado, (6) op-summary y op-meta más chicos, (7) botón principal con padding reducido. Resultado: el formulario ocupa ~25-30% menos de alto vertical.'},
         {type:'verified', title:'Lo que NO se tocó', desc:'Cero cambios en: lógica de cálculo (calcularPreview, FIFO, comisiones), sync engine, Firebase (binancp2p-f831f), navegación, desktop (todo dentro de @media max-width:1023px), wireado de tasas recientes (ya existía), validaciones del formulario. DIVs balanceados, JS válido.'},
         {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) Ir al formulario Nueva Operación: los 5 botones de monto ya NO están. 3) El formulario debe verse más compacto que v4.7.55 (mismo contenido, menos alto). 4) Crear una operación con tasa nueva. 5) Volver al formulario: la última tasa usada aparece como pill REF destacada en azul. 6) Tocarla: se setea automáticamente. 7) Tipear monto, tasa, banco — todo funciona igual. 8) Sync OK en Diagnóstico. 9) En desktop (>1024px) el formulario se ve igual que v4.7.55. 10) Si OK, subir.'}
-    ]},
-    {version:'4.7.55', date:'2026-05-19', headline:'🔧 Fix signo "-" alineado en ganancia + "Ver detalle" abre calendario.', changes:[
-        {type:'fix', title:'Signo negativo en línea con el monto', desc:'En mobile, cuando la ganancia era negativa con muchos dígitos (ej. -$15.091,33), el max-width:55% forzaba wrap y el signo "-" quedaba en una línea, el monto debajo. Ahora: white-space:nowrap defensivo + clamp() adaptativo de font-size en mobile, así el bloque "-$X" es UNA sola unidad tipográfica que nunca se parte. Si el monto es muy largo, la fuente se achica antes que romperse en dos líneas.'},
-        {type:'fix', title:'Botón "Ver detalle" ahora abre el Calendario', desc:'En v4.7.53 el botón tenía data-action="calendario" asumiendo un dispatcher global que en realidad solo existe scopeado al menú hamburguesa. Por eso el click no hacía nada. Ahora: listener directo en el botón que abre el modalCalendario enfocado al día actual, mismo flujo que la entrada del menú. Log defensivo si _syncLog está disponible.'},
-        {type:'verified', title:'Acotado y de bajo riesgo', desc:'Cambios: 2 reglas CSS de #gananciaHoy (nowrap + clamp) + 1 listener nuevo wireHoyDetalleBtn + remoción de data-action obsoleto. No se tocó: HTML estructural, sync, navegación, Firebase (binancp2p-f831f), FIFO, lógica financiera, layout desktop v4.7.54, mini-cajas v4.7.53. DIVs balanceados, JS válido.'},
-        {type:'verified', title:'Cómo probar', desc:'1) En mobile: si tenés un día con pérdida, verificá que "-$X,XX" se muestra en UNA línea, con el signo bien pegado al $. Si hoy tu ganancia es positiva, podés simular cambiando la fecha del dispositivo o esperando a un día negativo. 2) Tocar "Ver detalle ›" debe abrir el modal Calendario con el día de hoy enfocado. 3) Verificar que el resto del home, mobile y desktop, siguen iguales. 4) Si OK, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -8317,26 +8319,38 @@ function _renderGananciaSparkline(){
         if(n<2){cont.innerHTML='';return}
         const min=Math.min(...dias),max=Math.max(...dias);
         const range=(max-min)||1;
-        const W=140,H=62,pad=4;
-        const xStep=(W-pad*2)/(n-1);
+        /* v4.7.60 — Lote A: padding real para que la curva nunca toque los
+           bordes del card. Antes era pad=4 (apenas) → ahora padY=8, padX=6.
+           El SVG sigue siendo del mismo W×H, no cambia tamaño, solo respira. */
+        const W=140,H=62,padX=6,padY=8;
+        const xStep=(W-padX*2)/(n-1);
         const pts=dias.map((v,i)=>{
-            const x=pad+i*xStep;
-            const y=H-pad-((v-min)/range)*(H-pad*2);
+            const x=padX+i*xStep;
+            const y=H-padY-((v-min)/range)*(H-padY*2);
             return[x,y];
         });
         const pathD=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
-        const areaD=pathD+` L${pts[n-1][0].toFixed(1)} ${H-pad} L${pts[0][0].toFixed(1)} ${H-pad} Z`;
-        /* Color según tendencia del último valor vs promedio */
+        const areaD=pathD+` L${pts[n-1][0].toFixed(1)} ${H-padY} L${pts[0][0].toFixed(1)} ${H-padY} Z`;
+        /* v4.7.60 — color según ganancia de HOY (último día). Coherente con
+           el monto principal: si hoy es rojo, la línea es roja. Antes
+           comparaba último vs promedio (técnicamente correcto pero confuso). */
         const ult=dias[n-1];
-        const prom=dias.reduce((a,b)=>a+b,0)/n;
-        const pos=ult>=prom;
-        const stroke=pos?'#16a34a':'#dc2626';
-        const fill=pos?'rgba(34,197,94,0.14)':'rgba(239,68,68,0.12)';
+        const neg=ult<0;
+        const stroke=neg?'#dc2626':'#16a34a';
+        const gradColor=neg?'#ef4444':'#22c55e';
+        const gradId=neg?'spkGradNeg':'spkGradPos';
+        /* v4.7.60 — gradiente sutil debajo del área + último punto destacado
+           con halo blanco (anillo) para que respire del fondo de la card. */
         cont.innerHTML=
             `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg">`+
-            `<path d="${areaD}" fill="${fill}"/>`+
-            `<path d="${pathD}" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`+
-            `<circle cx="${pts[n-1][0].toFixed(1)}" cy="${pts[n-1][1].toFixed(1)}" r="3" fill="${stroke}"/>`+
+            `<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">`+
+                `<stop offset="0%" stop-color="${gradColor}" stop-opacity="0.28"/>`+
+                `<stop offset="100%" stop-color="${gradColor}" stop-opacity="0"/>`+
+            `</linearGradient></defs>`+
+            `<path d="${areaD}" fill="url(#${gradId})"/>`+
+            `<path d="${pathD}" stroke="${stroke}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`+
+            `<circle cx="${pts[n-1][0].toFixed(1)}" cy="${pts[n-1][1].toFixed(1)}" r="4" fill="#fff" stroke="${stroke}" stroke-width="1.5"/>`+
+            `<circle cx="${pts[n-1][0].toFixed(1)}" cy="${pts[n-1][1].toFixed(1)}" r="2" fill="${stroke}"/>`+
             `</svg>`;
     }catch(e){
         /* Nunca romper el dashboard por el sparkline */
