@@ -1825,6 +1825,20 @@
             font-weight:600;
             margin:-2px 4px 8px;
             display:flex;align-items:center;gap:4px}
+
+        /* ════════════════════════════════════════════════════════════════
+           §v4.7.61 — Sparkline: subir la curva solo en mobile
+           ════════════════════════════════════════════════════════════════
+           El sparkline está posicionado con top:50% transform:translateY(-50%)
+           (centrado vertical). Con el monto grande arriba y las mini-cajas
+           abajo, queda justo en el medio y la parte alta de la curva tapa
+           la línea punteada de "Otros ingresos" y el chip de Spread prom.
+           Fix mínimo: subir el centro a ~38% solo en mobile. Desktop NO se
+           toca — la card es más ancha y no hay superposición.
+           ════════════════════════════════════════════════════════════════ */
+        @media (max-width: 1023px) {
+            #cardGananciaHoy .spark-wrap{top:38%!important}
+        }
     </style>
 </head>
 <body>
@@ -2224,7 +2238,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.60',
+    APP_VERSION: '4.7.61',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2257,6 +2271,11 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.61', date:'2026-05-22', headline:'🔧 Sparkline: subir un poco la curva en mobile (no tapa mini-cajas).', changes:[
+        {type:'fix', title:'Sparkline ya no se superpone con mini-cajas en mobile', desc:'El sparkline estaba con top:50% (centrado vertical absoluto). Con el monto grande arriba y las mini-cajas abajo, la parte alta de la curva en días pico tocaba la línea punteada de "Otros ingresos" y el chip de "Spread prom.". Fix: en mobile (<1024px) el centro del sparkline sube a top:38%. Desktop NO se toca — la card es más ancha y nunca tuvo este problema.'},
+        {type:'verified', title:'Cambio mínimo y acotado', desc:'Una regla CSS dentro de @media (max-width: 1023px): #cardGananciaHoy .spark-wrap{top:38%!important}. Cero cambios en: SVG interno (sigue con padding, gradiente, halo del Lote A v4.7.60), métrica, layout, mini-cajas, desktop, sync, Firebase. DIVs balanceados, JS válido.'},
+        {type:'verified', title:'Cómo probar', desc:'1) En mobile: la curva del sparkline debe verse claramente separada de las mini-cajas y de la línea punteada de "Otros ingresos". 2) El último punto con halo blanco se ve completo (no cortado por el borde superior). 3) En desktop: idéntico a v4.7.60. 4) Si OK, subir.'}
+    ]},
     {version:'4.7.60', date:'2026-05-22', headline:'✨ Lote A mínimo: sparkline más legible (padding, gradiente, punto final).', changes:[
         {type:'improve', title:'Padding real del sparkline', desc:'Antes pad=4 (apenas 4px), la curva tocaba los bordes del card en días extremos. Ahora padY=8, padX=6: la línea respira correctamente dentro del contenedor sin cambiar el tamaño del SVG (sigue siendo 140×62). Cero cambio de layout — solo el SVG interno usa el espacio mejor.'},
         {type:'improve', title:'Línea más fina + gradiente sutil', desc:'Stroke-width de 2 a 1.5 (más elegante, menos pesado). Área inferior antes era un fill plano (rgba con 0.14 opacidad) → ahora un <linearGradient> vertical: 0.28 arriba, 0 abajo. Da sensación de profundidad sin ser decorativo. Cero impacto de performance — solo 4 líneas más de SVG por render.'},
@@ -2283,13 +2302,6 @@ const CHANGELOG = [
         {type:'fix', title:'"Com. banco" ya NO queda en columna estrecha', desc:'En v4.7.56 limité #comisionBancoGroup a max-width:38% intentando comprimir el bloque. Esa regla peleó con el grid 1fr 1fr de .form-row (que el JS setea en compra para "Sale de" + "Com. banco" al 50/50). Resultado: el contenedor quedó en una columna estrecha con label "Com. banco" arriba e input cuadrado debajo, en vez de label+input lado a lado dentro de su mitad de fila. Fix: removida la regla max-width. El grid maneja la división al 50/50 correctamente; solo se ajusta el input (text-align derecha + tabular-nums) para densificar visualmente sin romper layout.'},
         {type:'verified', title:'Solo CSS — 3 líneas tocadas', desc:'Cambio quirúrgico de una regla en el bloque v4.7.56. No se tocó: HTML, lógica del JS que setea grid-template-columns dinámicamente según tipo (compra/venta), sync, Firebase (binancp2p-f831f), navegación. Resto del formulario denso intacto, pills REF intactas, desktop intacto.'},
         {type:'verified', title:'Cómo probar', desc:'1) Abrir local en mobile. 2) Nueva Operación → Comprar USDT. 3) Verificar que "Sale de" y "Com. banco" se ven LADO A LADO al 50/50, cada uno con su label arriba e input debajo (no apilados ni con el input cuadrado pequeño). 4) Cambiar a Vender USDT: solo "Sale de" debe verse a ancho completo (sin Com. banco). 5) Verificar que el resto del formulario denso v4.7.56 sigue igual (pills REF, +/- 30px, etc). 6) Si OK, subir.'}
-    ]},
-    {version:'4.7.56', date:'2026-05-19', headline:'⚡ Formulario denso — quick amounts fuera, pills de tasa REF visibles.', changes:[
-        {type:'fix', title:'Quick amounts (1.000/2.000/5.000/10.000/Otro) eliminados', desc:'Decisión operativa del usuario para su flujo real (~40 ops/día): los montos vienen de la orden o saldo, no son redondos. Los botones generaban ruido visual sin valor real. Espacio vertical recuperado para densificar el resto del formulario. Función wireQuickAmounts removida del JS para no dejar código muerto.'},
-        {type:'feature', title:'Pills de tasas recientes destacadas (REF)', desc:'La feature ya existía en el código (tasasRecientes en AppState, renderizarTasasRecientes wireado al input). Estaba visualmente subdesarrollada. Ahora: la pill MÁS reciente se resalta como "REF" (fondo azul, borde, peso visual claro). Las otras 4 quedan como secundarias. Al tocar cualquier pill se setea el input — feature ya funcionaba, solo se mejoró su jerarquía visual. Cero JS nuevo.'},
-        {type:'improve', title:'Compactación quirúrgica del formulario mobile', desc:'Todo el bloque @media (max-width:1023px) reduce alturas y paddings sin cambiar lógica: (1) toggle Comprar/Vender más bajo (7px/0.84em), (2) input de monto más compacto (9-11px padding), (3) tasa-block más estrecho con botones +/- reducidos (30px), (4) fila Banco+Comisión más densa, (5) bloque Comisión Binance compactado, (6) op-summary y op-meta más chicos, (7) botón principal con padding reducido. Resultado: el formulario ocupa ~25-30% menos de alto vertical.'},
-        {type:'verified', title:'Lo que NO se tocó', desc:'Cero cambios en: lógica de cálculo (calcularPreview, FIFO, comisiones), sync engine, Firebase (binancp2p-f831f), navegación, desktop (todo dentro de @media max-width:1023px), wireado de tasas recientes (ya existía), validaciones del formulario. DIVs balanceados, JS válido.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Abrir local. 2) Ir al formulario Nueva Operación: los 5 botones de monto ya NO están. 3) El formulario debe verse más compacto que v4.7.55 (mismo contenido, menos alto). 4) Crear una operación con tasa nueva. 5) Volver al formulario: la última tasa usada aparece como pill REF destacada en azul. 6) Tocarla: se setea automáticamente. 7) Tipear monto, tasa, banco — todo funciona igual. 8) Sync OK en Diagnóstico. 9) En desktop (>1024px) el formulario se ve igual que v4.7.55. 10) Si OK, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
