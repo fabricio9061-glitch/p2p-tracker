@@ -1789,6 +1789,42 @@
         }
 
         /* ════════════ FIN v4.7.56 ════════════ */
+
+        /* ════════════════════════════════════════════════════════════════
+           §v4.7.59 — Botón deshabilitado por split inválido (visual)
+           ════════════════════════════════════════════════════════════════
+           Cuando una fila de split no tiene banco, el botón "Comprar"
+           queda deshabilitado visualmente. Se nota distinto de un disabled
+           normal (cooldown, guardando) — más opaco y con cursor not-allowed.
+           ════════════════════════════════════════════════════════════════ */
+        .btn-split-invalid{
+            opacity:0.45!important;
+            cursor:not-allowed!important;
+            pointer-events:none!important;
+            filter:saturate(0.6)}
+
+        /* — Feedback visual de fila inválida en el split — */
+        /* Crítico para uso operativo: si solo el botón es gris, el usuario
+           no sabe DÓNDE está el problema. Acá marcamos la fila concreta. */
+        .split-extra-row-invalid{
+            background:#fef2f2;
+            border:1.5px solid #fecaca;
+            border-radius:8px;
+            padding:6px;
+            margin-bottom:4px}
+        .split-extra-row-invalid select{
+            border-color:#ef4444!important;
+            background:#fff5f5!important;
+            color:#b91c1c!important}
+        .split-extra-row-invalid select:focus{
+            outline:none;
+            box-shadow:0 0 0 3px rgba(239,68,68,0.18)}
+        .split-row-hint-err{
+            font-size:0.68em;
+            color:#b91c1c;
+            font-weight:600;
+            margin:-2px 4px 8px;
+            display:flex;align-items:center;gap:4px}
     </style>
 </head>
 <body>
@@ -2060,7 +2096,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button></div><div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px"><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -2188,7 +2224,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.58',
+    APP_VERSION: '4.7.59',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2221,6 +2257,15 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.59', date:'2026-05-20', headline:'🛡️ Fix split crítico: no permite crear ops con banco vacío + auditoría + feedback visual.', changes:[
+        {type:'fix', title:'BUG CRÍTICO corregido: split con banco vacío ya NO crea operación', desc:'Antes: si una fila de split tenía monto pero SIN banco seleccionado, getAportes() la ignoraba silenciosamente y la operación se creaba con aportes incompletos — los $ que debían descontarse de "otro banco" no salían de ningún lado, dejando el cuadre de saldos corrupto. Ahora: doble red. (1) UI: botón "Comprar" deshabilitado visualmente (opacidad 0.45 + cursor not-allowed + filter saturate). (2) Submit: validarAportes detecta _hasEmptyBank y bloquea con mensaje claro.'},
+        {type:'fix', title:'Feedback visual en la fila inválida (no solo el botón)', desc:'Crítico para uso operativo a velocidad: si solo el botón se ve gris, el usuario no sabe DÓNDE está el problema. Ahora la fila sin banco se pinta con fondo rojo claro (#fef2f2), borde rojo en el select, y un mensaje "⚠ Falta seleccionar un banco para esta fila" debajo. Atributo aria-invalid="true" para accesibilidad.'},
+        {type:'fix', title:'"Total cubierto" verde solo si todos los splits están válidos', desc:'Antes: el status verde aparecía con solo cumplir la suma matemática del total, ignorando que faltara seleccionar el banco. Daba falsa sensación de operación válida. Ahora: el status verde requiere (cubierto AND no hay banco vacío). Si falta banco, status pasa a rojo con texto explícito.'},
+        {type:'fix', title:'Auto-limpieza completa al cambiar Compra → Venta', desc:'Verificado: cambio de tipo limpia splitExtras, oculta el panel, y la nueva función _updateBtnGuardarState reactiva el botón. La función es IDEMPOTENTE: solo desbloquea el botón si fue ELLA quien lo bloqueó (chequea dataset.splitInvalid). No pisa estados de cooldown ni guardandoOperacion, que tienen su propio ciclo.'},
+        {type:'fix', title:'BUG LATENTE corregido en la verificación: botón se quedaba bloqueado al desaparecer el split', desc:'Encontrado durante el review: cuando el split dejaba de aplicar (cambio de monto/tasa hace que el saldo cubra todo), renderSplitPanel hacía return temprano y NUNCA reactivaba el botón si estaba bloqueado por una fila inválida previa. Ahora el early return también llama a _updateBtnGuardarState. Y agregado renderSplitPanel() a los listeners de tasa (input, usar-tasa, tasa-step) que antes no recalculaban el split al cambiar la tasa.'},
+        {type:'feature', title:'🧩 Herramienta nueva: Auditar splits (Diagnóstico)', desc:'En Diagnóstico → "🧩 Auditar splits". auditarSplitsCorruptos() revisa TODAS las operaciones con campo aportes y detecta 4 categorías de anomalía: (a) banco vacío, (b) banco inexistente en CONFIG, (c) aportes vacíos, (d) suma ≠ monto+comisionBanco (tolerancia 0.05). Pura lectura — no muta nada. Muestra resumen + primeras 5 de cada categoría. Si hay anomalías, el usuario edita/borra manualmente. Logueado por _syncLog.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Comprar USDT por más del saldo del banco → aparece split. 2) Sin elegir banco extra → fila roja con texto "⚠ Falta seleccionar un banco" + botón opaco no clickeable + status NO verde. 3) Elegir banco → fila vuelve a normal, botón se reactiva. 4) Cambiar a Vender → panel desaparece. 5) Cambiar monto/tasa para que el saldo cubra todo → split desaparece automáticamente. 6) Tipear con Enter o disparar handler directo → bloqueado por validarAportes. 7) Menú → Diagnóstico → 🧩 Auditar splits → revisar ops históricas. 8) Si OK, subir.'}
+    ]},
     {version:'4.7.58', date:'2026-05-20', headline:'🎨 Simetría visual: "Sale de" y "Com. banco" ahora iguales en altura y padding.', changes:[
         {type:'fix', title:'Sale de ↔ Com. banco simétricos', desc:'En v4.7.57 quedaban al 50/50 (grid correcto) pero visualmente desiguales: el select de banco se sentía completo (chevron a la derecha) y el input de comisión chico/centrado. Ahora ambos comparten exactamente: width:100%, padding 11px 13px, min-height 42px, font-size 1rem, radius var(--r-md), border 1.5px. Se mantiene text-align:right en comisión (natural para un valor numérico).'},
         {type:'verified', title:'Cambio acotado y reversible', desc:'1 regla CSS nueva (#banco,#comisionBanco) en el bloque mobile v4.7.56. No se tocó: HTML, JS (incluido el switcher dinámico de grid 1fr 1fr ↔ 1fr según compra/venta), sync, Firebase (binancp2p-f831f), navegación, desktop. DIVs balanceados, JS válido.'},
@@ -2243,14 +2288,6 @@ const CHANGELOG = [
         {type:'fix', title:'Botón "Ver detalle" ahora abre el Calendario', desc:'En v4.7.53 el botón tenía data-action="calendario" asumiendo un dispatcher global que en realidad solo existe scopeado al menú hamburguesa. Por eso el click no hacía nada. Ahora: listener directo en el botón que abre el modalCalendario enfocado al día actual, mismo flujo que la entrada del menú. Log defensivo si _syncLog está disponible.'},
         {type:'verified', title:'Acotado y de bajo riesgo', desc:'Cambios: 2 reglas CSS de #gananciaHoy (nowrap + clamp) + 1 listener nuevo wireHoyDetalleBtn + remoción de data-action obsoleto. No se tocó: HTML estructural, sync, navegación, Firebase (binancp2p-f831f), FIFO, lógica financiera, layout desktop v4.7.54, mini-cajas v4.7.53. DIVs balanceados, JS válido.'},
         {type:'verified', title:'Cómo probar', desc:'1) En mobile: si tenés un día con pérdida, verificá que "-$X,XX" se muestra en UNA línea, con el signo bien pegado al $. Si hoy tu ganancia es positiva, podés simular cambiando la fecha del dispositivo o esperando a un día negativo. 2) Tocar "Ver detalle ›" debe abrir el modal Calendario con el día de hoy enfocado. 3) Verificar que el resto del home, mobile y desktop, siguen iguales. 4) Si OK, subir.'}
-    ]},
-    {version:'4.7.54', date:'2026-05-19', headline:'🖥️ Camino C: desktop responsive — fin del "celular gigante centrado".', changes:[
-        {type:'fix', title:'Container amplía en desktop (≥1024px)', desc:'En Fase 2A se había fijado max-width:560px sin media query, lo que en desktop dejaba la app como "columna de teléfono centrada con espacio muerto a los lados". Ahora en desktop el container usa --dk-max-width (1400px), padding 24/32px, aprovechando el ancho real. Mobile NO se toca: <1024px mantiene los 560px premium intactos.'},
-        {type:'feature', title:'Layout dashboard real en desktop', desc:'Reactivada la infraestructura desktop que ya existía pero estaba anulada: (1) Ganancia + Actividad lado a lado arriba, (2) Saldos como grid horizontal real con tarjetas auto-fill (minmax 180px), (3) Nueva Operación (360px sticky a la izquierda) + Operaciones (densa, terminal-style) a la derecha. La estructura HTML ya estaba lista (desktop-columns/col-left/col-right), solo se restauró el CSS que la activaba.'},
-        {type:'feature', title:'Densidad operativa en desktop', desc:'Ganancia más grande, sparkline más amplio, mini-cajas con más aire, montos protagonistas. En ultrawide (≥1440px) la columna izquierda crece a 400px y gana aún más densidad. La lista de operaciones aprovecha el layout horizontal compacto tipo tabla que ya existía en el código pre-rediseño.'},
-        {type:'verified', title:'Mobile INTACTO', desc:'Regla de oro: 0 cambios en <1024px. El bloque v4.7.54 está completamente dentro de @media (min-width:1024px) y @media (min-width:1440px). No reescribe nada del mobile, solo agrega comportamiento desktop. El v4.7.53 (mini-cajas + chevrons) se preserva exacto en mobile.'},
-        {type:'verified', title:'Lo que NO se tocó', desc:'Cero cambios en: HTML (estructura), JS, navegación, bottom nav (no existe), sync engine, Firebase (binancp2p-f831f), FIFO, lógica financiera, formulario interno, render de operaciones. Pantallas del menú (Transferencias, Movimientos, etc) NO se rediseñaron desktop — heredan el container ancho pero conservan su layout interno. Estrategia explícita: convivir unos días con esto antes de decidir si rediseñar esas pantallas.'},
-        {type:'verified', title:'Cómo probar', desc:'CRÍTICO: probar AMBOS tamaños. 1) MOBILE (iPhone/Galaxy o DevTools mobile): la app debe verse EXACTAMENTE igual que v4.7.53 — si algo cambió en mobile es bug. 2) DESKTOP (PC con ventana ancha): aprovecha el ancho, Nueva Op + Operaciones lado a lado, saldos en fila, sin espacio muerto lateral. 3) Probar redimensionando la ventana: transición fluida ≥1024px. 4) Pantallas secundarias del menú: funcionan igual aunque visualmente sean "anchas". Si todo OK en ambos tamaños → subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -4637,6 +4674,89 @@ function _syncLog(event,payload){
    Verdict:
      - SAFE-TO-STRIP: si todas las ops son exact o tolerance
      - DO-NOT-STRIP:  si hay ANY small/significant/missing-pct */
+/* ════════════════════════════════════════════════════════════════
+   §AUDITORÍA SPLITS v4.7.59 — Detectar ops con split corrupto
+   ════════════════════════════════════════════════════════════════
+   Investiga si existen operaciones con aportes corruptos por el bug
+   de "fila de split con banco vacío" que pudo haberse disparado en
+   versiones anteriores. Detecta:
+     - ops con campo aportes presente pero algún aporte sin banco
+     - ops con campo aportes pero algún banco no existe en CONFIG
+     - ops sin aportes que parecen incoherentes (saldo banco insuficiente
+       en momento de la op vs monto, indicio de que faltó split)
+
+   Pura LECTURA — no muta nada. Devuelve un reporte para revisar.
+   Es herramienta de diagnóstico, no de fix automático. El usuario
+   decide qué hacer con las ops detectadas (editar manual o borrar+rehacer).
+   ════════════════════════════════════════════════════════════════ */
+function auditarSplitsCorruptos(){
+    const ops=Array.isArray(AppState.datos.operaciones)?AppState.datos.operaciones:[];
+    const bancos=AppState.datos.bancos||{};
+    const result={
+        totalOps:ops.length,
+        bancoVacio:[],
+        bancoInexistente:[],
+        aportesVacios:[],
+        sumaIncorrecta:[],
+        resumen:''
+    };
+    ops.forEach(op=>{
+        if(!Array.isArray(op.aportes))return; /* op sin split, OK */
+        let sumaAportes=0;
+        let tieneBancoVacio=false;
+        let bancosInexistentes=[];
+        op.aportes.forEach((a,idx)=>{
+            const m=Number(a&&a.monto)||0;
+            sumaAportes+=m;
+            if(!a||!a.banco){
+                tieneBancoVacio=true;
+            }else if(!bancos[a.banco]){
+                bancosInexistentes.push(a.banco);
+            }
+        });
+        const ref={id:op.id,fecha:op.fecha,hora:op.hora,tipo:op.tipo,
+            monto:op.monto,banco:op.banco,aportes:op.aportes};
+        if(tieneBancoVacio)result.bancoVacio.push(ref);
+        if(bancosInexistentes.length>0){
+            result.bancoInexistente.push({...ref,bancosFantasma:bancosInexistentes});
+        }
+        if(op.aportes.length===0)result.aportesVacios.push(ref);
+        /* Suma de aportes vs monto: tolerar 0.01 por roundeos */
+        if(op.tipo==='compra'){
+            const totalEsperado=Number(op.monto)+Number(op.comisionBanco||0);
+            if(Math.abs(sumaAportes-totalEsperado)>0.05){
+                result.sumaIncorrecta.push({...ref,
+                    sumaAportes:roundMoney(sumaAportes),
+                    esperado:roundMoney(totalEsperado),
+                    diferencia:roundMoney(sumaAportes-totalEsperado)});
+            }
+        }
+    });
+    const totalAnomalias=result.bancoVacio.length+result.bancoInexistente.length+
+        result.aportesVacios.length+result.sumaIncorrecta.length;
+    if(totalAnomalias===0){
+        result.resumen=`✓ ${ops.length} operaciones revisadas. No se detectaron splits corruptos.`;
+        result.verdict='CLEAN';
+    }else{
+        const partes=[];
+        if(result.bancoVacio.length)partes.push(`${result.bancoVacio.length} con banco vacío`);
+        if(result.bancoInexistente.length)partes.push(`${result.bancoInexistente.length} con banco inexistente`);
+        if(result.aportesVacios.length)partes.push(`${result.aportesVacios.length} con aportes vacíos`);
+        if(result.sumaIncorrecta.length)partes.push(`${result.sumaIncorrecta.length} con suma de aportes ≠ monto`);
+        result.resumen=`⚠ ${totalAnomalias} operación(es) con anomalía: ${partes.join(', ')}`;
+        result.verdict='ANOMALIES';
+    }
+    _syncLog&&_syncLog('audit-splits:done',{
+        verdict:result.verdict,
+        bancoVacio:result.bancoVacio.length,
+        bancoInexistente:result.bancoInexistente.length,
+        aportesVacios:result.aportesVacios.length,
+        sumaIncorrecta:result.sumaIncorrecta.length
+    });
+    return result;
+}
+
+
 function auditarComisionPlataforma(){
     const ops=Array.isArray(AppState.datos.operaciones)?AppState.datos.operaciones:[];
     const result={
@@ -6745,6 +6865,10 @@ function renderSplitPanel(){
     if(!state||!state.aplicaSplit){
         panel.style.display='none';
         if($('tipo').value!=='compra'||(state&&state.aplicaSplit===false))AppState.ui.splitExtras=[];
+        /* v4.7.59 — CRÍTICO: si el split ya no aplica, hay que re-evaluar el
+           estado del botón. Si quedó bloqueado por una fila inválida anterior
+           (y ahora el saldo cubre el total o cambió el tipo), debe desbloquearse. */
+        if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();
         return;
     }
     const{bancoPrinc,totalNecesario,aporte1,totalAportado,faltante,cubierto,exceso}=state;
@@ -6763,12 +6887,19 @@ function renderSplitPanel(){
     AppState.ui.splitExtras.forEach((ex,idx)=>{
         const selOpts='<option value="">Seleccionar…</option>'+disponibles.concat(ex.banco&&AppState.datos.bancos[ex.banco]?[{nombre:ex.banco,color:getBancoColor(ex.banco)}]:[]).map(b=>`<option value="${b.nombre}" style="color:${b.color||'#1e293b'};font-weight:600"${ex.banco===b.nombre?' selected':''}>${b.nombre}</option>`).join('');
         const disp=ex.banco?_splitDisponible(ex.banco):0;
-        h+=`<div class="split-extra-row">
-            <select data-action="split-set-banco" data-idx="${idx}">${selOpts}</select>
+        /* v4.7.59 — feedback visual claro cuando la fila está sin banco.
+           Sin esto el usuario veía "botón gris" pero no sabía dónde estaba
+           el problema. Crítico para alguien que opera rápido (40 ops/día). */
+        const filaInvalida=!ex.banco;
+        const rowCls=filaInvalida?'split-extra-row split-extra-row-invalid':'split-extra-row';
+        h+=`<div class="${rowCls}">
+            <select data-action="split-set-banco" data-idx="${idx}" aria-invalid="${filaInvalida?'true':'false'}">${selOpts}</select>
             <input type="text" inputmode="decimal" data-action="split-set-monto" data-idx="${idx}" value="${ex.monto?fmtMonto(ex.monto):''}" placeholder="${sy}0" />
             <button type="button" class="split-remove" data-action="split-remove" data-idx="${idx}" aria-label="Quitar">✕</button>
         </div>`;
-        if(ex.banco&&disp<(ex.monto||0)-SPLIT_EPSILON){
+        if(filaInvalida){
+            h+=`<div class="split-row-hint-err">⚠ Falta seleccionar un banco para esta fila</div>`;
+        }else if(ex.banco&&disp<(ex.monto||0)-SPLIT_EPSILON){
             h+=`<div style="font-size:0.68em;color:#b91c1c;margin:-2px 4px 6px">⚠ ${escHtml(ex.banco)} solo tiene ${sy}${fmtMonto(disp)}</div>`;
         }
     });
@@ -6776,16 +6907,61 @@ function renderSplitPanel(){
     if(faltante>=SPLIT_EPSILON&&disponibles.length>0){
         h+=`<button type="button" class="split-add-btn" data-action="split-add">＋ Agregar cuenta para cubrir ${sy}${fmtMonto(faltante)}</button>`;
     }
+    /* v4.7.59 — antes de pintar status verde, verificar que no haya filas con
+       banco vacío. Si las hay, el split NO está realmente cubierto aunque la
+       suma matemática dé el total — falta info crítica para guardar. */
+    const hayBancoVacio=AppState.ui.splitExtras.some(ex=>!ex.banco);
     /* Status — usa estado normalizado, sin re-comparar con 0 */
-    if(cubierto){
+    if(cubierto&&!hayBancoVacio){
         h+=`<div class="split-status ok">✓ Total cubierto · ${sy}${fmtMonto(totalAportado)}</div>`;
     }else if(exceso){
         h+=`<div class="split-status error">Exceso de ${sy}${fmtMonto(Math.abs(faltante))} · ajustá los aportes</div>`;
+    }else if(hayBancoVacio){
+        h+=`<div class="split-status error">Seleccioná un banco en cada fila de pago</div>`;
     }else{
         h+=`<div class="split-status error">Falta ${sy}${fmtMonto(faltante)} · aportado ${sy}${fmtMonto(totalAportado)} de ${sy}${fmtMonto(totalNecesario)}</div>`;
     }
     panel.innerHTML=h;panel.style.display='block';
+    /* v4.7.59 — refrescar estado del botón principal en cada render */
+    if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();
 }
+/* ════════════════════════════════════════════════════════════════
+   §SPLIT-BTN-STATE v4.7.59 — Doble red contra el bug de banco vacío
+   ════════════════════════════════════════════════════════════════
+   Mantiene el botón "Comprar/Vender USDT" deshabilitado visualmente
+   cuando hay una fila de split sin banco seleccionado. La validación
+   defensiva en agregarOperacion() es la SEGUNDA red — esta es la
+   primera (UI). Se llama desde renderSplitPanel + cambios de inputs.
+
+   Idempotente: si no aplica split o todo está OK, restaura el estado
+   normal del botón. No interfiere con otros estados (cooldown, etc).
+   ════════════════════════════════════════════════════════════════ */
+function _updateBtnGuardarState(){
+    const btn=$('btnAgregarOp');if(!btn)return;
+    /* Marker propio para no pisar otros disabled (cooldown, guardando) */
+    const wasOurs=btn.dataset.splitInvalid==='1';
+    let blockNow=false,reason='';
+    try{
+        if($('tipo').value==='compra' && splitActivo()){
+            const hayVacio=(AppState.ui.splitExtras||[]).some(ex=>!ex.banco);
+            if(hayVacio){blockNow=true;reason='Seleccioná un banco en cada fila'}
+        }
+    }catch(e){/* defensivo */}
+    if(blockNow){
+        btn.disabled=true;
+        btn.dataset.splitInvalid='1';
+        btn.classList.add('btn-split-invalid');
+        btn.setAttribute('title',reason);
+    }else if(wasOurs){
+        /* Solo restauro si el disabled fue puesto por NOSOTROS — no toco si
+           es por cooldown/guardando que tienen su propio ciclo de vida */
+        btn.disabled=false;
+        delete btn.dataset.splitInvalid;
+        btn.classList.remove('btn-split-invalid');
+        btn.removeAttribute('title');
+    }
+}
+
 /* Determinar si hay split activo y válido */
 function splitActivo(){
     /* GUARD: split pago solo aplica a COMPRAS — en ventas el usuario recibe UYU,
@@ -6801,10 +6977,24 @@ function getAportes(){
     const state=_computeSplitState();
     if(!state||!state.aplicaSplit)return null;
     const aportes=[{banco:state.bancoPrinc,monto:state.aporte1}];
+    /* v4.7.59 — flags de invalidez. Antes este loop ignoraba silenciosamente
+       las filas con banco vacío, devolviendo "aportes parciales" que parecían
+       válidos. Ahora reportamos cada anomalía para que validarAportes y la
+       UI puedan reaccionar (botón deshabilitado, status no verde, etc). */
+    let hasEmptyBank=false;
     AppState.ui.splitExtras.forEach(ex=>{
         const m=roundMoney(ex.monto||0);
-        if(ex.banco&&m>0)aportes.push({banco:ex.banco,monto:m});
+        if(!ex.banco){
+            /* Banco no seleccionado. Si además tiene monto, es bug crítico:
+               la fila aporta a "ningún banco". Si NO tiene monto, sigue siendo
+               una fila incompleta que el usuario debe completar o quitar. */
+            if(m>0||AppState.ui.splitExtras.length>0)hasEmptyBank=true;
+            return;
+        }
+        if(m>0)aportes.push({banco:ex.banco,monto:m});
     });
+    /* Devuelvo array con flag adjunto para no romper consumidores existentes */
+    aportes._hasEmptyBank=hasEmptyBank;
     return aportes;
 }
 function _updateSplitStatus(){
@@ -6814,16 +7004,25 @@ function _updateSplitStatus(){
     const state=_computeSplitState();if(!state||!state.aplicaSplit)return;
     const{bancoPrinc,totalNecesario,totalAportado,faltante,cubierto,exceso}=state;
     const sy=getSym(getBancoInfo(bancoPrinc)?.moneda||'UYU');
-    if(cubierto){
+    /* v4.7.59 — mismo chequeo que renderSplitPanel: no marcar verde si hay
+       filas con banco vacío. Sin esto, el usuario tipea un monto y se ve
+       "cubierto" antes de elegir el banco — falsa sensación de operación válida. */
+    const hayBancoVacio=(AppState.ui.splitExtras||[]).some(ex=>!ex.banco);
+    if(cubierto&&!hayBancoVacio){
         statusEl.className='split-status ok';
         statusEl.textContent=`✓ Total cubierto · ${sy}${fmtMonto(totalAportado)}`;
     }else if(exceso){
         statusEl.className='split-status error';
         statusEl.textContent=`Exceso de ${sy}${fmtMonto(Math.abs(faltante))} · ajustá los aportes`;
+    }else if(hayBancoVacio){
+        statusEl.className='split-status error';
+        statusEl.textContent='Seleccioná un banco en cada fila de pago';
     }else{
         statusEl.className='split-status error';
         statusEl.textContent=`Falta ${sy}${fmtMonto(faltante)} · aportado ${sy}${fmtMonto(totalAportado)} de ${sy}${fmtMonto(totalNecesario)}`;
     }
+    /* v4.7.59 — refrescar estado del botón principal en cada cambio del split */
+    if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();
     /* Actualizar también el botón "Agregar cuenta para cubrir $X" si está presente */
     const addBtn=panel.querySelector('[data-action="split-add"]');
     if(addBtn){
@@ -6839,6 +7038,12 @@ function _updateSplitStatus(){
 function validarAportes(){
     const aportes=getAportes();
     if(!aportes)return{ok:true};
+    /* v4.7.59 — defensa dura contra el bug: si alguna fila de split tiene
+       banco vacío, NO se puede crear la operación. Esta es la segunda red de
+       seguridad (la primera es el botón deshabilitado en UI). */
+    if(aportes._hasEmptyBank){
+        return{ok:false,msg:'Hay una fila de pago sin banco seleccionado. Seleccioná un banco en cada fila o eliminala con la ✕ para continuar.'};
+    }
     const state=_computeSplitState();
     if(!state||!state.aplicaSplit)return{ok:true};
     const sy=getSym(getBancoInfo(state.bancoPrinc)?.moneda||'UYU');
@@ -6928,7 +7133,7 @@ async function agregarOperacion(){
         const sy2=mon==='USD'?'US$':'$';
         const subMsg=isSplit?`Pago dividido entre ${aportes.length} cuentas`:'Tasa: '+sy2+fmtNum(ta,mon==='USD'?3:2)+' · '+b;
         showSuccess({amount:sy2+fmtNum(m),message:(t==='compra'?'Comprados ':'Vendidos ')+fmtTrunc(u,2)+' USDT con éxito',sub:subMsg});
-    }catch(e){console.error('[P2P] Error guardando operación:',e)}finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect()}
+    }catch(e){console.error('[P2P] Error guardando operación:',e)}finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect();/* v4.7.59: re-evaluar split por si el usuario agregó fila inválida durante el guardado */ if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();}
 }
 
 async function eliminarOperacion(id){
@@ -8671,7 +8876,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
         });
     })();
-    $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview()});
+    $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview();/* v4.7.59: cambio de tasa puede activar/desactivar split */ renderSplitPanel()});
     $('banco').addEventListener('change',()=>{AppState.ui.splitExtras=[];mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect();renderSplitPanel()});
     $('comisionBanco').addEventListener('input',()=>{calcularPreview();renderSplitPanel()});
     /* Split pago: listeners delegados para select/input internos */
@@ -8788,6 +8993,49 @@ document.addEventListener('DOMContentLoaded',()=>{
                 alert('Auditoría comisión falló: '+e.message);
             }finally{
                 if(_bAuditCp){_bAuditCp.disabled=false;_bAuditCp.textContent='💰 Auditar comisión'}
+            }
+        },50);
+    });
+    /* v4.7.59 — botón Auditar splits para detectar ops corruptas */
+    const _bAuditSp=$('btnSyncDiagAuditSplits');if(_bAuditSp)_bAuditSp.addEventListener('click',()=>{
+        if(_bAuditSp){_bAuditSp.disabled=true;_bAuditSp.textContent='Verificando…'}
+        setTimeout(()=>{
+            try{
+                const r=auditarSplitsCorruptos();
+                window._ultimaAuditoriaSplits=r;
+                let detalle=r.resumen+'\n\n';
+                if(r.bancoVacio.length){
+                    detalle+=`━ Banco vacío (${r.bancoVacio.length}) ━\n`;
+                    r.bancoVacio.slice(0,5).forEach(o=>{
+                        detalle+=`  ${o.fecha} ${o.hora} · ${o.tipo} · $${fmtNum(o.monto,2)} · banco principal: ${o.banco}\n`;
+                    });
+                    if(r.bancoVacio.length>5)detalle+=`  ... y ${r.bancoVacio.length-5} más\n`;
+                    detalle+='\n';
+                }
+                if(r.bancoInexistente.length){
+                    detalle+=`━ Banco inexistente (${r.bancoInexistente.length}) ━\n`;
+                    r.bancoInexistente.slice(0,5).forEach(o=>{
+                        detalle+=`  ${o.fecha} ${o.hora} · ${o.tipo} · $${fmtNum(o.monto,2)} · fantasmas: ${o.bancosFantasma.join(', ')}\n`;
+                    });
+                    if(r.bancoInexistente.length>5)detalle+=`  ... y ${r.bancoInexistente.length-5} más\n`;
+                    detalle+='\n';
+                }
+                if(r.sumaIncorrecta.length){
+                    detalle+=`━ Suma incorrecta (${r.sumaIncorrecta.length}) ━\n`;
+                    r.sumaIncorrecta.slice(0,5).forEach(o=>{
+                        detalle+=`  ${o.fecha} ${o.hora} · esperado $${fmtNum(o.esperado,2)} · suma $${fmtNum(o.sumaAportes,2)} · diff $${fmtNum(o.diferencia,2)}\n`;
+                    });
+                    if(r.sumaIncorrecta.length>5)detalle+=`  ... y ${r.sumaIncorrecta.length-5} más\n`;
+                    detalle+='\n';
+                }
+                detalle+='Esta es una herramienta de diagnóstico — no se modificó ningún dato.\nRevisar y editar/borrar manualmente las operaciones afectadas si es necesario.';
+                alert(detalle);
+                renderDiagnosticoSync();
+            }catch(e){
+                console.error('[P2P] Auditoría splits falló:',e);
+                alert('Auditoría splits falló: '+e.message);
+            }finally{
+                if(_bAuditSp){_bAuditSp.disabled=false;_bAuditSp.textContent='🧩 Auditar splits'}
             }
         },50);
     });
@@ -8946,7 +9194,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             renderSplitPanel();
         }
         else if(a==='usar-tasa'){
-            const v=t.dataset.valor;if(v){$('tasa').value=fmtTasa(parseFloat(v),getMonedaBanco());AppState.ui.tasaManual=true;calcularPreview()}
+            const v=t.dataset.valor;if(v){$('tasa').value=fmtTasa(parseFloat(v),getMonedaBanco());AppState.ui.tasaManual=true;calcularPreview();/* v4.7.59: re-evaluar split tras cambio de tasa */ renderSplitPanel()}
         }
         else if(a==='tasa-step'){
             const mon=getMonedaBanco();
@@ -8959,6 +9207,8 @@ document.addEventListener('DOMContentLoaded',()=>{
             $('tasa').value=fmtTasa(nuevo,mon);
             AppState.ui.tasaManual=true;
             calcularPreview();
+            /* v4.7.59: re-evaluar split tras cambio de tasa */
+            renderSplitPanel();
         }
         else if(a==='editar-tag'){
             const oldTag=t.dataset.tag;if(!oldTag)return;
