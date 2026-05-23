@@ -1734,8 +1734,11 @@
                 font-variant-numeric:tabular-nums;
                 transition:transform var(--dur-fast) var(--ease-out)}
             #tasaTagsContainer .tag-pill:active{transform:scale(0.94)}
-            /* Primera pill (más reciente) destacada como REF */
-            #tasaTagsContainer .tag-pill:first-child{
+            /* v4.7.62: la pill "activa" es la que coincide con el valor del
+               input de tasa (puede ser cualquiera, no necesariamente la 1ª).
+               Antes se usaba :first-child y SIEMPRE marcaba la primera, lo
+               que daba feedback engañoso al tocar otra. */
+            #tasaTagsContainer .tag-pill-active{
                 background:var(--c-accent-soft)!important;
                 border-color:var(--c-accent)!important;
                 color:var(--c-accent-strong)!important;
@@ -2238,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.61',
+    APP_VERSION: '4.7.62',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2271,6 +2274,13 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.62', date:'2026-05-23', headline:'🐛 Fix pill de tasa: la "activa" es la que coincide con el valor real, no la primera.', changes:[
+        {type:'fix', title:'Pill activa ahora refleja la tasa real del input', desc:'BUG: al tocar otra pill (ej. 41,90), el input cambiaba pero el "azul de seleccionada" seguía en la primera (ej. 42,20). Daba feedback engañoso. CAUSA: el CSS usaba :first-child para destacar la pill — eso es selector estructural (siempre la primera por posición), no de estado. Y el handler usar-tasa no marcaba/desmarcaba nada. FIX: ahora renderizarTasasRecientes() compara cada pill con el valor actual del input y aplica la clase .tag-pill-active a la que coincida. El CSS cambia de .tag-pill:first-child a .tag-pill-active. La pill destacada deja de ser "REF por posición" y pasa a ser "la que vos elegiste" — coherente con lo que el usuario espera.'},
+        {type:'fix', title:'Re-evaluación en cada cambio de tasa', desc:'La función se llama ahora desde los 3 puntos donde puede cambiar la tasa: (1) input manual del usuario, (2) tocar otra pill, (3) botones +/-. Resultado: si tipeás 41,95 y existe una pill con ese valor, la pill se marca activa automáticamente. Si tipeás 41,93 (no coincide con ninguna), ninguna pill queda activa — refleja el estado real.'},
+        {type:'verified', title:'Tolerancia numérica correcta', desc:'La comparación usa epsilon (0.005 para UYU, 0.0005 para USD) para evitar falsos negativos por roundeos de float. parsearTasa devuelve null para valores inválidos o incompletos (ej. mientras tipeás "41,"), y mi código chequea isFinite() — no rompe en estados intermedios. Si la tasa es inválida, ninguna pill queda activa, no se rompe nada.'},
+        {type:'verified', title:'Acotado y reversible', desc:'Cambios: 1 función JS modificada (renderizarTasasRecientes), 1 regla CSS cambiada (de :first-child a .tag-pill-active), 3 callsites agregando renderizarTasasRecientes() después de modificar la tasa. Cero impacto en: sync, Firebase (binancp2p-f831f), lógica financiera, mini-cajas v4.7.53, desktop v4.7.54, formulario denso v4.7.56, split v4.7.59, sparkline v4.7.60-61, mobile-only del v4.7.61. DIVs balanceados, JS válido.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Abrir Nueva Operación. 2) Mirar las pills de tasa: la que coincida con el input actual debe estar destacada azul. Si no coincide ninguna, ninguna azul. 3) Tocar una pill distinta: esa debe pasar a azul, la otra debe volver a estilo normal. 4) Tipear una tasa manualmente que coincida con una pill: esa pill debe destacarse sola. 5) Usar +/-: la pill se actualiza si cae sobre un valor de pill. 6) Crear una operación: la nueva tasa pasa a ser la primera, y queda activa porque ahora el input la tiene. 7) Si OK, subir.'}
+    ]},
     {version:'4.7.61', date:'2026-05-22', headline:'🔧 Sparkline: subir un poco la curva en mobile (no tapa mini-cajas).', changes:[
         {type:'fix', title:'Sparkline ya no se superpone con mini-cajas en mobile', desc:'El sparkline estaba con top:50% (centrado vertical absoluto). Con el monto grande arriba y las mini-cajas abajo, la parte alta de la curva en días pico tocaba la línea punteada de "Otros ingresos" y el chip de "Spread prom.". Fix: en mobile (<1024px) el centro del sparkline sube a top:38%. Desktop NO se toca — la card es más ancha y nunca tuvo este problema.'},
         {type:'verified', title:'Cambio mínimo y acotado', desc:'Una regla CSS dentro de @media (max-width: 1023px): #cardGananciaHoy .spark-wrap{top:38%!important}. Cero cambios en: SVG interno (sigue con padding, gradiente, halo del Lote A v4.7.60), métrica, layout, mini-cajas, desktop, sync, Firebase. DIVs balanceados, JS válido.'},
@@ -2297,11 +2307,6 @@ const CHANGELOG = [
         {type:'fix', title:'Sale de ↔ Com. banco simétricos', desc:'En v4.7.57 quedaban al 50/50 (grid correcto) pero visualmente desiguales: el select de banco se sentía completo (chevron a la derecha) y el input de comisión chico/centrado. Ahora ambos comparten exactamente: width:100%, padding 11px 13px, min-height 42px, font-size 1rem, radius var(--r-md), border 1.5px. Se mantiene text-align:right en comisión (natural para un valor numérico).'},
         {type:'verified', title:'Cambio acotado y reversible', desc:'1 regla CSS nueva (#banco,#comisionBanco) en el bloque mobile v4.7.56. No se tocó: HTML, JS (incluido el switcher dinámico de grid 1fr 1fr ↔ 1fr según compra/venta), sync, Firebase (binancp2p-f831f), navegación, desktop. DIVs balanceados, JS válido.'},
         {type:'verified', title:'Cómo probar', desc:'1) Mobile, Comprar USDT. 2) "Sale de" y "Com. banco" deben verse del MISMO alto, mismo padding interno, lado a lado al 50/50. 3) Vender USDT: solo Sale de a ancho completo. 4) Resto del formulario denso sigue igual. 5) Sync OK. 6) Si OK, subir.'}
-    ]},
-    {version:'4.7.57', date:'2026-05-19', headline:'🐛 Fix layout Com. banco — label e input vuelven a su fila correcta.', changes:[
-        {type:'fix', title:'"Com. banco" ya NO queda en columna estrecha', desc:'En v4.7.56 limité #comisionBancoGroup a max-width:38% intentando comprimir el bloque. Esa regla peleó con el grid 1fr 1fr de .form-row (que el JS setea en compra para "Sale de" + "Com. banco" al 50/50). Resultado: el contenedor quedó en una columna estrecha con label "Com. banco" arriba e input cuadrado debajo, en vez de label+input lado a lado dentro de su mitad de fila. Fix: removida la regla max-width. El grid maneja la división al 50/50 correctamente; solo se ajusta el input (text-align derecha + tabular-nums) para densificar visualmente sin romper layout.'},
-        {type:'verified', title:'Solo CSS — 3 líneas tocadas', desc:'Cambio quirúrgico de una regla en el bloque v4.7.56. No se tocó: HTML, lógica del JS que setea grid-template-columns dinámicamente según tipo (compra/venta), sync, Firebase (binancp2p-f831f), navegación. Resto del formulario denso intacto, pills REF intactas, desktop intacto.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Abrir local en mobile. 2) Nueva Operación → Comprar USDT. 3) Verificar que "Sale de" y "Com. banco" se ven LADO A LADO al 50/50, cada uno con su label arriba e input debajo (no apilados ni con el input cuadrado pequeño). 4) Cambiar a Vender USDT: solo "Sale de" debe verse a ancho completo (sin Com. banco). 5) Verificar que el resto del formulario denso v4.7.56 sigue igual (pills REF, +/- 30px, etc). 6) Si OK, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -4168,7 +4173,17 @@ function renderizarTasasRecientes(){
     const tipo=$('tipo').value,mon=getMonedaBanco();
     const recientes=(AppState.datos.tasasRecientes||[]).filter(t=>t.tipo===tipo&&t.moneda===mon).slice(0,5);
     if(!recientes.length){cont.innerHTML='';return}
-    cont.innerHTML=recientes.map(t=>`<span class="tag-pill" data-action="usar-tasa" data-valor="${t.valor}" style="font-size:0.72em;padding:3px 9px;flex-shrink:0">${fmtTasa(t.valor,mon)}</span>`).join('');
+    /* v4.7.62 — marcar como "activa" la pill cuyo valor coincide con el input
+       actual de tasa, NO la primera por posición. Antes el CSS usaba :first-child
+       y esa pill siempre se veía azul aunque el usuario tocara otra. Ahora la
+       pill activa es la que refleja el valor real del input. */
+    const tasaActualNum=parsearTasa($('tasa').value);
+    const epsilon=mon==='USD'?0.0005:0.005;
+    cont.innerHTML=recientes.map(t=>{
+        const isActive=isFinite(tasaActualNum)&&Math.abs(t.valor-tasaActualNum)<epsilon;
+        const cls='tag-pill'+(isActive?' tag-pill-active':'');
+        return `<span class="${cls}" data-action="usar-tasa" data-valor="${t.valor}" style="font-size:0.72em;padding:3px 9px;flex-shrink:0">${fmtTasa(t.valor,mon)}</span>`;
+    }).join('');
 }
 
 function getLotesActivosFIFO(){return AppState.datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')))}
@@ -8902,7 +8917,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
         });
     })();
-    $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview();/* v4.7.59: cambio de tasa puede activar/desactivar split */ renderSplitPanel()});
+    $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview();/* v4.7.59: cambio de tasa puede activar/desactivar split */ renderSplitPanel();/* v4.7.62: re-evaluar pill activa */ renderizarTasasRecientes()});
     $('banco').addEventListener('change',()=>{AppState.ui.splitExtras=[];mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect();renderSplitPanel()});
     $('comisionBanco').addEventListener('input',()=>{calcularPreview();renderSplitPanel()});
     /* Split pago: listeners delegados para select/input internos */
@@ -9220,7 +9235,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             renderSplitPanel();
         }
         else if(a==='usar-tasa'){
-            const v=t.dataset.valor;if(v){$('tasa').value=fmtTasa(parseFloat(v),getMonedaBanco());AppState.ui.tasaManual=true;calcularPreview();/* v4.7.59: re-evaluar split tras cambio de tasa */ renderSplitPanel()}
+            const v=t.dataset.valor;if(v){$('tasa').value=fmtTasa(parseFloat(v),getMonedaBanco());AppState.ui.tasaManual=true;calcularPreview();/* v4.7.59: re-evaluar split tras cambio de tasa */ renderSplitPanel();/* v4.7.62: re-evaluar pill activa */ renderizarTasasRecientes()}
         }
         else if(a==='tasa-step'){
             const mon=getMonedaBanco();
@@ -9235,6 +9250,8 @@ document.addEventListener('DOMContentLoaded',()=>{
             calcularPreview();
             /* v4.7.59: re-evaluar split tras cambio de tasa */
             renderSplitPanel();
+            /* v4.7.62: re-evaluar pill activa */
+            renderizarTasasRecientes();
         }
         else if(a==='editar-tag'){
             const oldTag=t.dataset.tag;if(!oldTag)return;
