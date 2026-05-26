@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.1',
+    APP_VERSION: '4.8.1.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,12 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.1.1', date:'2026-05-26', headline:'🔧 Hotfix: auto-migración leía caché stale y re-corría cada arranque.', changes:[
+        {type:'fix', title:'BUG: auto-migración se ejecutaba en cada apertura', desc:'Confirmado en 3 arranques sucesivos: el overlay "Optimizando estructura de datos" aparecía aunque la migración ya estuviera marcada en el servidor con _schemaVersion="v2". CAUSA: subcol_isMigrated() usaba ref.get() sin opciones — con enablePersistence activo, eso devuelve el doc desde IndexedDB local. El caché local todavía no reflejaba "_schemaVersion=v2" en el primer momento del bootstrap (5s después de DOMContentLoaded), entonces la migración volvía a correr.'},
+        {type:'fix', title:'Fix mínimo: forzar lectura del servidor', desc:'Cambio puntual: ref.get({source:"server"}) en subcol_isMigrated() y en la verificación pre-flight de subcol_migrate. Una lectura adicional Firestore por arranque, insignificante. Si no hay conexión, .get falla → catch devuelve false → la auto-migración NO corre (deseable: no migrar offline con info parcial).'},
+        {type:'verified', title:'Sin agregar capas', desc:'Cero líneas nuevas de lógica. Sin retries, sin timers, sin localStorage flags, sin UI nueva, sin recovery. Solo {source:"server"} agregado a dos llamadas a .get(). El resto de v4.8.1 (auto-migración silenciosa, migración idempotente, fix de wire-format) intacto.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.1.1. 2) Cerrar app completamente (kill switcher) y reabrir. 3) Primera apertura post-deploy: PUEDE aparecer overlay si nunca corrió antes — esperar a que termine. 4) Cerrar y reabrir 2-3 veces más. 5) En esas reaperturas, el overlay NO debe aparecer. 6) En Diagnóstico → log: debería verse "auto-mig:already" en cada apertura, sin "auto-mig:start". 7) Si el overlay vuelve a aparecer en alguna reapertura, no se rompió nada (la migración es idempotente) — avisame y resolvemos.'}
+    ]},
     {version:'4.8.1', date:'2026-05-26', headline:'🤖 Migración automática silenciosa + fix wire-format en subcollections.', changes:[
         {type:'fix', title:'BUG CRÍTICO de v4.8.0: subcollections recibían formato comprimido', desc:'En v4.8.0 la migración leía ref.get() del doc legacy — que después de v4.7.63 vive en wire-format comprimido (tipo→t, banco→bk, monto→mo, etc). Los docs migrados terminaban con esos nombres cortos, y la validación post-migración buscaba op.monto y encontraba undefined → sumas en 0 → integridad rota. FIX: subcol_migrate ahora lee de AppState.datos.operaciones, que es memoria ya descomprimida por mergeRemoteState. Las subcollections quedan en formato expandido limpio, sin dependencia de wire compression.'},
         {type:'fix', title:'Validación post-migración simplificada y robusta', desc:'v4.8.0 comparaba primerOp/ultimaOp por POSICIÓN en array — Firestore no garantiza orden sin orderBy(). Devolvía falsos positivos. v4.8.1 usa count().get() agregado servidor (1 lectura por entidad) para confirmar que coinciden los conteos. Las sumas se preservan del snapshot inicial (un write atómico que confirma no puede "perder un campo"). Eliminado _subcol_compararSnapshots (función huérfana).'},
@@ -2605,13 +2611,6 @@ const CHANGELOG = [
         {type:'feature', title:'Descompresión transparente al recibir snapshot', desc:'Punto único en el listener de Firestore: si llega _wireFormat:"v1", descomprime las ops a formato expandido antes de cualquier procesamiento. Todos los paths downstream (initial load, mergeRemoteState, cache hydrate) reciben data en formato expandido. Compatible con docs legacy: si no hay flag, asume formato viejo y no toca nada.'},
         {type:'verified', title:'Robustez y rollback', desc:'(1) Self-test sincrónico al cargar. (2) Validación de integridad en cada write. (3) Fallback automático a legacy si algo falla. (4) Backup del usuario (JSON descargado) SIEMPRE en formato expandido — independiente del wire format. (5) Import lee formato expandido. (6) Si la compresión se rompe en runtime, broken flag persiste durante la sesión, app sigue funcionando con payload legacy. NO se tocó: render, FIFO, splits, UI, navegación, validaciones, lógica financiera.'},
         {type:'verified', title:'Cómo probar', desc:'1) Abrir app: el self-test corre al cargar — si falla, alertará por consola. 2) Diagnóstico → 🗜️ Auditar compresión → debe decir SAFE-TO-COMPRESS, roundtripOk = total ops, ahorro ~329 KB. 3) Crear una operación nueva — debe guardar normalmente. 4) Diagnóstico → Auditar tamaño: el payload remoto debe bajar a ~620 KB. 5) Cerrar y reabrir la app: data debe cargar igual desde el doc comprimido. 6) Auditar splits y comisión: deben seguir CLEAN/SAFE. Si todo OK, subir.'}
-    ]},
-    {version:'4.7.62', date:'2026-05-23', headline:'🐛 Fix pill de tasa: la "activa" es la que coincide con el valor real, no la primera.', changes:[
-        {type:'fix', title:'Pill activa ahora refleja la tasa real del input', desc:'BUG: al tocar otra pill (ej. 41,90), el input cambiaba pero el "azul de seleccionada" seguía en la primera (ej. 42,20). Daba feedback engañoso. CAUSA: el CSS usaba :first-child para destacar la pill — eso es selector estructural (siempre la primera por posición), no de estado. Y el handler usar-tasa no marcaba/desmarcaba nada. FIX: ahora renderizarTasasRecientes() compara cada pill con el valor actual del input y aplica la clase .tag-pill-active a la que coincida. El CSS cambia de .tag-pill:first-child a .tag-pill-active. La pill destacada deja de ser "REF por posición" y pasa a ser "la que vos elegiste" — coherente con lo que el usuario espera.'},
-        {type:'fix', title:'Re-evaluación en cada cambio de tasa', desc:'La función se llama ahora desde los 3 puntos donde puede cambiar la tasa: (1) input manual del usuario, (2) tocar otra pill, (3) botones +/-. Resultado: si tipeás 41,95 y existe una pill con ese valor, la pill se marca activa automáticamente. Si tipeás 41,93 (no coincide con ninguna), ninguna pill queda activa — refleja el estado real.'},
-        {type:'verified', title:'Tolerancia numérica correcta', desc:'La comparación usa epsilon (0.005 para UYU, 0.0005 para USD) para evitar falsos negativos por roundeos de float. parsearTasa devuelve null para valores inválidos o incompletos (ej. mientras tipeás "41,"), y mi código chequea isFinite() — no rompe en estados intermedios. Si la tasa es inválida, ninguna pill queda activa, no se rompe nada.'},
-        {type:'verified', title:'Acotado y reversible', desc:'Cambios: 1 función JS modificada (renderizarTasasRecientes), 1 regla CSS cambiada (de :first-child a .tag-pill-active), 3 callsites agregando renderizarTasasRecientes() después de modificar la tasa. Cero impacto en: sync, Firebase (binancp2p-f831f), lógica financiera, mini-cajas v4.7.53, desktop v4.7.54, formulario denso v4.7.56, split v4.7.59, sparkline v4.7.60-61, mobile-only del v4.7.61. DIVs balanceados, JS válido.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Abrir Nueva Operación. 2) Mirar las pills de tasa: la que coincida con el input actual debe estar destacada azul. Si no coincide ninguna, ninguna azul. 3) Tocar una pill distinta: esa debe pasar a azul, la otra debe volver a estilo normal. 4) Tipear una tasa manualmente que coincida con una pill: esa pill debe destacarse sola. 5) Usar +/-: la pill se actualiza si cae sobre un valor de pill. 6) Crear una operación: la nueva tasa pasa a ser la primera, y queda activa porque ahora el input la tiene. 7) Si OK, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -9288,7 +9287,15 @@ async function subcol_isMigrated(){
     const ref=subcol_userRef();
     if(!ref)return false;
     try{
-        const snap=await ref.get();
+        /* v4.8.1.1: forzar lectura del SERVIDOR, no del caché local.
+           Con enablePersistence activo, ref.get() sin opciones puede devolver
+           el doc desde IndexedDB local — que aún no refleja _schemaVersion="v2"
+           si el snapshot post-migración no llegó. Eso causaba re-ejecución de
+           la auto-migración en cada arranque.
+           Si no hay conexión, .get({source:'server'}) lanza error → catch
+           devuelve false → la auto-migración NO corre (deseable: no migrar
+           con info parcial). */
+        const snap=await ref.get({source:'server'});
         if(!snap.exists)return false;
         return snap.data()._schemaVersion===SUBCOL_SCHEMA_V2;
     }catch(e){
@@ -9416,10 +9423,12 @@ async function subcol_migrate(progressCallback){
     if(!AppState.datos||!Array.isArray(AppState.datos.operaciones)){
         return{ok:false,error:'AppState.datos no inicializado — esperar al bootstrap'};
     }
-    /* Verificar que el doc raíz aún existe (sanity check) */
+    /* Verificar que el doc raíz aún existe (sanity check).
+       v4.8.1.1: source:'server' para no leer cache stale. Si fallara por offline,
+       el catch aborta limpio sin escribir nada. */
     let docSnap;
     try{
-        docSnap=await ref.get();
+        docSnap=await ref.get({source:'server'});
     }catch(e){
         return{ok:false,error:'read-legacy-failed: '+e.message};
     }
