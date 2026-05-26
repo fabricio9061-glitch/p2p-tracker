@@ -2113,7 +2113,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagRecovery" style="background:#dc2626">🚨 Recovery write</button><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button></div><div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px"><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.63',
+    APP_VERSION: '4.7.64',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,16 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.64', date:'2026-05-26', headline:'🚨 Recovery Write: migración controlada legacy → comprimido + payload guard permanente.', changes:[
+        {type:'fix', title:'CRÍTICO: rescate del doc remoto en estado degradado', desc:'Después de v4.7.63 el doc remoto quedó atrapado en formato legacy (~951 KB) porque Firestore aplicaba throttling sobre writes encima de él. La compresión funcionaba (payload local 537 KB confirmado en logs) pero ningún write se confirmaba. SOLUCIÓN: módulo recoveryWrite() aislado — bloquea TODOS los writes accesorios, congela el listener, escribe UN solo doc comprimido limpio con timeout 90s y 3 reintentos con backoff 5s/15s/30s, verifica leyendo del servidor, hace reset limpio del estado.'},
+        {type:'feature', title:'Detección automática al cargar', desc:'4 segundos después de DOMContentLoaded: si el doc remoto NO tiene _wireFormat:"v1" y memoria tiene operaciones, dispara recoveryWrite() automáticamente. Una sola vez por sesión. Si ya está comprimido, no hace nada (log: already-compressed).'},
+        {type:'feature', title:'6 guardrails de aislamiento durante recovery', desc:'(1) guardarDatos retorna early si _recoveryActive — excepto el propio recoveryWrite que pasa opts.allowDuringRecovery=true. (2) Snapshot listener ignora todos los eventos durante recovery (snapshot:ignored-during-recovery) — evita rehidratación de estado legacy mid-write. (3) Write con set() plano, sin runTransaction (más frágil con docs degradados). (4) Validación pre-write: round-trip + counts + sumas + tamaño. Si algo falla, NO escribe. (5) UI overlay full-screen bloqueante: "Optimización crítica en progreso, no cerrar". (6) Verificación post-write con ref.get({source:"server"}) — confirma _wireFormat, count, _version, tamaño.'},
+        {type:'feature', title:'Modo seguro si recovery falla', desc:'No loops infinitos. Si los 3 intentos fallan O la verificación detecta diff: entra en _recoverySafeMode (TODOS los writes bloqueados), overlay rojo con opciones: Reintentar / Exportar JSON / Restaurar desde backup local / Cerrar y quedarse en modo seguro. Logs detallados: recovery:start, write-start, write-confirmed, write-failed, verify, failed-all-attempts, safemode:enter.'},
+        {type:'feature', title:'Botón manual "🚨 Recovery write" en Diagnóstico', desc:'Para disparar recovery a demanda si la detección automática no se activó o si el usuario quiere forzarla. Pide confirmación. Misma orquestación que el modo automático.'},
+        {type:'feature', title:'Payload guard permanente (>850 KB)', desc:'Hook en save:write-start: si el payload remoto proyectado supera 850 KB, dispara _recoverySafeMode y muestra overlay con opciones: Exportar backup / Forzar recovery / Continuar de todas formas. Nunca más vamos a llegar a 951 KB sin aviso explícito.'},
+        {type:'feature', title:'Reset limpio post-recovery exitoso', desc:'Después de write confirmado y verificación OK: limpia syncQueue, resetea _localDirty/_syncPending/_syncErrors/_guardando, libera _recoveryActive, desuscribe y re-suscribe el listener para empezar con stream limpio sobre el doc comprimido. Sin reload de página — transición suave.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir y reabrir la app. 2) Espera ~5 segundos: si el doc remoto está en legacy, debe aparecer overlay "Optimización crítica en progreso" automáticamente. 3) Esperar a que diga "✓ Listo. Optimización completada" (puede tardar 30-90s). 4) Después: Diagnóstico → Auditar tamaño → payload remoto debe estar en ~520-540 KB. 5) Crear operación de prueba — debe guardarse normal. 6) Si el overlay queda en rojo "Recovery falló": usar el botón Exportar JSON antes de cualquier otra cosa, y avisar. 7) Si la detección automática NO se disparó (porque el doc ya estaba comprimido o por race), usar Diagnóstico → 🚨 Recovery write manual.'}
+    ]},
     {version:'4.7.63', date:'2026-05-26', headline:'🗜️ Compresión de payload: salir de zona crítica de Firestore (-35%).', changes:[
         {type:'fix', title:'CRÍTICO: doc remoto cerca del límite duro de Firestore (1MB)', desc:'Diagnóstico real: payload remoto 951KB (95% del límite), errores resource-exhausted/Write stream exhausted en producción, Firebase client terminated, retries acumulados, rollback de versión. SOLUCIÓN: compresión wire-format del payload. EN MEMORIA todo sigue idéntico (render/FIFO/splits/lógica intacta), SOLO cambia lo que viaja a Firestore. Ahorro medido: ~329 KB (~35%). Payload remoto baja de 951 → ~622 KB. Margen real recuperado de 1+ año.'},
         {type:'feature', title:'Wire compression v1: enums + campos default + remover redundantes', desc:'tipo (compra/venta) → t (0/1) | banco (string) → bk (int basado en CONFIG.BANCOS) | moneda (UYU/USD) → m (0/1) | timestamp ELIMINADO del wire (regenerable desde fecha+hora) | comisionPct OMITIDO cuando = default 0.14 (95.5% de las ops). Doc remoto lleva _wireFormat:"v1" para identificación.'},
@@ -2599,15 +2609,6 @@ const CHANGELOG = [
         {type:'fix', title:'Color responde a ganancia de HOY (no a tendencia)', desc:'Antes la línea era verde si "último >= promedio" (técnicamente correcto pero confuso: el monto podía ser rojo y la línea verde si el promedio era peor). Ahora la línea es verde si la ganancia de HOY es ≥ 0, roja si es < 0. Mismo criterio que el monto principal — el usuario lee una señal coherente: si el monto es rojo, la línea es roja.'},
         {type:'verified', title:'Lote A acotado, cero cambios fuera del sparkline', desc:'NO se tocó: layout del hero, mini-cajas (v4.7.53), métricas (sigue siendo ganancia diaria últimos 14 días), tamaño del SVG, fondo de la card (sigue verde aunque la línea sea roja), desktop. Sync verificado online v504 con audit-splits CLEAN antes de tocar nada. La tarjeta principal sigue cambiando a "negative" cuando la ganancia es <0 pero eso ya existía — solo se alineó la línea con esa señal.'},
         {type:'verified', title:'Cómo probar', desc:'1) En mobile y desktop debe verse el sparkline igual de posicionado que antes, pero la curva NO toca los bordes (padding 6-8px visible). 2) La línea se ve más fina y elegante. 3) Hay un gradiente vertical sutil debajo de la curva. 4) El último punto tiene un anillo blanco con halo del color de la línea. 5) Si tu ganancia de hoy es positiva: línea verde. Si es negativa: línea roja (la card sigue verde si es positiva, roja si es negativa — eso no cambió). 6) Sync sigue funcionando OK. 7) Si visualmente está bien, subir.'}
-    ]},
-    {version:'4.7.59', date:'2026-05-20', headline:'🛡️ Fix split crítico: no permite crear ops con banco vacío + auditoría + feedback visual.', changes:[
-        {type:'fix', title:'BUG CRÍTICO corregido: split con banco vacío ya NO crea operación', desc:'Antes: si una fila de split tenía monto pero SIN banco seleccionado, getAportes() la ignoraba silenciosamente y la operación se creaba con aportes incompletos — los $ que debían descontarse de "otro banco" no salían de ningún lado, dejando el cuadre de saldos corrupto. Ahora: doble red. (1) UI: botón "Comprar" deshabilitado visualmente (opacidad 0.45 + cursor not-allowed + filter saturate). (2) Submit: validarAportes detecta _hasEmptyBank y bloquea con mensaje claro.'},
-        {type:'fix', title:'Feedback visual en la fila inválida (no solo el botón)', desc:'Crítico para uso operativo a velocidad: si solo el botón se ve gris, el usuario no sabe DÓNDE está el problema. Ahora la fila sin banco se pinta con fondo rojo claro (#fef2f2), borde rojo en el select, y un mensaje "⚠ Falta seleccionar un banco para esta fila" debajo. Atributo aria-invalid="true" para accesibilidad.'},
-        {type:'fix', title:'"Total cubierto" verde solo si todos los splits están válidos', desc:'Antes: el status verde aparecía con solo cumplir la suma matemática del total, ignorando que faltara seleccionar el banco. Daba falsa sensación de operación válida. Ahora: el status verde requiere (cubierto AND no hay banco vacío). Si falta banco, status pasa a rojo con texto explícito.'},
-        {type:'fix', title:'Auto-limpieza completa al cambiar Compra → Venta', desc:'Verificado: cambio de tipo limpia splitExtras, oculta el panel, y la nueva función _updateBtnGuardarState reactiva el botón. La función es IDEMPOTENTE: solo desbloquea el botón si fue ELLA quien lo bloqueó (chequea dataset.splitInvalid). No pisa estados de cooldown ni guardandoOperacion, que tienen su propio ciclo.'},
-        {type:'fix', title:'BUG LATENTE corregido en la verificación: botón se quedaba bloqueado al desaparecer el split', desc:'Encontrado durante el review: cuando el split dejaba de aplicar (cambio de monto/tasa hace que el saldo cubra todo), renderSplitPanel hacía return temprano y NUNCA reactivaba el botón si estaba bloqueado por una fila inválida previa. Ahora el early return también llama a _updateBtnGuardarState. Y agregado renderSplitPanel() a los listeners de tasa (input, usar-tasa, tasa-step) que antes no recalculaban el split al cambiar la tasa.'},
-        {type:'feature', title:'🧩 Herramienta nueva: Auditar splits (Diagnóstico)', desc:'En Diagnóstico → "🧩 Auditar splits". auditarSplitsCorruptos() revisa TODAS las operaciones con campo aportes y detecta 4 categorías de anomalía: (a) banco vacío, (b) banco inexistente en CONFIG, (c) aportes vacíos, (d) suma ≠ monto+comisionBanco (tolerancia 0.05). Pura lectura — no muta nada. Muestra resumen + primeras 5 de cada categoría. Si hay anomalías, el usuario edita/borra manualmente. Logueado por _syncLog.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Comprar USDT por más del saldo del banco → aparece split. 2) Sin elegir banco extra → fila roja con texto "⚠ Falta seleccionar un banco" + botón opaco no clickeable + status NO verde. 3) Elegir banco → fila vuelve a normal, botón se reactiva. 4) Cambiar a Vender → panel desaparece. 5) Cambiar monto/tasa para que el saldo cubra todo → split desaparece automáticamente. 6) Tipear con Enter o disparar handler directo → bloqueado por validarAportes. 7) Menú → Diagnóstico → 🧩 Auditar splits → revisar ops históricas. 8) Si OK, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -5933,8 +5934,28 @@ function updateSyncBadge(){
     badge.textContent=n>0?n:'';badge.style.display=n>0?'inline-block':'none';
 }
 
-async function guardarDatos(forzar){
+async function guardarDatos(forzar,opts){
     if(!AppState.currentUser)return;
+    /* ═══ v4.7.64 — Guards contra recovery write activa ═══
+       _recoveryActive: recoveryWrite() en curso. NINGÚN write competidor — el doc
+         remoto debe ser reemplazado por el snapshot comprimido limpio sin
+         interferencias. La única excepción: el propio recoveryWrite llama a este
+         path interno con opts.allowDuringRecovery=true.
+       _recoverySafeMode: recovery falló, modo seguro hasta acción manual del usuario.
+         Bloquea TODOS los writes incluyendo recovery. La única salida es restoreBackup()
+         o exportar manualmente.
+       
+       _localDirty se preserva durante el bloqueo: cuando recovery termine OK, la
+       próxima edición real del usuario sincroniza lo pendiente. */
+    const allowDuringRecovery=opts&&opts.allowDuringRecovery===true;
+    if(AppState._recoveryActive&&!allowDuringRecovery){
+        _syncLog&&_syncLog('save:blocked-by-recovery',{forzar:!!forzar});
+        return;
+    }
+    if(AppState._recoverySafeMode){
+        _syncLog&&_syncLog('save:blocked-by-safemode',{forzar:!!forzar});
+        return;
+    }
     /* ═══ Guard contra cliente Firestore terminado (v4.7.42) ═══
        Si en algún save anterior detectamos 'failed-precondition: client terminated',
        no intentamos más writes. Cada call fallaría instantáneamente con el mismo error
@@ -6192,6 +6213,11 @@ async function guardarDatos(forzar){
         AppState._localVersion=newVersion;
         AppState.datos._version=newVersion;
         _syncLog('save:write-start',{payloadKB});
+        /* v4.7.64 — Guard permanente: si el payload supera 850 KB, bloquear
+           writes y mostrar alerta. Nunca más zona crítica silenciosa. */
+        try{
+            if(typeof window._checkPayloadGuard==='function')window._checkPayloadGuard(payloadKB);
+        }catch(_){}
         /* Guardar el version pre-bump para poder hacer rollback si el write falla.
            Sin esto, un error de red dejaría _localVersion adelantado y el snapshot 
            listener pensaría que estamos sincronizados cuando en realidad no escribimos. */
@@ -6413,6 +6439,23 @@ function cargarDatosUsuario(){
     .onSnapshot({includeMetadataChanges:true},doc=>{
         /* Si recovery está en progreso, ignorar snapshots — la instancia se va a recargar */
         if(iniciarRecuperacionFirestore._activa)return;
+        /* ═══ v4.7.64 — Freeze del listener durante recoveryWrite ═══
+           CRÍTICO: durante recoveryWrite, snapshots entrantes pueden traer:
+           (a) el doc legacy de 951 KB (estado pre-recovery) — rehidrataría memoria
+               con el formato viejo y contaminaría el snapshot que vamos a escribir.
+           (b) el doc comprimido que NUESTRO recovery write acaba de subir, pero
+               antes de que recoveryWrite verifique el resultado — race que rompe
+               el flujo de verificación.
+           Mientras _recoveryActive: NO procesar snapshots. recoveryWrite hace su
+           propio ref.get() controlado al final para verificar. Cuando recovery
+           termina (success o fail), levantamos el flag y los snapshots vuelven. */
+        if(AppState._recoveryActive){
+            _syncLog&&_syncLog('snapshot:ignored-during-recovery',{
+                fromCache:doc.metadata.fromCache,
+                hasPending:doc.metadata.hasPendingWrites
+            });
+            return;
+        }
         const fromCache=doc.metadata.fromCache;
         const hasPending=doc.metadata.hasPendingWrites;
         if(typeof _syncLog==='function')_syncLog('snapshot:received',{fromCache,hasPending,exists:doc.exists,v:doc.exists?(doc.data()._version||0):0});
@@ -9623,6 +9666,25 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
         },50);
     });
+    /* v4.7.64 — botón manual Recovery write */
+    const _bRecovery=$('btnSyncDiagRecovery');if(_bRecovery)_bRecovery.addEventListener('click',()=>{
+        const msg=
+            '🚨 RECOVERY WRITE\n\n'+
+            'Esto va a forzar la migración del documento remoto al formato comprimido.\n\n'+
+            '• Bloquea toda la app durante la operación (~30-60s).\n'+
+            '• No vas a poder operar hasta que termine.\n'+
+            '• Si falla, entra en modo seguro con opciones manuales.\n\n'+
+            '¿Continuar?';
+        if(!confirm(msg))return;
+        cerrarModal('modalSyncDiag');
+        setTimeout(()=>{
+            if(typeof window.recoveryWrite==='function'){
+                window.recoveryWrite({trigger:'manual-diag'});
+            }else{
+                alert('Recovery no disponible (función no encontrada).');
+            }
+        },300);
+    });
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
     $('btnGuardarLote').addEventListener('click',guardarLote);
@@ -9862,6 +9924,613 @@ document.addEventListener('DOMContentLoaded',()=>{
         });
     })();
 });
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §RECOVERY-WRITE v4.7.64 — Migración controlada legacy → comprimido
+   ═══════════════════════════════════════════════════════════════════════════════
+   PROBLEMA QUE RESUELVE:
+   El doc remoto quedó en estado degradado (~951 KB legacy) después de múltiples
+   resource-exhausted/timeouts. v4.7.63 implementó compresión wire que reduce el
+   payload a ~537 KB, pero el flujo normal de sync no logra completar el primer
+   write comprimido encima del doc legacy gigante (Firestore aplica throttling).
+   
+   ESTRATEGIA:
+   1. Detectar al cargar: doc remoto sin _wireFormat + memoria con ops → recovery
+   2. Bloquear TODOS los writes (queue, listener, telemetry, config, banners)
+   3. Hacer UN write dedicado, sin transaction, sin metadata extra, sin queue
+   4. Timeout 90s + retries 3x con backoff 5s/15s/30s
+   5. Verificar leyendo el doc post-write: _wireFormat, count, sumas
+   6. Si OK: forzar reload limpio (cache reset + listener re-subscribe)
+   7. Si falla: modo seguro con UI de restauración manual
+   
+   NO se llama solo (excepto detección automática inicial). El usuario también
+   puede dispararlo manualmente desde Diagnóstico.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+(function setupRecoveryWrite(){
+'use strict';
+
+const RECOVERY_LOG=(ev,data)=>{
+    /* Log dedicado con prefijo "recovery:" para que sea fácilmente filtrable en
+       el diagnóstico. Reusa _syncLog para que aparezca en el mismo buffer. */
+    try{
+        if(typeof _syncLog==='function')_syncLog('recovery:'+ev,data||{});
+        else console.log('[P2P recovery]',ev,data||{});
+    }catch(_){}
+};
+
+/* ─── UI Overlay bloqueante ───────────────────────────────────────────────────
+   Overlay full-screen con z-index máximo. Mientras está visible, el usuario no
+   puede interactuar con NADA de la app. Muestra: fase, retry count, conexión. */
+function _ensureRecoveryOverlay(){
+    let el=document.getElementById('recoveryOverlay');
+    if(el)return el;
+    el=document.createElement('div');
+    el.id='recoveryOverlay';
+    el.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.96);'+
+        'display:flex;align-items:center;justify-content:center;padding:20px;'+
+        'font-family:-apple-system,system-ui,sans-serif;color:#e2e8f0';
+    el.innerHTML=
+        '<div style="max-width:380px;width:100%;background:#1e293b;border-radius:14px;'+
+        'padding:24px;box-shadow:0 25px 50px rgba(0,0,0,0.5);text-align:center">'+
+            '<div id="recoveryIcon" style="font-size:48px;margin-bottom:8px">⚠️</div>'+
+            '<div style="font-size:1.15em;font-weight:700;color:#fbbf24;margin-bottom:12px;'+
+                'line-height:1.3">Optimización crítica de base de datos en progreso</div>'+
+            '<div style="font-size:0.9em;color:#cbd5e1;margin-bottom:18px;line-height:1.45">'+
+                'No cierres la app ni cambies de pestaña. La operación puede tardar hasta un minuto.</div>'+
+            '<div id="recoverySpinner" style="display:inline-block;width:40px;height:40px;'+
+                'border:4px solid #334155;border-top-color:#3b82f6;border-radius:50%;'+
+                'animation:rwspin 0.9s linear infinite;margin-bottom:16px"></div>'+
+            '<div id="recoveryPhase" style="font-size:0.88em;color:#94a3b8;'+
+                'background:#0f172a;padding:10px 12px;border-radius:8px;margin-bottom:8px;'+
+                'min-height:42px;display:flex;align-items:center;justify-content:center">'+
+                'Inicializando…</div>'+
+            '<div id="recoveryMeta" style="font-size:0.72em;color:#64748b;margin-top:6px">'+
+                'Intento 1 · Conexión: verificando</div>'+
+            '<div id="recoveryActions" style="margin-top:18px;display:none"></div>'+
+        '</div>';
+    /* Spinner keyframes inline una sola vez */
+    if(!document.getElementById('rwspinStyle')){
+        const s=document.createElement('style');
+        s.id='rwspinStyle';
+        s.textContent='@keyframes rwspin{to{transform:rotate(360deg)}}';
+        document.head.appendChild(s);
+    }
+    document.body.appendChild(el);
+    return el;
+}
+function _setRecoveryPhase(text){
+    const p=document.getElementById('recoveryPhase');
+    if(p)p.textContent=text;
+}
+function _setRecoveryMeta(attempt,maxAttempts){
+    const m=document.getElementById('recoveryMeta');
+    if(m){
+        const conn=navigator.onLine?'OK':'sin conexión';
+        m.textContent='Intento '+attempt+'/'+maxAttempts+' · Conexión: '+conn;
+    }
+}
+function _hideRecoveryOverlay(){
+    const el=document.getElementById('recoveryOverlay');
+    if(el)el.remove();
+}
+function _setRecoveryError(title,desc,actions){
+    /* Cambia el overlay a modo error con opciones manuales */
+    const el=_ensureRecoveryOverlay();
+    const icon=document.getElementById('recoveryIcon');if(icon)icon.textContent='🛑';
+    const spinner=document.getElementById('recoverySpinner');if(spinner)spinner.style.display='none';
+    const phase=document.getElementById('recoveryPhase');
+    if(phase){
+        phase.style.background='#7f1d1d';
+        phase.style.color='#fecaca';
+        phase.textContent=desc;
+    }
+    /* El header amarillo de "Optimización en progreso" → rojo */
+    const card=el.querySelector('div > div:nth-child(2)');
+    if(card){card.style.color='#fca5a5';card.textContent=title}
+    const sub=el.querySelector('div > div:nth-child(3)');
+    if(sub)sub.textContent='Recovery falló. Restauración manual requerida.';
+    const meta=document.getElementById('recoveryMeta');if(meta)meta.style.display='none';
+    const ac=document.getElementById('recoveryActions');
+    if(ac&&Array.isArray(actions)){
+        ac.style.display='block';
+        ac.innerHTML='';
+        actions.forEach(a=>{
+            const b=document.createElement('button');
+            b.textContent=a.label;
+            b.style.cssText='display:block;width:100%;margin-bottom:8px;padding:11px 14px;'+
+                'border:none;border-radius:8px;font-size:0.92em;font-weight:600;cursor:pointer;'+
+                'background:'+(a.color||'#475569')+';color:#fff';
+            b.addEventListener('click',a.onClick);
+            ac.appendChild(b);
+        });
+    }
+}
+
+/* ─── Detección del estado del doc remoto ─────────────────────────────────────
+   Lee el doc directamente con ref.get(). NO usa el listener (que estaría en
+   freeze). Pregunta: ¿tiene _wireFormat? Si no, es legacy → recovery candidate.
+   Devuelve: {exists, wireFormat, version, sizeApprox} o null si no hay user. */
+async function _inspectRemoteDoc(){
+    if(!AppState.currentUser||!AppState.db)return null;
+    const ref=AppState.db.collection('users').doc(AppState.currentUser.uid);
+    try{
+        const snap=await ref.get();
+        if(!snap.exists)return{exists:false,wireFormat:null,version:0,sizeApprox:0};
+        const d=snap.data();
+        const sizeApprox=JSON.stringify(d).length;
+        return{
+            exists:true,
+            wireFormat:d._wireFormat||null,
+            version:d._version||0,
+            sizeApprox,
+            countOps:Array.isArray(d.operaciones)?d.operaciones.length:0
+        };
+    }catch(e){
+        RECOVERY_LOG('inspect:failed',{error:String(e&&e.message||e)});
+        return null;
+    }
+}
+
+/* ─── Construcción del payload mínimo de recovery ────────────────────────────
+   Estrategia: tomar AppState.datos (memoria expandida, autoritativa), comprimir
+   operaciones, escribir set(merge:false) con SOLO los campos que la app necesita.
+   
+   QUÉ INCLUIMOS:
+     - operaciones (comprimidas)
+     - movimientos, transferencias, conversiones, bancos, lotes (sin tocar)
+     - tags, tasasRecientes, saldoUsdt
+     - ultimasTasas (compra/venta/USD)
+     - comisionPlataforma, comisionUSD
+     - ultimoMesProcesado
+     - _version, _wireFormat:'v1'
+     - ultimaActualizacion (server timestamp)
+   
+   QUÉ NO INCLUIMOS (intencionalmente, para mantener el write mínimo):
+     - lastSeenVersion (es metadata cosmética del modal "qué hay nuevo")
+     - dismissedVersions (mismo motivo)
+     - _syncState orphans (residuos de sync)
+     - Cualquier campo derivable (lotes top-level, ya stripped en flujo normal) */
+function _buildRecoveryPayload(){
+    const d=AppState.datos||{};
+    /* Strip de campos runtime por op */
+    const stripDerived=arr=>Array.isArray(arr)?arr.map(x=>{
+        if(!x||typeof x!=='object')return x;
+        const{_syncState,consumedLots,ganancia,comisionPlataforma,...rest}=x;
+        return rest;
+    }):[];
+    const stripRuntime=arr=>Array.isArray(arr)?arr.map(x=>{
+        if(!x||typeof x!=='object'||!x._syncState)return x;
+        const{_syncState,...rest}=x;
+        return rest;
+    }):[];
+    const opsStripped=stripDerived(d.operaciones);
+    /* Comprimir operaciones */
+    const opsCompr=_compressOpsArrayForWire(opsStripped);
+    const newVersion=(AppState._localVersion||0)+1;
+    return{
+        operaciones:opsCompr,
+        movimientos:stripRuntime(d.movimientos),
+        transferencias:stripRuntime(d.transferencias),
+        conversiones:stripRuntime(d.conversiones||[]),
+        bancos:d.bancos||{},
+        tags:Array.isArray(d.tags)?d.tags:[],
+        tasasRecientes:Array.isArray(d.tasasRecientes)?d.tasasRecientes:[],
+        saldoUsdt:typeof d.saldoUsdt==='number'?d.saldoUsdt:0,
+        ultimaTasaCompra:d.ultimaTasaCompra||0,
+        ultimaTasaVenta:d.ultimaTasaVenta||0,
+        ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,
+        ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,
+        comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,
+        comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,
+        ultimoMesProcesado:d.ultimoMesProcesado||'',
+        _version:newVersion,
+        _wireFormat:WIRE_FORMAT_VERSION,
+        ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
+    };
+}
+
+/* ─── Validación pre-write completa (condición #4) ───────────────────────────
+   Verifica que la compresión preserva integridad ANTES de escribir. Si algo
+   falla, NO se escribe nada. */
+function _validateRecoveryPayload(payload,snapAntes){
+    const errors=[];
+    /* 1. Counts coherentes */
+    if(!Array.isArray(payload.operaciones)){
+        errors.push('operaciones no es array');
+        return{ok:false,errors};
+    }
+    if(payload.operaciones.length!==snapAntes.countOps){
+        errors.push('countOps cambió: '+snapAntes.countOps+' → '+payload.operaciones.length);
+    }
+    /* 2. Round-trip de operaciones */
+    let opsRT;
+    try{opsRT=_decompressOpsArrayFromWire(payload.operaciones);}
+    catch(e){errors.push('decompress falló: '+e.message);return{ok:false,errors}}
+    /* 3. Comparar sumas críticas */
+    const snapDespues=_capturarSnapshotIntegridad({
+        operaciones:opsRT,
+        movimientos:payload.movimientos,
+        transferencias:payload.transferencias,
+        lotes:[],
+        bancos:payload.bancos
+    });
+    const cmp=_compararSnapshotsIntegridad(snapAntes,snapDespues);
+    if(!cmp.ok)cmp.diffs.forEach(d=>errors.push('integridad: '+d));
+    /* 4. Tamaño del payload — no debe acercarse al 1MB */
+    let sizeKB=0;
+    try{
+        /* serverTimestamp() no es serializable directamente; stub para medir */
+        const{ultimaActualizacion,...rest}=payload;
+        sizeKB=Math.round(JSON.stringify(rest).length/1024);
+    }catch(_){}
+    if(sizeKB>900)errors.push('payload demasiado grande: '+sizeKB+' KB');
+    /* 5. FIFO sanity — verificar lotes/saldos no rotos
+       (No comparamos contra antes porque recovery viene de memoria saneada;
+       solo verificamos consistencia interna) */
+    return{ok:errors.length===0,errors,sizeKB,snapDespues};
+}
+
+/* ─── Verificación POST-write — leer doc remoto y confirmar ──────────────────
+   Lee el doc recién escrito con ref.get(). Verifica:
+     - existe
+     - _wireFormat === 'v1'
+     - count operaciones === esperado
+     - _version === esperado
+     - tamaño aproximado < 700 KB
+   Devuelve: {ok, diffs} */
+async function _verifyRecoveryWrite(expectedVersion,expectedCount){
+    if(!AppState.currentUser||!AppState.db)return{ok:false,diffs:['no user/db']};
+    const ref=AppState.db.collection('users').doc(AppState.currentUser.uid);
+    try{
+        /* Force server-only get para no leer del cache local (que tendría
+           el doc viejo si el listener estaba frozen) */
+        const snap=await ref.get({source:'server'});
+        if(!snap.exists)return{ok:false,diffs:['doc no existe post-write']};
+        const d=snap.data();
+        const diffs=[];
+        if(d._wireFormat!==WIRE_FORMAT_VERSION){
+            diffs.push('_wireFormat='+d._wireFormat+' (esperado: '+WIRE_FORMAT_VERSION+')');
+        }
+        if(!Array.isArray(d.operaciones)){
+            diffs.push('operaciones no es array');
+        }else if(d.operaciones.length!==expectedCount){
+            diffs.push('countOps='+d.operaciones.length+' (esperado: '+expectedCount+')');
+        }
+        if((d._version||0)!==expectedVersion){
+            diffs.push('_version='+(d._version||0)+' (esperado: '+expectedVersion+')');
+        }
+        const sizeKB=Math.round(JSON.stringify(d).length/1024);
+        if(sizeKB>800)diffs.push('payload remoto sigue grande: '+sizeKB+' KB');
+        return{ok:diffs.length===0,diffs,sizeKB,version:d._version||0,countOps:Array.isArray(d.operaciones)?d.operaciones.length:0};
+    }catch(e){
+        return{ok:false,diffs:['get post-write falló: '+(e.message||String(e))]};
+    }
+}
+
+/* ─── Reset post-recovery exitoso (condición #6) ─────────────────────────────
+   Boot limpio sobre el doc nuevo: limpiar caches legacy, resetear syncQueue,
+   resetear localDirty, re-suscribir listener. NO recargamos la página entera
+   (eso reiniciaría TODA la app y la experiencia sería brusca). Hacemos un
+   reset controlado en lugar. */
+async function _postRecoveryReset(){
+    RECOVERY_LOG('reset:start',{});
+    /* 1. Clear syncQueue */
+    if(typeof _syncQueue!=='undefined'&&Array.isArray(_syncQueue))_syncQueue.length=0;
+    /* 2. Reset localDirty */
+    if(typeof _localDirty!=='undefined')_localDirty=0;
+    /* 3. Reset flags */
+    if(typeof _syncPending!=='undefined')_syncPending=0;
+    if(typeof _syncErrors!=='undefined')_syncErrors=0;
+    if(typeof _guardando!=='undefined')_guardando=false;
+    if(typeof _guardarPendiente!=='undefined')_guardarPendiente=false;
+    /* 4. Re-suscribir listener para empezar con stream limpio */
+    try{
+        if(AppState.unsubscribe){
+            AppState.unsubscribe();
+            AppState.unsubscribe=null;
+        }
+    }catch(_){}
+    /* 5. Liberar el flag de recovery ANTES de re-suscribir */
+    AppState._recoveryActive=false;
+    /* 6. Re-suscribir — el snapshot va a llegar con el doc comprimido nuevo */
+    try{
+        if(typeof cargarDatosUsuario==='function')cargarDatosUsuario();
+    }catch(e){
+        RECOVERY_LOG('reset:resubscribe-failed',{error:String(e&&e.message||e)});
+    }
+    RECOVERY_LOG('reset:done',{});
+}
+
+/* ─── Write helper con timeout extendido ─────────────────────────────────────
+   Wrap de ref.set con timeout configurable y rejection limpia. Usa set(payload)
+   plano (no transaction). Si el SDK termina o resuelve, se cancela el timeout. */
+function _writeWithTimeout(ref,payload,timeoutMs){
+    return new Promise((resolve,reject)=>{
+        let done=false;
+        const handle=setTimeout(()=>{
+            if(done)return;
+            done=true;
+            reject(new Error('recovery-write-timeout'));
+        },timeoutMs);
+        ref.set(payload).then(()=>{
+            if(done)return;
+            done=true;
+            clearTimeout(handle);
+            resolve();
+        }).catch(err=>{
+            if(done)return;
+            done=true;
+            clearTimeout(handle);
+            reject(err);
+        });
+    });
+}
+
+/* ─── ORQUESTACIÓN PRINCIPAL: recoveryWrite ──────────────────────────────────
+   1. Marcar _recoveryActive (bloquea writes, freeze listener)
+   2. Mostrar overlay
+   3. Capturar snapshot integridad ANTES
+   4. Construir payload comprimido
+   5. Validar (round-trip + sumas + tamaño)
+   6. Loop de write con backoff: 3 intentos, timeouts 90s, esperas 5/15/30s
+   7. Verificar post-write con ref.get({source:'server'})
+   8. Si OK: reset limpio
+   9. Si falla: modo seguro con UI manual
+   
+   IMPORTANTE: una sola corrida a la vez. Si ya está activa, return inmediato. */
+let _recoveryRunning=false;
+async function recoveryWrite(opts){
+    if(_recoveryRunning){
+        RECOVERY_LOG('start:already-running',{});
+        return{ok:false,reason:'already-running'};
+    }
+    _recoveryRunning=true;
+    AppState._recoveryActive=true;
+    const trigger=opts&&opts.trigger||'auto';
+    RECOVERY_LOG('start',{trigger,memOps:(AppState.datos&&AppState.datos.operaciones||[]).length});
+    _ensureRecoveryOverlay();
+    _setRecoveryPhase('Verificando integridad local…');
+    _setRecoveryMeta(1,3);
+    /* ── Fase 1: snapshot integridad ANTES ── */
+    let snapAntes;
+    try{
+        snapAntes=_capturarSnapshotIntegridad({
+            operaciones:AppState.datos.operaciones||[],
+            movimientos:AppState.datos.movimientos||[],
+            transferencias:AppState.datos.transferencias||[],
+            lotes:[],
+            bancos:AppState.datos.bancos||{}
+        });
+        RECOVERY_LOG('snap-antes',{countOps:snapAntes.countOps,sumUsdt:snapAntes.sumUsdt.toFixed(2)});
+    }catch(e){
+        RECOVERY_LOG('snap-antes:failed',{error:String(e&&e.message||e)});
+        _enterSafeMode('Error capturando snapshot inicial: '+(e&&e.message||e));
+        _recoveryRunning=false;
+        return{ok:false,reason:'snap-antes-failed'};
+    }
+    /* ── Fase 2: construir + validar payload ── */
+    _setRecoveryPhase('Comprimiendo datos…');
+    let payload,validation;
+    try{
+        payload=_buildRecoveryPayload();
+        validation=_validateRecoveryPayload(payload,snapAntes);
+        RECOVERY_LOG('payload-built',{
+            ops:payload.operaciones.length,
+            sizeKB:validation.sizeKB,
+            valid:validation.ok
+        });
+    }catch(e){
+        RECOVERY_LOG('payload-build:failed',{error:String(e&&e.message||e)});
+        _enterSafeMode('Error construyendo payload: '+(e&&e.message||e));
+        _recoveryRunning=false;
+        return{ok:false,reason:'build-failed'};
+    }
+    if(!validation.ok){
+        RECOVERY_LOG('payload-invalid',{errors:validation.errors});
+        _enterSafeMode('Validación pre-write falló:\n• '+validation.errors.join('\n• '));
+        _recoveryRunning=false;
+        return{ok:false,reason:'validation-failed',errors:validation.errors};
+    }
+    /* ── Fase 3: loop de write con backoff ── */
+    const RETRY_DELAYS=[5000,15000,30000];
+    const MAX_ATTEMPTS=3;
+    const WRITE_TIMEOUT=90000;
+    const ref=AppState.db.collection('users').doc(AppState.currentUser.uid);
+    let lastError=null;
+    let writeOk=false;
+    for(let attempt=1;attempt<=MAX_ATTEMPTS;attempt++){
+        _setRecoveryPhase('Escribiendo snapshot ('+validation.sizeKB+' KB)…');
+        _setRecoveryMeta(attempt,MAX_ATTEMPTS);
+        RECOVERY_LOG('write-start',{attempt,maxAttempts:MAX_ATTEMPTS,sizeKB:validation.sizeKB});
+        const tStart=performance.now();
+        try{
+            await _writeWithTimeout(ref,payload,WRITE_TIMEOUT);
+            const ms=Math.round(performance.now()-tStart);
+            RECOVERY_LOG('write-confirmed',{attempt,ms});
+            writeOk=true;
+            break;
+        }catch(err){
+            const ms=Math.round(performance.now()-tStart);
+            lastError=err;
+            const errCode=err&&err.code||'';
+            const errMsg=err&&err.message||String(err);
+            RECOVERY_LOG('write-failed',{attempt,ms,errCode,errMsg});
+            if(attempt<MAX_ATTEMPTS){
+                _setRecoveryPhase('Reintento en '+(RETRY_DELAYS[attempt-1]/1000)+'s…');
+                await new Promise(res=>setTimeout(res,RETRY_DELAYS[attempt-1]));
+            }
+        }
+    }
+    if(!writeOk){
+        RECOVERY_LOG('failed-all-attempts',{lastError:String(lastError)});
+        _enterSafeMode('No se pudo escribir el snapshot comprimido después de '+
+            MAX_ATTEMPTS+' intentos.\nÚltimo error: '+
+            (lastError&&lastError.message||String(lastError)));
+        _recoveryRunning=false;
+        return{ok:false,reason:'write-failed',error:lastError};
+    }
+    /* ── Fase 4: verificación post-write ── */
+    _setRecoveryPhase('Verificando integridad remota…');
+    await new Promise(res=>setTimeout(res,1500));/* breathing room */
+    const verification=await _verifyRecoveryWrite(payload._version,payload.operaciones.length);
+    RECOVERY_LOG('verify',verification);
+    if(!verification.ok){
+        _enterSafeMode('Verificación post-write falló:\n• '+verification.diffs.join('\n• '));
+        _recoveryRunning=false;
+        return{ok:false,reason:'verify-failed',diffs:verification.diffs};
+    }
+    /* ── Fase 5: reset limpio ── */
+    _setRecoveryPhase('Sincronizando estado limpio…');
+    AppState._localVersion=verification.version;
+    if(AppState.datos)AppState.datos._version=verification.version;
+    /* Limpiar backup local viejo si existe — el doc nuevo es la fuente de verdad */
+    try{
+        if(typeof clearLocalBackup==='function')clearLocalBackup();
+    }catch(_){}
+    await _postRecoveryReset();
+    _setRecoveryPhase('✓ Listo. Optimización completada.');
+    RECOVERY_LOG('success',{
+        sizeBefore:opts&&opts.sizeBefore||null,
+        sizeAfter:verification.sizeKB,
+        version:verification.version,
+        countOps:verification.countOps
+    });
+    /* Esperar 1.5s para que el usuario vea el ✓ antes de cerrar */
+    setTimeout(()=>{_hideRecoveryOverlay();_recoveryRunning=false},1500);
+    return{ok:true,sizeKB:verification.sizeKB,version:verification.version};
+}
+
+/* ─── Entrar a modo seguro ───────────────────────────────────────────────────
+   Bloquea TODO. Muestra al usuario opciones manuales. */
+function _enterSafeMode(reasonText){
+    AppState._recoveryActive=false;/* recovery terminó (mal) */
+    AppState._recoverySafeMode=true;/* pero quedamos bloqueados */
+    RECOVERY_LOG('safemode:enter',{reason:reasonText});
+    _setRecoveryError(
+        'Recovery falló',
+        reasonText,
+        [
+            {label:'🔄 Reintentar recovery',color:'#3b82f6',onClick:()=>{
+                AppState._recoverySafeMode=false;
+                _hideRecoveryOverlay();
+                setTimeout(()=>recoveryWrite({trigger:'manual-retry'}),300);
+            }},
+            {label:'📤 Exportar estado actual (JSON)',color:'#16a34a',onClick:()=>{
+                try{
+                    if(typeof exportarDatos==='function')exportarDatos();
+                    else alert('Función de exportar no disponible. Anotá los datos críticos manualmente.');
+                }catch(e){alert('Error exportando: '+(e.message||e))}
+            }},
+            {label:'♻️ Restaurar desde backup local',color:'#a855f7',onClick:()=>{
+                if(!confirm('Esto sobrescribe el estado actual con el último backup local. ¿Continuar?'))return;
+                try{
+                    if(typeof restoreFromLocal==='function'){
+                        const b=restoreFromLocal();
+                        if(b&&b.datos){
+                            AppState.datos=b.datos;
+                            AppState._localVersion=b.v||0;
+                            alert('Backup restaurado a memoria. Reintentá recovery cuando quieras.');
+                        }else alert('No hay backup local disponible.');
+                    }
+                }catch(e){alert('Error restaurando: '+(e.message||e))}
+            }},
+            {label:'❌ Cerrar (queda en modo seguro)',color:'#64748b',onClick:()=>{
+                _hideRecoveryOverlay();
+                /* _recoverySafeMode sigue true — writes seguirán bloqueados hasta
+                   que el usuario haga un reintento exitoso o recargue la página */
+            }}
+        ]
+    );
+}
+
+/* ─── Detección automática inicial ───────────────────────────────────────────
+   Se llama UNA vez después del primer snapshot exitoso. Si el doc remoto NO
+   tiene _wireFormat y memoria tiene ops, dispara recovery automáticamente. */
+let _autoCheckDone=false;
+async function _autoCheckRecoveryNeeded(){
+    if(_autoCheckDone)return;
+    _autoCheckDone=true;
+    /* Esperar a que la app esté estable */
+    if(!AppState.currentUser||!AppState.db)return;
+    if(!AppState.datos||!Array.isArray(AppState.datos.operaciones))return;
+    if(AppState.datos.operaciones.length===0)return;/* fresh user, nada que migrar */
+    /* Pequeña espera para que el bootstrap termine */
+    await new Promise(res=>setTimeout(res,2500));
+    /* Re-chequear que no se inició otra recovery */
+    if(_recoveryRunning||AppState._recoveryActive)return;
+    /* Inspeccionar doc remoto */
+    const info=await _inspectRemoteDoc();
+    if(!info){
+        RECOVERY_LOG('auto-check:inspect-null',{});
+        return;
+    }
+    if(!info.exists){
+        RECOVERY_LOG('auto-check:remote-empty',{});
+        return;
+    }
+    if(info.wireFormat===WIRE_FORMAT_VERSION){
+        RECOVERY_LOG('auto-check:already-compressed',{sizeKB:Math.round(info.sizeApprox/1024)});
+        return;
+    }
+    /* Doc remoto legacy detectado */
+    RECOVERY_LOG('auto-check:legacy-detected',{
+        sizeKB:Math.round(info.sizeApprox/1024),
+        countOps:info.countOps,
+        version:info.version
+    });
+    /* Dispará recovery */
+    recoveryWrite({trigger:'auto-detect',sizeBefore:Math.round(info.sizeApprox/1024)});
+}
+
+/* ─── Guard permanente post-recovery — payload > 850 KB ──────────────────────
+   Si en algún momento el payload local proyectado supera 850 KB, bloquear
+   nuevos writes y alertar. Nunca más zona crítica silenciosa. */
+function _checkPayloadGuard(payloadKB){
+    if(payloadKB>850&&!AppState._payloadGuardTriggered){
+        AppState._payloadGuardTriggered=true;
+        AppState._recoverySafeMode=true;/* freno los writes */
+        RECOVERY_LOG('payload-guard:tripped',{payloadKB});
+        try{
+            _setRecoveryError(
+                '⚠️ Payload crítico ('+payloadKB+' KB)',
+                'El tamaño del documento se acercó al límite de Firestore. Writes bloqueados preventivamente.',
+                [
+                    {label:'📤 Exportar backup',color:'#16a34a',onClick:()=>{
+                        try{if(typeof exportarDatos==='function')exportarDatos()}catch(_){}
+                    }},
+                    {label:'🔧 Forzar recovery write',color:'#3b82f6',onClick:()=>{
+                        AppState._recoverySafeMode=false;
+                        AppState._payloadGuardTriggered=false;
+                        _hideRecoveryOverlay();
+                        setTimeout(()=>recoveryWrite({trigger:'guard-trip'}),300);
+                    }},
+                    {label:'❌ Continuar de todas formas',color:'#64748b',onClick:()=>{
+                        AppState._recoverySafeMode=false;
+                        _hideRecoveryOverlay();
+                    }}
+                ]
+            );
+        }catch(_){}
+    }
+}
+
+/* ─── Exposición pública ─────────────────────────────────────────────────────
+   Para que el botón de Diagnóstico pueda dispararlo manualmente. */
+window.recoveryWrite=recoveryWrite;
+window._inspectRemoteDoc=_inspectRemoteDoc;
+window._checkPayloadGuard=_checkPayloadGuard;
+
+/* Auto-check al cargar — espera 4 segundos después de DOMContentLoaded para
+   que el primer snapshot ya haya hidratado memoria */
+if(document.readyState==='complete'||document.readyState==='interactive'){
+    setTimeout(_autoCheckRecoveryNeeded,4000);
+}else{
+    document.addEventListener('DOMContentLoaded',()=>setTimeout(_autoCheckRecoveryNeeded,4000));
+}
+
+})();
+
     </script>
 </body>
 </html>
