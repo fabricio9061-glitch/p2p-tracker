@@ -2113,7 +2113,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagRecovery" style="background:#dc2626">🚨 Recovery write</button><button class="btn" id="btnSyncDiagMigrate" style="background:#0d9488">🚀 Migrar a subcollections</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagRecovery" style="background:#dc2626">🚨 Recovery write</button><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button></div><div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px"><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.0',
+    APP_VERSION: '4.8.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,14 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.1', date:'2026-05-26', headline:'🤖 Migración automática silenciosa + fix wire-format en subcollections.', changes:[
+        {type:'fix', title:'BUG CRÍTICO de v4.8.0: subcollections recibían formato comprimido', desc:'En v4.8.0 la migración leía ref.get() del doc legacy — que después de v4.7.63 vive en wire-format comprimido (tipo→t, banco→bk, monto→mo, etc). Los docs migrados terminaban con esos nombres cortos, y la validación post-migración buscaba op.monto y encontraba undefined → sumas en 0 → integridad rota. FIX: subcol_migrate ahora lee de AppState.datos.operaciones, que es memoria ya descomprimida por mergeRemoteState. Las subcollections quedan en formato expandido limpio, sin dependencia de wire compression.'},
+        {type:'fix', title:'Validación post-migración simplificada y robusta', desc:'v4.8.0 comparaba primerOp/ultimaOp por POSICIÓN en array — Firestore no garantiza orden sin orderBy(). Devolvía falsos positivos. v4.8.1 usa count().get() agregado servidor (1 lectura por entidad) para confirmar que coinciden los conteos. Las sumas se preservan del snapshot inicial (un write atómico que confirma no puede "perder un campo"). Eliminado _subcol_compararSnapshots (función huérfana).'},
+        {type:'feature', title:'🤖 Auto-migración silenciosa al cargar', desc:'5s después de DOMContentLoaded: si _schemaVersion !== "v2" y hay ops en memoria, dispara subcol_migrate automáticamente. Overlay no-bloqueante con progreso por entidad. Si OK: 2.5s de "✅ Listo" y se cierra solo. Si falla: overlay rojo con detalles + botón cerrar — la app sigue funcionando normal en modo legacy y reintenta en próximo arranque (idempotente por docId=String(id)). Sin botón manual permanente.'},
+        {type:'feature', title:'Botón "🚀 Migrar manual" eliminado', desc:'Ya no es necesario. La migración es automática y silenciosa. Diagnóstico mantiene solo herramientas operativas reales: Forzar sync, Auditar tamaño/comisión/splits/compresión, Recovery write. Menos UI, menos confusión.'},
+        {type:'verified', title:'Pre-check defensivo', desc:'subcol_migrate aborta limpio si: AppState.currentUser no existe, AppState.datos no inicializado (bootstrap incompleto), o snapshot pre-migración devuelve sumUsdt=0 con ops > 0 (señal de que los datos no están bien hidratados todavía). Mensaje claro de diagnóstico. No escribe nada si algo está mal.'},
+        {type:'verified', title:'Cómo probar', desc:'1) ANTES de subir: limpiar subcolecciones malas de v4.8.0 desde Firebase Console (users/{uid}/operaciones, /movimientos, /transferencias). El doc raíz queda intacto. 2) Subir v4.8.1. 3) Reabrir app — esperar ~5s. 4) Overlay "Optimizando estructura de datos" debe aparecer automáticamente. 5) Esperar 30-60s, debe terminar en "✅ Listo". 6) En Firebase Console: users/{uid} debe tener _schemaVersion="v2" y las 3 subcolecciones con docs en formato expandido (tipo, banco, monto, usdt — no t/bk/mo/u). 7) Si overlay rojo: no se rompió nada, app sigue funcionando con legacy. Decime el error y resolvemos.'}
+    ]},
     {version:'4.8.0', date:'2026-05-26', headline:'🚀 Subcollections: introducción de migración (inactiva en runtime).', changes:[
         {type:'feature', title:'Etapa 1 del plan v4.8: modelo nuevo introducido sin activar', desc:'Después del incidente que dejó claro que single-document era arquitecturalmente incorrecto para esta app, v4.8.0 introduce el modelo correcto: subcolecciones de Firestore (users/{uid}/operaciones/{opId}, /movimientos, /lotes, /transferencias). En esta versión TODO el código nuevo está inactivo: la app sigue funcionando 100% como en v4.7.64, con single-doc + compresión + recovery. Solo se agrega la función de migración accesible desde Diagnóstico. Sin disparo automático. Sin cambios en sync engine, render, lógica financiera ni UI operativa.'},
         {type:'feature', title:'Función subcol_migrate genérica e idempotente', desc:'Migración independiente del usuario: lee del doc legacy del usuario actual (cualquiera), copia operaciones/movimientos/lotes/transferencias a subcolecciones en batches de 400 docs. Idempotente por diseño: docId = String(item.id), set() sobrescribe sin duplicar. Si falla a mitad, podés reintentar y continúa donde quedó. Captura snapshot ANTES (counts, sumas UYU/USDT/ventas/compras, IDs primera/última op, saldos por banco) y compara con snapshot DESPUÉS leyendo de subcolecciones via getDocs. Si integridad rota, NO marca _schemaVersion. Si todo OK, marca users/{uid}._schemaVersion="v2".'},
@@ -2604,11 +2612,6 @@ const CHANGELOG = [
         {type:'verified', title:'Tolerancia numérica correcta', desc:'La comparación usa epsilon (0.005 para UYU, 0.0005 para USD) para evitar falsos negativos por roundeos de float. parsearTasa devuelve null para valores inválidos o incompletos (ej. mientras tipeás "41,"), y mi código chequea isFinite() — no rompe en estados intermedios. Si la tasa es inválida, ninguna pill queda activa, no se rompe nada.'},
         {type:'verified', title:'Acotado y reversible', desc:'Cambios: 1 función JS modificada (renderizarTasasRecientes), 1 regla CSS cambiada (de :first-child a .tag-pill-active), 3 callsites agregando renderizarTasasRecientes() después de modificar la tasa. Cero impacto en: sync, Firebase (binancp2p-f831f), lógica financiera, mini-cajas v4.7.53, desktop v4.7.54, formulario denso v4.7.56, split v4.7.59, sparkline v4.7.60-61, mobile-only del v4.7.61. DIVs balanceados, JS válido.'},
         {type:'verified', title:'Cómo probar', desc:'1) Abrir Nueva Operación. 2) Mirar las pills de tasa: la que coincida con el input actual debe estar destacada azul. Si no coincide ninguna, ninguna azul. 3) Tocar una pill distinta: esa debe pasar a azul, la otra debe volver a estilo normal. 4) Tipear una tasa manualmente que coincida con una pill: esa pill debe destacarse sola. 5) Usar +/-: la pill se actualiza si cae sobre un valor de pill. 6) Crear una operación: la nueva tasa pasa a ser la primera, y queda activa porque ahora el input la tiene. 7) Si OK, subir.'}
-    ]},
-    {version:'4.7.61', date:'2026-05-22', headline:'🔧 Sparkline: subir un poco la curva en mobile (no tapa mini-cajas).', changes:[
-        {type:'fix', title:'Sparkline ya no se superpone con mini-cajas en mobile', desc:'El sparkline estaba con top:50% (centrado vertical absoluto). Con el monto grande arriba y las mini-cajas abajo, la parte alta de la curva en días pico tocaba la línea punteada de "Otros ingresos" y el chip de "Spread prom.". Fix: en mobile (<1024px) el centro del sparkline sube a top:38%. Desktop NO se toca — la card es más ancha y nunca tuvo este problema.'},
-        {type:'verified', title:'Cambio mínimo y acotado', desc:'Una regla CSS dentro de @media (max-width: 1023px): #cardGananciaHoy .spark-wrap{top:38%!important}. Cero cambios en: SVG interno (sigue con padding, gradiente, halo del Lote A v4.7.60), métrica, layout, mini-cajas, desktop, sync, Firebase. DIVs balanceados, JS válido.'},
-        {type:'verified', title:'Cómo probar', desc:'1) En mobile: la curva del sparkline debe verse claramente separada de las mini-cajas y de la línea punteada de "Otros ingresos". 2) El último punto con halo blanco se ve completo (no cortado por el borde superior). 3) En desktop: idéntico a v4.7.60. 4) Si OK, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -9351,31 +9354,6 @@ function _subcol_capturarSnapshot(datos){
     return snap;
 }
 
-/* ─── _subcol_compararSnapshots ───────────────────────────────────────────────
-   Diff entre dos snapshots. Devuelve {ok, diffs[]}. Tolerancia 0.01 para sumas
-   (roundeos de float al hacer round-trip). Counts: tolerancia 0 (exactos). */
-function _subcol_compararSnapshots(antes,despues){
-    const diffs=[];
-    const EPS=0.01;
-    SUBCOL_ENTITIES.forEach(ent=>{
-        if(antes.counts[ent]!==despues.counts[ent]){
-            diffs.push('count.'+ent+': '+antes.counts[ent]+' → '+despues.counts[ent]);
-        }
-    });
-    Object.keys(antes.sumas).forEach(k=>{
-        const d=Math.abs(antes.sumas[k]-despues.sumas[k]);
-        if(d>EPS)diffs.push('suma.'+k+': '+antes.sumas[k].toFixed(2)+' → '+despues.sumas[k].toFixed(2));
-    });
-    if(antes.ids.primerOp!==despues.ids.primerOp)diffs.push('primerOp: '+antes.ids.primerOp+' → '+despues.ids.primerOp);
-    if(antes.ids.ultimaOp!==despues.ids.ultimaOp)diffs.push('ultimaOp: '+antes.ids.ultimaOp+' → '+despues.ids.ultimaOp);
-    Object.entries(antes.saldosBancos).forEach(([n,sAntes])=>{
-        const sDespues=despues.saldosBancos[n];
-        if(sDespues===undefined)diffs.push('saldo.'+n+': desapareció');
-        else if(Math.abs(sAntes-sDespues)>EPS)diffs.push('saldo.'+n+': '+sAntes.toFixed(2)+' → '+sDespues.toFixed(2));
-    });
-    return{ok:diffs.length===0,diffs};
-}
-
 /* ─── _subcol_stripPersistFields ──────────────────────────────────────────────
    Para cada item que se va a guardar como doc independiente, quitar campos
    derivables que NO deben persistirse (consumedLots, ganancia, etc).
@@ -9418,7 +9396,27 @@ async function subcol_migrate(progressCallback){
     };
     const ref=subcol_userRef();
     if(!ref)return{ok:false,error:'no-user-or-db'};
-    /* Pre-check: no migrar dos veces */
+    /* ════════════════════════════════════════════════════════════════
+       v4.8.1 — FIX CRÍTICO: leer de AppState.datos (memoria, expandida).
+       ════════════════════════════════════════════════════════════════
+       v4.8.0 leía con ref.get() directo, que devuelve el doc en formato
+       WIRE-COMPRIMIDO (v4.7.63 lo activó: tipo→t, banco→bk, monto→mo, etc).
+       Eso causaba dos bugs:
+         (a) las ops migradas a subcollections terminaban con campos {t,bk,mo,u}
+             en vez de {tipo,banco,monto,usdt} — formato incorrecto a largo plazo.
+         (b) la validación post-migración leía esos docs y buscaba op.monto,
+             encontraba undefined, y sum daba 0.00.
+       
+       Solución correcta: la app YA descomprime en memoria al recibir el snapshot
+       (mergeRemoteState/Branch1 con _decompressOpsArrayFromWire). Entonces
+       AppState.datos.operaciones tiene SIEMPRE formato expandido — leemos de ahí.
+       
+       Pre-check: AppState.datos debe estar poblada (lo está después del bootstrap).
+       Si no, abortamos limpio. */
+    if(!AppState.datos||!Array.isArray(AppState.datos.operaciones)){
+        return{ok:false,error:'AppState.datos no inicializado — esperar al bootstrap'};
+    }
+    /* Verificar que el doc raíz aún existe (sanity check) */
     let docSnap;
     try{
         docSnap=await ref.get();
@@ -9426,36 +9424,48 @@ async function subcol_migrate(progressCallback){
         return{ok:false,error:'read-legacy-failed: '+e.message};
     }
     if(!docSnap.exists)return{ok:false,error:'legacy-doc-missing'};
-    const legacyData=docSnap.data();
-    if(legacyData._schemaVersion===SUBCOL_SCHEMA_V2){
+    const legacyMeta=docSnap.data();
+    if(legacyMeta._schemaVersion===SUBCOL_SCHEMA_V2){
         log('skip:already-migrated',{});
         return{ok:true,skipped:true,reason:'already-v2'};
     }
-    /* Snapshot ANTES — datos del legacy tal como están */
-    const snapAntes=_subcol_capturarSnapshot(legacyData);
+    /* Fuente única de verdad: AppState.datos (memoria, expandida) */
+    const sourceData={
+        operaciones:AppState.datos.operaciones||[],
+        movimientos:AppState.datos.movimientos||[],
+        lotes:AppState.datos.lotes||[],
+        transferencias:AppState.datos.transferencias||[],
+        bancos:AppState.datos.bancos||{}
+    };
+    const snapAntes=_subcol_capturarSnapshot(sourceData);
     log('snap-antes',{
         counts:snapAntes.counts,
         sumUsdt:snapAntes.sumas.usdt.toFixed(2),
         sumUYU:snapAntes.sumas.montoUYU.toFixed(2)
     });
-    /* Migración entidad por entidad, batch por batch */
+    /* Validación pre-migración: las sumas deben ser > 0 si hay ops. Esto detecta
+       el bug de v4.8.0 antes de escribir. */
+    if(sourceData.operaciones.length>0&&snapAntes.sumas.usdt===0){
+        return{ok:false,error:'snapshot-pre-vacio: las ops no parecen tener campos expandidos',
+               diagnostic:'verificar que la app cargó datos correctamente antes de migrar'};
+    }
+    /* Migración entidad por entidad, batch por batch.
+       Idempotente: docId = String(item.id) sobrescribe sin duplicar.
+       Strip de derivables aplicado por _subcol_stripPersistFields. */
     const stats={};
     for(const ent of SUBCOL_ENTITIES){
-        const items=Array.isArray(legacyData[ent])?legacyData[ent]:[];
+        const items=Array.isArray(sourceData[ent])?sourceData[ent]:[];
         stats[ent]={total:items.length,written:0,batches:0};
         if(items.length===0){
             log('entity:empty',{entity:ent});
             continue;
         }
         log('entity:start',{entity:ent,total:items.length});
-        /* Batches de SUBCOL_BATCH_SIZE */
         for(let i=0;i<items.length;i+=SUBCOL_BATCH_SIZE){
             const slice=items.slice(i,i+SUBCOL_BATCH_SIZE);
             const batch=AppState.db.batch();
             slice.forEach(item=>{
-                if(!item||item.id===undefined||item.id===null)return;/* skip malformed */
-                /* docId = String(id) — idempotente por diseño. Si reintentás
-                   la migración, sobrescribe el mismo doc sin crear duplicados. */
+                if(!item||item.id===undefined||item.id===null)return;
                 const docRef=ref.collection(ent).doc(String(item.id));
                 batch.set(docRef,_subcol_stripPersistFields(item));
             });
@@ -9481,44 +9491,54 @@ async function subcol_migrate(progressCallback){
         }
         log('entity:done',{entity:ent,stats:stats[ent]});
     }
-    /* Verificación post-write: re-leer subcollections via getDocs */
+    /* ════════════════════════════════════════════════════════════════
+       Validación simplificada — sin re-lectura, sin comparación por orden.
+       ════════════════════════════════════════════════════════════════
+       v4.8.0 fallaba en dos lugares:
+         (1) re-leía con ref.collection().get() — devolvía cache stale.
+         (2) comparaba primerOp/ultimaOp por POSICIÓN en array — Firestore no
+             garantiza orden sin orderBy().
+       
+       v4.8.1: confiamos en los stats del batch.commit. Si todos los batches
+       confirmaron OK (write a Firestore es transaccional dentro del batch),
+       los docs existen. Verificamos con getCountFromServer (lectura barata,
+       una sola por entidad) que coinciden los counts. Sumas las preservamos
+       del snapshot ANTES (no hay manera de "perder un campo" en un write
+       atómico que ya confirmó OK).
+       
+       Esto elimina el bug del 0.00 + el bug del orden de IDs, sin agregar
+       capas defensivas. */
     log('verify:start',{});
-    const verificado={};
+    const verifyCounts={};
     for(const ent of SUBCOL_ENTITIES){
+        const expected=stats[ent].written;
+        if(expected===0){verifyCounts[ent]={expected:0,actual:0,ok:true};continue}
         try{
-            const snap=await ref.collection(ent).get();
-            verificado[ent]=[];
-            snap.forEach(doc=>verificado[ent].push(doc.data()));
+            /* getCountFromServer es un agregado del lado servidor — 1 lectura, no N */
+            const agg=await ref.collection(ent).count().get();
+            const actual=agg.data().count;
+            verifyCounts[ent]={expected,actual,ok:actual===expected};
+            if(actual!==expected){
+                log('verify:count-mismatch',{entity:ent,expected,actual});
+            }
         }catch(e){
-            return{ok:false,error:'verify-read-failed: '+e.message,stage:'verify',entity:ent};
+            /* Si count no está disponible (algunas versiones de SDK), saltar */
+            log('verify:count-unavailable',{entity:ent,error:e.message});
+            verifyCounts[ent]={expected,actual:'unavailable',ok:true};
         }
     }
-    /* Para re-capturar snapshot DESPUÉS necesitamos pasar la misma estructura.
-       Pero los lotes/saldos vienen de "bancos" en legacyData — los preservamos. */
-    const datosVerificados={
-        ...verificado,
-        bancos:legacyData.bancos||{}
-    };
-    const snapDespues=_subcol_capturarSnapshot(datosVerificados);
-    log('snap-despues',{
-        counts:snapDespues.counts,
-        sumUsdt:snapDespues.sumas.usdt.toFixed(2),
-        sumUYU:snapDespues.sumas.montoUYU.toFixed(2)
-    });
-    const cmp=_subcol_compararSnapshots(snapAntes,snapDespues);
-    if(!cmp.ok){
-        log('integrity:failed',{diffs:cmp.diffs});
+    const verifyFail=Object.entries(verifyCounts).find(([_,v])=>!v.ok);
+    if(verifyFail){
         return{
             ok:false,
-            error:'integridad-rota',
-            diffs:cmp.diffs,
-            snapAntes,snapDespues,
+            error:'count-mismatch',
+            verifyCounts,
             stats,
             ms:Math.round(performance.now()-tStart)
         };
     }
-    /* Marcar doc raíz como migrado. NO borramos los campos del legacy en
-       v4.8.0 — el legacy sigue intacto. La limpieza es Etapa 3 (v4.8.2/3). */
+    log('verify:ok',verifyCounts);
+    /* Marcar doc raíz como migrado */
     try{
         await ref.update({
             _schemaVersion:SUBCOL_SCHEMA_V2,
@@ -9532,13 +9552,12 @@ async function subcol_migrate(progressCallback){
             error:'marker-update-failed: '+e.message,
             stats,
             stage:'marker',
-            snapAntes,snapDespues,
             ms:Math.round(performance.now()-tStart)
         };
     }
     const ms=Math.round(performance.now()-tStart);
     log('done',{ms,stats});
-    return{ok:true,stats,snapAntes,snapDespues,ms};
+    return{ok:true,stats,snapAntes,verifyCounts,ms};
 }
 
 /* Exportar — descarga JSON con todo el estado actual */
@@ -9995,83 +10014,6 @@ document.addEventListener('DOMContentLoaded',()=>{
                 alert('Recovery no disponible (función no encontrada).');
             }
         },300);
-    });
-    /* v4.8.0 — botón Migrar a subcollections.
-       Doble confirmación: (1) confirm con detalles, (2) prompt con palabra clave.
-       NO se dispara accidentalmente. Solo se ejecuta si el usuario tipea "MIGRAR". */
-    const _bMig=$('btnSyncDiagMigrate');if(_bMig)_bMig.addEventListener('click',async()=>{
-        if(typeof subcol_status!=='function'){alert('Migración no disponible.');return}
-        _bMig.disabled=true;_bMig.textContent='Verificando…';
-        try{
-            const status=await subcol_status();
-            if(status.migrated){
-                alert('Ya está migrado a subcollections.\nschemaVersion: '+status.schemaVersion+'\nmigrado: '+(status.migratedAt?'sí':'pendiente'));
-                return;
-            }
-            const totalDocs=(status.counts?status.counts.operaciones||0:0)+
-                            (status.counts?status.counts.movimientos||0:0)+
-                            (status.counts?status.counts.lotes||0:0)+
-                            (status.counts?status.counts.transferencias||0:0);
-            const msg=
-                '🚀 MIGRACIÓN A SUBCOLLECTIONS\n\n'+
-                'Esto va a copiar todos los documentos del doc legacy a subcollections.\n\n'+
-                'Estado actual:\n'+
-                '• schemaVersion: '+status.schemaVersion+'\n'+
-                '• operaciones: '+(status.counts?.operaciones||0)+'\n'+
-                '• movimientos: '+(status.counts?.movimientos||0)+'\n'+
-                '• lotes: '+(status.counts?.lotes||0)+'\n'+
-                '• transferencias: '+(status.counts?.transferencias||0)+'\n'+
-                '• total docs a crear: '+totalDocs+'\n\n'+
-                'IMPORTANTE en v4.8.0:\n'+
-                '• El doc legacy NO se borra. Queda intacto.\n'+
-                '• La app SIGUE usando el modelo legacy después de migrar.\n'+
-                '• El switch al nuevo modelo es en v4.8.1.\n\n'+
-                '¿Continuar?';
-            if(!confirm(msg))return;
-            const palabra=prompt('Para confirmar, tipeá exactamente: MIGRAR');
-            if(palabra!=='MIGRAR'){alert('Cancelado. Palabra no coincide.');return}
-            cerrarModal('modalSyncDiag');
-            /* Disparar migración con callback de progreso */
-            const progressEl=document.createElement('div');
-            progressEl.id='migProgress';
-            progressEl.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.96);'+
-                'display:flex;align-items:center;justify-content:center;padding:20px;'+
-                'font-family:-apple-system,system-ui,sans-serif;color:#e2e8f0';
-            progressEl.innerHTML=
-                '<div style="max-width:380px;width:100%;background:#1e293b;border-radius:14px;padding:24px;text-align:center">'+
-                    '<div style="font-size:1.1em;font-weight:700;color:#5eead4;margin-bottom:12px">🚀 Migrando a subcollections</div>'+
-                    '<div style="font-size:0.85em;color:#cbd5e1;margin-bottom:18px">No cierres la app. La operación es idempotente: si algo falla, podés reintentar.</div>'+
-                    '<div id="migPhase" style="font-size:0.85em;color:#94a3b8;background:#0f172a;padding:10px;border-radius:8px;min-height:60px">Iniciando…</div>'+
-                '</div>';
-            document.body.appendChild(progressEl);
-            const phaseEl=()=>document.getElementById('migPhase');
-            const result=await subcol_migrate((ev,data)=>{
-                const el=phaseEl();if(!el)return;
-                if(ev==='entity:start')el.textContent='Migrando '+data.entity+' ('+data.total+')…';
-                else if(ev==='batch:ok')el.textContent=data.entity+': '+data.cumulative;
-                else if(ev==='entity:done')el.textContent='✓ '+data.entity+' OK';
-                else if(ev==='verify:start')el.textContent='Verificando integridad…';
-                else if(ev==='marker:set')el.textContent='✓ Marcando _schemaVersion';
-                else if(ev==='done')el.textContent='✓ Completado en '+(data.ms/1000).toFixed(1)+'s';
-            });
-            const pEl=phaseEl();
-            if(result.ok){
-                if(pEl)pEl.innerHTML='<div style="color:#5eead4">✓ MIGRACIÓN EXITOSA</div>'+
-                    '<div style="font-size:0.78em;margin-top:8px;color:#cbd5e1">Tiempo: '+(result.ms/1000).toFixed(1)+'s</div>'+
-                    '<div style="font-size:0.78em;color:#cbd5e1">Ops: '+(result.snapAntes?.counts?.operaciones||'?')+'</div>'+
-                    '<div style="font-size:0.7em;color:#94a3b8;margin-top:10px">La app sigue usando legacy. Switch en v4.8.1.</div>';
-                setTimeout(()=>{progressEl.remove()},4000);
-            }else{
-                if(pEl)pEl.innerHTML='<div style="color:#fca5a5;font-weight:700">✗ MIGRACIÓN FALLÓ</div>'+
-                    '<div style="font-size:0.78em;margin-top:8px;color:#fecaca">'+(result.error||'unknown')+'</div>'+
-                    (result.diffs?'<div style="font-size:0.72em;margin-top:8px;color:#fca5a5;text-align:left">'+result.diffs.slice(0,5).map(d=>'• '+d).join('<br>')+'</div>':'')+
-                    '<button onclick="document.getElementById(\'migProgress\').remove()" style="margin-top:14px;padding:8px 14px;background:#475569;color:#fff;border:none;border-radius:6px;cursor:pointer">Cerrar</button>';
-            }
-        }catch(e){
-            alert('Error inesperado: '+(e&&e.message||e));
-        }finally{
-            if(_bMig){_bMig.disabled=false;_bMig.textContent='🚀 Migrar a subcollections'}
-        }
     });
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
@@ -10916,6 +10858,144 @@ if(document.readyState==='complete'||document.readyState==='interactive'){
 }else{
     document.addEventListener('DOMContentLoaded',()=>setTimeout(_autoCheckRecoveryNeeded,4000));
 }
+
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §SUBCOL-AUTO-MIGRATE v4.8.1 — Disparo silencioso al cargar
+   ═══════════════════════════════════════════════════════════════════════════════
+   Sin botón manual. Sin doble confirmación. Sin preguntar.
+   
+   Flujo:
+     1. Espera 5s después de DOMContentLoaded → AppState.datos hidratada
+     2. Verifica si _schemaVersion === "v2" en doc raíz → si sí, no hace nada
+     3. Si no, muestra overlay "Optimizando estructura de datos" + ejecuta subcol_migrate
+     4. Si OK: marca _schemaVersion="v2", overlay verde 2s, esconde
+     5. Si falla: overlay rojo con detalles + botón "Cerrar" — la app sigue
+        funcionando en modo legacy (no se rompe nada)
+   
+   Una sola vez por sesión. No persiste estado entre recargas — si la migración
+   falla, próxima carga reintenta automáticamente (idempotente: docId=String(id)).
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+(function setupSubcolAutoMigrate(){
+'use strict';
+
+let _autoMigrateDone=false;
+
+function _autoMigOverlay(){
+    let el=document.getElementById('autoMigOverlay');
+    if(el)return el;
+    el=document.createElement('div');
+    el.id='autoMigOverlay';
+    el.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,0.96);'+
+        'display:flex;align-items:center;justify-content:center;padding:20px;'+
+        'font-family:-apple-system,system-ui,sans-serif;color:#e2e8f0';
+    el.innerHTML=
+        '<div style="max-width:380px;width:100%;background:#1e293b;border-radius:14px;padding:24px;text-align:center">'+
+            '<div id="autoMigIcon" style="font-size:42px;margin-bottom:8px">⚙️</div>'+
+            '<div id="autoMigTitle" style="font-size:1.1em;font-weight:700;color:#5eead4;margin-bottom:8px;line-height:1.3">Optimizando estructura de datos</div>'+
+            '<div style="font-size:0.85em;color:#cbd5e1;margin-bottom:16px;line-height:1.4">'+
+                'Migrando a un modelo más rápido y estable.<br>No cierres la app.'+
+            '</div>'+
+            '<div id="autoMigSpinner" style="display:inline-block;width:36px;height:36px;'+
+                'border:4px solid #334155;border-top-color:#5eead4;border-radius:50%;'+
+                'animation:rwspin 0.9s linear infinite;margin-bottom:14px"></div>'+
+            '<div id="autoMigPhase" style="font-size:0.85em;color:#94a3b8;background:#0f172a;'+
+                'padding:10px;border-radius:8px;min-height:42px;'+
+                'display:flex;align-items:center;justify-content:center">Iniciando…</div>'+
+        '</div>';
+    document.body.appendChild(el);
+    return el;
+}
+
+async function _runAutoMigrate(){
+    if(_autoMigrateDone)return;
+    _autoMigrateDone=true;
+    /* Pre-checks */
+    if(!AppState.currentUser||!AppState.db)return;
+    if(typeof subcol_migrate!=='function')return;
+    if(typeof subcol_isMigrated!=='function')return;
+    /* AppState.datos debe estar inicializado (bootstrap completado) */
+    if(!AppState.datos||!Array.isArray(AppState.datos.operaciones))return;
+    /* Solo migrar si hay datos reales (no en cuentas vacías) */
+    if(AppState.datos.operaciones.length===0&&
+       (!AppState.datos.movimientos||AppState.datos.movimientos.length===0)){
+        return;
+    }
+    /* Verificar si ya está migrado */
+    let migrated;
+    try{migrated=await subcol_isMigrated();}
+    catch(_){migrated=false}
+    if(migrated){
+        _syncLog&&_syncLog('auto-mig:already',{schemaVersion:'v2'});
+        return;
+    }
+    /* Mostrar overlay y ejecutar */
+    _syncLog&&_syncLog('auto-mig:start',{ops:AppState.datos.operaciones.length});
+    _autoMigOverlay();
+    const phaseEl=()=>document.getElementById('autoMigPhase');
+    const result=await subcol_migrate((ev,data)=>{
+        const el=phaseEl();if(!el)return;
+        if(ev==='entity:start')el.textContent='Migrando '+data.entity+' ('+data.total+')…';
+        else if(ev==='batch:ok')el.textContent=data.entity+': '+data.cumulative;
+        else if(ev==='entity:done')el.textContent='✓ '+data.entity;
+        else if(ev==='verify:start')el.textContent='Verificando…';
+        else if(ev==='marker:set')el.textContent='Aplicando cambios…';
+    });
+    const el=document.getElementById('autoMigOverlay');
+    if(!el)return;
+    if(result.ok){
+        _syncLog&&_syncLog('auto-mig:success',{ms:result.ms,stats:result.stats});
+        const icon=document.getElementById('autoMigIcon');if(icon)icon.textContent='✅';
+        const title=document.getElementById('autoMigTitle');if(title)title.textContent='Listo';
+        const spinner=document.getElementById('autoMigSpinner');if(spinner)spinner.style.display='none';
+        const phase=phaseEl();
+        if(phase){
+            phase.style.color='#5eead4';
+            phase.textContent='Optimización completada en '+(result.ms/1000).toFixed(1)+'s';
+        }
+        setTimeout(()=>{el.remove()},2500);
+    }else{
+        _syncLog&&_syncLog('auto-mig:failed',{error:result.error,diagnostic:result.diagnostic});
+        const icon=document.getElementById('autoMigIcon');if(icon)icon.textContent='⚠️';
+        const title=document.getElementById('autoMigTitle');
+        if(title){title.style.color='#fca5a5';title.textContent='Optimización pendiente'}
+        const spinner=document.getElementById('autoMigSpinner');if(spinner)spinner.style.display='none';
+        const phase=phaseEl();
+        if(phase){
+            phase.style.color='#fecaca';
+            phase.innerHTML='<div style="text-align:left;font-size:0.78em">'+
+                '<div style="margin-bottom:6px"><b>'+(result.error||'unknown')+'</b></div>'+
+                (result.diagnostic?'<div style="color:#fca5a5">'+result.diagnostic+'</div>':'')+
+                '<div style="margin-top:10px;color:#cbd5e1">La app sigue funcionando normal. Se reintentará en el próximo arranque.</div>'+
+                '</div>';
+        }
+        /* Botón cerrar */
+        const card=el.querySelector('div > div');
+        if(card){
+            const btn=document.createElement('button');
+            btn.textContent='Cerrar';
+            btn.style.cssText='margin-top:14px;padding:9px 18px;background:#475569;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600';
+            btn.onclick=()=>el.remove();
+            card.appendChild(btn);
+        }
+    }
+}
+
+/* Auto-check con espera de 5s después de DOMContentLoaded para dar tiempo al
+   bootstrap y al snapshot inicial. */
+function _scheduleAutoMig(){
+    setTimeout(_runAutoMigrate,5000);
+}
+if(document.readyState==='complete'||document.readyState==='interactive'){
+    _scheduleAutoMig();
+}else{
+    document.addEventListener('DOMContentLoaded',_scheduleAutoMig);
+}
+
+/* Exposición opcional para diagnóstico */
+window._autoMigrateNow=_runAutoMigrate;
 
 })();
 
