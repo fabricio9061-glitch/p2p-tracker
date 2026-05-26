@@ -2113,7 +2113,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagRecovery" style="background:#dc2626">🚨 Recovery write</button><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button></div><div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px"><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagRecovery" style="background:#dc2626">🚨 Recovery write</button><button class="btn" id="btnSyncDiagMigrate" style="background:#0d9488">🚀 Migrar subcollections</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.1.1',
+    APP_VERSION: '4.8.1.2',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,15 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.1.2', date:'2026-05-26', headline:'🛑 Auto-migración desactivada + marca en doc separado + timeouts por batch.', changes:[
+        {type:'fix', title:'BUG raíz identificado: doc raíz degradado contamina la migración', desc:'Auditoría completa del flujo reveló que TODA la migración dependía del doc raíz legacy (>900 KB, bajo throttling de Firestore desde v4.7.64): (1) subcol_isMigrated leía del doc raíz → se colgaba o devolvía false. (2) subcol_migrate pre-flight leía del doc raíz → mismo problema. (3) batch.commit() sin timeout → cuelgue infinito si Firestore no respondía. (4) ref.update({_schemaVersion}) escribía AL doc raíz degradado → no confirmaba. Cada arranque entraba al loop: marca no leída → migración corre → marca no escrita → marca no leída.'},
+        {type:'fix', title:'Corrección 1: marca de migración en doc SEPARADO', desc:'Estado de migración ya no vive en el doc raíz. Path nuevo: users/{uid}/_meta/migration. Doc chico (~100 bytes), sin contaminación del legacy gigante. Lectura y escritura instantáneas. subcol_isMigrated() lee de ahí. subcol_migrate() escribe ahí al final. El doc raíz queda intacto.'},
+        {type:'fix', title:'Corrección 2: timeouts duros en TODOS los awaits', desc:'Nuevo helper _withTimeout(promise, ms, label). Aplicado a: batch.commit() (30s), ref.get del meta doc (10s), set del meta doc (15s). Si algo se cuelga, el await rechaza con "timeout: <label>" en vez de quedar esperando para siempre. La migración falla limpio y el overlay queda usable.'},
+        {type:'fix', title:'Corrección 3: log antes de cada batch + botón Cancelar', desc:'Nuevo evento subcol:batch:committing logueado ANTES de await batch.commit(). Si la migración se cuelga, el último log muestra exactamente cuál batch falló. Overlay tiene botón "Cancelar" siempre visible — toca y setea window._subcolCancel=true, que se chequea entre batches. Cancel limpio, app usable, próximo intento idempotente sobrescribe.'},
+        {type:'fix', title:'Corrección 4: auto-disparo DESACTIVADO temporalmente', desc:'La IIFE que ejecutaba migración 5s después de DOMContentLoaded fue eliminada. La app abre sin tocar nada de migración. Para correr la migración: Diagnóstico → 🚀 Migrar subcollections → doble confirmación. Cuando confirmemos varios arranques estables sin overlays no deseados, evaluaremos volver al auto-disparo en una versión futura.'},
+        {type:'verified', title:'Auditoría completa del flujo realizada', desc:'10 puntos revisados antes de tocar código: dónde se dispara, si isMigrated devuelve mal, si subcol_migrate cuelga, si batch.commit queda pendiente, si overlay no actualiza, si hay await sin timeout, si datos incompletos, si _schemaVersion en doc raíz no confirma, si conviene doc separado, si auto-mig debería desactivarse. Causa raíz: doc raíz contaminado desde v4.7.64. Solución: desacoplar TODO el estado de migración del doc raíz.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.1.2. 2) Reabrir app. NO debe aparecer overlay alguno. 3) Verificar versión 4.8.1.2 en Diagnóstico. 4) Cerrar y reabrir 2-3 veces. NADA debe aparecer. 5) Cuando estés listo: Diagnóstico → 🚀 Migrar subcollections → confirmar (clic + tipear MIGRAR). 6) Esperar a que termine — si se cuelga >30s en un batch, el timeout aborta limpio y muestra error específico. 7) Botón Cancelar disponible mientras corre. 8) Si termina OK: verificar en Firebase Console que existe users/{uid}/_meta/migration con schemaVersion="v2". 9) Próximo arranque NO debe ofrecer migrar (subcol_isMigrated devuelve true desde el meta doc).'}
+    ]},
     {version:'4.8.1.1', date:'2026-05-26', headline:'🔧 Hotfix: auto-migración leía caché stale y re-corría cada arranque.', changes:[
         {type:'fix', title:'BUG: auto-migración se ejecutaba en cada apertura', desc:'Confirmado en 3 arranques sucesivos: el overlay "Optimizando estructura de datos" aparecía aunque la migración ya estuviera marcada en el servidor con _schemaVersion="v2". CAUSA: subcol_isMigrated() usaba ref.get() sin opciones — con enablePersistence activo, eso devuelve el doc desde IndexedDB local. El caché local todavía no reflejaba "_schemaVersion=v2" en el primer momento del bootstrap (5s después de DOMContentLoaded), entonces la migración volvía a correr.'},
         {type:'fix', title:'Fix mínimo: forzar lectura del servidor', desc:'Cambio puntual: ref.get({source:"server"}) en subcol_isMigrated() y en la verificación pre-flight de subcol_migrate. Una lectura adicional Firestore por arranque, insignificante. Si no hay conexión, .get falla → catch devuelve false → la auto-migración NO corre (deseable: no migrar offline con info parcial).'},
@@ -2602,15 +2611,6 @@ const CHANGELOG = [
         {type:'feature', title:'Payload guard permanente (>850 KB)', desc:'Hook en save:write-start: si el payload remoto proyectado supera 850 KB, dispara _recoverySafeMode y muestra overlay con opciones: Exportar backup / Forzar recovery / Continuar de todas formas. Nunca más vamos a llegar a 951 KB sin aviso explícito.'},
         {type:'feature', title:'Reset limpio post-recovery exitoso', desc:'Después de write confirmado y verificación OK: limpia syncQueue, resetea _localDirty/_syncPending/_syncErrors/_guardando, libera _recoveryActive, desuscribe y re-suscribe el listener para empezar con stream limpio sobre el doc comprimido. Sin reload de página — transición suave.'},
         {type:'verified', title:'Cómo probar', desc:'1) Subir y reabrir la app. 2) Espera ~5 segundos: si el doc remoto está en legacy, debe aparecer overlay "Optimización crítica en progreso" automáticamente. 3) Esperar a que diga "✓ Listo. Optimización completada" (puede tardar 30-90s). 4) Después: Diagnóstico → Auditar tamaño → payload remoto debe estar en ~520-540 KB. 5) Crear operación de prueba — debe guardarse normal. 6) Si el overlay queda en rojo "Recovery falló": usar el botón Exportar JSON antes de cualquier otra cosa, y avisar. 7) Si la detección automática NO se disparó (porque el doc ya estaba comprimido o por race), usar Diagnóstico → 🚨 Recovery write manual.'}
-    ]},
-    {version:'4.7.63', date:'2026-05-26', headline:'🗜️ Compresión de payload: salir de zona crítica de Firestore (-35%).', changes:[
-        {type:'fix', title:'CRÍTICO: doc remoto cerca del límite duro de Firestore (1MB)', desc:'Diagnóstico real: payload remoto 951KB (95% del límite), errores resource-exhausted/Write stream exhausted en producción, Firebase client terminated, retries acumulados, rollback de versión. SOLUCIÓN: compresión wire-format del payload. EN MEMORIA todo sigue idéntico (render/FIFO/splits/lógica intacta), SOLO cambia lo que viaja a Firestore. Ahorro medido: ~329 KB (~35%). Payload remoto baja de 951 → ~622 KB. Margen real recuperado de 1+ año.'},
-        {type:'feature', title:'Wire compression v1: enums + campos default + remover redundantes', desc:'tipo (compra/venta) → t (0/1) | banco (string) → bk (int basado en CONFIG.BANCOS) | moneda (UYU/USD) → m (0/1) | timestamp ELIMINADO del wire (regenerable desde fecha+hora) | comisionPct OMITIDO cuando = default 0.14 (95.5% de las ops). Doc remoto lleva _wireFormat:"v1" para identificación.'},
-        {type:'feature', title:'Migración automática y validación de integridad', desc:'Self-test al cargar: round-trip de op de prueba. Si falla, marca window._wireCompressionBroken=true y escribe formato legacy (seguro). En cada save: comprime, descomprime, compara sumas (countOps, sumMontoUYU, sumUsdt, sumMontoVentas/Compras, saldos por banco). Si integridad rota, ABORTA compresión para ese write, escribe legacy y marca broken. Tolerancia de roundeo: 0.01.'},
-        {type:'feature', title:'🗜️ Botón "Auditar compresión" en Diagnóstico', desc:'Verifica que cada op en memoria puede comprimirse/descomprimirse sin pérdida. Reporta: roundtripOk, diffs por campo, bancos/tipos/monedas no mapeados, tamaño antes/después, ahorro proyectado. Pura lectura. Útil para confirmar SAFE-TO-COMPRESS antes de operar pesado.'},
-        {type:'feature', title:'Descompresión transparente al recibir snapshot', desc:'Punto único en el listener de Firestore: si llega _wireFormat:"v1", descomprime las ops a formato expandido antes de cualquier procesamiento. Todos los paths downstream (initial load, mergeRemoteState, cache hydrate) reciben data en formato expandido. Compatible con docs legacy: si no hay flag, asume formato viejo y no toca nada.'},
-        {type:'verified', title:'Robustez y rollback', desc:'(1) Self-test sincrónico al cargar. (2) Validación de integridad en cada write. (3) Fallback automático a legacy si algo falla. (4) Backup del usuario (JSON descargado) SIEMPRE en formato expandido — independiente del wire format. (5) Import lee formato expandido. (6) Si la compresión se rompe en runtime, broken flag persiste durante la sesión, app sigue funcionando con payload legacy. NO se tocó: render, FIFO, splits, UI, navegación, validaciones, lógica financiera.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Abrir app: el self-test corre al cargar — si falla, alertará por consola. 2) Diagnóstico → 🗜️ Auditar compresión → debe decir SAFE-TO-COMPRESS, roundtripOk = total ops, ahorro ~329 KB. 3) Crear una operación nueva — debe guardar normalmente. 4) Diagnóstico → Auditar tamaño: el payload remoto debe bajar a ~620 KB. 5) Cerrar y reabrir la app: data debe cargar igual desde el doc comprimido. 6) Auditar splits y comisión: deben seguir CLEAN/SAFE. Si todo OK, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -9283,25 +9283,43 @@ function subcol_userRef(){
 /* ─── subcol_isMigrated ───────────────────────────────────────────────────────
    Lee _schemaVersion del doc raíz. Devuelve true si está en v2.
    Es operación de LECTURA pura — no modifica nada. */
+/* ─── subcol_isMigrated ───────────────────────────────────────────────────────
+   v4.8.1.2: lee el estado de migración desde un DOC CHICO SEPARADO,
+   no del doc raíz que está degradado por payload pesado.
+   
+   Path: users/{uid}/_meta/migration
+   Doc pesa unos bytes. Lectura y escritura instantáneas, sin depender del
+   estado del doc raíz legacy.
+   
+   ¿Por qué este cambio? El doc raíz (>900 KB legacy) está bajo throttling.
+   ref.get({source:'server'}) sobre ese doc puede colgarse 90s. Y ref.update()
+   sobre ese doc puede no confirmar. Mover la marca a un doc independiente
+   desacopla la verificación del estado degradado.
+   
+   Sin timeout en el get: la subcollection _meta es chica, sin contención. */
 async function subcol_isMigrated(){
     const ref=subcol_userRef();
     if(!ref)return false;
     try{
-        /* v4.8.1.1: forzar lectura del SERVIDOR, no del caché local.
-           Con enablePersistence activo, ref.get() sin opciones puede devolver
-           el doc desde IndexedDB local — que aún no refleja _schemaVersion="v2"
-           si el snapshot post-migración no llegó. Eso causaba re-ejecución de
-           la auto-migración en cada arranque.
-           Si no hay conexión, .get({source:'server'}) lanza error → catch
-           devuelve false → la auto-migración NO corre (deseable: no migrar
-           con info parcial). */
-        const snap=await ref.get({source:'server'});
+        const metaRef=ref.collection('_meta').doc('migration');
+        const snap=await _withTimeout(metaRef.get({source:'server'}),10000,'isMigrated.get');
         if(!snap.exists)return false;
-        return snap.data()._schemaVersion===SUBCOL_SCHEMA_V2;
+        return snap.data().schemaVersion===SUBCOL_SCHEMA_V2;
     }catch(e){
         console.warn('[subcol] isMigrated error:',e.message);
         return false;
     }
+}
+
+/* ─── _withTimeout ────────────────────────────────────────────────────────────
+   Wrapper para CUALQUIER promise que pueda colgarse. Si tarda más de `ms`,
+   rechaza con "timeout: <label>". Usado en todos los awaits críticos de la
+   migración para garantizar que el flujo nunca queda colgado para siempre. */
+function _withTimeout(promise,ms,label){
+    return Promise.race([
+        promise,
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout: '+label)),ms))
+    ]);
 }
 
 /* ─── subcol_status ───────────────────────────────────────────────────────────
@@ -9403,38 +9421,17 @@ async function subcol_migrate(progressCallback){
     };
     const ref=subcol_userRef();
     if(!ref)return{ok:false,error:'no-user-or-db'};
-    /* ════════════════════════════════════════════════════════════════
-       v4.8.1 — FIX CRÍTICO: leer de AppState.datos (memoria, expandida).
-       ════════════════════════════════════════════════════════════════
-       v4.8.0 leía con ref.get() directo, que devuelve el doc en formato
-       WIRE-COMPRIMIDO (v4.7.63 lo activó: tipo→t, banco→bk, monto→mo, etc).
-       Eso causaba dos bugs:
-         (a) las ops migradas a subcollections terminaban con campos {t,bk,mo,u}
-             en vez de {tipo,banco,monto,usdt} — formato incorrecto a largo plazo.
-         (b) la validación post-migración leía esos docs y buscaba op.monto,
-             encontraba undefined, y sum daba 0.00.
-       
-       Solución correcta: la app YA descomprime en memoria al recibir el snapshot
-       (mergeRemoteState/Branch1 con _decompressOpsArrayFromWire). Entonces
-       AppState.datos.operaciones tiene SIEMPRE formato expandido — leemos de ahí.
-       
-       Pre-check: AppState.datos debe estar poblada (lo está después del bootstrap).
-       Si no, abortamos limpio. */
+    /* v4.8.1 — Fuente única: AppState.datos (memoria, expandida).
+       v4.8.1.2 — NO leemos el doc raíz para nada. Está degradado (>900KB) y
+       provocaba timeouts. La verificación pre-flight de "ya migrado" se hace
+       contra el doc meta chico vía subcol_isMigrated(). */
     if(!AppState.datos||!Array.isArray(AppState.datos.operaciones)){
         return{ok:false,error:'AppState.datos no inicializado — esperar al bootstrap'};
     }
-    /* Verificar que el doc raíz aún existe (sanity check).
-       v4.8.1.1: source:'server' para no leer cache stale. Si fallara por offline,
-       el catch aborta limpio sin escribir nada. */
-    let docSnap;
-    try{
-        docSnap=await ref.get({source:'server'});
-    }catch(e){
-        return{ok:false,error:'read-legacy-failed: '+e.message};
-    }
-    if(!docSnap.exists)return{ok:false,error:'legacy-doc-missing'};
-    const legacyMeta=docSnap.data();
-    if(legacyMeta._schemaVersion===SUBCOL_SCHEMA_V2){
+    /* Pre-check vía doc meta separado */
+    let yaEsta=false;
+    try{yaEsta=await subcol_isMigrated();}catch(_){yaEsta=false}
+    if(yaEsta){
         log('skip:already-migrated',{});
         return{ok:true,skipped:true,reason:'already-v2'};
     }
@@ -9452,15 +9449,28 @@ async function subcol_migrate(progressCallback){
         sumUsdt:snapAntes.sumas.usdt.toFixed(2),
         sumUYU:snapAntes.sumas.montoUYU.toFixed(2)
     });
-    /* Validación pre-migración: las sumas deben ser > 0 si hay ops. Esto detecta
-       el bug de v4.8.0 antes de escribir. */
+    /* Validación pre-migración: las sumas deben ser > 0 si hay ops. */
     if(sourceData.operaciones.length>0&&snapAntes.sumas.usdt===0){
         return{ok:false,error:'snapshot-pre-vacio: las ops no parecen tener campos expandidos',
                diagnostic:'verificar que la app cargó datos correctamente antes de migrar'};
     }
-    /* Migración entidad por entidad, batch por batch.
-       Idempotente: docId = String(item.id) sobrescribe sin duplicar.
-       Strip de derivables aplicado por _subcol_stripPersistFields. */
+    /* ════════════════════════════════════════════════════════════════════
+       v4.8.1.2 — Migración con TIMEOUT por batch + flag de cancelación.
+       ════════════════════════════════════════════════════════════════════
+       
+       Cada batch.commit() ahora pasa por _withTimeout(30000) — si Firestore
+       no confirma en 30s, lanza error en vez de colgarse para siempre.
+       
+       Antes de cada batch logueamos `batch:committing` con info detallada.
+       Si se cuelga el batch siguiente, el último log nos dice exactamente
+       cuál batch falló.
+       
+       Cancel: si el usuario toca "Cancelar" en el overlay, window._subcolCancel
+       = true. Lo chequeamos entre batches y abortamos limpio.
+       
+       Si UN batch falla por timeout, retornamos sin escribir el marker. La
+       app sigue funcionando con legacy. Reintentar es idempotente. */
+    const BATCH_TIMEOUT_MS=30000;
     const stats={};
     for(const ent of SUBCOL_ENTITIES){
         const items=Array.isArray(sourceData[ent])?sourceData[ent]:[];
@@ -9471,6 +9481,11 @@ async function subcol_migrate(progressCallback){
         }
         log('entity:start',{entity:ent,total:items.length});
         for(let i=0;i<items.length;i+=SUBCOL_BATCH_SIZE){
+            /* Cancel check */
+            if(window._subcolCancel){
+                log('cancelled',{entity:ent,at:stats[ent].written+'/'+items.length});
+                return{ok:false,error:'cancelled',stats,stage:'cancelled',ms:Math.round(performance.now()-tStart)};
+            }
             const slice=items.slice(i,i+SUBCOL_BATCH_SIZE);
             const batch=AppState.db.batch();
             slice.forEach(item=>{
@@ -9478,8 +9493,15 @@ async function subcol_migrate(progressCallback){
                 const docRef=ref.collection(ent).doc(String(item.id));
                 batch.set(docRef,_subcol_stripPersistFields(item));
             });
+            /* Log ANTES de commit, así si se cuelga sabemos dónde */
+            log('batch:committing',{
+                entity:ent,
+                batchIndex:stats[ent].batches+1,
+                items:slice.length,
+                cumulative:stats[ent].written+'/'+items.length
+            });
             try{
-                await batch.commit();
+                await _withTimeout(batch.commit(),BATCH_TIMEOUT_MS,'batch.commit('+ent+'#'+(stats[ent].batches+1)+')');
                 stats[ent].written+=slice.length;
                 stats[ent].batches++;
                 log('batch:ok',{
@@ -9495,78 +9517,47 @@ async function subcol_migrate(progressCallback){
                     error:e.message,
                     written:stats[ent].written
                 });
-                return{ok:false,error:'batch-failed: '+e.message,stats,stage:'write',entity:ent};
+                return{ok:false,error:'batch-failed: '+e.message,stats,stage:'write',entity:ent,
+                       ms:Math.round(performance.now()-tStart)};
             }
         }
         log('entity:done',{entity:ent,stats:stats[ent]});
     }
-    /* ════════════════════════════════════════════════════════════════
-       Validación simplificada — sin re-lectura, sin comparación por orden.
-       ════════════════════════════════════════════════════════════════
-       v4.8.0 fallaba en dos lugares:
-         (1) re-leía con ref.collection().get() — devolvía cache stale.
-         (2) comparaba primerOp/ultimaOp por POSICIÓN en array — Firestore no
-             garantiza orden sin orderBy().
+    /* ════════════════════════════════════════════════════════════════════
+       v4.8.1.2 — Marcar migración en DOC SEPARADO, no en el doc raíz.
+       ════════════════════════════════════════════════════════════════════
+       Path: users/{uid}/_meta/migration
        
-       v4.8.1: confiamos en los stats del batch.commit. Si todos los batches
-       confirmaron OK (write a Firestore es transaccional dentro del batch),
-       los docs existen. Verificamos con getCountFromServer (lectura barata,
-       una sola por entidad) que coinciden los counts. Sumas las preservamos
-       del snapshot ANTES (no hay manera de "perder un campo" en un write
-       atómico que ya confirmó OK).
+       Doc chico (~100 bytes). Escritura instantánea sin presión.
        
-       Esto elimina el bug del 0.00 + el bug del orden de IDs, sin agregar
-       capas defensivas. */
-    log('verify:start',{});
-    const verifyCounts={};
-    for(const ent of SUBCOL_ENTITIES){
-        const expected=stats[ent].written;
-        if(expected===0){verifyCounts[ent]={expected:0,actual:0,ok:true};continue}
-        try{
-            /* getCountFromServer es un agregado del lado servidor — 1 lectura, no N */
-            const agg=await ref.collection(ent).count().get();
-            const actual=agg.data().count;
-            verifyCounts[ent]={expected,actual,ok:actual===expected};
-            if(actual!==expected){
-                log('verify:count-mismatch',{entity:ent,expected,actual});
-            }
-        }catch(e){
-            /* Si count no está disponible (algunas versiones de SDK), saltar */
-            log('verify:count-unavailable',{entity:ent,error:e.message});
-            verifyCounts[ent]={expected,actual:'unavailable',ok:true};
-        }
-    }
-    const verifyFail=Object.entries(verifyCounts).find(([_,v])=>!v.ok);
-    if(verifyFail){
-        return{
-            ok:false,
-            error:'count-mismatch',
-            verifyCounts,
-            stats,
-            ms:Math.round(performance.now()-tStart)
-        };
-    }
-    log('verify:ok',verifyCounts);
-    /* Marcar doc raíz como migrado */
+       El doc raíz queda intacto. La marca _schemaVersion del doc raíz NO se
+       toca — irrelevante. subcol_isMigrated() solo mira el doc meta.
+       
+       Timeout 15s. Si falla, retornamos error sin reintentar. La migración
+       de datos en sí ya quedó hecha (idempotente, no se pierde nada). */
+    const MARKER_TIMEOUT_MS=15000;
     try{
-        await ref.update({
-            _schemaVersion:SUBCOL_SCHEMA_V2,
-            _migratedAt:firebase.firestore.FieldValue.serverTimestamp(),
-            _migratedAppVersion:CONFIG.APP_VERSION
-        });
-        log('marker:set',{schemaVersion:SUBCOL_SCHEMA_V2});
+        const metaRef=ref.collection('_meta').doc('migration');
+        await _withTimeout(metaRef.set({
+            schemaVersion:SUBCOL_SCHEMA_V2,
+            migratedAt:firebase.firestore.FieldValue.serverTimestamp(),
+            appVersion:CONFIG.APP_VERSION,
+            stats:Object.fromEntries(Object.entries(stats).map(([k,v])=>[k,v.written]))
+        }),MARKER_TIMEOUT_MS,'meta-marker-set');
+        log('marker:set',{schemaVersion:SUBCOL_SCHEMA_V2,path:'_meta/migration'});
     }catch(e){
         return{
             ok:false,
-            error:'marker-update-failed: '+e.message,
+            error:'marker-set-failed: '+e.message,
             stats,
             stage:'marker',
-            ms:Math.round(performance.now()-tStart)
+            ms:Math.round(performance.now()-tStart),
+            diagnostic:'Datos copiados a subcollections OK, pero la marca no se confirmó. Reintentar es seguro (idempotente).'
         };
     }
     const ms=Math.round(performance.now()-tStart);
     log('done',{ms,stats});
-    return{ok:true,stats,snapAntes,verifyCounts,ms};
+    return{ok:true,stats,snapAntes,ms};
 }
 
 /* Exportar — descarga JSON con todo el estado actual */
@@ -10023,6 +10014,108 @@ document.addEventListener('DOMContentLoaded',()=>{
                 alert('Recovery no disponible (función no encontrada).');
             }
         },300);
+    });
+    /* v4.8.1.2 — botón Migrar subcollections (manual, sin auto-disparo).
+       Doble confirmación + overlay con botón Cancelar siempre visible. */
+    const _bMig=$('btnSyncDiagMigrate');if(_bMig)_bMig.addEventListener('click',async()=>{
+        if(typeof subcol_migrate!=='function'){alert('Migración no disponible.');return}
+        _bMig.disabled=true;_bMig.textContent='Verificando…';
+        try{
+            const yaMig=await subcol_isMigrated();
+            if(yaMig){alert('✓ Ya está migrado a subcollections.\nNo se ejecuta de nuevo.');return}
+            const counts={
+                ops:(AppState.datos.operaciones||[]).length,
+                movs:(AppState.datos.movimientos||[]).length,
+                lotes:(AppState.datos.lotes||[]).length,
+                transfs:(AppState.datos.transferencias||[]).length
+            };
+            const msg=
+                '🚀 MIGRAR A SUBCOLLECTIONS\n\n'+
+                'Va a copiar a subcollections:\n'+
+                '• operaciones: '+counts.ops+'\n'+
+                '• movimientos: '+counts.movs+'\n'+
+                '• lotes: '+counts.lotes+'\n'+
+                '• transferencias: '+counts.transfs+'\n\n'+
+                'v4.8.1.2:\n'+
+                '• Marca en doc chico separado (no en doc raíz).\n'+
+                '• Cada batch con timeout 30s.\n'+
+                '• Si se cuelga, podés cancelar.\n'+
+                '• Idempotente (reintentar es seguro).\n\n'+
+                '¿Continuar?';
+            if(!confirm(msg))return;
+            const pal=prompt('Para confirmar, tipeá: MIGRAR');
+            if(pal!=='MIGRAR'){alert('Cancelado.');return}
+            cerrarModal('modalSyncDiag');
+            /* Crear overlay con botón Cancelar */
+            window._subcolCancel=false;
+            const ov=document.createElement('div');
+            ov.id='migOverlay';
+            ov.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,0.96);'+
+                'display:flex;align-items:center;justify-content:center;padding:20px;'+
+                'font-family:-apple-system,system-ui,sans-serif;color:#e2e8f0';
+            ov.innerHTML=
+                '<div style="max-width:380px;width:100%;background:#1e293b;border-radius:14px;padding:24px;text-align:center">'+
+                    '<div id="migIcon" style="font-size:42px;margin-bottom:8px">⚙️</div>'+
+                    '<div id="migTitle" style="font-size:1.1em;font-weight:700;color:#5eead4;margin-bottom:8px">Migrando a subcollections</div>'+
+                    '<div style="font-size:0.82em;color:#cbd5e1;margin-bottom:14px">No cierres la app.</div>'+
+                    '<div id="migSpinner" style="display:inline-block;width:36px;height:36px;border:4px solid #334155;border-top-color:#5eead4;border-radius:50%;animation:rwspin 0.9s linear infinite;margin-bottom:14px"></div>'+
+                    '<div id="migPhase" style="font-size:0.82em;color:#94a3b8;background:#0f172a;padding:10px;border-radius:8px;min-height:42px;display:flex;align-items:center;justify-content:center">Iniciando…</div>'+
+                    '<button id="migCancelBtn" style="margin-top:14px;padding:9px 18px;background:#475569;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:0.85em">Cancelar</button>'+
+                '</div>';
+            document.body.appendChild(ov);
+            document.getElementById('migCancelBtn').onclick=()=>{
+                window._subcolCancel=true;
+                const ph=document.getElementById('migPhase');
+                if(ph)ph.textContent='Cancelando… (al terminar el batch actual)';
+            };
+            const phaseEl=()=>document.getElementById('migPhase');
+            try{
+                const result=await subcol_migrate((ev,data)=>{
+                    const el=phaseEl();if(!el)return;
+                    if(ev==='entity:start')el.textContent='Migrando '+data.entity+' ('+data.total+')…';
+                    else if(ev==='batch:committing')el.textContent=data.entity+': commit '+data.cumulative+'…';
+                    else if(ev==='batch:ok')el.textContent=data.entity+': ✓ '+data.cumulative;
+                    else if(ev==='entity:done')el.textContent='✓ '+data.entity;
+                    else if(ev==='marker:set')el.textContent='Marcando…';
+                });
+                const el=document.getElementById('migOverlay');if(!el)return;
+                const spinner=document.getElementById('migSpinner');if(spinner)spinner.style.display='none';
+                const cancelBtn=document.getElementById('migCancelBtn');
+                if(result.ok&&!result.skipped){
+                    const icon=document.getElementById('migIcon');if(icon)icon.textContent='✅';
+                    const title=document.getElementById('migTitle');if(title)title.textContent='Listo';
+                    const ph=phaseEl();if(ph){ph.style.color='#5eead4';ph.textContent='Completado en '+(result.ms/1000).toFixed(1)+'s'}
+                    if(cancelBtn){cancelBtn.textContent='Cerrar';cancelBtn.onclick=()=>el.remove()}
+                }else if(result.skipped){
+                    const ph=phaseEl();if(ph)ph.textContent='Ya estaba migrado.';
+                    if(cancelBtn){cancelBtn.textContent='Cerrar';cancelBtn.onclick=()=>el.remove()}
+                }else{
+                    const icon=document.getElementById('migIcon');if(icon)icon.textContent='⚠️';
+                    const title=document.getElementById('migTitle');if(title){title.style.color='#fca5a5';title.textContent='No se completó'}
+                    const ph=phaseEl();if(ph){
+                        ph.style.color='#fecaca';
+                        ph.innerHTML='<div style="text-align:left;font-size:0.78em">'+
+                            '<div><b>'+(result.error||'unknown')+'</b></div>'+
+                            (result.diagnostic?'<div style="margin-top:6px;color:#fca5a5">'+result.diagnostic+'</div>':'')+
+                            '<div style="margin-top:8px;color:#cbd5e1">La app sigue funcionando. Podés reintentar.</div>'+
+                            '</div>';
+                    }
+                    if(cancelBtn){cancelBtn.textContent='Cerrar';cancelBtn.onclick=()=>el.remove()}
+                }
+            }catch(e){
+                const el=document.getElementById('migOverlay');
+                if(el){
+                    const ph=phaseEl();if(ph){ph.style.color='#fecaca';ph.textContent='Error inesperado: '+(e.message||e)}
+                    const cancelBtn=document.getElementById('migCancelBtn');
+                    if(cancelBtn){cancelBtn.textContent='Cerrar';cancelBtn.onclick=()=>el.remove()}
+                }
+            }
+        }catch(e){
+            alert('Error: '+(e&&e.message||e));
+        }finally{
+            if(_bMig){_bMig.disabled=false;_bMig.textContent='🚀 Migrar subcollections'}
+            window._subcolCancel=false;
+        }
     });
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
@@ -10867,144 +10960,6 @@ if(document.readyState==='complete'||document.readyState==='interactive'){
 }else{
     document.addEventListener('DOMContentLoaded',()=>setTimeout(_autoCheckRecoveryNeeded,4000));
 }
-
-})();
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   §SUBCOL-AUTO-MIGRATE v4.8.1 — Disparo silencioso al cargar
-   ═══════════════════════════════════════════════════════════════════════════════
-   Sin botón manual. Sin doble confirmación. Sin preguntar.
-   
-   Flujo:
-     1. Espera 5s después de DOMContentLoaded → AppState.datos hidratada
-     2. Verifica si _schemaVersion === "v2" en doc raíz → si sí, no hace nada
-     3. Si no, muestra overlay "Optimizando estructura de datos" + ejecuta subcol_migrate
-     4. Si OK: marca _schemaVersion="v2", overlay verde 2s, esconde
-     5. Si falla: overlay rojo con detalles + botón "Cerrar" — la app sigue
-        funcionando en modo legacy (no se rompe nada)
-   
-   Una sola vez por sesión. No persiste estado entre recargas — si la migración
-   falla, próxima carga reintenta automáticamente (idempotente: docId=String(id)).
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-(function setupSubcolAutoMigrate(){
-'use strict';
-
-let _autoMigrateDone=false;
-
-function _autoMigOverlay(){
-    let el=document.getElementById('autoMigOverlay');
-    if(el)return el;
-    el=document.createElement('div');
-    el.id='autoMigOverlay';
-    el.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,0.96);'+
-        'display:flex;align-items:center;justify-content:center;padding:20px;'+
-        'font-family:-apple-system,system-ui,sans-serif;color:#e2e8f0';
-    el.innerHTML=
-        '<div style="max-width:380px;width:100%;background:#1e293b;border-radius:14px;padding:24px;text-align:center">'+
-            '<div id="autoMigIcon" style="font-size:42px;margin-bottom:8px">⚙️</div>'+
-            '<div id="autoMigTitle" style="font-size:1.1em;font-weight:700;color:#5eead4;margin-bottom:8px;line-height:1.3">Optimizando estructura de datos</div>'+
-            '<div style="font-size:0.85em;color:#cbd5e1;margin-bottom:16px;line-height:1.4">'+
-                'Migrando a un modelo más rápido y estable.<br>No cierres la app.'+
-            '</div>'+
-            '<div id="autoMigSpinner" style="display:inline-block;width:36px;height:36px;'+
-                'border:4px solid #334155;border-top-color:#5eead4;border-radius:50%;'+
-                'animation:rwspin 0.9s linear infinite;margin-bottom:14px"></div>'+
-            '<div id="autoMigPhase" style="font-size:0.85em;color:#94a3b8;background:#0f172a;'+
-                'padding:10px;border-radius:8px;min-height:42px;'+
-                'display:flex;align-items:center;justify-content:center">Iniciando…</div>'+
-        '</div>';
-    document.body.appendChild(el);
-    return el;
-}
-
-async function _runAutoMigrate(){
-    if(_autoMigrateDone)return;
-    _autoMigrateDone=true;
-    /* Pre-checks */
-    if(!AppState.currentUser||!AppState.db)return;
-    if(typeof subcol_migrate!=='function')return;
-    if(typeof subcol_isMigrated!=='function')return;
-    /* AppState.datos debe estar inicializado (bootstrap completado) */
-    if(!AppState.datos||!Array.isArray(AppState.datos.operaciones))return;
-    /* Solo migrar si hay datos reales (no en cuentas vacías) */
-    if(AppState.datos.operaciones.length===0&&
-       (!AppState.datos.movimientos||AppState.datos.movimientos.length===0)){
-        return;
-    }
-    /* Verificar si ya está migrado */
-    let migrated;
-    try{migrated=await subcol_isMigrated();}
-    catch(_){migrated=false}
-    if(migrated){
-        _syncLog&&_syncLog('auto-mig:already',{schemaVersion:'v2'});
-        return;
-    }
-    /* Mostrar overlay y ejecutar */
-    _syncLog&&_syncLog('auto-mig:start',{ops:AppState.datos.operaciones.length});
-    _autoMigOverlay();
-    const phaseEl=()=>document.getElementById('autoMigPhase');
-    const result=await subcol_migrate((ev,data)=>{
-        const el=phaseEl();if(!el)return;
-        if(ev==='entity:start')el.textContent='Migrando '+data.entity+' ('+data.total+')…';
-        else if(ev==='batch:ok')el.textContent=data.entity+': '+data.cumulative;
-        else if(ev==='entity:done')el.textContent='✓ '+data.entity;
-        else if(ev==='verify:start')el.textContent='Verificando…';
-        else if(ev==='marker:set')el.textContent='Aplicando cambios…';
-    });
-    const el=document.getElementById('autoMigOverlay');
-    if(!el)return;
-    if(result.ok){
-        _syncLog&&_syncLog('auto-mig:success',{ms:result.ms,stats:result.stats});
-        const icon=document.getElementById('autoMigIcon');if(icon)icon.textContent='✅';
-        const title=document.getElementById('autoMigTitle');if(title)title.textContent='Listo';
-        const spinner=document.getElementById('autoMigSpinner');if(spinner)spinner.style.display='none';
-        const phase=phaseEl();
-        if(phase){
-            phase.style.color='#5eead4';
-            phase.textContent='Optimización completada en '+(result.ms/1000).toFixed(1)+'s';
-        }
-        setTimeout(()=>{el.remove()},2500);
-    }else{
-        _syncLog&&_syncLog('auto-mig:failed',{error:result.error,diagnostic:result.diagnostic});
-        const icon=document.getElementById('autoMigIcon');if(icon)icon.textContent='⚠️';
-        const title=document.getElementById('autoMigTitle');
-        if(title){title.style.color='#fca5a5';title.textContent='Optimización pendiente'}
-        const spinner=document.getElementById('autoMigSpinner');if(spinner)spinner.style.display='none';
-        const phase=phaseEl();
-        if(phase){
-            phase.style.color='#fecaca';
-            phase.innerHTML='<div style="text-align:left;font-size:0.78em">'+
-                '<div style="margin-bottom:6px"><b>'+(result.error||'unknown')+'</b></div>'+
-                (result.diagnostic?'<div style="color:#fca5a5">'+result.diagnostic+'</div>':'')+
-                '<div style="margin-top:10px;color:#cbd5e1">La app sigue funcionando normal. Se reintentará en el próximo arranque.</div>'+
-                '</div>';
-        }
-        /* Botón cerrar */
-        const card=el.querySelector('div > div');
-        if(card){
-            const btn=document.createElement('button');
-            btn.textContent='Cerrar';
-            btn.style.cssText='margin-top:14px;padding:9px 18px;background:#475569;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600';
-            btn.onclick=()=>el.remove();
-            card.appendChild(btn);
-        }
-    }
-}
-
-/* Auto-check con espera de 5s después de DOMContentLoaded para dar tiempo al
-   bootstrap y al snapshot inicial. */
-function _scheduleAutoMig(){
-    setTimeout(_runAutoMigrate,5000);
-}
-if(document.readyState==='complete'||document.readyState==='interactive'){
-    _scheduleAutoMig();
-}else{
-    document.addEventListener('DOMContentLoaded',_scheduleAutoMig);
-}
-
-/* Exposición opcional para diagnóstico */
-window._autoMigrateNow=_runAutoMigrate;
 
 })();
 
