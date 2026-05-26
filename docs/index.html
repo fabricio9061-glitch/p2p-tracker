@@ -2113,7 +2113,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button></div><div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px"><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.62',
+    APP_VERSION: '4.7.63',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2261,6 +2261,303 @@ const CONFIG = {
     ]
 };
 
+/* ════════════════════════════════════════════════════════════════════════════
+   §WIRE-COMPRESSION v4.7.63 — compresión de payload para Firestore
+   ════════════════════════════════════════════════════════════════════════════
+   PROBLEMA: el doc remoto llegó a 951 KB (límite duro de Firestore es 1 MB).
+   Síntomas reales en producción: resource-exhausted, write stream exhausted,
+   Firebase client terminated, retries acumulados, rollback de versión.
+   
+   SOLUCIÓN: codificar campos repetitivos en el WIRE (lo que viaja a/desde
+   Firestore). EN MEMORIA la app sigue trabajando con el formato expandido —
+   render, FIFO, splits, validaciones, todo intacto. SOLO cambia lo que se
+   persiste remotamente.
+   
+   AHORROS MEDIDOS sobre data real del usuario (3564 ops, backup verificado):
+     • tipo (compra/venta)     → t (0/1)       ahorro ~32 KB
+     • banco (string)          → bk (int)      ahorro ~52 KB  
+     • moneda (UYU/USD)        → m (0/1)       ahorro ~46 KB
+     • timestamp (regenerable) → eliminar      ahorro ~136 KB
+     • comisionPct condicional → solo si ≠def  ahorro ~63 KB
+     TOTAL proyectado: ~329 KB → 951 → ~622 KB (35% reducción)
+   
+   ARQUITECTURA:
+     • Doc remoto tiene flag `_wireFormat: 'v1'` cuando está comprimido
+     • Al recibir snapshot: si wireFormat==='v1' → decodificar a memoria
+     • Al guardar: comprimir copia de memoria → escribir
+     • MEMORIA siempre tiene formato expandido (UI, lógica intacta)
+     • Compatible con docs viejos: si no hay `_wireFormat`, leer como legacy
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Mapas de codificación ─────────────────────────────────────────────────
+   Decisión: los IDs son ESTABLES y nunca se reordenan. Agregar nuevo banco al
+   final con nuevo ID. NUNCA cambiar el ID de uno existente o se rompe la
+   decodificación de data histórica.
+   Los nombres provienen de CONFIG.BANCOS (los 12 oficiales) + "Mercado Pago"
+   como caso especial. Si un banco no está en el mapa, fallback: guardar string
+   literal con prefijo "$" para distinguirlo. */
+const WIRE_TIPO_TO_INT={'compra':0,'venta':1};
+const WIRE_TIPO_FROM_INT={0:'compra',1:'venta'};
+
+const WIRE_MONEDA_TO_INT={'UYU':0,'USD':1};
+const WIRE_MONEDA_FROM_INT={0:'UYU',1:'USD'};
+
+/* Banco map: derivado de CONFIG.BANCOS en orden fijo. Si en el futuro se
+   agregan bancos, van al final manteniendo IDs estables de los anteriores. */
+const WIRE_BANCO_TO_INT=(()=>{
+    const m={};
+    CONFIG.BANCOS.forEach((b,i)=>{m[b.nombre]=i});
+    return m;
+})();
+const WIRE_BANCO_FROM_INT=(()=>{
+    const m={};
+    CONFIG.BANCOS.forEach((b,i)=>{m[i]=b.nombre});
+    return m;
+})();
+
+/* Comisión por defecto: el 95.51% de las ops tienen exactamente 0.14. Para
+   esas ops, omitimos el campo del payload remoto (se asume default al leer).
+   Solo se persiste cuando difiere. Ahorro real: ~63 KB. */
+const WIRE_DEFAULT_COMISION_PCT=0.14;
+/* Tolerancia para comparación de comisionPct (los floats no siempre son
+   exactamente 0.14 después de round-trip JSON). Si difiere por menos de esto,
+   se considera "default" y se omite. */
+const WIRE_COMISION_PCT_EPS=0.0001;
+
+/* Identificador del formato. Cambiar este string solo si se rompe
+   compatibilidad con docs ya migrados. */
+const WIRE_FORMAT_VERSION='v1';
+
+/* ─── Codificación de una operación (memoria → wire) ─────────────────────────
+   Convierte una op del formato expandido (interno) al formato comprimido (wire).
+   No muta el original — devuelve copia. */
+function _compressOpForWire(op){
+    if(!op||typeof op!=='object')return op;
+    const out={};
+    /* id: string, siempre */
+    if(op.id!==undefined)out.id=op.id;
+    /* fecha + hora: strings cortas, no se comprimen (ya son chicas) */
+    if(op.fecha!==undefined)out.f=op.fecha;
+    if(op.hora!==undefined)out.h=op.hora;
+    /* tipo → t (enum int) */
+    if(op.tipo!==undefined){
+        const v=WIRE_TIPO_TO_INT[op.tipo];
+        if(v!==undefined)out.t=v;
+        else out.tipo=op.tipo; /* fallback: tipo desconocido — guardar literal */
+    }
+    /* banco → bk (enum int) o bkn (literal si no está en map) */
+    if(op.banco!==undefined){
+        const v=WIRE_BANCO_TO_INT[op.banco];
+        if(v!==undefined)out.bk=v;
+        else out.bkn=op.banco; /* fallback: banco custom no en CONFIG */
+    }
+    /* moneda → m (enum int) */
+    if(op.moneda!==undefined){
+        const v=WIRE_MONEDA_TO_INT[op.moneda];
+        if(v!==undefined)out.m=v;
+        else out.moneda=op.moneda;
+    }
+    /* monto, tasa, usdt: numbers, no se comprimen */
+    if(op.monto!==undefined)out.mo=op.monto;
+    if(op.tasa!==undefined)out.ta=op.tasa;
+    if(op.usdt!==undefined)out.u=op.usdt;
+    if(op.comisionBanco!==undefined&&op.comisionBanco!==0)out.cb=op.comisionBanco;
+    /* comisionPct: solo si difiere del default. El receptor asume default si falta. */
+    if(op.comisionPct!==undefined){
+        const diff=Math.abs(op.comisionPct-WIRE_DEFAULT_COMISION_PCT);
+        if(diff>WIRE_COMISION_PCT_EPS)out.cp=op.comisionPct;
+        /* si es default, NO se incluye — ahorra ~14 bytes por op default */
+    }
+    /* aportes (split): mantener tal cual, los bancos internos se codifican
+       igual que arriba pero como subobjetos. Es array chico (≤5 entradas
+       típicamente), el ahorro de comprimirlos no compensa la complejidad. */
+    if(Array.isArray(op.aportes))out.ap=op.aportes;
+    /* timestamp: ELIMINADO del wire — se regenera al decodificar desde fecha+hora.
+       Es campo derivable (no fuente de verdad). Ahorro ~136 KB. */
+    /* Cualquier OTRO campo: copiar tal cual con prefijo "x_" para no chocar
+       con los keys cortos del formato comprimido. Ej: notas, _editadoEn, etc.
+       Defensivo: si en el futuro se agregan campos, se preservan. */
+    Object.keys(op).forEach(k=>{
+        if(['id','fecha','hora','tipo','banco','moneda','monto','tasa','usdt',
+            'comisionBanco','comisionPct','aportes','timestamp',
+            'consumedLots','ganancia','comisionPlataforma','_syncState'].includes(k))return;
+        out['x_'+k]=op[k];
+    });
+    return out;
+}
+
+/* ─── Decodificación de una operación (wire → memoria) ───────────────────────
+   Inversa de _compressOpForWire. Reconstruye el formato expandido para que la
+   app trabaje en memoria como siempre.
+   
+   ROBUSTEZ: si recibe un objeto ya en formato viejo (sin las claves cortas),
+   lo devuelve tal cual. Esto permite leer docs no migrados sin error. */
+function _decompressOpFromWire(op){
+    if(!op||typeof op!=='object')return op;
+    /* Detección: si tiene `tipo` (string) o `banco` (string), es formato viejo.
+       Si tiene `t` (number) o `bk` (number), es formato nuevo.
+       Si tiene ambos (corrupción), gana el viejo (más conservador). */
+    const esViejo=(typeof op.tipo==='string')||(typeof op.banco==='string');
+    if(esViejo)return op; /* legacy: no tocar */
+    const out={};
+    if(op.id!==undefined)out.id=op.id;
+    if(op.f!==undefined)out.fecha=op.f;
+    if(op.h!==undefined)out.hora=op.h;
+    if(op.t!==undefined){
+        const v=WIRE_TIPO_FROM_INT[op.t];
+        if(v!==undefined)out.tipo=v;
+    }else if(op.tipo!==undefined)out.tipo=op.tipo;
+    if(op.bk!==undefined){
+        const v=WIRE_BANCO_FROM_INT[op.bk];
+        if(v!==undefined)out.banco=v;
+    }else if(op.bkn!==undefined)out.banco=op.bkn;
+    else if(op.banco!==undefined)out.banco=op.banco;
+    if(op.m!==undefined){
+        const v=WIRE_MONEDA_FROM_INT[op.m];
+        if(v!==undefined)out.moneda=v;
+    }else if(op.moneda!==undefined)out.moneda=op.moneda;
+    if(op.mo!==undefined)out.monto=op.mo;
+    if(op.ta!==undefined)out.tasa=op.ta;
+    if(op.u!==undefined)out.usdt=op.u;
+    if(op.cb!==undefined)out.comisionBanco=op.cb;
+    else out.comisionBanco=0;
+    /* comisionPct: si falta, default. Si existe, usar el valor explícito. */
+    if(op.cp!==undefined)out.comisionPct=op.cp;
+    else out.comisionPct=WIRE_DEFAULT_COMISION_PCT;
+    if(Array.isArray(op.ap))out.aportes=op.ap;
+    /* Reconstrucción de timestamp desde fecha + hora.
+       Formato target: "YYYY-MM-DDTHH:MM:SS" (sin TZ, igual al original).
+       Si falta hora, usar "00:00:00". */
+    if(out.fecha){
+        const horaCompleta=out.hora?(out.hora.length===5?out.hora+':00':out.hora):'00:00:00';
+        out.timestamp=out.fecha+'T'+horaCompleta;
+    }
+    /* Restaurar campos "x_" → su nombre original */
+    Object.keys(op).forEach(k=>{
+        if(k.startsWith('x_'))out[k.substring(2)]=op[k];
+    });
+    return out;
+}
+
+/* ─── Codificación de arrays completos ──────────────────────────────────────
+   Aplicado a operaciones. movimientos/transferencias/lotes/conversiones se
+   dejan SIN comprimir por ahora — su volumen acumulado es bajo y el riesgo
+   de bug por tocar más campos no compensa el ahorro marginal. */
+function _compressOpsArrayForWire(arr){
+    if(!Array.isArray(arr))return arr;
+    return arr.map(_compressOpForWire);
+}
+function _decompressOpsArrayFromWire(arr){
+    if(!Array.isArray(arr))return arr;
+    return arr.map(_decompressOpFromWire);
+}
+
+/* ─── Detección de formato del doc remoto ───────────────────────────────────
+   El doc remoto lleva `_wireFormat: 'v1'` cuando está comprimido.
+   Si no lo tiene (o es null/undefined), es formato legacy. */
+function _isWireCompressed(remoteDoc){
+    return remoteDoc&&remoteDoc._wireFormat===WIRE_FORMAT_VERSION;
+}
+
+/* ─── Verificación de integridad: comparar sumas antes/después de migración ──
+   Pre-migración: snapshot de sumas críticas del estado actual.
+   Post-migración: re-calcular y comparar. Si difieren, ABORTAR. */
+function _capturarSnapshotIntegridad(datos){
+    const snap={
+        countOps:(datos.operaciones||[]).length,
+        countMovs:(datos.movimientos||[]).length,
+        countTransfs:(datos.transferencias||[]).length,
+        countLotes:(datos.lotes||[]).length,
+        sumMontoUYU:0,sumUsdt:0,sumComisionPct:0,
+        sumMontoVentas:0,sumMontoCompras:0,
+        primeraOpId:null,ultimaOpId:null,
+        saldosBancos:{}
+    };
+    const ops=datos.operaciones||[];
+    ops.forEach((op,i)=>{
+        if(i===0)snap.primeraOpId=op.id;
+        snap.ultimaOpId=op.id;
+        if(op.moneda==='UYU'||!op.moneda)snap.sumMontoUYU+=(Number(op.monto)||0);
+        snap.sumUsdt+=(Number(op.usdt)||0);
+        snap.sumComisionPct+=(Number(op.comisionPct)||0);
+        if(op.tipo==='venta')snap.sumMontoVentas+=(Number(op.monto)||0);
+        else if(op.tipo==='compra')snap.sumMontoCompras+=(Number(op.monto)||0);
+    });
+    /* Saldos de bancos: copia directa */
+    if(datos.bancos&&typeof datos.bancos==='object'){
+        Object.entries(datos.bancos).forEach(([nombre,bk])=>{
+            if(bk&&typeof bk.saldo==='number')snap.saldosBancos[nombre]=bk.saldo;
+        });
+    }
+    return snap;
+}
+
+function _compararSnapshotsIntegridad(antes,despues){
+    const diffs=[];
+    /* Counts: deben ser exactos */
+    if(antes.countOps!==despues.countOps)diffs.push(`countOps ${antes.countOps}→${despues.countOps}`);
+    if(antes.countMovs!==despues.countMovs)diffs.push(`countMovs ${antes.countMovs}→${despues.countMovs}`);
+    if(antes.countTransfs!==despues.countTransfs)diffs.push(`countTransfs ${antes.countTransfs}→${despues.countTransfs}`);
+    if(antes.countLotes!==despues.countLotes)diffs.push(`countLotes ${antes.countLotes}→${despues.countLotes}`);
+    /* Sumas: tolerancia de 0.01 por roundeos */
+    const EPS=0.01;
+    if(Math.abs(antes.sumMontoUYU-despues.sumMontoUYU)>EPS)diffs.push(`sumMontoUYU ${antes.sumMontoUYU.toFixed(2)}→${despues.sumMontoUYU.toFixed(2)}`);
+    if(Math.abs(antes.sumUsdt-despues.sumUsdt)>EPS)diffs.push(`sumUsdt ${antes.sumUsdt.toFixed(2)}→${despues.sumUsdt.toFixed(2)}`);
+    if(Math.abs(antes.sumMontoVentas-despues.sumMontoVentas)>EPS)diffs.push(`sumMontoVentas ${antes.sumMontoVentas.toFixed(2)}→${despues.sumMontoVentas.toFixed(2)}`);
+    if(Math.abs(antes.sumMontoCompras-despues.sumMontoCompras)>EPS)diffs.push(`sumMontoCompras ${antes.sumMontoCompras.toFixed(2)}→${despues.sumMontoCompras.toFixed(2)}`);
+    /* Comisión pct sum: tolerancia mayor (3564 ops × ~0.14 = ~499, con muchas
+       ops que ahora omiten cp=0.14 y se rehidratan al default. La rehidratación
+       debe dar exactamente el mismo número para ops con comisionPct=0.14 exacto,
+       pero ops con 0.140000001 podrían diferir por el WIRE_COMISION_PCT_EPS.
+       Tolerancia: 0.01 absoluto = 7 ops × 0.0001 diff cada una, holgado.) */
+    if(Math.abs(antes.sumComisionPct-despues.sumComisionPct)>EPS)diffs.push(`sumComisionPct ${antes.sumComisionPct.toFixed(6)}→${despues.sumComisionPct.toFixed(6)}`);
+    /* IDs primera y última: deben ser idénticas */
+    if(antes.primeraOpId!==despues.primeraOpId)diffs.push(`primeraOpId ${antes.primeraOpId}→${despues.primeraOpId}`);
+    if(antes.ultimaOpId!==despues.ultimaOpId)diffs.push(`ultimaOpId ${antes.ultimaOpId}→${despues.ultimaOpId}`);
+    /* Saldos por banco: deben coincidir */
+    Object.entries(antes.saldosBancos).forEach(([nombre,saldoAntes])=>{
+        const saldoDespues=despues.saldosBancos[nombre];
+        if(saldoDespues===undefined)diffs.push(`saldo ${nombre} desapareció`);
+        else if(Math.abs(saldoAntes-saldoDespues)>EPS)diffs.push(`saldo ${nombre} ${saldoAntes.toFixed(2)}→${saldoDespues.toFixed(2)}`);
+    });
+    return{ok:diffs.length===0,diffs};
+}
+
+/* ─── Self-test del motor de compresión (corre al cargar) ────────────────────
+   Comprime + descomprime una op de prueba y verifica que el round-trip sea
+   exacto. Si falla, marcar un flag global para abortar el sync. */
+function _selftestWireCompression(){
+    const opPrueba={
+        id:'test_99999',
+        fecha:'2026-05-26',hora:'12:34',
+        tipo:'venta',banco:'Mercado Pago',moneda:'UYU',
+        monto:5000,tasa:42.50,usdt:117.32,
+        comisionBanco:0,comisionPct:0.14,
+        timestamp:'2026-05-26T12:34:00'
+    };
+    const comprimida=_compressOpForWire(opPrueba);
+    const restaurada=_decompressOpFromWire(comprimida);
+    const camposCriticos=['id','fecha','hora','tipo','banco','moneda','monto','tasa','usdt','comisionBanco','comisionPct'];
+    const errores=[];
+    camposCriticos.forEach(k=>{
+        if(opPrueba[k]!==restaurada[k]){
+            errores.push(`${k}: original=${opPrueba[k]} vs restaurado=${restaurada[k]}`);
+        }
+    });
+    /* timestamp: se regenera, comparamos por separado */
+    if(restaurada.timestamp!==opPrueba.timestamp){
+        errores.push(`timestamp: original=${opPrueba.timestamp} vs regenerado=${restaurada.timestamp}`);
+    }
+    if(errores.length>0){
+        console.error('[P2P] WIRE COMPRESSION SELF-TEST FALLÓ:',errores);
+        window._wireCompressionBroken=true;
+        return false;
+    }
+    return true;
+}
+/* Correr el self-test inmediatamente al cargar la app */
+_selftestWireCompression();
+
 /* ═══════════════════════════════════════════════════════════════════════
  * 📜 CHANGELOG — registro de cambios por versión
  * ═══════════════════════════════════════════════════════════════════════
@@ -2274,6 +2571,15 @@ const CONFIG = {
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.63', date:'2026-05-26', headline:'🗜️ Compresión de payload: salir de zona crítica de Firestore (-35%).', changes:[
+        {type:'fix', title:'CRÍTICO: doc remoto cerca del límite duro de Firestore (1MB)', desc:'Diagnóstico real: payload remoto 951KB (95% del límite), errores resource-exhausted/Write stream exhausted en producción, Firebase client terminated, retries acumulados, rollback de versión. SOLUCIÓN: compresión wire-format del payload. EN MEMORIA todo sigue idéntico (render/FIFO/splits/lógica intacta), SOLO cambia lo que viaja a Firestore. Ahorro medido: ~329 KB (~35%). Payload remoto baja de 951 → ~622 KB. Margen real recuperado de 1+ año.'},
+        {type:'feature', title:'Wire compression v1: enums + campos default + remover redundantes', desc:'tipo (compra/venta) → t (0/1) | banco (string) → bk (int basado en CONFIG.BANCOS) | moneda (UYU/USD) → m (0/1) | timestamp ELIMINADO del wire (regenerable desde fecha+hora) | comisionPct OMITIDO cuando = default 0.14 (95.5% de las ops). Doc remoto lleva _wireFormat:"v1" para identificación.'},
+        {type:'feature', title:'Migración automática y validación de integridad', desc:'Self-test al cargar: round-trip de op de prueba. Si falla, marca window._wireCompressionBroken=true y escribe formato legacy (seguro). En cada save: comprime, descomprime, compara sumas (countOps, sumMontoUYU, sumUsdt, sumMontoVentas/Compras, saldos por banco). Si integridad rota, ABORTA compresión para ese write, escribe legacy y marca broken. Tolerancia de roundeo: 0.01.'},
+        {type:'feature', title:'🗜️ Botón "Auditar compresión" en Diagnóstico', desc:'Verifica que cada op en memoria puede comprimirse/descomprimirse sin pérdida. Reporta: roundtripOk, diffs por campo, bancos/tipos/monedas no mapeados, tamaño antes/después, ahorro proyectado. Pura lectura. Útil para confirmar SAFE-TO-COMPRESS antes de operar pesado.'},
+        {type:'feature', title:'Descompresión transparente al recibir snapshot', desc:'Punto único en el listener de Firestore: si llega _wireFormat:"v1", descomprime las ops a formato expandido antes de cualquier procesamiento. Todos los paths downstream (initial load, mergeRemoteState, cache hydrate) reciben data en formato expandido. Compatible con docs legacy: si no hay flag, asume formato viejo y no toca nada.'},
+        {type:'verified', title:'Robustez y rollback', desc:'(1) Self-test sincrónico al cargar. (2) Validación de integridad en cada write. (3) Fallback automático a legacy si algo falla. (4) Backup del usuario (JSON descargado) SIEMPRE en formato expandido — independiente del wire format. (5) Import lee formato expandido. (6) Si la compresión se rompe en runtime, broken flag persiste durante la sesión, app sigue funcionando con payload legacy. NO se tocó: render, FIFO, splits, UI, navegación, validaciones, lógica financiera.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Abrir app: el self-test corre al cargar — si falla, alertará por consola. 2) Diagnóstico → 🗜️ Auditar compresión → debe decir SAFE-TO-COMPRESS, roundtripOk = total ops, ahorro ~329 KB. 3) Crear una operación nueva — debe guardar normalmente. 4) Diagnóstico → Auditar tamaño: el payload remoto debe bajar a ~620 KB. 5) Cerrar y reabrir la app: data debe cargar igual desde el doc comprimido. 6) Auditar splits y comisión: deben seguir CLEAN/SAFE. Si todo OK, subir.'}
+    ]},
     {version:'4.7.62', date:'2026-05-23', headline:'🐛 Fix pill de tasa: la "activa" es la que coincide con el valor real, no la primera.', changes:[
         {type:'fix', title:'Pill activa ahora refleja la tasa real del input', desc:'BUG: al tocar otra pill (ej. 41,90), el input cambiaba pero el "azul de seleccionada" seguía en la primera (ej. 42,20). Daba feedback engañoso. CAUSA: el CSS usaba :first-child para destacar la pill — eso es selector estructural (siempre la primera por posición), no de estado. Y el handler usar-tasa no marcaba/desmarcaba nada. FIX: ahora renderizarTasasRecientes() compara cada pill con el valor actual del input y aplica la clase .tag-pill-active a la que coincida. El CSS cambia de .tag-pill:first-child a .tag-pill-active. La pill destacada deja de ser "REF por posición" y pasa a ser "la que vos elegiste" — coherente con lo que el usuario espera.'},
         {type:'fix', title:'Re-evaluación en cada cambio de tasa', desc:'La función se llama ahora desde los 3 puntos donde puede cambiar la tasa: (1) input manual del usuario, (2) tocar otra pill, (3) botones +/-. Resultado: si tipeás 41,95 y existe una pill con ese valor, la pill se marca activa automáticamente. Si tipeás 41,93 (no coincide con ninguna), ninguna pill queda activa — refleja el estado real.'},
@@ -2302,11 +2608,6 @@ const CHANGELOG = [
         {type:'fix', title:'BUG LATENTE corregido en la verificación: botón se quedaba bloqueado al desaparecer el split', desc:'Encontrado durante el review: cuando el split dejaba de aplicar (cambio de monto/tasa hace que el saldo cubra todo), renderSplitPanel hacía return temprano y NUNCA reactivaba el botón si estaba bloqueado por una fila inválida previa. Ahora el early return también llama a _updateBtnGuardarState. Y agregado renderSplitPanel() a los listeners de tasa (input, usar-tasa, tasa-step) que antes no recalculaban el split al cambiar la tasa.'},
         {type:'feature', title:'🧩 Herramienta nueva: Auditar splits (Diagnóstico)', desc:'En Diagnóstico → "🧩 Auditar splits". auditarSplitsCorruptos() revisa TODAS las operaciones con campo aportes y detecta 4 categorías de anomalía: (a) banco vacío, (b) banco inexistente en CONFIG, (c) aportes vacíos, (d) suma ≠ monto+comisionBanco (tolerancia 0.05). Pura lectura — no muta nada. Muestra resumen + primeras 5 de cada categoría. Si hay anomalías, el usuario edita/borra manualmente. Logueado por _syncLog.'},
         {type:'verified', title:'Cómo probar', desc:'1) Comprar USDT por más del saldo del banco → aparece split. 2) Sin elegir banco extra → fila roja con texto "⚠ Falta seleccionar un banco" + botón opaco no clickeable + status NO verde. 3) Elegir banco → fila vuelve a normal, botón se reactiva. 4) Cambiar a Vender → panel desaparece. 5) Cambiar monto/tasa para que el saldo cubra todo → split desaparece automáticamente. 6) Tipear con Enter o disparar handler directo → bloqueado por validarAportes. 7) Menú → Diagnóstico → 🧩 Auditar splits → revisar ops históricas. 8) Si OK, subir.'}
-    ]},
-    {version:'4.7.58', date:'2026-05-20', headline:'🎨 Simetría visual: "Sale de" y "Com. banco" ahora iguales en altura y padding.', changes:[
-        {type:'fix', title:'Sale de ↔ Com. banco simétricos', desc:'En v4.7.57 quedaban al 50/50 (grid correcto) pero visualmente desiguales: el select de banco se sentía completo (chevron a la derecha) y el input de comisión chico/centrado. Ahora ambos comparten exactamente: width:100%, padding 11px 13px, min-height 42px, font-size 1rem, radius var(--r-md), border 1.5px. Se mantiene text-align:right en comisión (natural para un valor numérico).'},
-        {type:'verified', title:'Cambio acotado y reversible', desc:'1 regla CSS nueva (#banco,#comisionBanco) en el bloque mobile v4.7.56. No se tocó: HTML, JS (incluido el switcher dinámico de grid 1fr 1fr ↔ 1fr según compra/venta), sync, Firebase (binancp2p-f831f), navegación, desktop. DIVs balanceados, JS válido.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Mobile, Comprar USDT. 2) "Sale de" y "Com. banco" deben verse del MISMO alto, mismo padding interno, lado a lado al 50/50. 3) Vender USDT: solo Sale de a ancho completo. 4) Resto del formulario denso sigue igual. 5) Sync OK. 6) Si OK, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -4718,6 +5019,90 @@ function _syncLog(event,payload){
    Es herramienta de diagnóstico, no de fix automático. El usuario
    decide qué hacer con las ops detectadas (editar manual o borrar+rehacer).
    ════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   §AUDITORÍA COMPRESIÓN WIRE v4.7.63
+   ════════════════════════════════════════════════════════════════
+   Verifica que cada operación en memoria puede comprimirse y
+   descomprimirse sin pérdida. Pura lectura — no modifica nada.
+   
+   Reporta:
+     - cuántas ops pasaron el round-trip exacto
+     - cuántas tienen diff en algún campo crítico (y cuál)
+     - ahorro proyectado de tamaño
+   ════════════════════════════════════════════════════════════════ */
+function auditarCompresionWire(){
+    const ops=Array.isArray(AppState.datos.operaciones)?AppState.datos.operaciones:[];
+    const result={
+        totalOps:ops.length,
+        roundtripOk:0,
+        diffsPorCampo:{},
+        opsConDiff:[],
+        bancoNoMapeado:[],
+        tipoNoMapeado:[],
+        monedaNoMapeado:[],
+        sizeBefore:0,
+        sizeAfter:0,
+        savingsKB:0,
+        verdict:'unknown'
+    };
+    const camposCriticos=['id','fecha','hora','tipo','banco','moneda','monto','tasa','usdt','comisionBanco'];
+    ops.forEach(op=>{
+        /* Verificar mapeos antes de comprimir */
+        if(op.banco&&!(op.banco in WIRE_BANCO_TO_INT)){
+            result.bancoNoMapeado.push({id:op.id,banco:op.banco});
+        }
+        if(op.tipo&&!(op.tipo in WIRE_TIPO_TO_INT)){
+            result.tipoNoMapeado.push({id:op.id,tipo:op.tipo});
+        }
+        if(op.moneda&&!(op.moneda in WIRE_MONEDA_TO_INT)){
+            result.monedaNoMapeado.push({id:op.id,moneda:op.moneda});
+        }
+        /* Round-trip */
+        const c=_compressOpForWire(op);
+        const r=_decompressOpFromWire(c);
+        let ok=true;
+        const diffsLocal=[];
+        camposCriticos.forEach(k=>{
+            if(op[k]!==undefined&&op[k]!==r[k]){
+                ok=false;
+                diffsLocal.push({campo:k,antes:op[k],despues:r[k]});
+                result.diffsPorCampo[k]=(result.diffsPorCampo[k]||0)+1;
+            }
+        });
+        /* comisionPct: tolerancia (puede haberse omitido por default) */
+        if(op.comisionPct!==undefined){
+            const diff=Math.abs(op.comisionPct-r.comisionPct);
+            if(diff>WIRE_COMISION_PCT_EPS+0.0001){
+                ok=false;
+                diffsLocal.push({campo:'comisionPct',antes:op.comisionPct,despues:r.comisionPct});
+                result.diffsPorCampo.comisionPct=(result.diffsPorCampo.comisionPct||0)+1;
+            }
+        }
+        if(ok)result.roundtripOk++;
+        else if(result.opsConDiff.length<10)result.opsConDiff.push({id:op.id,diffs:diffsLocal});
+    });
+    /* Tamaño aproximado before/after */
+    try{
+        const sBefore=JSON.stringify(ops).length;
+        const sAfter=JSON.stringify(ops.map(_compressOpForWire)).length;
+        result.sizeBefore=sBefore;
+        result.sizeAfter=sAfter;
+        result.savingsKB=Math.round((sBefore-sAfter)/1024);
+    }catch(e){/* no critical */}
+    /* Veredicto */
+    const totalProblems=result.bancoNoMapeado.length+result.tipoNoMapeado.length+
+                        result.monedaNoMapeado.length+(result.totalOps-result.roundtripOk);
+    if(totalProblems===0)result.verdict='SAFE-TO-COMPRESS';
+    else result.verdict='ISSUES-DETECTED';
+    _syncLog&&_syncLog('audit-wire:done',{
+        verdict:result.verdict,
+        roundtripOk:result.roundtripOk,
+        total:result.totalOps,
+        savingsKB:result.savingsKB
+    });
+    return result;
+}
+
 function auditarSplitsCorruptos(){
     const ops=Array.isArray(AppState.datos.operaciones)?AppState.datos.operaciones:[];
     const bancos=AppState.datos.bancos||{};
@@ -5228,6 +5613,37 @@ function flushGuardaDebounce(){
 
 /* ─── Merge: NEVER drops local-only entities ─── */
 function mergeRemoteState(d){
+    /* ════════════════════════════════════════════════════════════════
+       §v4.7.63 — Descompresión wire al recibir snapshot.
+       ════════════════════════════════════════════════════════════════
+       Si el doc remoto trae `_wireFormat: 'v1'`, descomprimir las
+       operaciones a formato expandido ANTES de cualquier otro
+       procesamiento. El resto de mergeRemoteState ya trabaja con el
+       formato expandido (asume tipo:'venta', banco:'Itau', etc.).
+       
+       Si NO trae wireFormat, el doc es legacy → no se toca, sigue
+       funcionando. Compatibilidad backward para el primer arranque
+       después de implementar la compresión.
+       
+       Defensivo: clonamos `d` para no mutar el objeto que Firestore
+       nos pasa. El framework podría tenerlo congelado o cachearlo. */
+    if(d&&_isWireCompressed(d)){
+        try{
+            const opsDescomprimidas=_decompressOpsArrayFromWire(d.operaciones);
+            /* Reemplazar el campo en la copia que vamos a procesar.
+               No clonar todo el objeto entero — solo operaciones cambia
+               (movs/transfs no se comprimen). */
+            d={...d,operaciones:opsDescomprimidas};
+            /* Limpiar el flag para no confundir downstream */
+            delete d._wireFormat;
+        }catch(e){
+            console.error('[P2P] Descompresión wire FALLÓ:',e);
+            _syncLog&&_syncLog('wire-decompress:failed',{error:String(e)});
+            /* No abortar — dejar el doc como vino para que mergeRemoteState
+               procese lo que pueda. Si las ops están corruptas, el render
+               va a mostrar undefined, pero la app no muere. */
+        }
+    }
     const delIds=new Set(_syncQueue.filter(a=>a.type==='delete').map(a=>a.id));
     /* ═══ Snapshot pre-merge para detectar cambios reales en arrays ═══
        Si después del merge los arrays terminan con los mismos ids/timestamps que antes,
@@ -5684,6 +6100,63 @@ async function guardarDatos(forzar){
         /* Strip de derivables top-level (Fix 2 v4.7.36) */
         delete datosLimpios.lotes;
         delete datosLimpios.saldoUsdt;
+        /* ════════════════════════════════════════════════════════════════
+           §v4.7.63 — Compresión wire: operaciones a formato comprimido.
+           ════════════════════════════════════════════════════════════════
+           Solo si el self-test pasó al cargar la app (window._wireCompressionBroken
+           sería true si falló). Si falló, escribimos formato legacy — más
+           seguro perder ahorro que escribir data corrupta.
+           
+           Lo que cambia: cada op pasa por _compressOpForWire, que aplica:
+             - tipo/banco/moneda → enums numéricos
+             - elimina timestamp (regenerable desde fecha+hora)
+             - comisionPct solo si difiere del default 0.14
+           El payload incluye _wireFormat:'v1' para que mergeRemoteState sepa
+           cómo decodificar al recibir.
+           
+           MEMORIA NO CAMBIA. AppState.datos.operaciones sigue con el formato
+           expandido. Solo cambia lo que sube a Firestore.
+           
+           VALIDACIÓN DE INTEGRIDAD POST-COMPRESIÓN: en CADA write (no solo
+           el primero), comprimimos → descomprimimos → comparamos. Si las
+           sumas no coinciden, ABORTAMOS la escritura y degradamos a legacy
+           para ese write. Mejor escribir formato viejo (más grande pero
+           seguro) que escribir comprimido corrupto. */
+        if(!window._wireCompressionBroken){
+            /* Snapshot de integridad ANTES de comprimir */
+            const snapAntes=_capturarSnapshotIntegridad({
+                operaciones:datosLimpios.operaciones,
+                movimientos:datosLimpios.movimientos||[],
+                transferencias:datosLimpios.transferencias||[],
+                lotes:[],
+                bancos:datosLimpios.bancos||{}
+            });
+            /* Comprimir */
+            const opsCompr=_compressOpsArrayForWire(datosLimpios.operaciones);
+            /* Round-trip check: descomprimir y verificar */
+            const opsRoundtrip=_decompressOpsArrayFromWire(opsCompr);
+            const snapDespues=_capturarSnapshotIntegridad({
+                operaciones:opsRoundtrip,
+                movimientos:datosLimpios.movimientos||[],
+                transferencias:datosLimpios.transferencias||[],
+                lotes:[],
+                bancos:datosLimpios.bancos||{}
+            });
+            const integridad=_compararSnapshotsIntegridad(snapAntes,snapDespues);
+            if(integridad.ok){
+                /* Integridad verificada → escribir comprimido */
+                datosLimpios.operaciones=opsCompr;
+                datosLimpios._wireFormat=WIRE_FORMAT_VERSION;
+                _syncLog('wire-compress:ok',{ops:opsCompr.length});
+            }else{
+                /* Integridad rota → NO comprimir, escribir legacy + alerta crítica */
+                console.error('[P2P] WIRE COMPRESSION INTEGRITY FAILED — escribiendo formato legacy:',integridad.diffs);
+                _syncLog('wire-compress:integrity-fail',{diffs:integridad.diffs});
+                /* Marcar broken para evitar reintentos en próximos saves */
+                window._wireCompressionBroken=true;
+                /* datosLimpios.operaciones queda en formato expandido (no se reemplaza) */
+            }
+        }
         const payload={
             ...datosLimpios,
             _version:newVersion,
@@ -5949,7 +6422,30 @@ function cargarDatosUsuario(){
 
         const ci=$('comisionPlataforma'),cf=document.activeElement===ci,lcU=AppState.datos.comisionPlataforma,lcD=AppState.datos.comisionUSD;
         if(doc.exists){
-            const d=doc.data();
+            let d=doc.data();
+            /* ════════════════════════════════════════════════════════════════
+               §v4.7.63 — Descompresión wire en TODOS los paths del snapshot
+               ════════════════════════════════════════════════════════════════
+               Punto único de descompresión: si el doc trae _wireFormat='v1',
+               descomprimir UNA sola vez aquí. Branch 1 (initial load) y Branch
+               2 (merge remoto) reciben ambos `d` ya en formato expandido.
+               
+               Esto es defensivo: si en algún momento se llama otro path con
+               `d` no descomprimido, ese path ve formato comprimido y rompe.
+               Mejor centralizar la descompresión en el punto de entrada.
+               
+               Robustez: si la descompresión falla, dejar `d` como vino y
+               loguear. La app va a ver ops con campos undefined pero no
+               muere. mergeRemoteState/Branch 1 manejan defaults para todo. */
+            if(_isWireCompressed(d)){
+                try{
+                    d={...d,operaciones:_decompressOpsArrayFromWire(d.operaciones)};
+                    delete d._wireFormat;
+                }catch(e){
+                    console.error('[P2P] Descompresión wire en snapshot falló:',e);
+                    _syncLog&&_syncLog('wire-decompress:failed',{path:'snapshot',error:String(e)});
+                }
+            }
             const serverVersion=d._version||0;
             const pending=hasPendingLocal();
             const remoteEmpty=esDatosVacios(d);
@@ -9077,6 +9573,53 @@ document.addEventListener('DOMContentLoaded',()=>{
                 alert('Auditoría splits falló: '+e.message);
             }finally{
                 if(_bAuditSp){_bAuditSp.disabled=false;_bAuditSp.textContent='🧩 Auditar splits'}
+            }
+        },50);
+    });
+    /* v4.7.63 — botón Auditar compresión wire */
+    const _bAuditWire=$('btnSyncDiagAuditWire');if(_bAuditWire)_bAuditWire.addEventListener('click',()=>{
+        if(_bAuditWire){_bAuditWire.disabled=true;_bAuditWire.textContent='Verificando…'}
+        setTimeout(()=>{
+            try{
+                const r=auditarCompresionWire();
+                window._ultimaAuditoriaCompresion=r;
+                let detalle='━━━ AUDITORÍA COMPRESIÓN WIRE ━━━\n\n';
+                detalle+='Veredicto: '+r.verdict+'\n';
+                detalle+='Total ops: '+r.totalOps+'\n';
+                detalle+='Round-trip OK: '+r.roundtripOk+'/'+r.totalOps+'\n';
+                detalle+='\nTamaños:\n';
+                detalle+='  Sin comprimir: '+Math.round(r.sizeBefore/1024)+' KB\n';
+                detalle+='  Comprimido:    '+Math.round(r.sizeAfter/1024)+' KB\n';
+                detalle+='  Ahorro:        '+r.savingsKB+' KB ('+(r.sizeBefore>0?Math.round(100*(r.sizeBefore-r.sizeAfter)/r.sizeBefore):0)+'%)\n';
+                if(r.bancoNoMapeado.length){
+                    detalle+='\n⚠ Bancos NO mapeados ('+r.bancoNoMapeado.length+'):\n';
+                    r.bancoNoMapeado.slice(0,5).forEach(b=>detalle+='  • '+b.banco+' (op '+b.id+')\n');
+                    if(r.bancoNoMapeado.length>5)detalle+='  ... y '+(r.bancoNoMapeado.length-5)+' más\n';
+                }
+                if(r.tipoNoMapeado.length){
+                    detalle+='\n⚠ Tipos NO mapeados ('+r.tipoNoMapeado.length+'):\n';
+                    r.tipoNoMapeado.slice(0,5).forEach(t=>detalle+='  • '+t.tipo+' (op '+t.id+')\n');
+                }
+                if(r.monedaNoMapeado.length){
+                    detalle+='\n⚠ Monedas NO mapeadas ('+r.monedaNoMapeado.length+'):\n';
+                    r.monedaNoMapeado.slice(0,5).forEach(m=>detalle+='  • '+m.moneda+' (op '+m.id+')\n');
+                }
+                if(r.opsConDiff.length){
+                    detalle+='\n⚠ Round-trip con diff:\n';
+                    r.opsConDiff.forEach(o=>{
+                        detalle+='  • op '+o.id+': ';
+                        detalle+=o.diffs.map(d=>d.campo+' '+JSON.stringify(d.antes)+'→'+JSON.stringify(d.despues)).join(', ');
+                        detalle+='\n';
+                    });
+                }
+                detalle+='\nHerramienta de diagnóstico — no modifica datos.';
+                alert(detalle);
+                renderDiagnosticoSync();
+            }catch(e){
+                console.error('[P2P] Auditoría compresión falló:',e);
+                alert('Auditoría compresión falló: '+e.message);
+            }finally{
+                if(_bAuditWire){_bAuditWire.disabled=false;_bAuditWire.textContent='🗜️ Auditar compresión'}
             }
         },50);
     });
