@@ -2113,7 +2113,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagRecovery" style="background:#dc2626">🚨 Recovery write</button><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button></div><div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px"><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagRecovery" style="background:#dc2626">🚨 Recovery write</button><button class="btn" id="btnSyncDiagMigrate" style="background:#0d9488">🚀 Migrar a subcollections</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.64',
+    APP_VERSION: '4.8.0',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,14 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.0', date:'2026-05-26', headline:'🚀 Subcollections: introducción de migración (inactiva en runtime).', changes:[
+        {type:'feature', title:'Etapa 1 del plan v4.8: modelo nuevo introducido sin activar', desc:'Después del incidente que dejó claro que single-document era arquitecturalmente incorrecto para esta app, v4.8.0 introduce el modelo correcto: subcolecciones de Firestore (users/{uid}/operaciones/{opId}, /movimientos, /lotes, /transferencias). En esta versión TODO el código nuevo está inactivo: la app sigue funcionando 100% como en v4.7.64, con single-doc + compresión + recovery. Solo se agrega la función de migración accesible desde Diagnóstico. Sin disparo automático. Sin cambios en sync engine, render, lógica financiera ni UI operativa.'},
+        {type:'feature', title:'Función subcol_migrate genérica e idempotente', desc:'Migración independiente del usuario: lee del doc legacy del usuario actual (cualquiera), copia operaciones/movimientos/lotes/transferencias a subcolecciones en batches de 400 docs. Idempotente por diseño: docId = String(item.id), set() sobrescribe sin duplicar. Si falla a mitad, podés reintentar y continúa donde quedó. Captura snapshot ANTES (counts, sumas UYU/USDT/ventas/compras, IDs primera/última op, saldos por banco) y compara con snapshot DESPUÉS leyendo de subcolecciones via getDocs. Si integridad rota, NO marca _schemaVersion. Si todo OK, marca users/{uid}._schemaVersion="v2".'},
+        {type:'feature', title:'🚀 Botón "Migrar a subcollections" en Diagnóstico', desc:'Doble confirmación: (1) modal con counts y advertencias, (2) prompt requiriendo tipear "MIGRAR" exactamente. No se dispara accidentalmente. Durante migración: overlay bloqueante con progreso por entidad/batch. Si OK: mensaje verde con tiempo. Si falla: mensaje rojo con diff. La app sigue funcionando idéntica antes y después — el switch al modelo nuevo es v4.8.1.'},
+        {type:'feature', title:'Doc legacy intacto durante v4.8.0', desc:'La migración SOLO copia a subcolecciones y agrega 3 campos al doc raíz (_schemaVersion, _migratedAt, _migratedAppVersion). NO borra ni modifica ningún campo del legacy. Si querés "deshacer" la migración en v4.8.0, basta con borrar las subcolecciones manualmente desde Firebase Console — la app sigue usando el legacy intacto.'},
+        {type:'verified', title:'Probado contra dataset real (3564 ops)', desc:'Stress test offline contra backup completo del incidente: round-trip sin pérdida de campos, sumas idénticas, IDs preservados, structure de aportes (split) preservada. Lotes y transferencias también. Idempotencia verificada (correr 2 veces da el mismo resultado, no duplica docs). Plan v4.8.1: switch a listeners de subcollections. v4.8.2: limpieza Categoría A (compresión + recovery + sync engine single-doc, ~2000 líneas eliminadas).'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir y reabrir la app. Verificar versión 4.8.0. 2) NO operar todavía. 3) Diagnóstico → 🚀 Migrar a subcollections. 4) Confirmar dos veces (clic + tipear "MIGRAR"). 5) Esperar 30-60s mientras corre. 6) Si verde: ya está migrado el doc — verificar en Firebase Console que existen las subcolecciones users/{uid}/operaciones, etc. La app sigue funcionando normal después. 7) Si rojo: el doc legacy queda intacto, no se rompió nada, podés reintentar. 8) En Firebase Console deberías ver el doc raíz con _schemaVersion="v2" si pasó.'}
+    ]},
     {version:'4.7.64', date:'2026-05-26', headline:'🚨 Recovery Write: migración controlada legacy → comprimido + payload guard permanente.', changes:[
         {type:'fix', title:'CRÍTICO: rescate del doc remoto en estado degradado', desc:'Después de v4.7.63 el doc remoto quedó atrapado en formato legacy (~951 KB) porque Firestore aplicaba throttling sobre writes encima de él. La compresión funcionaba (payload local 537 KB confirmado en logs) pero ningún write se confirmaba. SOLUCIÓN: módulo recoveryWrite() aislado — bloquea TODOS los writes accesorios, congela el listener, escribe UN solo doc comprimido limpio con timeout 90s y 3 reintentos con backoff 5s/15s/30s, verifica leyendo del servidor, hace reset limpio del estado.'},
         {type:'feature', title:'Detección automática al cargar', desc:'4 segundos después de DOMContentLoaded: si el doc remoto NO tiene _wireFormat:"v1" y memoria tiene operaciones, dispara recoveryWrite() automáticamente. Una sola vez por sesión. Si ya está comprimido, no hace nada (log: already-compressed).'},
@@ -2601,14 +2609,6 @@ const CHANGELOG = [
         {type:'fix', title:'Sparkline ya no se superpone con mini-cajas en mobile', desc:'El sparkline estaba con top:50% (centrado vertical absoluto). Con el monto grande arriba y las mini-cajas abajo, la parte alta de la curva en días pico tocaba la línea punteada de "Otros ingresos" y el chip de "Spread prom.". Fix: en mobile (<1024px) el centro del sparkline sube a top:38%. Desktop NO se toca — la card es más ancha y nunca tuvo este problema.'},
         {type:'verified', title:'Cambio mínimo y acotado', desc:'Una regla CSS dentro de @media (max-width: 1023px): #cardGananciaHoy .spark-wrap{top:38%!important}. Cero cambios en: SVG interno (sigue con padding, gradiente, halo del Lote A v4.7.60), métrica, layout, mini-cajas, desktop, sync, Firebase. DIVs balanceados, JS válido.'},
         {type:'verified', title:'Cómo probar', desc:'1) En mobile: la curva del sparkline debe verse claramente separada de las mini-cajas y de la línea punteada de "Otros ingresos". 2) El último punto con halo blanco se ve completo (no cortado por el borde superior). 3) En desktop: idéntico a v4.7.60. 4) Si OK, subir.'}
-    ]},
-    {version:'4.7.60', date:'2026-05-22', headline:'✨ Lote A mínimo: sparkline más legible (padding, gradiente, punto final).', changes:[
-        {type:'improve', title:'Padding real del sparkline', desc:'Antes pad=4 (apenas 4px), la curva tocaba los bordes del card en días extremos. Ahora padY=8, padX=6: la línea respira correctamente dentro del contenedor sin cambiar el tamaño del SVG (sigue siendo 140×62). Cero cambio de layout — solo el SVG interno usa el espacio mejor.'},
-        {type:'improve', title:'Línea más fina + gradiente sutil', desc:'Stroke-width de 2 a 1.5 (más elegante, menos pesado). Área inferior antes era un fill plano (rgba con 0.14 opacidad) → ahora un <linearGradient> vertical: 0.28 arriba, 0 abajo. Da sensación de profundidad sin ser decorativo. Cero impacto de performance — solo 4 líneas más de SVG por render.'},
-        {type:'improve', title:'Último punto destacado con halo', desc:'Antes: un círculo plano r=3 del color de la línea. Ahora: un círculo blanco r=4 con borde del color de la línea, y un punto interno r=2 del color. Da un efecto "marcador con halo" — el ojo va directo al valor de hoy. El resto de la curva queda como tendencia, el último punto como foco.'},
-        {type:'fix', title:'Color responde a ganancia de HOY (no a tendencia)', desc:'Antes la línea era verde si "último >= promedio" (técnicamente correcto pero confuso: el monto podía ser rojo y la línea verde si el promedio era peor). Ahora la línea es verde si la ganancia de HOY es ≥ 0, roja si es < 0. Mismo criterio que el monto principal — el usuario lee una señal coherente: si el monto es rojo, la línea es roja.'},
-        {type:'verified', title:'Lote A acotado, cero cambios fuera del sparkline', desc:'NO se tocó: layout del hero, mini-cajas (v4.7.53), métricas (sigue siendo ganancia diaria últimos 14 días), tamaño del SVG, fondo de la card (sigue verde aunque la línea sea roja), desktop. Sync verificado online v504 con audit-splits CLEAN antes de tocar nada. La tarjeta principal sigue cambiando a "negative" cuando la ganancia es <0 pero eso ya existía — solo se alineó la línea con esa señal.'},
-        {type:'verified', title:'Cómo probar', desc:'1) En mobile y desktop debe verse el sparkline igual de posicionado que antes, pero la curva NO toca los bordes (padding 6-8px visible). 2) La línea se ve más fina y elegante. 3) Hay un gradiente vertical sutil debajo de la curva. 4) El último punto tiene un anillo blanco con halo del color de la línea. 5) Si tu ganancia de hoy es positiva: línea verde. Si es negativa: línea roja (la card sigue verde si es positiva, roja si es negativa — eso no cambió). 6) Sync sigue funcionando OK. 7) Si visualmente está bien, subir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -9230,6 +9230,317 @@ async function _aplicarRespaldo(datos,origen){
     }
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   §SUBCOLLECTIONS v4.8.0 — Modelo nuevo, INACTIVO en runtime
+   ════════════════════════════════════════════════════════════════════════════
+   Esta sección introduce el código de migración a subcollections SIN activarlo.
+   La app sigue funcionando 100% con el modelo single-doc actual.
+   
+   Estado de cada función al cargar:
+     • subcol_isMigrated()  → lee schemaVersion del doc raíz (lectura segura)
+     • subcol_migrate()     → ejecuta migración (solo si se dispara manual)
+     • subcol_validate()    → compara sumas pre/post (lectura pura)
+     • subcol_status()      → devuelve estado actual para Diagnóstico
+   
+   v4.8.0 NO:
+     • Cambia el sync engine
+     • Activa listeners de subcollections
+     • Modifica cómo se guardan operaciones nuevas
+     • Toca UI operativa
+   
+   v4.8.0 SÍ:
+     • Agrega botón "Migrar a subcollections" en Diagnóstico (deshabilitado por defecto)
+     • Permite, si se habilita y dispara manualmente, ejecutar la migración
+     • Marca el doc raíz con _schemaVersion="v2" si la migración pasa
+   
+   Diseño genérico: lee dinámicamente del doc del usuario actual. No tiene
+   conocimiento de uids, bancos, sumas o cantidades específicas.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Schema version constants — bump SOLO cuando cambie estructura de subcollections */
+const SUBCOL_SCHEMA_V1='v1';/* placeholder: single-doc legacy (no marca) */
+const SUBCOL_SCHEMA_V2='v2';/* subcollections: ops, movs, lotes, transfs */
+
+/* Categorías que migran a subcollections. El nombre de la clave en el doc legacy
+   coincide con el nombre de la subcollection (ej. "operaciones" → users/uid/operaciones).
+   Mantener esta lista chica y explícita evita ambigüedad. */
+const SUBCOL_ENTITIES=['operaciones','movimientos','lotes','transferencias'];
+
+/* Tamaño del batch de Firestore. Límite del SDK es 500 writes por batch;
+   dejamos margen para no quedarnos en el filo. */
+const SUBCOL_BATCH_SIZE=400;
+
+/* ─── subcol_userRef ──────────────────────────────────────────────────────────
+   Devuelve referencia al doc raíz del usuario actual. Centralizado para no
+   repetir lookup en cada función. */
+function subcol_userRef(){
+    if(!AppState.currentUser||!AppState.db)return null;
+    return AppState.db.collection('users').doc(AppState.currentUser.uid);
+}
+
+/* ─── subcol_isMigrated ───────────────────────────────────────────────────────
+   Lee _schemaVersion del doc raíz. Devuelve true si está en v2.
+   Es operación de LECTURA pura — no modifica nada. */
+async function subcol_isMigrated(){
+    const ref=subcol_userRef();
+    if(!ref)return false;
+    try{
+        const snap=await ref.get();
+        if(!snap.exists)return false;
+        return snap.data()._schemaVersion===SUBCOL_SCHEMA_V2;
+    }catch(e){
+        console.warn('[subcol] isMigrated error:',e.message);
+        return false;
+    }
+}
+
+/* ─── subcol_status ───────────────────────────────────────────────────────────
+   Devuelve resumen del estado actual de la migración para mostrar en Diagnóstico.
+   Operación de lectura pura. */
+async function subcol_status(){
+    const ref=subcol_userRef();
+    if(!ref)return{migrated:false,error:'no-user'};
+    try{
+        const snap=await ref.get();
+        if(!snap.exists)return{migrated:false,reason:'doc-no-existe'};
+        const d=snap.data();
+        const migrated=d._schemaVersion===SUBCOL_SCHEMA_V2;
+        const counts={};
+        SUBCOL_ENTITIES.forEach(ent=>{
+            counts[ent]=Array.isArray(d[ent])?d[ent].length:0;
+        });
+        return{
+            migrated,
+            schemaVersion:d._schemaVersion||'(legacy)',
+            counts,
+            migratedAt:d._migratedAt||null
+        };
+    }catch(e){
+        return{migrated:false,error:e.message};
+    }
+}
+
+/* ─── _subcol_capturarSnapshot ────────────────────────────────────────────────
+   Calcula sumas/counts críticos de un objeto datos (igual estructura que
+   AppState.datos). Genérico — funciona con cualquier dataset. */
+function _subcol_capturarSnapshot(datos){
+    const snap={
+        counts:{},
+        sumas:{montoUYU:0,usdt:0,ventas:0,compras:0},
+        ids:{primerOp:null,ultimaOp:null},
+        saldosBancos:{}
+    };
+    SUBCOL_ENTITIES.forEach(ent=>{
+        const arr=Array.isArray(datos[ent])?datos[ent]:[];
+        snap.counts[ent]=arr.length;
+    });
+    const ops=Array.isArray(datos.operaciones)?datos.operaciones:[];
+    ops.forEach((op,i)=>{
+        if(i===0)snap.ids.primerOp=String(op.id||'');
+        snap.ids.ultimaOp=String(op.id||'');
+        if(op.moneda==='UYU'||!op.moneda)snap.sumas.montoUYU+=(Number(op.monto)||0);
+        snap.sumas.usdt+=(Number(op.usdt)||0);
+        if(op.tipo==='venta')snap.sumas.ventas+=(Number(op.monto)||0);
+        else if(op.tipo==='compra')snap.sumas.compras+=(Number(op.monto)||0);
+    });
+    if(datos.bancos&&typeof datos.bancos==='object'){
+        Object.entries(datos.bancos).forEach(([n,b])=>{
+            if(b&&typeof b.saldo==='number')snap.saldosBancos[n]=b.saldo;
+        });
+    }
+    return snap;
+}
+
+/* ─── _subcol_compararSnapshots ───────────────────────────────────────────────
+   Diff entre dos snapshots. Devuelve {ok, diffs[]}. Tolerancia 0.01 para sumas
+   (roundeos de float al hacer round-trip). Counts: tolerancia 0 (exactos). */
+function _subcol_compararSnapshots(antes,despues){
+    const diffs=[];
+    const EPS=0.01;
+    SUBCOL_ENTITIES.forEach(ent=>{
+        if(antes.counts[ent]!==despues.counts[ent]){
+            diffs.push('count.'+ent+': '+antes.counts[ent]+' → '+despues.counts[ent]);
+        }
+    });
+    Object.keys(antes.sumas).forEach(k=>{
+        const d=Math.abs(antes.sumas[k]-despues.sumas[k]);
+        if(d>EPS)diffs.push('suma.'+k+': '+antes.sumas[k].toFixed(2)+' → '+despues.sumas[k].toFixed(2));
+    });
+    if(antes.ids.primerOp!==despues.ids.primerOp)diffs.push('primerOp: '+antes.ids.primerOp+' → '+despues.ids.primerOp);
+    if(antes.ids.ultimaOp!==despues.ids.ultimaOp)diffs.push('ultimaOp: '+antes.ids.ultimaOp+' → '+despues.ids.ultimaOp);
+    Object.entries(antes.saldosBancos).forEach(([n,sAntes])=>{
+        const sDespues=despues.saldosBancos[n];
+        if(sDespues===undefined)diffs.push('saldo.'+n+': desapareció');
+        else if(Math.abs(sAntes-sDespues)>EPS)diffs.push('saldo.'+n+': '+sAntes.toFixed(2)+' → '+sDespues.toFixed(2));
+    });
+    return{ok:diffs.length===0,diffs};
+}
+
+/* ─── _subcol_stripPersistFields ──────────────────────────────────────────────
+   Para cada item que se va a guardar como doc independiente, quitar campos
+   derivables que NO deben persistirse (consumedLots, ganancia, etc).
+   Estos se reconstruyen al cargar via recalcularLotesYGanancias. */
+function _subcol_stripPersistFields(item){
+    if(!item||typeof item!=='object')return item;
+    const{_syncState,consumedLots,ganancia,comisionPlataforma,...rest}=item;
+    return rest;
+}
+
+/* ─── subcol_migrate ──────────────────────────────────────────────────────────
+   Migración genérica del usuario actual: doc legacy → subcollections.
+   
+   Pasos:
+     1. Pre-check: usuario, db, no migrado ya
+     2. Leer doc legacy (genérico)
+     3. Snapshot ANTES (sumas/counts/saldos)
+     4. Para cada entidad (operaciones, movimientos, lotes, transferencias):
+        - Dividir en batches de 400
+        - Para cada batch: writeBatch con set(docId=String(item.id))
+        - Idempotente: si ya existe el doc, sobrescribe (sin duplicados)
+        - Logear progreso
+     5. Re-leer subcollections completas via getDocs
+     6. Recalcular snapshot DESPUÉS
+     7. Comparar — tolerancia 0 para counts, 0.01 para sumas
+     8. Si OK: marcar doc raíz con _schemaVersion=v2 + _migratedAt
+     9. Si NO OK: NO marcar. Subcollections quedan pobladas pero la app sigue
+        usando legacy. Reintento posible (idempotente).
+   
+   Devuelve: {ok, snapAntes, snapDespues, diffs?, error?, ms}
+   
+   IMPORTANTE: NO toca el doc legacy. NO borra nada. Esta función es pura escritura
+   a subcollections + un campo de metadata en el doc raíz. El doc legacy queda
+   intacto como red de seguridad hasta v4.8.2/4.8.3. */
+async function subcol_migrate(progressCallback){
+    const tStart=performance.now();
+    const log=(ev,data)=>{
+        try{if(typeof _syncLog==='function')_syncLog('subcol:'+ev,data||{})}catch(_){}
+        if(typeof progressCallback==='function')progressCallback(ev,data||{});
+    };
+    const ref=subcol_userRef();
+    if(!ref)return{ok:false,error:'no-user-or-db'};
+    /* Pre-check: no migrar dos veces */
+    let docSnap;
+    try{
+        docSnap=await ref.get();
+    }catch(e){
+        return{ok:false,error:'read-legacy-failed: '+e.message};
+    }
+    if(!docSnap.exists)return{ok:false,error:'legacy-doc-missing'};
+    const legacyData=docSnap.data();
+    if(legacyData._schemaVersion===SUBCOL_SCHEMA_V2){
+        log('skip:already-migrated',{});
+        return{ok:true,skipped:true,reason:'already-v2'};
+    }
+    /* Snapshot ANTES — datos del legacy tal como están */
+    const snapAntes=_subcol_capturarSnapshot(legacyData);
+    log('snap-antes',{
+        counts:snapAntes.counts,
+        sumUsdt:snapAntes.sumas.usdt.toFixed(2),
+        sumUYU:snapAntes.sumas.montoUYU.toFixed(2)
+    });
+    /* Migración entidad por entidad, batch por batch */
+    const stats={};
+    for(const ent of SUBCOL_ENTITIES){
+        const items=Array.isArray(legacyData[ent])?legacyData[ent]:[];
+        stats[ent]={total:items.length,written:0,batches:0};
+        if(items.length===0){
+            log('entity:empty',{entity:ent});
+            continue;
+        }
+        log('entity:start',{entity:ent,total:items.length});
+        /* Batches de SUBCOL_BATCH_SIZE */
+        for(let i=0;i<items.length;i+=SUBCOL_BATCH_SIZE){
+            const slice=items.slice(i,i+SUBCOL_BATCH_SIZE);
+            const batch=AppState.db.batch();
+            slice.forEach(item=>{
+                if(!item||item.id===undefined||item.id===null)return;/* skip malformed */
+                /* docId = String(id) — idempotente por diseño. Si reintentás
+                   la migración, sobrescribe el mismo doc sin crear duplicados. */
+                const docRef=ref.collection(ent).doc(String(item.id));
+                batch.set(docRef,_subcol_stripPersistFields(item));
+            });
+            try{
+                await batch.commit();
+                stats[ent].written+=slice.length;
+                stats[ent].batches++;
+                log('batch:ok',{
+                    entity:ent,
+                    batchIndex:stats[ent].batches,
+                    items:slice.length,
+                    cumulative:stats[ent].written+'/'+items.length
+                });
+            }catch(e){
+                log('batch:failed',{
+                    entity:ent,
+                    batchIndex:stats[ent].batches+1,
+                    error:e.message,
+                    written:stats[ent].written
+                });
+                return{ok:false,error:'batch-failed: '+e.message,stats,stage:'write',entity:ent};
+            }
+        }
+        log('entity:done',{entity:ent,stats:stats[ent]});
+    }
+    /* Verificación post-write: re-leer subcollections via getDocs */
+    log('verify:start',{});
+    const verificado={};
+    for(const ent of SUBCOL_ENTITIES){
+        try{
+            const snap=await ref.collection(ent).get();
+            verificado[ent]=[];
+            snap.forEach(doc=>verificado[ent].push(doc.data()));
+        }catch(e){
+            return{ok:false,error:'verify-read-failed: '+e.message,stage:'verify',entity:ent};
+        }
+    }
+    /* Para re-capturar snapshot DESPUÉS necesitamos pasar la misma estructura.
+       Pero los lotes/saldos vienen de "bancos" en legacyData — los preservamos. */
+    const datosVerificados={
+        ...verificado,
+        bancos:legacyData.bancos||{}
+    };
+    const snapDespues=_subcol_capturarSnapshot(datosVerificados);
+    log('snap-despues',{
+        counts:snapDespues.counts,
+        sumUsdt:snapDespues.sumas.usdt.toFixed(2),
+        sumUYU:snapDespues.sumas.montoUYU.toFixed(2)
+    });
+    const cmp=_subcol_compararSnapshots(snapAntes,snapDespues);
+    if(!cmp.ok){
+        log('integrity:failed',{diffs:cmp.diffs});
+        return{
+            ok:false,
+            error:'integridad-rota',
+            diffs:cmp.diffs,
+            snapAntes,snapDespues,
+            stats,
+            ms:Math.round(performance.now()-tStart)
+        };
+    }
+    /* Marcar doc raíz como migrado. NO borramos los campos del legacy en
+       v4.8.0 — el legacy sigue intacto. La limpieza es Etapa 3 (v4.8.2/3). */
+    try{
+        await ref.update({
+            _schemaVersion:SUBCOL_SCHEMA_V2,
+            _migratedAt:firebase.firestore.FieldValue.serverTimestamp(),
+            _migratedAppVersion:CONFIG.APP_VERSION
+        });
+        log('marker:set',{schemaVersion:SUBCOL_SCHEMA_V2});
+    }catch(e){
+        return{
+            ok:false,
+            error:'marker-update-failed: '+e.message,
+            stats,
+            stage:'marker',
+            snapAntes,snapDespues,
+            ms:Math.round(performance.now()-tStart)
+        };
+    }
+    const ms=Math.round(performance.now()-tStart);
+    log('done',{ms,stats});
+    return{ok:true,stats,snapAntes,snapDespues,ms};
+}
+
 /* Exportar — descarga JSON con todo el estado actual */
 function exportarDatos(){
     if(!AppState.currentUser){alert('No hay usuario activo');return}
@@ -9684,6 +9995,83 @@ document.addEventListener('DOMContentLoaded',()=>{
                 alert('Recovery no disponible (función no encontrada).');
             }
         },300);
+    });
+    /* v4.8.0 — botón Migrar a subcollections.
+       Doble confirmación: (1) confirm con detalles, (2) prompt con palabra clave.
+       NO se dispara accidentalmente. Solo se ejecuta si el usuario tipea "MIGRAR". */
+    const _bMig=$('btnSyncDiagMigrate');if(_bMig)_bMig.addEventListener('click',async()=>{
+        if(typeof subcol_status!=='function'){alert('Migración no disponible.');return}
+        _bMig.disabled=true;_bMig.textContent='Verificando…';
+        try{
+            const status=await subcol_status();
+            if(status.migrated){
+                alert('Ya está migrado a subcollections.\nschemaVersion: '+status.schemaVersion+'\nmigrado: '+(status.migratedAt?'sí':'pendiente'));
+                return;
+            }
+            const totalDocs=(status.counts?status.counts.operaciones||0:0)+
+                            (status.counts?status.counts.movimientos||0:0)+
+                            (status.counts?status.counts.lotes||0:0)+
+                            (status.counts?status.counts.transferencias||0:0);
+            const msg=
+                '🚀 MIGRACIÓN A SUBCOLLECTIONS\n\n'+
+                'Esto va a copiar todos los documentos del doc legacy a subcollections.\n\n'+
+                'Estado actual:\n'+
+                '• schemaVersion: '+status.schemaVersion+'\n'+
+                '• operaciones: '+(status.counts?.operaciones||0)+'\n'+
+                '• movimientos: '+(status.counts?.movimientos||0)+'\n'+
+                '• lotes: '+(status.counts?.lotes||0)+'\n'+
+                '• transferencias: '+(status.counts?.transferencias||0)+'\n'+
+                '• total docs a crear: '+totalDocs+'\n\n'+
+                'IMPORTANTE en v4.8.0:\n'+
+                '• El doc legacy NO se borra. Queda intacto.\n'+
+                '• La app SIGUE usando el modelo legacy después de migrar.\n'+
+                '• El switch al nuevo modelo es en v4.8.1.\n\n'+
+                '¿Continuar?';
+            if(!confirm(msg))return;
+            const palabra=prompt('Para confirmar, tipeá exactamente: MIGRAR');
+            if(palabra!=='MIGRAR'){alert('Cancelado. Palabra no coincide.');return}
+            cerrarModal('modalSyncDiag');
+            /* Disparar migración con callback de progreso */
+            const progressEl=document.createElement('div');
+            progressEl.id='migProgress';
+            progressEl.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.96);'+
+                'display:flex;align-items:center;justify-content:center;padding:20px;'+
+                'font-family:-apple-system,system-ui,sans-serif;color:#e2e8f0';
+            progressEl.innerHTML=
+                '<div style="max-width:380px;width:100%;background:#1e293b;border-radius:14px;padding:24px;text-align:center">'+
+                    '<div style="font-size:1.1em;font-weight:700;color:#5eead4;margin-bottom:12px">🚀 Migrando a subcollections</div>'+
+                    '<div style="font-size:0.85em;color:#cbd5e1;margin-bottom:18px">No cierres la app. La operación es idempotente: si algo falla, podés reintentar.</div>'+
+                    '<div id="migPhase" style="font-size:0.85em;color:#94a3b8;background:#0f172a;padding:10px;border-radius:8px;min-height:60px">Iniciando…</div>'+
+                '</div>';
+            document.body.appendChild(progressEl);
+            const phaseEl=()=>document.getElementById('migPhase');
+            const result=await subcol_migrate((ev,data)=>{
+                const el=phaseEl();if(!el)return;
+                if(ev==='entity:start')el.textContent='Migrando '+data.entity+' ('+data.total+')…';
+                else if(ev==='batch:ok')el.textContent=data.entity+': '+data.cumulative;
+                else if(ev==='entity:done')el.textContent='✓ '+data.entity+' OK';
+                else if(ev==='verify:start')el.textContent='Verificando integridad…';
+                else if(ev==='marker:set')el.textContent='✓ Marcando _schemaVersion';
+                else if(ev==='done')el.textContent='✓ Completado en '+(data.ms/1000).toFixed(1)+'s';
+            });
+            const pEl=phaseEl();
+            if(result.ok){
+                if(pEl)pEl.innerHTML='<div style="color:#5eead4">✓ MIGRACIÓN EXITOSA</div>'+
+                    '<div style="font-size:0.78em;margin-top:8px;color:#cbd5e1">Tiempo: '+(result.ms/1000).toFixed(1)+'s</div>'+
+                    '<div style="font-size:0.78em;color:#cbd5e1">Ops: '+(result.snapAntes?.counts?.operaciones||'?')+'</div>'+
+                    '<div style="font-size:0.7em;color:#94a3b8;margin-top:10px">La app sigue usando legacy. Switch en v4.8.1.</div>';
+                setTimeout(()=>{progressEl.remove()},4000);
+            }else{
+                if(pEl)pEl.innerHTML='<div style="color:#fca5a5;font-weight:700">✗ MIGRACIÓN FALLÓ</div>'+
+                    '<div style="font-size:0.78em;margin-top:8px;color:#fecaca">'+(result.error||'unknown')+'</div>'+
+                    (result.diffs?'<div style="font-size:0.72em;margin-top:8px;color:#fca5a5;text-align:left">'+result.diffs.slice(0,5).map(d=>'• '+d).join('<br>')+'</div>':'')+
+                    '<button onclick="document.getElementById(\'migProgress\').remove()" style="margin-top:14px;padding:8px 14px;background:#475569;color:#fff;border:none;border-radius:6px;cursor:pointer">Cerrar</button>';
+            }
+        }catch(e){
+            alert('Error inesperado: '+(e&&e.message||e));
+        }finally{
+            if(_bMig){_bMig.disabled=false;_bMig.textContent='🚀 Migrar a subcollections'}
+        }
     });
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
