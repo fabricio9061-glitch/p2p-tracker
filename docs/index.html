@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.4',
+    APP_VERSION: '4.8.2.5',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,15 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.5', date:'2026-05-27', headline:'🔬 Auditoría completa: 6 bugs fixeados (3 críticos, 1 alta, 1 media, 1 menor).', changes:[
+        {type:'fix', title:'FIX #1 (CRÍTICO): listener legacy pisaba memoria con doc raíz stale', desc:'mergeRemoteState procesaba operaciones/movimientos/transferencias del doc raíz aunque _subcolActive=true. Eso permitía que el listener legacy (que corre 2s antes que el gate) mergeara un doc raíz viejo encima de memoria con ops nuevas correctas. v4.8.2.5: mergeRemoteState strippea operaciones, movimientos, transferencias, lotes y _wireFormat del input cuando _subcolActive=true. Los listeners de subcolecciones son única fuente para esas entidades.'},
+        {type:'fix', title:'FIX #2 (CRÍTICO): subcol_delete no encolaba pendientes', desc:'subcol_write encolaba retry on fail desde v4.8.2.4, pero subcol_delete no. Si fallaba (SDK terminated, red), memoria borraba la op pero server la mantenía → drift inverso. v4.8.2.5: subcol_delete fallido encola con type:"delete". subcol_retryPendingWrites distingue por tipo y reintenta correctamente. Si una op tuvo write fallido y luego delete fallido, gana el último (consistente con intención del usuario).'},
+        {type:'fix', title:'FIX #3 (CRÍTICO): listener subcol skipeaba snapshots reales del server', desc:'Condición "if(hasPendingWrites)return" skipeaba TODO snapshot con flag pendiente, incluyendo los que vienen del server con writes inflight no relacionados. v4.8.2.5: cambio a "if(hasPendingWrites && fromCache)return" — solo skipea echos locales del SDK, no snapshots del server. Esto permite que docs nuevos del server lleguen a memoria aunque haya otros writes inflight.'},
+        {type:'fix', title:'FIX #4 (ALTA): logout no desuscribía listeners subcol', desc:'Al cerrar sesión, AppState.unsubscribe se desuscribía (legacy) pero AppState._subcolUnsubs quedaba activo. Si otro usuario hacía login, los listeners del anterior seguían escuchando paths del usuario equivocado — memory leak + bug de privacidad. v4.8.2.5: handler de logout desuscribe los 3 listeners subcol, resetea _subcolActive, _subcolFirstSnapshots, _subcolRootCleaned. Estado limpio para próximo login.'},
+        {type:'fix', title:'FIX #5 (MEDIA): backupToLocal stringificaba 1.3MB en cada subcol:write', desc:'guardaOptimista llamaba backupToLocal() siempre, incluso cuando subcol_intercept ya manejaba el write. Resultado: cada operación nueva (~300 bytes a Firestore) disparaba un stringify de 1.3MB del estado completo + localStorage write — anulando el beneficio del switch a subcol. v4.8.2.5: cuando _interceptedBySubcol=true, salteamos backupToLocal. Para entidades NO migradas (bancos, tags, config), backupToLocal sigue corriendo igual. Red de seguridad real ahora: subcol_pending en localStorage + server confirmado.'},
+        {type:'fix', title:'FIX #6 (MENOR): re-mount de listeners reseteaba firstSnapshotReceived', desc:'Variable local en setupListeners se reseteaba en cada llamada. Si setupListeners corría dos veces (race), el listener nuevo creía ser el primero y llamaba _subcol_unsubscribeLegacyListener doble (idempotente pero ruidoso). v4.8.2.5: estado a AppState._subcolFirstSnapshots, sobrevive re-mount.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Force-quit PWA + 60s + reabrir. 2) Verificar versión 4.8.2.5. 3) Diagnóstico → log debe verse: subcol:gate:ok → subcol:mode:activated → subcol:listeners:setup → first-snapshot ×3 → subcol:legacy-unsub:done → subcol:retry:start (con las 14 ops de v4.8.2.3 que estaban en pending). 4) Crear operación nueva: log debe mostrar subcol:write OK. 5) Eliminar una op de prueba: log debe mostrar subcol:delete OK (no subcol:delete:failed silencioso). 6) Verificar que no haya save:write-start payloadKB:545 en ningún punto.'}
+    ]},
     {version:'4.8.2.4', date:'2026-05-27', headline:'🛡️ Fix bug raíz: SDK terminate automático + retry de writes perdidos.', changes:[
         {type:'fix', title:'BUG RAÍZ: registrarError disparaba terminate() del SDK automáticamente', desc:'Cuando Firestore tiraba "INTERNAL ASSERTION FAILED" (bug #6256 del SDK), registrarError llamaba iniciarRecuperacionFirestore() que hacía db.terminate() + clearPersistence() + intentaba reload. Pero en PWA iOS standalone el reload no se ejecutaba (iOS bloquea location.reload en background). Resultado: el SDK quedaba terminated y todos los subcol:write siguientes daban "client has already been terminated" sin posibilidad de recuperación. Esto pasó después que v4.8.2.3 activara subcol mode correctamente. v4.8.2.4: trigger automático DESACTIVADO. El error se registra pero no se dispara terminate. El usuario decide manualmente desde Diagnóstico → Reset SDK Firestore.'},
         {type:'fix', title:'BUG: subcol_write perdía ops cuando el SDK estaba terminated', desc:'subcol_write fallaba con "client terminated" y solo logueaba — no marcaba la op como pendiente. Como _subcolActive=true bloquea enqueueSync para entidades migradas, las ops quedaban en memoria sin marca de pendiente. Al recargar, _localDirty=0 hacía creer que no había nada pendiente. v4.8.2.4: subcol_write fallido ahora encola la op en AppState._subcolPendingWrites + localStorage._subcol_pending. Cuando el SDK vuelve a funcionar (subcol_activate diferido 4s después de activar), se ejecuta subcol_retryPendingWrites automáticamente. Idempotente — si se reintentan ops que ya están en server, set() sobrescribe sin duplicar.'},
@@ -2597,14 +2606,6 @@ const CHANGELOG = [
         {type:'fix', title:'Conteo de docs con fallback controlado', desc:'_subcol_countDocs intenta count().get() (agregado servidor, barato). Si el SDK no soporta count(), fallback a .get() entera y .size — más costoso pero exacto. Sin fallback silencioso a "asumir OK".'},
         {type:'verified', title:'Cero acciones automáticas adicionales', desc:'El gate NO migra datos, NO copia docs, NO reescribe nada salvo el doc chico _meta/migration (~100 bytes). Si auto-repair falla por red, la app queda en legacy sin tocar nada. Próximo arranque reintenta (idempotente).'},
         {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.1. 2) Reabrir app. 3) Diagnóstico → log. 4) Buscar: subcol:gate:start → subcol:gate:auto-meta-repair (si tus subcollections están completas) o subcol:gate:partial-migration (si counts no coinciden, con detalle). 5) Si auto-meta-repair: continúa con subcol:mode:activated → subcol:listeners:setup → primeros snapshots → legacy-unsub → root-cleaned. 6) Crear operación nueva → subcol:write con sizeKB chico. NO debe aparecer wire-compress/save:write-start payloadKB.'}
-    ]},
-    {version:'4.8.2', date:'2026-05-26', headline:'🎯 Switch real a runtime subcollections (con gate explícito, conservador).', changes:[
-        {type:'feature', title:'Gate único de activación: subcol_isMigrated → subcol_activate', desc:'Al bootstrap, después que AppState.datos hidrata, corre UNA VEZ _subcolGate. Verifica 4 condiciones en server (no cache): (1) existe _meta/migration, (2) schemaVersion="v2", (3) operaciones tiene al menos sample, (4) sample en formato expandido (tipo string, monto number — no t/mo comprimido). Si las 4 → AppState._subcolActive=true + listeners de subcolecciones + desuscripción del listener legacy una vez recibido el primer snapshot de cada una + cleanup del doc raíz (FieldValue.delete a operaciones/movimientos/lotes/transferencias/_wireFormat). Si alguna falla → app sigue en legacy SIN cambios y se loguea el motivo: subcol:gate:no-meta / :no-v2 / :bad-format / :meta-error / :sample-error / :ops-empty (este último cuenta como OK).'},
-        {type:'feature', title:'Intercepción en guardaOptimista para writes incrementales', desc:'Una sola línea de gate al inicio de guardaOptimista: si _subcolActive=true y la entidad es una de las 3 migradas (operaciones, movimientos, transferencias), llama subcol_intercept(type, entity, id) que escribe directo a users/{uid}/{entity}/{id} con set(). El enqueueSync legacy NO se llama para esas entidades. Si la queue legacy queda vacía al terminar, NO se programa debounce → guardarDatos no se invoca → NO hay save:write-start del doc gigante.'},
-        {type:'feature', title:'Listeners onSnapshot incrementales sobre subcolecciones', desc:'subcol_setupListeners monta onSnapshot en operaciones, movimientos, transferencias. Procesa docChanges() (deltas, no full re-read). Hidrata AppState.datos[entity] solo con los cambios. Render diferido 120ms para batchear cambios concurrentes. Cuando los 3 listeners reciben su primer snapshot, desuscribe el listener legacy del doc raíz automáticamente. El doc raíz solo se lee bajo demanda después de eso (config, bancos).'},
-        {type:'feature', title:'Logs explícitos para diagnóstico', desc:'Cada event esencial loguea: subcol:gate:start, subcol:gate:ok / :no-meta / :no-v2 / :bad-format, subcol:mode:activated / :legacy, subcol:listeners:setup, subcol:listeners:first-snapshot, subcol:legacy-unsub:done, subcol:root-cleaned, subcol:write (con entity, id, sizeKB, ms). El log de Diagnóstico solo te dice EXACTAMENTE por qué entró o no entró al modo subcol.'},
-        {type:'feature', title:'Garantías de NO-acción defensiva', desc:'v4.8.2 NUNCA: dispara migración automática, reintenta gates fallidos, sobrescribe datos, mantiene coexistencia híbrida con compatibilidad legacy "por las dudas". Si las precondiciones no se cumplen, la app queda en legacy SIN tocar nada, y el log dice por qué. Una sola ejecución del gate por sesión.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Pre-requisito: la migración a subcollections debe haberse corrido ANTES (vía v4.8.1.2 botón manual). Sin _meta/migration en server, v4.8.2 queda en legacy y loguea subcol:gate:no-meta. 2) Subir v4.8.2. 3) Reabrir app. 4) En Diagnóstico → log debe aparecer: subcol:gate:start → subcol:gate:ok → subcol:mode:activated → subcol:listeners:setup → subcol:listeners:first-snapshot (×3) → subcol:legacy-unsub:done → subcol:root-cleaned. 5) Crear una operación nueva. Log esperado: subcol:write con entity:"operaciones", sizeKB chico (~0.3). NO debe aparecer wire-compress:ok, payload:compact-*, save:write-start con payloadKB:545. 6) Si el log dice subcol:mode:legacy con reason, ese reason explica exactamente qué falta. Decime el reason y resolvemos.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -5586,8 +5587,17 @@ function guardaOptimista(type,entity,id){
        Beneficio: cero pérdida de datos en escenarios de cierre abrupto.
        
        Adicionalmente, backupToLocal valida que el estado no esté vacío antes de
-       guardar (esDatosVacios), evitando sobrescribir un backup bueno con uno malo. */
-    try{backupToLocal()}catch(e){console.warn('[P2P] backup inmediato falló:',e.message)}
+       guardar (esDatosVacios), evitando sobrescribir un backup bueno con uno malo.
+       
+       v4.8.2.5 — FIX #5: cuando subcol interceptó la mutación, salteamos el
+       backupToLocal por op individual. Razón: con 3600+ ops, stringify del estado
+       completo en cada subcol:write anula el beneficio del write directo (~300
+       bytes a Firestore vs ~1.3MB stringify local). El subcol_pending + el server
+       son la red de seguridad ahora. Para entidades NO migradas (bancos, tags,
+       config) el backup sigue corriendo. */
+    if(!_interceptedBySubcol){
+        try{backupToLocal()}catch(e){console.warn('[P2P] backup inmediato falló:',e.message)}
+    }
     /* Invalidar fingerprints de listas → próximo actualizarVista re-renderiza las listas
        aunque no cambie array.length (ej. editar monto de una transferencia) */
     if(typeof _invalidateListCache==='function')_invalidateListCache();
@@ -5638,19 +5648,28 @@ function flushGuardaDebounce(){
 /* ─── Merge: NEVER drops local-only entities ─── */
 function mergeRemoteState(d){
     /* ════════════════════════════════════════════════════════════════
+       v4.8.2.5 — FIX #1: si subcol mode está activo, las entidades
+       migradas (operaciones, movimientos, transferencias, lotes
+       derivable) NO deben venir desde el listener legacy del doc raíz.
+       Los listeners de subcolecciones son la única fuente autoritativa.
+       
+       Razón: el listener legacy procesa snapshots ANTES que el gate
+       active subcol mode, y trae el doc raíz stale (sin ops nuevas).
+       Sin este strip, el merge pisaba memoria correcta con datos viejos. */
+    if(d&&AppState._subcolActive===true){
+        d={...d};
+        delete d.operaciones;
+        delete d.movimientos;
+        delete d.transferencias;
+        delete d.lotes;
+        delete d._wireFormat;
+    }
+    /* ════════════════════════════════════════════════════════════════
        §v4.7.63 — Descompresión wire al recibir snapshot.
        ════════════════════════════════════════════════════════════════
        Si el doc remoto trae `_wireFormat: 'v1'`, descomprimir las
        operaciones a formato expandido ANTES de cualquier otro
-       procesamiento. El resto de mergeRemoteState ya trabaja con el
-       formato expandido (asume tipo:'venta', banco:'Itau', etc.).
-       
-       Si NO trae wireFormat, el doc es legacy → no se toca, sigue
-       funcionando. Compatibilidad backward para el primer arranque
-       después de implementar la compresión.
-       
-       Defensivo: clonamos `d` para no mutar el objeto que Firestore
-       nos pasa. El framework podría tenerlo congelado o cachearlo. */
+       procesamiento. */
     if(d&&_isWireCompressed(d)){
         try{
             const opsDescomprimidas=_decompressOpsArrayFromWire(d.operaciones);
@@ -9761,29 +9780,29 @@ async function subcol_write(entity,id,data){
      • Al activar subcol_mode (subcol_activate)
      • Cuando un write nuevo confirma OK (señal de que el SDK está respondiendo)
      • Manualmente desde botón nuevo en Diagnóstico (v4.8.2.4) */
-function _subcol_addPendingWrite(entity,id){
+function _subcol_addPendingWrite(entity,id,opType){
     if(!AppState._subcolPendingWrites)AppState._subcolPendingWrites=[];
-    const key=entity+':'+String(id);
-    if(!AppState._subcolPendingWrites.find(x=>x.key===key)){
-        AppState._subcolPendingWrites.push({key,entity,id:String(id),ts:Date.now()});
-        try{
-            /* Persistir en localStorage por las dudas */
-            localStorage.setItem('_subcol_pending',JSON.stringify(AppState._subcolPendingWrites));
-        }catch(_){}
-    }
+    const type=opType||'write';
+    /* Si ya existe entry para mismo entity+id, reemplazar (último gana).
+       Caso: write fallo → luego delete fallo. El último estado real es delete. */
+    const existingIdx=AppState._subcolPendingWrites.findIndex(x=>x.entity===entity&&x.id===String(id));
+    const entry={entity,id:String(id),type,ts:Date.now()};
+    if(existingIdx>=0)AppState._subcolPendingWrites[existingIdx]=entry;
+    else AppState._subcolPendingWrites.push(entry);
+    try{
+        localStorage.setItem('_subcol_pending',JSON.stringify(AppState._subcolPendingWrites));
+    }catch(_){}
 }
 function _subcol_removePendingWrite(entity,id){
     if(!AppState._subcolPendingWrites)return;
-    const key=entity+':'+String(id);
     const before=AppState._subcolPendingWrites.length;
-    AppState._subcolPendingWrites=AppState._subcolPendingWrites.filter(x=>x.key!==key);
+    AppState._subcolPendingWrites=AppState._subcolPendingWrites.filter(x=>!(x.entity===entity&&x.id===String(id)));
     if(AppState._subcolPendingWrites.length<before){
         try{localStorage.setItem('_subcol_pending',JSON.stringify(AppState._subcolPendingWrites))}catch(_){}
     }
 }
 async function subcol_retryPendingWrites(){
     const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
-    /* Cargar de localStorage si memoria está vacía */
     if(!AppState._subcolPendingWrites||AppState._subcolPendingWrites.length===0){
         try{
             const raw=localStorage.getItem('_subcol_pending');
@@ -9797,17 +9816,23 @@ async function subcol_retryPendingWrites(){
     }
     log('subcol:retry:start',{count:pending.length});
     let retried=0,failed=0;
-    /* Copia porque _subcol_removePendingWrite modifica el array */
     const queue=pending.slice();
     for(const p of queue){
-        const item=_subcol_findItemInMemory(p.entity,p.id);
-        if(!item){
-            /* Item ya no está en memoria (probablemente borrado) */
-            _subcol_removePendingWrite(p.entity,p.id);
-            continue;
+        if(p.type==='delete'){
+            const r=await subcol_delete(p.entity,p.id);
+            if(r.ok)retried++;else failed++;
+        }else{
+            const item=_subcol_findItemInMemory(p.entity,p.id);
+            if(!item){
+                /* Item ya no está en memoria — usuario lo borró localmente.
+                   Sacar del pending y continuar (sin convertir a delete; si la
+                   op estaba en server alguien va a tener que limpiarla). */
+                _subcol_removePendingWrite(p.entity,p.id);
+                continue;
+            }
+            const r=await subcol_write(p.entity,p.id,item);
+            if(r.ok)retried++;else failed++;
         }
-        const r=await subcol_write(p.entity,p.id,item);
-        if(r.ok)retried++;else failed++;
     }
     log('subcol:retry:done',{retried,failed,remaining:(AppState._subcolPendingWrites||[]).length});
     return{ok:true,retried,failed};
@@ -9816,7 +9841,9 @@ window._subcolRetryPendingWrites=subcol_retryPendingWrites;
 
 
 /* ─── subcol_delete ───────────────────────────────────────────────────────────
-   Borrado directo de un doc de subcolección. */
+   Borrado directo de un doc de subcolección.
+   v4.8.2.5: si falla, encola para retry posterior. Antes quedaba huérfano:
+   memoria local borraba la op pero server la mantenía → drift inverso. */
 async function subcol_delete(entity,id){
     const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
     const ref=subcol_userRef();
@@ -9825,9 +9852,11 @@ async function subcol_delete(entity,id){
     try{
         await _withTimeout(docRef.delete(),15000,'subcol.delete.'+entity);
         log('subcol:delete',{entity,id:String(id),ok:true});
+        _subcol_removePendingWrite(entity,id);
         return{ok:true};
     }catch(e){
         log('subcol:delete:failed',{entity,id:String(id),error:e.message});
+        _subcol_addPendingWrite(entity,id,'delete');
         return{ok:false,error:e.message};
     }
 }
@@ -9887,7 +9916,10 @@ function subcol_setupListeners(){
     if(!ref){log('subcol:listeners:no-ref',{});return}
     const ENTITIES=['operaciones','movimientos','transferencias'];
     if(!AppState._subcolUnsubs)AppState._subcolUnsubs={};
-    const firstSnapshotReceived={};
+    /* v4.8.2.5 — FIX #6: estado en AppState para sobrevivir re-mount. Si
+       setupListeners se llama dos veces (race), no resetear el tracking ni
+       volver a desuscribir legacy (que ya está null). */
+    if(!AppState._subcolFirstSnapshots)AppState._subcolFirstSnapshots={};
     ENTITIES.forEach(ent=>{
         /* Limpiar listener anterior si existía */
         if(AppState._subcolUnsubs[ent]){
@@ -9896,8 +9928,8 @@ function subcol_setupListeners(){
         }
         const colRef=ref.collection(ent);
         AppState._subcolUnsubs[ent]=colRef.onSnapshot(snap=>{
-            if(!firstSnapshotReceived[ent]){
-                firstSnapshotReceived[ent]=true;
+            if(!AppState._subcolFirstSnapshots[ent]){
+                AppState._subcolFirstSnapshots[ent]=true;
                 log('subcol:listeners:first-snapshot',{
                     entity:ent,
                     size:snap.size,
@@ -9905,7 +9937,7 @@ function subcol_setupListeners(){
                 });
                 /* Cuando los 3 listeners tuvieron su primer snapshot, podemos
                    desuscribir el listener legacy con seguridad */
-                if(ENTITIES.every(e=>firstSnapshotReceived[e])){
+                if(ENTITIES.every(e=>AppState._subcolFirstSnapshots[e])){
                     _subcol_unsubscribeLegacyListener();
                 }
             }
@@ -9916,8 +9948,13 @@ function subcol_setupListeners(){
             snap.docChanges().forEach(change=>{
                 const data=change.doc.data();
                 const idStr=change.doc.id;
-                /* skip si es echo de un write nuestro pendiente */
-                if(change.doc.metadata.hasPendingWrites)return;
+                /* v4.8.2.5 — FIX #3: skipear ECHO de mi propio write pendiente.
+                   El echo se identifica por hasPendingWrites + fromCache (el SDK
+                   sintetiza un snapshot local antes que el server confirme).
+                   Si fromCache=false, es snapshot real del server y DEBE procesarse
+                   aunque metadata.hasPendingWrites sea true (residuo de otro write
+                   inflight no relacionado). */
+                if(change.doc.metadata.hasPendingWrites && change.doc.metadata.fromCache)return;
                 const idx=arr.findIndex(x=>x&&String(x.id)===idStr);
                 if(change.type==='added'||change.type==='modified'){
                     if(idx>=0)arr[idx]={...arr[idx],...data};
@@ -10210,7 +10247,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='exportar-diagnostico')exportarDiagnostico();
         else if(a==='diagnostico-sync')abrirDiagnosticoSync();
         else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}/* v4.8.2.5 — FIX #4: desuscribir listeners subcol y resetear flags */if(AppState._subcolUnsubs){Object.values(AppState._subcolUnsubs).forEach(u=>{try{u&&u()}catch(_){}});AppState._subcolUnsubs={}}AppState._subcolActive=false;AppState._subcolFirstSnapshots={};AppState._subcolRootCleaned=false;AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
     });
 
     // Toggle sections
