@@ -2571,17 +2571,13 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
-    {version:'4.8.2', date:'2026-05-26', headline:'🚀 Switch real a subcollections: writes individuales, sin payload pesado.', changes:[
-        {type:'feature', title:'Runtime sobre subcollections en modo v2', desc:'Al cargar, si existe users/{uid}/_meta/migration con schemaVersion="v2" — o si las subcollections ya tienen docs (caso anibal9061: migración previa sin marker, marker creado retroactivamente) — la app activa modo v2: AppState._subcolMode=true. A partir de ese momento, las operaciones, movimientos y transferencias se leen/escriben directamente desde users/{uid}/{entidad}/{id} como docs individuales. NO se usa más guardarDatos para esas entidades. NO hay compresión wire en su flujo. NO hay payload de 540 KB. Cada write es ~300 bytes.'},
-        {type:'feature', title:'3 listeners de subcollections con docChanges incremental', desc:'subcol_setupListeners suscribe onSnapshot sobre operaciones, movimientos y transferencias. Cada change (added/modified/removed) actualiza AppState.datos[entidad] incrementalmente sin re-leer toda la lista. Dispara recalcularLotesYGanancias + renderTodo. Sin re-render completo del doc raíz por cada cambio.'},
-        {type:'feature', title:'3 funciones de write directo: subcol_writeOp/Mov/Transf', desc:'Cada función toma el item, le aplica strip de derivables (_subcol_stripPersistFields), y escribe set(item) al path correspondiente. Logea subcol:write {entity, id, sizeKB}. Con timeout de 15s (vía _withTimeout). El SDK maneja offline/retry/persistence nativos — sin queue propia, sin payload prep, sin compresión.'},
-        {type:'feature', title:'guardaOptimista hace routing v2 vs legacy', desc:'Único punto de routing: si AppState._subcolMode + entity en {operaciones, movimientos, transferencias} → ruta directa a subcol_write*. Si no → ruta legacy normal (config sigue por ahí). Sin cambios en formularios, validación, UI o lógica financiera.'},
-        {type:'feature', title:'mergeRemoteState ignora arrays legacy en modo v2', desc:'Cuando AppState._subcolMode=true, el merge del doc raíz hace delete de d.operaciones, d.movimientos, d.lotes, d.transferencias antes de procesar. El listener legacy del doc raíz queda activo SOLO para config: bancos, tasasRecientes, comisionPlataforma, ultimoMesProcesado, tags, lastSeenVersion. Sin coexistencia caótica: la fuente de verdad de cada cosa está clara.'},
-        {type:'feature', title:'guardarDatos no-op cuando no hay cambios de config', desc:'En modo v2, si la queue no contiene entries con entity="config", guardarDatos retorna sin escribir. Limpia entries residuales de la queue legacy. Sin más save:write-start con payloadKB:540. El doc raíz solo se toca cuando cambia config real.'},
-        {type:'feature', title:'Marker retroactivo automático para usuarios pre-v4.8.1.2', desc:'Si subcol_detectAndBootstrap encuentra que NO existe _meta/migration pero la subcolección operaciones tiene docs (caso típico: migración corrió en v4.8.0/4.8.1 pero el marker no se guardó en el path actual), escribe el marker automáticamente y activa modo v2. Una sola lectura ligera (limit 1) + una sola escritura chica. Sin re-migrar datos.'},
-        {type:'verified', title:'Criterio de éxito explícito', desc:'Después de crear una operación nueva en modo v2: NO aparece wire-compress:ok, NO aparece save:write-start con payloadKB:500+, NO aparece save:tx-timeout. SÍ aparece subcol:write {entity:"operaciones", id:"...", sizeKB:0.x}. Queue NO crece. _localDirty NO crece. Es el test único de aceptación de v4.8.2.'},
-        {type:'verified', title:'Lo que NO incluye v4.8.2 (intencionalmente)', desc:'NO incluye limpieza física del doc raíz (los arrays legacy operaciones/movimientos/lotes/transferencias del doc raíz quedan ahí, ignorados). NO incluye borrado de wire compression / recovery / queue legacy (Categoría A). NO incluye lotes como subcollection (se reconstruyen desde operaciones, no necesitan persistir). NO incluye UI nueva. Todo eso es v4.8.3.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Subir y reabrir app. 2) En el primer arranque online, el log debería mostrar: subcol:bootstrap:marker-set-retroactive (si tu caso) + subcol:mode:activated + subcol:listeners:setup. 3) Crear una operación nueva. 4) En Diagnóstico → log debe verse SOLO: subcol:write {entity:"operaciones", id:"...", sizeKB:~0.3}. NO debe verse save:write-start, NO wire-compress:ok. 5) Auditar tamaño: el doc raíz sigue pesando 935 KB (limpieza en v4.8.3), PERO no se está reescribiendo en cada save. 6) Cerrar y reabrir: en arranques siguientes el listener directamente lee de las subcollections (cache + delta), sin tocar el doc raíz para operaciones.'}
+    {version:'4.8.2', date:'2026-05-26', headline:'🎯 Switch real a runtime subcollections (con gate explícito, conservador).', changes:[
+        {type:'feature', title:'Gate único de activación: subcol_isMigrated → subcol_activate', desc:'Al bootstrap, después que AppState.datos hidrata, corre UNA VEZ _subcolGate. Verifica 4 condiciones en server (no cache): (1) existe _meta/migration, (2) schemaVersion="v2", (3) operaciones tiene al menos sample, (4) sample en formato expandido (tipo string, monto number — no t/mo comprimido). Si las 4 → AppState._subcolActive=true + listeners de subcolecciones + desuscripción del listener legacy una vez recibido el primer snapshot de cada una + cleanup del doc raíz (FieldValue.delete a operaciones/movimientos/lotes/transferencias/_wireFormat). Si alguna falla → app sigue en legacy SIN cambios y se loguea el motivo: subcol:gate:no-meta / :no-v2 / :bad-format / :meta-error / :sample-error / :ops-empty (este último cuenta como OK).'},
+        {type:'feature', title:'Intercepción en guardaOptimista para writes incrementales', desc:'Una sola línea de gate al inicio de guardaOptimista: si _subcolActive=true y la entidad es una de las 3 migradas (operaciones, movimientos, transferencias), llama subcol_intercept(type, entity, id) que escribe directo a users/{uid}/{entity}/{id} con set(). El enqueueSync legacy NO se llama para esas entidades. Si la queue legacy queda vacía al terminar, NO se programa debounce → guardarDatos no se invoca → NO hay save:write-start del doc gigante.'},
+        {type:'feature', title:'Listeners onSnapshot incrementales sobre subcolecciones', desc:'subcol_setupListeners monta onSnapshot en operaciones, movimientos, transferencias. Procesa docChanges() (deltas, no full re-read). Hidrata AppState.datos[entity] solo con los cambios. Render diferido 120ms para batchear cambios concurrentes. Cuando los 3 listeners reciben su primer snapshot, desuscribe el listener legacy del doc raíz automáticamente. El doc raíz solo se lee bajo demanda después de eso (config, bancos).'},
+        {type:'feature', title:'Logs explícitos para diagnóstico', desc:'Cada event esencial loguea: subcol:gate:start, subcol:gate:ok / :no-meta / :no-v2 / :bad-format, subcol:mode:activated / :legacy, subcol:listeners:setup, subcol:listeners:first-snapshot, subcol:legacy-unsub:done, subcol:root-cleaned, subcol:write (con entity, id, sizeKB, ms). El log de Diagnóstico solo te dice EXACTAMENTE por qué entró o no entró al modo subcol.'},
+        {type:'feature', title:'Garantías de NO-acción defensiva', desc:'v4.8.2 NUNCA: dispara migración automática, reintenta gates fallidos, sobrescribe datos, mantiene coexistencia híbrida con compatibilidad legacy "por las dudas". Si las precondiciones no se cumplen, la app queda en legacy SIN tocar nada, y el log dice por qué. Una sola ejecución del gate por sesión.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Pre-requisito: la migración a subcollections debe haberse corrido ANTES (vía v4.8.1.2 botón manual). Sin _meta/migration en server, v4.8.2 queda en legacy y loguea subcol:gate:no-meta. 2) Subir v4.8.2. 3) Reabrir app. 4) En Diagnóstico → log debe aparecer: subcol:gate:start → subcol:gate:ok → subcol:mode:activated → subcol:listeners:setup → subcol:listeners:first-snapshot (×3) → subcol:legacy-unsub:done → subcol:root-cleaned. 5) Crear una operación nueva. Log esperado: subcol:write con entity:"operaciones", sizeKB chico (~0.3). NO debe aparecer wire-compress:ok, payload:compact-*, save:write-start con payloadKB:545. 6) Si el log dice subcol:mode:legacy con reason, ese reason explica exactamente qué falta. Decime el reason y resolvemos.'}
     ]},
     {version:'4.8.1.2', date:'2026-05-26', headline:'🛑 Auto-migración desactivada + marca en doc separado + timeouts por batch.', changes:[
         {type:'fix', title:'BUG raíz identificado: doc raíz degradado contamina la migración', desc:'Auditoría completa del flujo reveló que TODA la migración dependía del doc raíz legacy (>900 KB, bajo throttling de Firestore desde v4.7.64): (1) subcol_isMigrated leía del doc raíz → se colgaba o devolvía false. (2) subcol_migrate pre-flight leía del doc raíz → mismo problema. (3) batch.commit() sin timeout → cuelgue infinito si Firestore no respondía. (4) ref.update({_schemaVersion}) escribía AL doc raíz degradado → no confirmaba. Cada arranque entraba al loop: marca no leída → migración corre → marca no escrita → marca no leída.'},
@@ -5562,52 +5558,20 @@ function hasPendingLocal(){return _syncQueue.length>0||_localDirty>0||_guardando
    Si se superan 2000ms acumulados, flushea igual (safety net contra keyboards lentos). */
 let _guardaDebounceTimer=null,_guardaFirstPendingTs=0;
 function guardaOptimista(type,entity,id){
-    /* ════════════════════════════════════════════════════════════════
-       §v4.8.2 — Modo SUBCOL (v2): ruta directa por subcollection.
+    /* ═══ v4.8.2 — INTERCEPCIÓN para subcol runtime ═══
+       Si _subcolActive=true y la entidad es una de las migradas
+       (operaciones, movimientos, transferencias), redirigimos a write directo
+       contra la subcolección. NO entra al sync legacy: no enqueueSync,
+       no debounce, no guardarDatos.
        
-       En modo v2, las entidades migradas (operaciones, movimientos,
-       transferencias) NO pasan por la cola legacy ni por guardarDatos.
-       Cada mutación se escribe como un doc chico a su subcolección.
-       
-       Beneficios:
-         • Write ~300 bytes en vez de ~540 KB
-         • Sin debounce: cada acción confirma rápido
-         • Sin queue: el SDK maneja offline/retry
-         • Sin compresión wire, sin payload prep
-       
-       config y otras entidades siguen ruta legacy (guardaOptimista normal).
-       ════════════════════════════════════════════════════════════════ */
-    const isSubcolEntity=entity==='operaciones'||entity==='movimientos'||entity==='transferencias';
-    if(AppState._subcolMode&&isSubcolEntity&&id){
-        if(typeof _invalidateListCache==='function')_invalidateListCache();
-        /* Ruta v2: localizar item y disparar write directo */
-        (async()=>{
-            try{
-                if(type==='delete'){
-                    if(entity==='operaciones')await subcol_deleteOp(id);
-                    else if(entity==='movimientos')await subcol_deleteMov(id);
-                    else if(entity==='transferencias')await subcol_deleteTransf(id);
-                    return;
-                }
-                /* create/update: buscar item en AppState.datos */
-                const arr=AppState.datos[entity]||[];
-                const item=arr.find(x=>String(x.id)===String(id));
-                if(!item){
-                    _syncLog&&_syncLog('subcol:write:item-not-found',{entity,id});
-                    return;
-                }
-                if(entity==='operaciones')await subcol_writeOp(item);
-                else if(entity==='movimientos')await subcol_writeMov(item);
-                else if(entity==='transferencias')await subcol_writeTransf(item);
-            }catch(e){
-                console.error('[subcol] write fail',entity,id,e);
-                _syncLog&&_syncLog('subcol:write:failed',{entity,id,error:e.message});
-            }
-        })();
-        return;
+       backupToLocal sigue corriendo abajo para preservar la red local de
+       seguridad (localStorage). _invalidateListCache también, porque el render
+       necesita refrescar. */
+    let _interceptedBySubcol=false;
+    if(AppState._subcolActive===true && typeof subcol_intercept==='function'){
+        _interceptedBySubcol=subcol_intercept(type,entity,id);
     }
-    /* Ruta legacy (config y otras entidades, o cuando no estamos en v2) */
-    if(type&&entity&&id)enqueueSync(type,entity,id);
+    if(type&&entity&&id&&!_interceptedBySubcol)enqueueSync(type,entity,id);
     /* ═══ Persistencia local INMEDIATA ═══
        Antes de cualquier debounce o write remoto, guardamos un snapshot a localStorage.
        Esto cierra la ventana donde el cambio vive solo en RAM y se podría perder si:
@@ -5640,6 +5604,13 @@ function guardaOptimista(type,entity,id){
     const elapsed=now-_guardaFirstPendingTs;
     const queueLen=_syncQueue.length;
     const isCritical=type==='create'||type==='delete';
+    /* v4.8.2 — si interceptamos a subcol Y no hay otros items pendientes en la
+       queue legacy, no programamos debounce → guardarDatos no se llama → no
+       hay save:write-start del doc gigante. */
+    if(_interceptedBySubcol && queueLen===0){
+        _guardaFirstPendingTs=0;
+        return;
+    }
     let delay=400;
     if(elapsed>=2000)delay=0;
     else if(queueLen>=10)delay=0;
@@ -5663,31 +5634,6 @@ function flushGuardaDebounce(){
 
 /* ─── Merge: NEVER drops local-only entities ─── */
 function mergeRemoteState(d){
-    /* ════════════════════════════════════════════════════════════════
-       §v4.8.2 — Modo SUBCOL (v2): ignorar arrays legacy del doc raíz.
-       ════════════════════════════════════════════════════════════════
-       Cuando AppState._subcolMode es true, los datos REALES de
-       operaciones/movimientos/lotes/transferencias vienen por los
-       listeners de subcolecciones (subcol_setupListeners), NO por
-       este snapshot del doc raíz.
-       
-       El doc raíz sigue siendo fuente única para config:
-         • bancos, tasasRecientes, comisionPlataforma, ultimoMesProcesado,
-           tags, lastSeenVersion, ultimaTasaCompra/Venta, etc.
-       
-       Estrategia: clonar `d` y borrar los arrays grandes ANTES de que
-       mergeRemoteState los procese. El resto del flujo queda igual. */
-    if(AppState._subcolMode&&d&&typeof d==='object'){
-        d={...d};
-        delete d.operaciones;
-        delete d.movimientos;
-        delete d.lotes;
-        delete d.transferencias;
-        /* Si el doc raíz aún tiene _wireFormat (de versiones previas),
-           tampoco descomprimir — no hay ops para descomprimir. */
-        delete d._wireFormat;
-        _syncLog&&_syncLog('merge:v2-skip-arrays',{});
-    }
     /* ════════════════════════════════════════════════════════════════
        §v4.7.63 — Descompresión wire al recibir snapshot.
        ════════════════════════════════════════════════════════════════
@@ -6010,37 +5956,6 @@ function updateSyncBadge(){
 
 async function guardarDatos(forzar,opts){
     if(!AppState.currentUser)return;
-    /* ════════════════════════════════════════════════════════════════
-       §v4.8.2 — Modo SUBCOL (v2): guardarDatos NO escribe operaciones,
-       movimientos, lotes ni transferencias al doc raíz.
-       
-       En modo v2, esos datos viajan por subcolecciones via subcol_writeOp,
-       subcol_writeMov, subcol_writeTransf — NO por este path.
-       
-       guardarDatos sigue siendo necesario SOLO si cambia config del doc
-       raíz (bancos, tasasRecientes, etc). Para eso revisamos si la queue
-       contiene CAMBIOS DE CONFIG; si no, retornamos sin escribir nada.
-       
-       Esto elimina los save:write-start con payloadKB:540 que llenaban
-       Firestore. El doc raíz solo se toca para config (~3 KB).
-       ════════════════════════════════════════════════════════════════ */
-    if(AppState._subcolMode){
-        /* La queue puede tener entradas de operaciones (legacy), pero si modo v2
-           las descartamos: las escrituras ya fueron por subcol_write*. */
-        const configChanges=_syncQueue.filter(a=>a.entity==='config');
-        if(configChanges.length===0){
-            /* Nada de config pendiente, no hay nada que escribir. Limpiar queue. */
-            if(_syncQueue.length>0){
-                _syncLog&&_syncLog('save:v2-discard-queue',{discarded:_syncQueue.length});
-                _syncQueue.length=0;
-            }
-            _localDirty=false;
-            return;
-        }
-        /* Hay cambios de config — sigue el flujo normal pero el strip natural
-           ya saca operaciones/movimientos/lotes en este modo (lo agregamos
-           en _prepareDocForSave abajo). */
-    }
     /* ═══ v4.7.64 — Guards contra recovery write activa ═══
        _recoveryActive: recoveryWrite() en curso. NINGÚN write competidor — el doc
          remoto debe ser reemplazado por el snapshot comprimido limpio sin
@@ -6779,17 +6694,6 @@ function cargarDatosUsuario(){
         if(!fromCache&&AppState._uiHydratedFromCache){
             AppState._uiHydratedFromCache=false;
             _syncLog('sync:background-mode',{transitioned:'cache-to-online'});
-        }
-        /* §v4.8.2 — Después del primer snapshot online del doc raíz, intentar
-           detectar el modo subcollections. Si _meta/migration existe O las
-           subcollections ya tienen docs (caso anibal9061 con migración previa
-           sin marker), activar modo v2: listeners de subcollections, writes
-           individuales, sin guardarDatos para entidades migradas.
-           Idempotente: la función solo corre 1 vez por sesión. */
-        if(!fromCache&&typeof subcol_detectAndBootstrap==='function'){
-            subcol_detectAndBootstrap().catch(e=>{
-                console.warn('[subcol] detectAndBootstrap fail (no crítico):',e.message);
-            });
         }
         /* Centro de Novedades — actualizar badge en cada snapshot, mostrar whatsnew solo 1 vez */
         actualizarBadgeNoticias();
@@ -9674,211 +9578,300 @@ async function subcol_migrate(progressCallback){
     return{ok:true,stats,snapAntes,ms};
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
-   §SUBCOL-RUNTIME v4.8.2 — Switch real a subcollections
-   ════════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §SUBCOL-RUNTIME v4.8.2 — Switch real al modelo de subcolecciones
+   ═══════════════════════════════════════════════════════════════════════════════
    
-   Cuando _schemaVersion="v2":
-     • Listeners reales sobre users/{uid}/operaciones, /movimientos, /transferencias
-     • Writes individuales: users/{uid}/operaciones/{opId}.set(op)
-     • guardarDatos() NO se llama más para esas entidades
-     • Wire compression / payload compact / queue legacy NO se ejecutan
-     • mergeRemoteState ignora los arrays legacy del doc raíz
+   Activado SOLO cuando se cumplen estas condiciones simultáneamente:
+     (1) Existe users/{uid}/_meta/migration en el server (no cache)
+     (2) Su campo schemaVersion === "v2"
+     (3) La subcolección users/{uid}/operaciones existe (al menos 1 doc)
+     (4) Los docs de operaciones tienen formato EXPANDIDO (no comprimido)
    
-   El listener legacy del doc raíz sigue activo SOLO para config (bancos,
-   tasasRecientes, comisionPlataforma, ultimoMesProcesado, etc).
+   Cuando se activa:
+     • AppState._subcolActive = true
+     • guardaOptimista() redirige a subcol_intercept() en vez de enqueueSync+guardarDatos
+     • Se montan listeners onSnapshot sobre las 3 subcolecciones
+     • Una vez los 3 listeners reciben su snapshot inicial, se desuscribe el
+       listener legacy del doc raíz
+     • Los arrays operaciones/movimientos/lotes/transferencias del doc raíz se
+       borran con FieldValue.delete() en UN solo update — doc raíz queda chico
    
-   Sin auto-migración. Sin recovery. Sin coexistencia híbrida.
-   ════════════════════════════════════════════════════════════════════════════ */
-
-/* Flag global: ¿estamos en modo v2? Se setea al detectar marker.
-   Cualquier código downstream chequea AppState._subcolMode para decidir
-   ruta nueva vs ruta legacy. */
-window.AppState=window.AppState||{};
-AppState._subcolMode=false;
-
-/* Lista de unsubscribers de los listeners activos. Para cleanup en logout. */
-AppState._subcolUnsubs=[];
-
-/* ─── subcol_writeOp ──────────────────────────────────────────────────────────
-   Escribe UNA operación a users/{uid}/operaciones/{op.id}.
-   Doc chico (~300 bytes). Sin compresión. Sin queue. Sin payload pesado. */
-async function subcol_writeOp(op){
-    if(!op||op.id===undefined||op.id===null)throw new Error('op sin id');
-    const ref=subcol_userRef();
-    if(!ref)throw new Error('no-user-ref');
-    const clean=_subcol_stripPersistFields(op);
-    const docRef=ref.collection('operaciones').doc(String(op.id));
-    const sizeKB=Math.round(JSON.stringify(clean).length/102.4)/10;
-    await _withTimeout(docRef.set(clean),15000,'subcol:writeOp:'+op.id);
-    _syncLog&&_syncLog('subcol:write',{entity:'operaciones',id:String(op.id),sizeKB});
-}
-
-/* ─── subcol_writeMov ─────────────────────────────────────────────────────── */
-async function subcol_writeMov(mov){
-    if(!mov||mov.id===undefined||mov.id===null)throw new Error('mov sin id');
-    const ref=subcol_userRef();
-    if(!ref)throw new Error('no-user-ref');
-    const clean=_subcol_stripPersistFields(mov);
-    const docRef=ref.collection('movimientos').doc(String(mov.id));
-    const sizeKB=Math.round(JSON.stringify(clean).length/102.4)/10;
-    await _withTimeout(docRef.set(clean),15000,'subcol:writeMov:'+mov.id);
-    _syncLog&&_syncLog('subcol:write',{entity:'movimientos',id:String(mov.id),sizeKB});
-}
-
-/* ─── subcol_writeTransf ──────────────────────────────────────────────────── */
-async function subcol_writeTransf(t){
-    if(!t||t.id===undefined||t.id===null)throw new Error('transf sin id');
-    const ref=subcol_userRef();
-    if(!ref)throw new Error('no-user-ref');
-    const clean=_subcol_stripPersistFields(t);
-    const docRef=ref.collection('transferencias').doc(String(t.id));
-    const sizeKB=Math.round(JSON.stringify(clean).length/102.4)/10;
-    await _withTimeout(docRef.set(clean),15000,'subcol:writeTransf:'+t.id);
-    _syncLog&&_syncLog('subcol:write',{entity:'transferencias',id:String(t.id),sizeKB});
-}
-
-/* ─── subcol_deleteOp / Mov / Transf ──────────────────────────────────────── */
-async function subcol_deleteOp(id){
-    const ref=subcol_userRef();if(!ref)throw new Error('no-user-ref');
-    await _withTimeout(ref.collection('operaciones').doc(String(id)).delete(),15000,'subcol:delOp:'+id);
-    _syncLog&&_syncLog('subcol:delete',{entity:'operaciones',id:String(id)});
-}
-async function subcol_deleteMov(id){
-    const ref=subcol_userRef();if(!ref)throw new Error('no-user-ref');
-    await _withTimeout(ref.collection('movimientos').doc(String(id)).delete(),15000,'subcol:delMov:'+id);
-    _syncLog&&_syncLog('subcol:delete',{entity:'movimientos',id:String(id)});
-}
-async function subcol_deleteTransf(id){
-    const ref=subcol_userRef();if(!ref)throw new Error('no-user-ref');
-    await _withTimeout(ref.collection('transferencias').doc(String(id)).delete(),15000,'subcol:delTransf:'+id);
-    _syncLog&&_syncLog('subcol:delete',{entity:'transferencias',id:String(id)});
-}
-
-/* ─── subcol_setupListeners ───────────────────────────────────────────────────
-   Suscribe 3 listeners (operaciones, movimientos, transferencias).
-   Cada cambio dispara update incremental sobre AppState.datos[entidad] y
-   recalcularLotesYGanancias + renderTodo. */
-function subcol_setupListeners(){
-    const ref=subcol_userRef();
-    if(!ref){console.warn('[subcol] no-user-ref para listeners');return}
-    if(AppState._subcolUnsubs.length>0){
-        _syncLog&&_syncLog('subcol:listeners:already-active',{});
-        return;
-    }
-    _syncLog&&_syncLog('subcol:listeners:setup',{});
-    const entidades=['operaciones','movimientos','transferencias'];
-    entidades.forEach(ent=>{
-        const unsub=ref.collection(ent).onSnapshot(
-            {includeMetadataChanges:false},
-            snap=>{
-                /* Procesar docChanges para update incremental.
-                   En el primer snapshot vienen todos los docs como "added". */
-                const changes=snap.docChanges();
-                if(changes.length===0)return;
-                if(!Array.isArray(AppState.datos[ent]))AppState.datos[ent]=[];
-                const arr=AppState.datos[ent];
-                const indexById=new Map(arr.map((it,i)=>[String(it.id),i]));
-                let added=0,modified=0,removed=0;
-                changes.forEach(ch=>{
-                    const data=ch.doc.data();
-                    const id=String(ch.doc.id);
-                    if(ch.type==='removed'){
-                        const idx=indexById.get(id);
-                        if(idx!==undefined){arr.splice(idx,1);removed++}
-                        return;
-                    }
-                    /* added o modified: upsert */
-                    const idx=indexById.get(id);
-                    if(idx===undefined){arr.push(data);added++}
-                    else{arr[idx]=data;modified++}
-                });
-                /* Reindex si hubo splice */
-                _syncLog&&_syncLog('subcol:snapshot',{entity:ent,added,modified,removed,total:arr.length,fromCache:snap.metadata.fromCache});
-                /* Recalcular lotes/ganancias solo si tocaron operaciones */
-                if(ent==='operaciones'||ent==='movimientos'){
-                    try{if(typeof recalcularLotesYGanancias==='function')recalcularLotesYGanancias()}catch(_){}
-                }
-                /* Re-render */
-                try{if(typeof renderTodo==='function')renderTodo()}catch(_){}
-            },
-            err=>{
-                console.error('[subcol] listener error '+ent+':',err);
-                _syncLog&&_syncLog('subcol:listener:error',{entity:ent,error:err.message});
-            }
-        );
-        AppState._subcolUnsubs.push(unsub);
-    });
-}
-
-/* ─── subcol_activateMode ─────────────────────────────────────────────────────
-   Activa modo v2: setea flag, dispara listeners. Idempotente. */
-function subcol_activateMode(){
-    if(AppState._subcolMode)return;
-    AppState._subcolMode=true;
-    _syncLog&&_syncLog('subcol:mode:activated',{});
-    subcol_setupListeners();
-}
-
-/* ─── subcol_detectAndBootstrap ───────────────────────────────────────────────
-   Detección automática al cargar:
-     1. Si AppState.datos viene del doc raíz con operaciones >0 Y schemaVersion v2
-        en _meta/migration → activar modo v2
-     2. Si NO existe _meta/migration pero la subcolección operaciones tiene
-        docs (caso anibal9061: migración v4.8.0 escribió docs pero el marker no
-        se guardó en el path actual) → escribir marker automáticamente y
-        activar modo v2
-     3. Si no se cumple ninguna → quedarse en legacy (no hace nada)
+   Cuando NO se activa:
+     • AppState._subcolActive = false
+     • La app sigue funcionando idéntica a v4.8.1.2
+     • Se loguea el motivo exacto (subcol:gate:no-meta, :no-v2, :bad-format, etc)
+     • NUNCA se dispara migración automática
+     • NUNCA se sobrescriben datos
    
-   Se llama UNA VEZ después del primer snapshot del doc raíz. */
-let _subcolBootstrapDone=false;
-async function subcol_detectAndBootstrap(){
-    if(_subcolBootstrapDone)return;
-    _subcolBootstrapDone=true;
+   El gate corre una sola vez en bootstrap. Si falla por red, queda en legacy
+   silenciosamente. Próximo arranque lo intenta de nuevo (idempotente).
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── _subcolGate ─────────────────────────────────────────────────────────────
+   Determina si el runtime debe usar subcolecciones. Retorna {active, reason}.
+   Loguea exactamente UN motivo para que el log de Diagnóstico sea conclusivo. */
+async function _subcolGate(){
+    const log=(ev,data)=>{try{_syncLog&&_syncLog(ev,data||{})}catch(_){}};
     const ref=subcol_userRef();
-    if(!ref)return;
-    /* Caso 1: ¿existe el marker? */
-    let isMig=false;
-    try{isMig=await subcol_isMigrated()}catch(_){isMig=false}
-    if(isMig){
-        _syncLog&&_syncLog('subcol:bootstrap:marker-found',{});
-        subcol_activateMode();
-        return;
+    if(!ref){
+        log('subcol:gate:no-user',{});
+        return{active:false,reason:'no-user'};
     }
-    /* Caso 2: ¿existen docs en la subcolección operaciones? Si sí, escribir
-       marker retroactivamente. */
-    let opsCount=0;
-    try{
-        /* Una lectura limitada a 1 doc — barata, solo confirma existencia */
-        const probe=await _withTimeout(
-            ref.collection('operaciones').limit(1).get({source:'server'}),
-            10000,'subcol:bootstrap:probe'
-        );
-        opsCount=probe.size;
-    }catch(e){
-        _syncLog&&_syncLog('subcol:bootstrap:probe-failed',{error:e.message});
-        return;
-    }
-    if(opsCount===0){
-        _syncLog&&_syncLog('subcol:bootstrap:no-subcols',{});
-        return;
-    }
-    /* Escribir marker retroactivamente */
+    /* Step 1: leer _meta/migration con timeout */
+    let metaData=null;
     try{
         const metaRef=ref.collection('_meta').doc('migration');
-        await _withTimeout(metaRef.set({
-            schemaVersion:SUBCOL_SCHEMA_V2,
-            migratedAt:firebase.firestore.FieldValue.serverTimestamp(),
-            appVersion:CONFIG.APP_VERSION,
-            note:'marker-retroactive: subcolecciones detectadas, marker creado por v4.8.2 detection'
-        }),15000,'subcol:bootstrap:marker-set');
-        _syncLog&&_syncLog('subcol:bootstrap:marker-set-retroactive',{});
-        subcol_activateMode();
+        const snap=await _withTimeout(metaRef.get({source:'server'}),10000,'gate.meta.get');
+        if(!snap.exists){
+            log('subcol:gate:no-meta',{path:'_meta/migration'});
+            return{active:false,reason:'no-meta'};
+        }
+        metaData=snap.data();
     }catch(e){
-        _syncLog&&_syncLog('subcol:bootstrap:marker-set-failed',{error:e.message});
+        log('subcol:gate:meta-error',{error:e.message});
+        return{active:false,reason:'meta-error: '+e.message};
+    }
+    /* Step 2: schemaVersion === v2 */
+    if(metaData.schemaVersion!==SUBCOL_SCHEMA_V2){
+        log('subcol:gate:no-v2',{schemaVersion:metaData.schemaVersion||'(undefined)'});
+        return{active:false,reason:'no-v2'};
+    }
+    /* Step 3: sample 1 doc de operaciones, verificar formato expandido */
+    try{
+        const opsRef=ref.collection('operaciones');
+        const sampleSnap=await _withTimeout(opsRef.limit(1).get({source:'server'}),10000,'gate.ops.sample');
+        if(sampleSnap.empty){
+            log('subcol:gate:ops-empty',{});
+            /* Caso edge: meta dice v2 pero no hay ops. Aceptamos — usuario sin ops aún. */
+            return{active:true,reason:'meta-v2-empty-ops'};
+        }
+        const sample=sampleSnap.docs[0].data();
+        /* Formato expandido: tiene 'tipo' como string ('compra'/'venta') y 'monto' como número.
+           Formato comprimido viejo (de v4.8.0 bug): tendría 't' (0/1) y 'mo' (número). */
+        const expanded=typeof sample.tipo==='string' && typeof sample.monto==='number';
+        if(!expanded){
+            log('subcol:gate:bad-format',{
+                hasTipo:typeof sample.tipo,
+                hasMonto:typeof sample.monto,
+                hasT:typeof sample.t,
+                hasMo:typeof sample.mo
+            });
+            return{active:false,reason:'bad-format'};
+        }
+    }catch(e){
+        log('subcol:gate:sample-error',{error:e.message});
+        return{active:false,reason:'sample-error: '+e.message};
+    }
+    /* Todas las condiciones cumplidas */
+    log('subcol:gate:ok',{schemaVersion:metaData.schemaVersion});
+    return{active:true,reason:'ok'};
+}
+
+/* ─── subcol_write ────────────────────────────────────────────────────────────
+   Escritura DIRECTA a una subcolección. Reemplaza guardarDatos() para una sola
+   entidad. Doc chico, write atómico, sin payload comprimido del doc raíz.
+   
+   No tiene retry interno: si falla, queda en _localDirty y se reintenta cuando
+   el usuario opere de nuevo (igual que el legacy). Sin recovery layers. */
+async function subcol_write(entity,id,data){
+    const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
+    const ref=subcol_userRef();
+    if(!ref){log('subcol:write:no-ref',{entity,id});return{ok:false,error:'no-ref'}}
+    const stripped=_subcol_stripPersistFields(data);
+    const docRef=ref.collection(entity).doc(String(id));
+    const tStart=performance.now();
+    try{
+        await _withTimeout(docRef.set(stripped),20000,'subcol.write.'+entity);
+        const ms=Math.round(performance.now()-tStart);
+        const sizeKB=(JSON.stringify(stripped).length/1024).toFixed(2);
+        log('subcol:write',{entity,id:String(id),sizeKB,ms,ok:true});
+        return{ok:true,ms};
+    }catch(e){
+        log('subcol:write:failed',{entity,id:String(id),error:e.message});
+        return{ok:false,error:e.message};
     }
 }
 
+/* ─── subcol_delete ───────────────────────────────────────────────────────────
+   Borrado directo de un doc de subcolección. */
+async function subcol_delete(entity,id){
+    const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
+    const ref=subcol_userRef();
+    if(!ref){log('subcol:delete:no-ref',{entity,id});return{ok:false,error:'no-ref'}}
+    const docRef=ref.collection(entity).doc(String(id));
+    try{
+        await _withTimeout(docRef.delete(),15000,'subcol.delete.'+entity);
+        log('subcol:delete',{entity,id:String(id),ok:true});
+        return{ok:true};
+    }catch(e){
+        log('subcol:delete:failed',{entity,id:String(id),error:e.message});
+        return{ok:false,error:e.message};
+    }
+}
+
+/* ─── _subcol_findItemInMemory ─────────────────────────────────────────────────
+   Busca un item por id dentro de AppState.datos[entity]. Devuelve el objeto
+   completo (con todos los campos derivados/persistentes) o null. */
+function _subcol_findItemInMemory(entity,id){
+    const arr=AppState.datos&&AppState.datos[entity];
+    if(!Array.isArray(arr))return null;
+    const idStr=String(id);
+    return arr.find(x=>x&&String(x.id)===idStr)||null;
+}
+
+/* ─── subcol_intercept ────────────────────────────────────────────────────────
+   Punto de entrada UNIFICADO desde guardaOptimista cuando _subcolActive=true.
+   
+   Reemplaza por completo el flujo enqueueSync→guardarDatos legacy para las
+   entidades migradas. Solo se aplica a: operaciones, movimientos, transferencias.
+   
+   Para entidades NO migradas (bancos, tasasRecientes, tags, config genérico)
+   y para campos del doc raíz (config metadata) seguimos usando el legacy.
+   Como esos NO entran a este intercept, no hay coexistencia complicada.
+   
+   Diseño: fire-and-forget desde el punto de vista del UI. El user input no
+   espera al write. Si falla, queda registrado y _localDirty refleja eso. */
+function subcol_intercept(type,entity,id){
+    /* Sólo migran a subcol estas 3 entidades. Otras pasan por legacy. */
+    const ENTITIES=['operaciones','movimientos','transferencias'];
+    if(!ENTITIES.includes(entity))return false;
+    if(type==='delete'){
+        subcol_delete(entity,id).catch(e=>console.warn('[subcol] delete failed:',e.message));
+        return true;
+    }
+    /* create o update: leemos el item de memoria y escribimos a subcol */
+    const item=_subcol_findItemInMemory(entity,id);
+    if(!item){
+        try{_syncLog&&_syncLog('subcol:intercept:not-found',{entity,id:String(id)})}catch(_){}
+        return false;/* fallback a legacy si no lo encontramos */
+    }
+    subcol_write(entity,id,item).catch(e=>console.warn('[subcol] write failed:',e.message));
+    return true;
+}
+
+/* ─── subcol_setupListeners ──────────────────────────────────────────────────
+   Monta onSnapshot sobre las 3 subcolecciones migradas y hidrata
+   AppState.datos[entity] cuando llegan eventos.
+   
+   docChanges() trae solo los deltas — añadido, modificado, removido. Esto evita
+   re-leer todo en cada cambio (que sería costoso con 3500 ops).
+   
+   Las modificaciones a AppState.datos disparan render via actualizarVista al
+   completar el primer batch de cambios. */
+function subcol_setupListeners(){
+    const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
+    const ref=subcol_userRef();
+    if(!ref){log('subcol:listeners:no-ref',{});return}
+    const ENTITIES=['operaciones','movimientos','transferencias'];
+    if(!AppState._subcolUnsubs)AppState._subcolUnsubs={};
+    const firstSnapshotReceived={};
+    ENTITIES.forEach(ent=>{
+        /* Limpiar listener anterior si existía */
+        if(AppState._subcolUnsubs[ent]){
+            try{AppState._subcolUnsubs[ent]()}catch(_){}
+            AppState._subcolUnsubs[ent]=null;
+        }
+        const colRef=ref.collection(ent);
+        AppState._subcolUnsubs[ent]=colRef.onSnapshot(snap=>{
+            if(!firstSnapshotReceived[ent]){
+                firstSnapshotReceived[ent]=true;
+                log('subcol:listeners:first-snapshot',{
+                    entity:ent,
+                    size:snap.size,
+                    fromCache:snap.metadata.fromCache
+                });
+                /* Cuando los 3 listeners tuvieron su primer snapshot, podemos
+                   desuscribir el listener legacy con seguridad */
+                if(ENTITIES.every(e=>firstSnapshotReceived[e])){
+                    _subcol_unsubscribeLegacyListener();
+                }
+            }
+            /* Procesar cambios incrementales */
+            if(!AppState.datos[ent])AppState.datos[ent]=[];
+            const arr=AppState.datos[ent];
+            let changed=false;
+            snap.docChanges().forEach(change=>{
+                const data=change.doc.data();
+                const idStr=change.doc.id;
+                /* skip si es echo de un write nuestro pendiente */
+                if(change.doc.metadata.hasPendingWrites)return;
+                const idx=arr.findIndex(x=>x&&String(x.id)===idStr);
+                if(change.type==='added'||change.type==='modified'){
+                    if(idx>=0)arr[idx]={...arr[idx],...data};
+                    else arr.push(data);
+                    changed=true;
+                }else if(change.type==='removed'){
+                    if(idx>=0){arr.splice(idx,1);changed=true}
+                }
+            });
+            if(changed){
+                /* Disparar render diferido */
+                if(typeof actualizarVista==='function'){
+                    clearTimeout(AppState._subcolRenderTimer);
+                    AppState._subcolRenderTimer=setTimeout(()=>{
+                        try{actualizarVista()}catch(_){}
+                    },120);
+                }
+            }
+        },err=>{
+            log('subcol:listeners:error',{entity:ent,error:err.message});
+        });
+    });
+    log('subcol:listeners:setup',{entities:ENTITIES});
+}
+
+/* ─── _subcol_unsubscribeLegacyListener ───────────────────────────────────────
+   Una vez que las 3 subcolecciones tuvieron su primer snapshot, desuscribimos
+   el listener del doc raíz. El doc raíz solo se lee bajo demanda (config). */
+function _subcol_unsubscribeLegacyListener(){
+    const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
+    if(AppState.unsubscribe){
+        try{AppState.unsubscribe()}catch(e){log('subcol:legacy-unsub:error',{error:e.message})}
+        AppState.unsubscribe=null;
+        log('subcol:legacy-unsub:done',{});
+    }
+}
+
+/* ─── _subcol_cleanRootDoc ────────────────────────────────────────────────────
+   Borra los arrays legacy (operaciones, movimientos, lotes, transferencias) del
+   doc raíz en UN solo update con FieldValue.delete(). Después de esto, el doc
+   raíz queda en ~3 KB con solo config (bancos, tasas, etc).
+   
+   Solo se ejecuta UNA VEZ por sesión, al activar subcol mode. Si falla por red,
+   no es crítico — los arrays viejos quedan en el doc pero ya nadie los lee. */
+async function _subcol_cleanRootDoc(){
+    const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
+    const ref=subcol_userRef();
+    if(!ref)return;
+    if(AppState._subcolRootCleaned)return;
+    try{
+        const FV=firebase.firestore.FieldValue;
+        await _withTimeout(ref.update({
+            operaciones:FV.delete(),
+            movimientos:FV.delete(),
+            lotes:FV.delete(),
+            transferencias:FV.delete(),
+            _wireFormat:FV.delete()
+        }),20000,'subcol.cleanRoot');
+        AppState._subcolRootCleaned=true;
+        log('subcol:root-cleaned',{fields:['operaciones','movimientos','lotes','transferencias','_wireFormat']});
+    }catch(e){
+        log('subcol:root-clean:failed',{error:e.message,note:'doc raíz queda con arrays viejos, no crítico'});
+    }
+}
+
+/* ─── subcol_activate ─────────────────────────────────────────────────────────
+   Activación completa: setea flag global, monta listeners, programa limpieza
+   del doc raíz. Llamada desde el bootstrap después del gate OK. */
+async function subcol_activate(){
+    const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
+    AppState._subcolActive=true;
+    log('subcol:mode:activated',{version:CONFIG.APP_VERSION});
+    subcol_setupListeners();
+    /* Limpieza del doc raíz: diferida 3s para no competir con el bootstrap */
+    setTimeout(()=>{_subcol_cleanRootDoc()},3000);
+}
 
 /* Exportar — descarga JSON con todo el estado actual */
 function exportarDatos(){
@@ -11280,6 +11273,70 @@ if(document.readyState==='complete'||document.readyState==='interactive'){
 }else{
     document.addEventListener('DOMContentLoaded',()=>setTimeout(_autoCheckRecoveryNeeded,4000));
 }
+
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §SUBCOL-GATE v4.8.2 — Activación del runtime subcol post-bootstrap
+   ═══════════════════════════════════════════════════════════════════════════════
+   
+   Espera a que el bootstrap esté listo (AppState.currentUser + AppState.datos
+   hidratada). Después corre _subcolGate() UNA SOLA VEZ. Si el gate dice OK,
+   llama subcol_activate(). Si dice fallo, deja la app en legacy.
+   
+   Una sola ejecución por sesión. Sin reintentos. Sin migración automática.
+   Si por red el gate falla (timeout, offline), la app queda en legacy y el
+   próximo arranque lo intenta de nuevo (idempotente, sin escribir nada).
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+(function setupSubcolGate(){
+'use strict';
+
+let _gateDone=false;
+
+async function _runGate(){
+    if(_gateDone)return;
+    if(!AppState.currentUser||!AppState.db)return;
+    /* Esperar a que AppState.datos esté hidratado por el bootstrap */
+    if(!AppState.datos||!Array.isArray(AppState.datos.operaciones))return;
+    _gateDone=true;
+    try{_syncLog&&_syncLog('subcol:gate:start',{appVersion:CONFIG.APP_VERSION})}catch(_){}
+    let result;
+    try{
+        result=await _subcolGate();
+    }catch(e){
+        try{_syncLog&&_syncLog('subcol:gate:exception',{error:e.message})}catch(_){}
+        return;
+    }
+    if(result.active){
+        await subcol_activate();
+    }else{
+        try{_syncLog&&_syncLog('subcol:mode:legacy',{reason:result.reason})}catch(_){}
+    }
+}
+
+/* Polling cada 1s hasta que las condiciones de pre-check se cumplan o tras 30s
+   abandonar. No usamos hooks porque AppState no emite eventos. */
+function _scheduleGate(){
+    let tries=0;
+    const interval=setInterval(()=>{
+        tries++;
+        if(_gateDone||tries>30){clearInterval(interval);return}
+        if(AppState.currentUser&&AppState.db&&AppState.datos&&Array.isArray(AppState.datos.operaciones)){
+            clearInterval(interval);
+            _runGate();
+        }
+    },1000);
+}
+
+if(document.readyState==='complete'||document.readyState==='interactive'){
+    setTimeout(_scheduleGate,2000);
+}else{
+    document.addEventListener('DOMContentLoaded',()=>setTimeout(_scheduleGate,2000));
+}
+
+/* Exposición para diagnóstico manual */
+window._subcolGateNow=_runGate;
 
 })();
 
