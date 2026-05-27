@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.3',
+    APP_VERSION: '4.8.2.4',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,12 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.4', date:'2026-05-27', headline:'🛡️ Fix bug raíz: SDK terminate automático + retry de writes perdidos.', changes:[
+        {type:'fix', title:'BUG RAÍZ: registrarError disparaba terminate() del SDK automáticamente', desc:'Cuando Firestore tiraba "INTERNAL ASSERTION FAILED" (bug #6256 del SDK), registrarError llamaba iniciarRecuperacionFirestore() que hacía db.terminate() + clearPersistence() + intentaba reload. Pero en PWA iOS standalone el reload no se ejecutaba (iOS bloquea location.reload en background). Resultado: el SDK quedaba terminated y todos los subcol:write siguientes daban "client has already been terminated" sin posibilidad de recuperación. Esto pasó después que v4.8.2.3 activara subcol mode correctamente. v4.8.2.4: trigger automático DESACTIVADO. El error se registra pero no se dispara terminate. El usuario decide manualmente desde Diagnóstico → Reset SDK Firestore.'},
+        {type:'fix', title:'BUG: subcol_write perdía ops cuando el SDK estaba terminated', desc:'subcol_write fallaba con "client terminated" y solo logueaba — no marcaba la op como pendiente. Como _subcolActive=true bloquea enqueueSync para entidades migradas, las ops quedaban en memoria sin marca de pendiente. Al recargar, _localDirty=0 hacía creer que no había nada pendiente. v4.8.2.4: subcol_write fallido ahora encola la op en AppState._subcolPendingWrites + localStorage._subcol_pending. Cuando el SDK vuelve a funcionar (subcol_activate diferido 4s después de activar), se ejecuta subcol_retryPendingWrites automáticamente. Idempotente — si se reintentan ops que ya están en server, set() sobrescribe sin duplicar.'},
+        {type:'fix', title:'Retry manual disponible vía window._subcolRetryPendingWrites()', desc:'Expuesto en window para diagnóstico. Si después del bootstrap automático quedan ops sin sincronizar, se puede disparar desde consola/debug. Logs subcol:retry:start, subcol:retry:done con retried/failed/remaining.'},
+        {type:'verified', title:'Plan post-deploy', desc:'1) Subir v4.8.2.4. 2) Force-quit PWA + esperar 60s + reabrir. 3) Verificar versión 4.8.2.4. 4) Diagnóstico → log: subcol:gate:ok → subcol:mode:activated → subcol:listeners:setup → first-snapshot ×3 → subcol:retry:start con las ops pendientes de la sesión anterior. 5) Si el SDK ahora responde, las ops fallidas suben en este retry. 6) Si subcol:retry:done muestra failed:N, esperar reset diario de cuota Firestore y retry manual con window._subcolRetryPendingWrites(). 7) Crear ops nuevas — deben generar subcol:write OK.'}
+    ]},
     {version:'4.8.2.3', date:'2026-05-27', headline:'🔧 Auto-check de recovery DESACTIVADO + Reset SDK manual.', changes:[
         {type:'fix', title:'BUG RAÍZ identificado: recovery auto-check vs subcol gate (carrera)', desc:'Auditoría completa del flujo de bootstrap reveló dos triggers compitiendo: (a) setTimeout(_scheduleGate, 2000) → subcol gate intenta activar runtime nuevo, (b) setTimeout(_autoCheckRecoveryNeeded, 4000) → recovery v4.7.64 inspeccionaba doc raíz y si no tenía _wireFormat:"v1" disparaba recoveryWrite con overlay "Optimización crítica de base de datos". En PC el doc raíz no tenía la marca, entonces recovery disparaba SIEMPRE. Mientras recoveryWrite corría, seteaba _recoveryActive=true que freezeaba el snapshot listener y bloqueaba a Firestore. El gate de subcol intentaba escribir _meta/migration pero el cliente estaba peleando con recoveryWrite → timeout 26s en un write de 100 bytes → gate falla → app queda en legacy → overlay sigue ahí. En iPhone el doc raíz SÍ tenía _wireFormat:"v1" (compresión completada antes), entonces recovery no disparaba, pero el SDK iPhone igual quedó degradado por sesiones anteriores.'},
         {type:'fix', title:'Recovery auto-check ELIMINADO del bootstrap', desc:'Las dos líneas que disparaban recovery a los 4s post-DOMContentLoaded fueron removidas. La función _autoCheckRecoveryNeeded sigue existiendo en el código (no la borro porque sigue siendo útil manual, expuesta como window._autoCheckRecoveryNeeded) PERO NUNCA se ejecuta automáticamente. El overlay "Optimización crítica de base de datos" no debe aparecer más al abrir la app. Recovery sigue disponible desde Diagnóstico → 🚨 Recovery write con doble confirmación. Esto era exactamente lo que pidió Anibal: nada automático que dispare overlays invasivos.'},
@@ -2599,15 +2605,6 @@ const CHANGELOG = [
         {type:'feature', title:'Logs explícitos para diagnóstico', desc:'Cada event esencial loguea: subcol:gate:start, subcol:gate:ok / :no-meta / :no-v2 / :bad-format, subcol:mode:activated / :legacy, subcol:listeners:setup, subcol:listeners:first-snapshot, subcol:legacy-unsub:done, subcol:root-cleaned, subcol:write (con entity, id, sizeKB, ms). El log de Diagnóstico solo te dice EXACTAMENTE por qué entró o no entró al modo subcol.'},
         {type:'feature', title:'Garantías de NO-acción defensiva', desc:'v4.8.2 NUNCA: dispara migración automática, reintenta gates fallidos, sobrescribe datos, mantiene coexistencia híbrida con compatibilidad legacy "por las dudas". Si las precondiciones no se cumplen, la app queda en legacy SIN tocar nada, y el log dice por qué. Una sola ejecución del gate por sesión.'},
         {type:'verified', title:'Cómo probar', desc:'1) Pre-requisito: la migración a subcollections debe haberse corrido ANTES (vía v4.8.1.2 botón manual). Sin _meta/migration en server, v4.8.2 queda en legacy y loguea subcol:gate:no-meta. 2) Subir v4.8.2. 3) Reabrir app. 4) En Diagnóstico → log debe aparecer: subcol:gate:start → subcol:gate:ok → subcol:mode:activated → subcol:listeners:setup → subcol:listeners:first-snapshot (×3) → subcol:legacy-unsub:done → subcol:root-cleaned. 5) Crear una operación nueva. Log esperado: subcol:write con entity:"operaciones", sizeKB chico (~0.3). NO debe aparecer wire-compress:ok, payload:compact-*, save:write-start con payloadKB:545. 6) Si el log dice subcol:mode:legacy con reason, ese reason explica exactamente qué falta. Decime el reason y resolvemos.'}
-    ]},
-    {version:'4.8.1.2', date:'2026-05-26', headline:'🛑 Auto-migración desactivada + marca en doc separado + timeouts por batch.', changes:[
-        {type:'fix', title:'BUG raíz identificado: doc raíz degradado contamina la migración', desc:'Auditoría completa del flujo reveló que TODA la migración dependía del doc raíz legacy (>900 KB, bajo throttling de Firestore desde v4.7.64): (1) subcol_isMigrated leía del doc raíz → se colgaba o devolvía false. (2) subcol_migrate pre-flight leía del doc raíz → mismo problema. (3) batch.commit() sin timeout → cuelgue infinito si Firestore no respondía. (4) ref.update({_schemaVersion}) escribía AL doc raíz degradado → no confirmaba. Cada arranque entraba al loop: marca no leída → migración corre → marca no escrita → marca no leída.'},
-        {type:'fix', title:'Corrección 1: marca de migración en doc SEPARADO', desc:'Estado de migración ya no vive en el doc raíz. Path nuevo: users/{uid}/_meta/migration. Doc chico (~100 bytes), sin contaminación del legacy gigante. Lectura y escritura instantáneas. subcol_isMigrated() lee de ahí. subcol_migrate() escribe ahí al final. El doc raíz queda intacto.'},
-        {type:'fix', title:'Corrección 2: timeouts duros en TODOS los awaits', desc:'Nuevo helper _withTimeout(promise, ms, label). Aplicado a: batch.commit() (30s), ref.get del meta doc (10s), set del meta doc (15s). Si algo se cuelga, el await rechaza con "timeout: <label>" en vez de quedar esperando para siempre. La migración falla limpio y el overlay queda usable.'},
-        {type:'fix', title:'Corrección 3: log antes de cada batch + botón Cancelar', desc:'Nuevo evento subcol:batch:committing logueado ANTES de await batch.commit(). Si la migración se cuelga, el último log muestra exactamente cuál batch falló. Overlay tiene botón "Cancelar" siempre visible — toca y setea window._subcolCancel=true, que se chequea entre batches. Cancel limpio, app usable, próximo intento idempotente sobrescribe.'},
-        {type:'fix', title:'Corrección 4: auto-disparo DESACTIVADO temporalmente', desc:'La IIFE que ejecutaba migración 5s después de DOMContentLoaded fue eliminada. La app abre sin tocar nada de migración. Para correr la migración: Diagnóstico → 🚀 Migrar subcollections → doble confirmación. Cuando confirmemos varios arranques estables sin overlays no deseados, evaluaremos volver al auto-disparo en una versión futura.'},
-        {type:'verified', title:'Auditoría completa del flujo realizada', desc:'10 puntos revisados antes de tocar código: dónde se dispara, si isMigrated devuelve mal, si subcol_migrate cuelga, si batch.commit queda pendiente, si overlay no actualiza, si hay await sin timeout, si datos incompletos, si _schemaVersion en doc raíz no confirma, si conviene doc separado, si auto-mig debería desactivarse. Causa raíz: doc raíz contaminado desde v4.7.64. Solución: desacoplar TODO el estado de migración del doc raíz.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.1.2. 2) Reabrir app. NO debe aparecer overlay alguno. 3) Verificar versión 4.8.1.2 en Diagnóstico. 4) Cerrar y reabrir 2-3 veces. NADA debe aparecer. 5) Cuando estés listo: Diagnóstico → 🚀 Migrar subcollections → confirmar (clic + tipear MIGRAR). 6) Esperar a que termine — si se cuelga >30s en un batch, el timeout aborta limpio y muestra error específico. 7) Botón Cancelar disponible mientras corre. 8) Si termina OK: verificar en Firebase Console que existe users/{uid}/_meta/migration con schemaVersion="v2". 9) Próximo arranque NO debe ofrecer migrar (subcol_isMigrated devuelve true desde el meta doc).'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -6857,14 +6854,24 @@ function registrarError(tipo,detalle){
         /* "FIRESTORE INTERNAL ASSERTION FAILED: Unexpected state" — bug conocido del SDK 
            Firestore (issue #6256, abierto desde 2022). Una vez que ocurre, el SDK queda en 
            estado inválido y todas las queries fallan hasta recargar la página.
-           Lo registramos UNA vez por sesión y disparamos auto-recovery — sin spammear el log. */
+           Lo registramos UNA vez por sesión.
+           
+           v4.8.2.4: AUTO-TRIGGER DESACTIVADO. Antes de v4.8.2.4 esto disparaba
+           iniciarRecuperacionFirestore() automáticamente, que llamaba db.terminate()
+           y trataba de recargar. Pero en PWA iOS standalone el reload no se ejecutaba
+           y el SDK quedaba terminated → todas las ops siguientes daban "client has
+           already been terminated". Y peor: como subcol_write no marca _localDirty
+           cuando _subcolActive=true, las ops quedaban perdidas en memoria sin marca
+           de pendiente.
+           
+           Ahora: registramos el error y NADA MÁS. El usuario decide si recargar la
+           página manualmente, o usar el botón Reset SDK Firestore en Diagnóstico. */
         const isFirestoreInternal=det.includes('INTERNAL ASSERTION FAILED')||det.includes('INTERNAL UNHANDLED ERROR');
         if(isFirestoreInternal){
             if(registrarError._firestoreInternalSeen)return; /* skip duplicados */
             registrarError._firestoreInternalSeen=true;
-            /* Disparar recovery con un pequeño delay para que el usuario alcance a ver el aviso */
-            setTimeout(()=>iniciarRecuperacionFirestore(),1500);
-            /* Continuar registrando el primer hit — útil para diagnóstico */
+            /* v4.8.2.4 — NO disparar recovery automática. Solo loguear.
+               setTimeout(()=>iniciarRecuperacionFirestore(),1500);  ← BORRADO */
         }
         const log=_readErrLog();
         log.push({
@@ -9723,8 +9730,8 @@ async function _subcolGate(){
    Escritura DIRECTA a una subcolección. Reemplaza guardarDatos() para una sola
    entidad. Doc chico, write atómico, sin payload comprimido del doc raíz.
    
-   No tiene retry interno: si falla, queda en _localDirty y se reintenta cuando
-   el usuario opere de nuevo (igual que el legacy). Sin recovery layers. */
+   v4.8.2.4: si falla, lo encola en AppState._subcolPendingWrites para retry
+   automático cuando el SDK vuelva a funcionar. Antes quedaba perdido. */
 async function subcol_write(entity,id,data){
     const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
     const ref=subcol_userRef();
@@ -9737,12 +9744,76 @@ async function subcol_write(entity,id,data){
         const ms=Math.round(performance.now()-tStart);
         const sizeKB=(JSON.stringify(stripped).length/1024).toFixed(2);
         log('subcol:write',{entity,id:String(id),sizeKB,ms,ok:true});
+        /* Si esta op estaba en cola de retry, sacarla */
+        _subcol_removePendingWrite(entity,id);
         return{ok:true,ms};
     }catch(e){
         log('subcol:write:failed',{entity,id:String(id),error:e.message});
+        /* v4.8.2.4: encolar para retry posterior */
+        _subcol_addPendingWrite(entity,id);
         return{ok:false,error:e.message};
     }
 }
+
+/* ─── _subcol_addPendingWrite / removePendingWrite / retryPendingWrites ───────
+   Sistema mínimo de retry para writes que fallaron. Sin timers, sin backoff
+   complejo. Se reintenta:
+     • Al activar subcol_mode (subcol_activate)
+     • Cuando un write nuevo confirma OK (señal de que el SDK está respondiendo)
+     • Manualmente desde botón nuevo en Diagnóstico (v4.8.2.4) */
+function _subcol_addPendingWrite(entity,id){
+    if(!AppState._subcolPendingWrites)AppState._subcolPendingWrites=[];
+    const key=entity+':'+String(id);
+    if(!AppState._subcolPendingWrites.find(x=>x.key===key)){
+        AppState._subcolPendingWrites.push({key,entity,id:String(id),ts:Date.now()});
+        try{
+            /* Persistir en localStorage por las dudas */
+            localStorage.setItem('_subcol_pending',JSON.stringify(AppState._subcolPendingWrites));
+        }catch(_){}
+    }
+}
+function _subcol_removePendingWrite(entity,id){
+    if(!AppState._subcolPendingWrites)return;
+    const key=entity+':'+String(id);
+    const before=AppState._subcolPendingWrites.length;
+    AppState._subcolPendingWrites=AppState._subcolPendingWrites.filter(x=>x.key!==key);
+    if(AppState._subcolPendingWrites.length<before){
+        try{localStorage.setItem('_subcol_pending',JSON.stringify(AppState._subcolPendingWrites))}catch(_){}
+    }
+}
+async function subcol_retryPendingWrites(){
+    const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
+    /* Cargar de localStorage si memoria está vacía */
+    if(!AppState._subcolPendingWrites||AppState._subcolPendingWrites.length===0){
+        try{
+            const raw=localStorage.getItem('_subcol_pending');
+            if(raw)AppState._subcolPendingWrites=JSON.parse(raw)||[];
+        }catch(_){AppState._subcolPendingWrites=[]}
+    }
+    const pending=AppState._subcolPendingWrites||[];
+    if(pending.length===0){
+        log('subcol:retry:empty',{});
+        return{ok:true,retried:0,failed:0};
+    }
+    log('subcol:retry:start',{count:pending.length});
+    let retried=0,failed=0;
+    /* Copia porque _subcol_removePendingWrite modifica el array */
+    const queue=pending.slice();
+    for(const p of queue){
+        const item=_subcol_findItemInMemory(p.entity,p.id);
+        if(!item){
+            /* Item ya no está en memoria (probablemente borrado) */
+            _subcol_removePendingWrite(p.entity,p.id);
+            continue;
+        }
+        const r=await subcol_write(p.entity,p.id,item);
+        if(r.ok)retried++;else failed++;
+    }
+    log('subcol:retry:done',{retried,failed,remaining:(AppState._subcolPendingWrites||[]).length});
+    return{ok:true,retried,failed};
+}
+window._subcolRetryPendingWrites=subcol_retryPendingWrites;
+
 
 /* ─── subcol_delete ───────────────────────────────────────────────────────────
    Borrado directo de un doc de subcolección. */
@@ -9943,8 +10014,16 @@ async function subcol_activate(){
         }
     }catch(_){}
     subcol_setupListeners();
-    /* Limpieza del doc raíz: diferida 3s para no competir con el bootstrap */
-    setTimeout(()=>{_subcol_cleanRootDoc()},3000);
+    /* v4.8.2.4 — Reintentar writes que quedaron pendientes de sesiones anteriores
+       (donde el SDK estaba terminated). Diferido 4s para dar tiempo a que los
+       listeners hidraten desde server. */
+    setTimeout(()=>{
+        if(typeof subcol_retryPendingWrites==='function'){
+            subcol_retryPendingWrites().catch(_=>{});
+        }
+    },4000);
+    /* Limpieza del doc raíz: diferida 6s para no competir con retry */
+    setTimeout(()=>{_subcol_cleanRootDoc()},6000);
 }
 
 /* Exportar — descarga JSON con todo el estado actual */
