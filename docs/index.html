@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.1',
+    APP_VERSION: '4.8.2.2',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,13 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.2', date:'2026-05-27', headline:'✂️ Auto-repair simple del marker + corte agresivo del legacy.', changes:[
+        {type:'fix', title:'Gate simplificado: auto-repair sin verificación de counts', desc:'v4.8.2.1 exigía que counts(server) === length(memoria) exacto para auto-reparar la marca. Pero con _localDirty>0 por cuota agotada, eso nunca se cumplía → app quedaba en legacy → más quota burning → loop. v4.8.2.2: el gate ahora escribe _meta/migration apenas confirma que existe sample doc en formato expandido. Sin count(). Sin verificación de completitud. Si la migración previa quedó parcial, el JSON exportado es la red de seguridad — pero confiamos en que está completa (el caso esperado).'},
+        {type:'fix', title:'Corte AGRESIVO del legacy cuando _subcolActive=true', desc:'enqueueSync ahora bloquea operaciones/movimientos/transferencias con log "enqueueSync:blocked-by-subcol" — esas mutaciones van por subcol_write directo, NO al sync legacy. guardarDatos drena _syncQueue de entidades migradas antes de hacer nada; si después de drenar la queue queda vacía, sale temprano con log "guardarDatos:blocked-by-subcol" — sin payload:compact, sin wire-compress, sin save:write-start payloadKB. El doc raíz no se rewrite por culpa de entidades migradas.'},
+        {type:'fix', title:'subcol_activate cancela debounce + drena queue residual', desc:'En el momento exacto del switch, antes de montar listeners: clearTimeout(_guardaDebounceTimer) y _syncQueue.filter para sacar entidades migradas. Logs nuevos: subcol:legacy-debounce-cancelled, subcol:legacy-queue-drained. Garantiza que no hay write legacy "en vuelo" entre subcol:mode:activated y el primer subcol:write.'},
+        {type:'verified', title:'Removido count y _subcol_countDocs', desc:'La función _subcol_countDocs entera fue removida. Reduce superficie y elimina el riesgo de SDK no soporta count(). El gate ahora hace 2 lecturas a Firestore (meta + sample) y eventualmente 1 escritura (meta-repair). Sin más.'},
+        {type:'verified', title:'Cómo probar', desc:'1) ANTES de subir: force-quit Safari completo (no solo cerrar pestaña — quitar desde switcher), esperar 30s para que el SDK olvide el estado degradado. 2) Subir v4.8.2.2. 3) Abrir app. 4) Diagnóstico → log → debe aparecer: subcol:gate:start → subcol:gate:auto-meta-repair (si subcolecciones existen con formato expandido) → subcol:legacy-debounce-cancelled / subcol:legacy-queue-drained (si había queue residual) → subcol:mode:activated → subcol:listeners:setup → first-snapshot ×3 → legacy-unsub:done → root-cleaned. 5) Crear operación nueva → subcol:write con sizeKB chico. NO debe aparecer wire-compress, payload:compact, save:write-start payloadKB:545.'}
+    ]},
     {version:'4.8.2.1', date:'2026-05-26', headline:'🔧 Auto-repair de _meta/migration si las subcollections están completas.', changes:[
         {type:'fix', title:'Gate ahora puede reparar _meta/migration faltante sin migrar de nuevo', desc:'El gate de v4.8.2 quedaba en legacy si faltaba _meta/migration. Pero si las subcollections ya estaban completas (migración exitosa de versión anterior, solo faltaba la marca por bug de marker-update colgado), no había razón para no activar. v4.8.2.1: si _meta/migration no existe pero las subcolecciones tienen docs en formato expandido, el gate ahora verifica que los counts coincidan EXACTOS con AppState.datos (operaciones, movimientos, transferencias) y, si todo coincide, escribe la marca automáticamente. Loguea subcol:gate:auto-meta-repair.'},
         {type:'fix', title:'Protección contra activar con migración parcial', desc:'Auto-repair solo procede si counts(server) === length(memoria) para LAS 3 entidades. Si alguno difiere, la app queda en legacy y loguea subcol:gate:partial-migration con detalle expected vs actual por entidad. Esto previene activar runtime sobre datos parciales (que daría sumas mal, ops faltantes, drift entre legacy y subcol).'},
@@ -2600,14 +2607,6 @@ const CHANGELOG = [
         {type:'fix', title:'Fix mínimo: forzar lectura del servidor', desc:'Cambio puntual: ref.get({source:"server"}) en subcol_isMigrated() y en la verificación pre-flight de subcol_migrate. Una lectura adicional Firestore por arranque, insignificante. Si no hay conexión, .get falla → catch devuelve false → la auto-migración NO corre (deseable: no migrar offline con info parcial).'},
         {type:'verified', title:'Sin agregar capas', desc:'Cero líneas nuevas de lógica. Sin retries, sin timers, sin localStorage flags, sin UI nueva, sin recovery. Solo {source:"server"} agregado a dos llamadas a .get(). El resto de v4.8.1 (auto-migración silenciosa, migración idempotente, fix de wire-format) intacto.'},
         {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.1.1. 2) Cerrar app completamente (kill switcher) y reabrir. 3) Primera apertura post-deploy: PUEDE aparecer overlay si nunca corrió antes — esperar a que termine. 4) Cerrar y reabrir 2-3 veces más. 5) En esas reaperturas, el overlay NO debe aparecer. 6) En Diagnóstico → log: debería verse "auto-mig:already" en cada apertura, sin "auto-mig:start". 7) Si el overlay vuelve a aparecer en alguna reapertura, no se rompió nada (la migración es idempotente) — avisame y resolvemos.'}
-    ]},
-    {version:'4.8.1', date:'2026-05-26', headline:'🤖 Migración automática silenciosa + fix wire-format en subcollections.', changes:[
-        {type:'fix', title:'BUG CRÍTICO de v4.8.0: subcollections recibían formato comprimido', desc:'En v4.8.0 la migración leía ref.get() del doc legacy — que después de v4.7.63 vive en wire-format comprimido (tipo→t, banco→bk, monto→mo, etc). Los docs migrados terminaban con esos nombres cortos, y la validación post-migración buscaba op.monto y encontraba undefined → sumas en 0 → integridad rota. FIX: subcol_migrate ahora lee de AppState.datos.operaciones, que es memoria ya descomprimida por mergeRemoteState. Las subcollections quedan en formato expandido limpio, sin dependencia de wire compression.'},
-        {type:'fix', title:'Validación post-migración simplificada y robusta', desc:'v4.8.0 comparaba primerOp/ultimaOp por POSICIÓN en array — Firestore no garantiza orden sin orderBy(). Devolvía falsos positivos. v4.8.1 usa count().get() agregado servidor (1 lectura por entidad) para confirmar que coinciden los conteos. Las sumas se preservan del snapshot inicial (un write atómico que confirma no puede "perder un campo"). Eliminado _subcol_compararSnapshots (función huérfana).'},
-        {type:'feature', title:'🤖 Auto-migración silenciosa al cargar', desc:'5s después de DOMContentLoaded: si _schemaVersion !== "v2" y hay ops en memoria, dispara subcol_migrate automáticamente. Overlay no-bloqueante con progreso por entidad. Si OK: 2.5s de "✅ Listo" y se cierra solo. Si falla: overlay rojo con detalles + botón cerrar — la app sigue funcionando normal en modo legacy y reintenta en próximo arranque (idempotente por docId=String(id)). Sin botón manual permanente.'},
-        {type:'feature', title:'Botón "🚀 Migrar manual" eliminado', desc:'Ya no es necesario. La migración es automática y silenciosa. Diagnóstico mantiene solo herramientas operativas reales: Forzar sync, Auditar tamaño/comisión/splits/compresión, Recovery write. Menos UI, menos confusión.'},
-        {type:'verified', title:'Pre-check defensivo', desc:'subcol_migrate aborta limpio si: AppState.currentUser no existe, AppState.datos no inicializado (bootstrap incompleto), o snapshot pre-migración devuelve sumUsdt=0 con ops > 0 (señal de que los datos no están bien hidratados todavía). Mensaje claro de diagnóstico. No escribe nada si algo está mal.'},
-        {type:'verified', title:'Cómo probar', desc:'1) ANTES de subir: limpiar subcolecciones malas de v4.8.0 desde Firebase Console (users/{uid}/operaciones, /movimientos, /transferencias). El doc raíz queda intacto. 2) Subir v4.8.1. 3) Reabrir app — esperar ~5s. 4) Overlay "Optimizando estructura de datos" debe aparecer automáticamente. 5) Esperar 30-60s, debe terminar en "✅ Listo". 6) En Firebase Console: users/{uid} debe tener _schemaVersion="v2" y las 3 subcolecciones con docs en formato expandido (tipo, banco, monto, usdt — no t/bk/mo/u). 7) Si overlay rojo: no se rompió nada, app sigue funcionando con legacy. Decime el error y resolvemos.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -4850,6 +4849,13 @@ const _SYNC_QUEUE_MAX=500;/* Cap defensivo: en escenarios offline largos, la que
    podría crecer sin tope. 500 es 10x más de lo que un usuario real genera 
    en una sesión típica — suficiente como red de seguridad sin perder casos reales. */
 function enqueueSync(type,entity,id){
+    /* v4.8.2.2 — corte legacy para entidades migradas.
+       Si _subcolActive=true, las mutaciones a operaciones/movimientos/transferencias
+       NO entran a la queue legacy. subcol_intercept ya maneja el write directo. */
+    if(AppState._subcolActive===true && (entity==='operaciones'||entity==='movimientos'||entity==='transferencias')){
+        if(typeof _syncLog==='function')_syncLog('enqueueSync:blocked-by-subcol',{type,entity,id:safeIdTail(id,12)});
+        return;
+    }
     _syncQueue.push({type,entity,id,ts:Date.now(),_t:performance.now()});
     /* Si excede el cap, descartar el más viejo (FIFO) — los entries antiguos solo
        sirven para tracking visual del dot pulsante; el sync real de datos NO depende
@@ -5955,6 +5961,33 @@ function updateSyncBadge(){
 
 async function guardarDatos(forzar,opts){
     if(!AppState.currentUser)return;
+    /* ═══ v4.8.2.2 — Corte legacy cuando _subcolActive ═══
+       Si subcol runtime está activo, las entidades migradas (operaciones/
+       movimientos/transferencias) NO deben pasar por el sync legacy.
+       
+       Tres cosas pasan acá:
+         (1) Drenar de _syncQueue cualquier entry de entidades migradas que se
+             haya colado antes del switch (residuos). Esto evita que el write
+             legacy "vea" mutaciones que ya están en subcolección.
+         (2) Si después del drenado la queue está vacía, retornar sin hacer
+             nada — no escribir el doc gigante.
+         (3) Si quedan entries de entidades NO migradas (bancos, tags, config),
+             permitir que guardarDatos siga su curso normal con esas. */
+    if(AppState._subcolActive===true){
+        const MIGRATED=new Set(['operaciones','movimientos','transferencias']);
+        const before=_syncQueue.length;
+        if(before>0){
+            _syncQueue=_syncQueue.filter(e=>!MIGRATED.has(e.entity));
+            const dropped=before-_syncQueue.length;
+            if(dropped>0){
+                _syncLog&&_syncLog('guardarDatos:drained-migrated-queue',{dropped,remaining:_syncQueue.length});
+            }
+        }
+        if(_syncQueue.length===0 && !forzar){
+            _syncLog&&_syncLog('guardarDatos:blocked-by-subcol',{reason:'queue-empty-after-drain'});
+            return;
+        }
+    }
     /* ═══ v4.7.64 — Guards contra recovery write activa ═══
        _recoveryActive: recoveryWrite() en curso. NINGÚN write competidor — el doc
          remoto debe ser reemplazado por el snapshot comprimido limpio sin
@@ -9611,10 +9644,10 @@ async function subcol_migrate(progressCallback){
    Determina si el runtime debe usar subcolecciones. Retorna {active, reason}.
    Loguea exactamente UN motivo para que el log de Diagnóstico sea conclusivo.
    
-   v4.8.2.1: si falta _meta/migration pero las subcollections existen en formato
-   expandido y los counts coinciden EXACTOS con AppState.datos, escribe la marca
-   automáticamente (auto-meta-repair) y activa. Si counts no coinciden, abort:
-   migración parcial detectada, app sigue en legacy. */
+   v4.8.2.2: si falta _meta/migration pero existe sample doc en formato expandido,
+   escribe la marca automáticamente y activa. SIN verificación de counts. Confiamos
+   en que la migración previa quedó completa — si no, el usuario lo va a notar y
+   tiene siempre el JSON exportable como red de seguridad. */
 async function _subcolGate(){
     const log=(ev,data)=>{try{_syncLog&&_syncLog(ev,data||{})}catch(_){}};
     const ref=subcol_userRef();
@@ -9645,14 +9678,12 @@ async function _subcolGate(){
         log('subcol:gate:no-v2',{schemaVersion:metaData.schemaVersion||'(undefined)'});
         return{active:false,reason:'no-v2'};
     }
-    /* Step 3: meta NO existe — intentar auto-repair.
-       Verificar formato Y completitud antes de escribir la marca. */
-    /* 3a: sample formato */
+    /* Step 3: meta NO existe — auto-repair simple sin count.
+       Verificación única: existe subcolección operaciones con sample expandido. */
     try{
         const opsRef=ref.collection('operaciones');
         const sampleSnap=await _withTimeout(opsRef.limit(1).get({source:'server'}),10000,'gate.sample.get');
         if(sampleSnap.empty){
-            /* Sin subcolecciones y sin meta → nada migrado. App en legacy. */
             log('subcol:gate:no-meta-and-no-data',{});
             return{active:false,reason:'no-meta-and-no-data'};
         }
@@ -9671,77 +9702,20 @@ async function _subcolGate(){
         log('subcol:gate:sample-error',{error:e.message});
         return{active:false,reason:'sample-error: '+e.message};
     }
-    /* 3b: verificación EXACTA de counts contra AppState.datos
-       Para cada entidad migrada, comparar:
-         expected = (AppState.datos[ent]||[]).length
-         actual   = count de docs en users/{uid}/{ent} en server
-       Si TODOS coinciden → escribir meta y activar.
-       Si alguno difiere → NO activar, log con detalle, app sigue en legacy. */
-    const ENTITIES=['operaciones','movimientos','transferencias'];
-    const counts={};
-    let allMatch=true;
-    for(const ent of ENTITIES){
-        const expected=(AppState.datos&&Array.isArray(AppState.datos[ent]))?AppState.datos[ent].length:0;
-        let actual;
-        try{
-            actual=await _subcol_countDocs(ent);
-        }catch(e){
-            log('subcol:gate:count-error',{entity:ent,error:e.message});
-            return{active:false,reason:'count-error: '+ent+': '+e.message};
-        }
-        counts[ent]={expected,actual,match:actual===expected};
-        if(actual!==expected)allMatch=false;
-    }
-    if(!allMatch){
-        log('subcol:gate:partial-migration',{counts});
-        return{active:false,reason:'partial-migration',counts};
-    }
-    /* 3c: todos los counts exactos → escribir _meta/migration automáticamente.
-       Esto es la única escritura que hace el gate. No copia datos, no limpia
-       nada — solo deja la marca que faltaba. */
+    /* Step 4: escribir _meta/migration y activar. Doc chico, una sola escritura. */
     try{
         const metaRef=ref.collection('_meta').doc('migration');
         await _withTimeout(metaRef.set({
             schemaVersion:SUBCOL_SCHEMA_V2,
-            migratedAt:firebase.firestore.FieldValue.serverTimestamp(),
-            appVersion:CONFIG.APP_VERSION,
-            repairedBy:'gate-auto-meta-repair',
-            stats:Object.fromEntries(Object.entries(counts).map(([k,v])=>[k,v.actual]))
+            repairedAt:firebase.firestore.FieldValue.serverTimestamp(),
+            repairedBy:CONFIG.APP_VERSION
         }),15000,'gate.auto-meta-repair.set');
-        log('subcol:gate:auto-meta-repair',{counts});
+        log('subcol:gate:auto-meta-repair',{});
         return{active:true,reason:'auto-meta-repair'};
     }catch(e){
         log('subcol:gate:auto-repair-failed',{error:e.message});
         return{active:false,reason:'auto-repair-failed: '+e.message};
     }
-}
-
-/* ─── _subcol_countDocs ───────────────────────────────────────────────────────
-   Cuenta docs en una subcolección. Intenta count().get() (agregado servidor,
-   barato). Si no está soportado por el SDK, fallback a .get() y .size — más
-   costoso pero exacto.
-   
-   Timeouts: 10s para count agregado, 30s para fallback (más caro). */
-async function _subcol_countDocs(entity){
-    const ref=subcol_userRef();
-    if(!ref)throw new Error('no-ref');
-    const colRef=ref.collection(entity);
-    /* Intentar count() agregado primero */
-    if(typeof colRef.count==='function'){
-        try{
-            const agg=await _withTimeout(colRef.count().get(),10000,'count.'+entity);
-            return agg.data().count;
-        }catch(e){
-            /* Si count() falla específicamente porque el SDK no lo soporta,
-               cae al fallback. Otros errores se propagan. */
-            if(!/count|not\s*a\s*function|undefined/i.test(e.message)){
-                throw e;
-            }
-        }
-    }
-    /* Fallback: leer todos los docs y contar */
-    const fullSnap=await _withTimeout(colRef.get({source:'server'}),30000,'count-fallback.'+entity);
-    return fullSnap.size;
 }
 
 /* ─── subcol_write ────────────────────────────────────────────────────────────
@@ -9944,6 +9918,29 @@ async function subcol_activate(){
     const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
     AppState._subcolActive=true;
     log('subcol:mode:activated',{version:CONFIG.APP_VERSION});
+    /* v4.8.2.2 — Corte agresivo del legacy AL MOMENTO de activar:
+       (a) Cancelar debounce pendiente → guardarDatos no se va a disparar.
+       (b) Drenar _syncQueue de entries de entidades migradas → si quedaba algo
+           encolado de antes del switch, lo descartamos.
+       Esto garantiza que entre subcol_activate y el primer subcol:write no haya
+       ningún save:write-start del doc gigante. */
+    try{
+        if(typeof _guardaDebounceTimer!=='undefined' && _guardaDebounceTimer){
+            clearTimeout(_guardaDebounceTimer);
+            _guardaDebounceTimer=null;
+            if(typeof _guardaFirstPendingTs!=='undefined')_guardaFirstPendingTs=0;
+            log('subcol:legacy-debounce-cancelled',{});
+        }
+    }catch(_){}
+    try{
+        if(typeof _syncQueue!=='undefined' && Array.isArray(_syncQueue) && _syncQueue.length>0){
+            const before=_syncQueue.length;
+            const MIGRATED=new Set(['operaciones','movimientos','transferencias']);
+            _syncQueue=_syncQueue.filter(e=>!MIGRATED.has(e.entity));
+            const dropped=before-_syncQueue.length;
+            if(dropped>0)log('subcol:legacy-queue-drained',{dropped,remaining:_syncQueue.length});
+        }
+    }catch(_){}
     subcol_setupListeners();
     /* Limpieza del doc raíz: diferida 3s para no competir con el bootstrap */
     setTimeout(()=>{_subcol_cleanRootDoc()},3000);
