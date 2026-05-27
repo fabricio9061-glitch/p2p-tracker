@@ -2113,7 +2113,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagRecovery" style="background:#dc2626">🚨 Recovery write</button><button class="btn" id="btnSyncDiagMigrate" style="background:#0d9488">🚀 Migrar subcollections</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagRecovery" style="background:#dc2626">🚨 Recovery write</button><button class="btn" id="btnSyncDiagMigrate" style="background:#0d9488">🚀 Migrar subcollections</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagSdkReset" style="background:#ea580c">🔄 Reset SDK Firestore</button><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button></div><div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px"><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.2',
+    APP_VERSION: '4.8.2.3',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,13 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.3', date:'2026-05-27', headline:'🔧 Auto-check de recovery DESACTIVADO + Reset SDK manual.', changes:[
+        {type:'fix', title:'BUG RAÍZ identificado: recovery auto-check vs subcol gate (carrera)', desc:'Auditoría completa del flujo de bootstrap reveló dos triggers compitiendo: (a) setTimeout(_scheduleGate, 2000) → subcol gate intenta activar runtime nuevo, (b) setTimeout(_autoCheckRecoveryNeeded, 4000) → recovery v4.7.64 inspeccionaba doc raíz y si no tenía _wireFormat:"v1" disparaba recoveryWrite con overlay "Optimización crítica de base de datos". En PC el doc raíz no tenía la marca, entonces recovery disparaba SIEMPRE. Mientras recoveryWrite corría, seteaba _recoveryActive=true que freezeaba el snapshot listener y bloqueaba a Firestore. El gate de subcol intentaba escribir _meta/migration pero el cliente estaba peleando con recoveryWrite → timeout 26s en un write de 100 bytes → gate falla → app queda en legacy → overlay sigue ahí. En iPhone el doc raíz SÍ tenía _wireFormat:"v1" (compresión completada antes), entonces recovery no disparaba, pero el SDK iPhone igual quedó degradado por sesiones anteriores.'},
+        {type:'fix', title:'Recovery auto-check ELIMINADO del bootstrap', desc:'Las dos líneas que disparaban recovery a los 4s post-DOMContentLoaded fueron removidas. La función _autoCheckRecoveryNeeded sigue existiendo en el código (no la borro porque sigue siendo útil manual, expuesta como window._autoCheckRecoveryNeeded) PERO NUNCA se ejecuta automáticamente. El overlay "Optimización crítica de base de datos" no debe aparecer más al abrir la app. Recovery sigue disponible desde Diagnóstico → 🚨 Recovery write con doble confirmación. Esto era exactamente lo que pidió Anibal: nada automático que dispare overlays invasivos.'},
+        {type:'feature', title:'Botón nuevo: 🔄 Reset SDK Firestore en Diagnóstico', desc:'Solución para casos donde el cliente Firestore queda degradado (timeouts en writes triviales, INTERNAL ASSERTION FAILED, write stream exhausted). Doble confirmación (clic + tipear RESET). Ejecuta: (1) desuscribe listeners conocidos, (2) AppState.db.terminate(), (3) AppState.db.clearPersistence() — borra el caché local IndexedDB de Firestore, (4) reload de la página. Datos del server intactos. Caché local se reconstruye al cargar. NO se ejecuta automáticamente nunca. Logs: sdk-reset:start, sdk-reset:terminated, sdk-reset:persistence-cleared, sdk-reset:reloading.'},
+        {type:'verified', title:'Sin acciones automáticas invasivas', desc:'Al abrir la app v4.8.2.3, los únicos triggers automáticos son: (1) bootstrap normal (auth + listener legacy + render), (2) _subcolGate a los 2s (lee _meta/migration, si no existe pero hay sample expandido → escribe meta y activa). Sin overlay recovery. Sin overlay migración. Sin verificación de integridad remota. La app abre limpia.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.3. 2) Hard refresh en PC (Ctrl+Shift+R) — verificar que NO aparece overlay "Optimización crítica de base de datos". 3) Verificar que aparece versión 4.8.2.3 arriba. 4) Diagnóstico → log: debe verse subcol:gate:start → subcol:gate:auto-meta-repair (si subcollections válidas) → subcol:mode:activated. 5) Si el SDK sigue degradado y meta-repair sigue dando timeout: Diagnóstico → 🔄 Reset SDK Firestore → confirmar dos veces. La página recarga limpia. Probar el gate de nuevo. 6) Una vez activado: crear operación nueva → subcol:write en log, NO save:write-start payloadKB.'}
+    ]},
     {version:'4.8.2.2', date:'2026-05-27', headline:'✂️ Auto-repair simple del marker + corte agresivo del legacy.', changes:[
         {type:'fix', title:'Gate simplificado: auto-repair sin verificación de counts', desc:'v4.8.2.1 exigía que counts(server) === length(memoria) exacto para auto-reparar la marca. Pero con _localDirty>0 por cuota agotada, eso nunca se cumplía → app quedaba en legacy → más quota burning → loop. v4.8.2.2: el gate ahora escribe _meta/migration apenas confirma que existe sample doc en formato expandido. Sin count(). Sin verificación de completitud. Si la migración previa quedó parcial, el JSON exportado es la red de seguridad — pero confiamos en que está completa (el caso esperado).'},
         {type:'fix', title:'Corte AGRESIVO del legacy cuando _subcolActive=true', desc:'enqueueSync ahora bloquea operaciones/movimientos/transferencias con log "enqueueSync:blocked-by-subcol" — esas mutaciones van por subcol_write directo, NO al sync legacy. guardarDatos drena _syncQueue de entidades migradas antes de hacer nada; si después de drenar la queue queda vacía, sale temprano con log "guardarDatos:blocked-by-subcol" — sin payload:compact, sin wire-compress, sin save:write-start payloadKB. El doc raíz no se rewrite por culpa de entidades migradas.'},
@@ -2601,12 +2608,6 @@ const CHANGELOG = [
         {type:'fix', title:'Corrección 4: auto-disparo DESACTIVADO temporalmente', desc:'La IIFE que ejecutaba migración 5s después de DOMContentLoaded fue eliminada. La app abre sin tocar nada de migración. Para correr la migración: Diagnóstico → 🚀 Migrar subcollections → doble confirmación. Cuando confirmemos varios arranques estables sin overlays no deseados, evaluaremos volver al auto-disparo en una versión futura.'},
         {type:'verified', title:'Auditoría completa del flujo realizada', desc:'10 puntos revisados antes de tocar código: dónde se dispara, si isMigrated devuelve mal, si subcol_migrate cuelga, si batch.commit queda pendiente, si overlay no actualiza, si hay await sin timeout, si datos incompletos, si _schemaVersion en doc raíz no confirma, si conviene doc separado, si auto-mig debería desactivarse. Causa raíz: doc raíz contaminado desde v4.7.64. Solución: desacoplar TODO el estado de migración del doc raíz.'},
         {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.1.2. 2) Reabrir app. NO debe aparecer overlay alguno. 3) Verificar versión 4.8.1.2 en Diagnóstico. 4) Cerrar y reabrir 2-3 veces. NADA debe aparecer. 5) Cuando estés listo: Diagnóstico → 🚀 Migrar subcollections → confirmar (clic + tipear MIGRAR). 6) Esperar a que termine — si se cuelga >30s en un batch, el timeout aborta limpio y muestra error específico. 7) Botón Cancelar disponible mientras corre. 8) Si termina OK: verificar en Firebase Console que existe users/{uid}/_meta/migration con schemaVersion="v2". 9) Próximo arranque NO debe ofrecer migrar (subcol_isMigrated devuelve true desde el meta doc).'}
-    ]},
-    {version:'4.8.1.1', date:'2026-05-26', headline:'🔧 Hotfix: auto-migración leía caché stale y re-corría cada arranque.', changes:[
-        {type:'fix', title:'BUG: auto-migración se ejecutaba en cada apertura', desc:'Confirmado en 3 arranques sucesivos: el overlay "Optimizando estructura de datos" aparecía aunque la migración ya estuviera marcada en el servidor con _schemaVersion="v2". CAUSA: subcol_isMigrated() usaba ref.get() sin opciones — con enablePersistence activo, eso devuelve el doc desde IndexedDB local. El caché local todavía no reflejaba "_schemaVersion=v2" en el primer momento del bootstrap (5s después de DOMContentLoaded), entonces la migración volvía a correr.'},
-        {type:'fix', title:'Fix mínimo: forzar lectura del servidor', desc:'Cambio puntual: ref.get({source:"server"}) en subcol_isMigrated() y en la verificación pre-flight de subcol_migrate. Una lectura adicional Firestore por arranque, insignificante. Si no hay conexión, .get falla → catch devuelve false → la auto-migración NO corre (deseable: no migrar offline con info parcial).'},
-        {type:'verified', title:'Sin agregar capas', desc:'Cero líneas nuevas de lógica. Sin retries, sin timers, sin localStorage flags, sin UI nueva, sin recovery. Solo {source:"server"} agregado a dos llamadas a .get(). El resto de v4.8.1 (auto-migración silenciosa, migración idempotente, fix de wire-format) intacto.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.1.1. 2) Cerrar app completamente (kill switcher) y reabrir. 3) Primera apertura post-deploy: PUEDE aparecer overlay si nunca corrió antes — esperar a que termine. 4) Cerrar y reabrir 2-3 veces más. 5) En esas reaperturas, el overlay NO debe aparecer. 6) En Diagnóstico → log: debería verse "auto-mig:already" en cada apertura, sin "auto-mig:start". 7) Si el overlay vuelve a aparecer en alguna reapertura, no se rompió nada (la migración es idempotente) — avisame y resolvemos.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -10252,6 +10253,60 @@ document.addEventListener('DOMContentLoaded',()=>{
     const _bRefSync=$('btnSyncDiagRefresh');if(_bRefSync)_bRefSync.addEventListener('click',renderDiagnosticoSync);
     const _bForceSync=$('btnSyncDiagForceSync');if(_bForceSync)_bForceSync.addEventListener('click',ejecutarForzarSync);
     const _bCopySync=$('btnSyncDiagCopy');if(_bCopySync)_bCopySync.addEventListener('click',copiarDiagnosticoSync);
+    /* v4.8.2.3 — Reset manual del SDK Firestore.
+       Para casos donde el cliente quedó degradado (timeouts en writes triviales,
+       INTERNAL ASSERTION FAILED, write stream exhausted). terminate() + 
+       clearIndexedDbPersistence() + reload deja el SDK en estado limpio.
+       
+       SOLO MANUAL. Confirmación doble. NUNCA se ejecuta automáticamente. */
+    const _bSdkReset=$('btnSyncDiagSdkReset');if(_bSdkReset)_bSdkReset.addEventListener('click',async()=>{
+        const msg='🔄 RESET SDK FIRESTORE\n\n'+
+            'Esto va a:\n'+
+            '1) Terminar el cliente Firestore actual.\n'+
+            '2) Borrar el caché local IndexedDB de Firestore.\n'+
+            '3) Recargar la página.\n\n'+
+            'Cuándo usarlo:\n'+
+            '• Writes triviales tardan >20s sin razón aparente.\n'+
+            '• Aparecen errores "INTERNAL ASSERTION FAILED" o "Write stream exhausted".\n'+
+            '• Cuota Firestore está disponible pero la app no sincroniza.\n\n'+
+            'Tus datos en server NO se tocan. El caché local se reconstruye al cargar.\n\n'+
+            '¿Continuar?';
+        if(!confirm(msg))return;
+        const conf=prompt('Para confirmar, tipeá: RESET');
+        if(conf!=='RESET'){alert('Cancelado.');return}
+        _bSdkReset.disabled=true;_bSdkReset.textContent='Reseteando…';
+        try{
+            _syncLog&&_syncLog('sdk-reset:start',{appVersion:CONFIG.APP_VERSION});
+            /* Desuscribir listeners conocidos antes de terminate */
+            try{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}}catch(_){}
+            try{
+                if(AppState._subcolUnsubs){
+                    Object.values(AppState._subcolUnsubs).forEach(u=>{try{u&&u()}catch(_){}});
+                    AppState._subcolUnsubs={};
+                }
+            }catch(_){}
+            /* Terminate cliente */
+            try{
+                await AppState.db.terminate();
+                _syncLog&&_syncLog('sdk-reset:terminated',{});
+            }catch(e){
+                _syncLog&&_syncLog('sdk-reset:terminate-error',{error:String(e&&e.message||e)});
+            }
+            /* Limpiar IndexedDB persistence */
+            try{
+                await AppState.db.clearPersistence();
+                _syncLog&&_syncLog('sdk-reset:persistence-cleared',{});
+            }catch(e){
+                _syncLog&&_syncLog('sdk-reset:clear-error',{error:String(e&&e.message||e)});
+            }
+            _syncLog&&_syncLog('sdk-reset:reloading',{});
+            /* Pequeña espera para que el log se vea, después reload */
+            setTimeout(()=>{window.location.reload()},500);
+        }catch(e){
+            alert('Error: '+(e&&e.message||e));
+            if(_bSdkReset){_bSdkReset.disabled=false;_bSdkReset.textContent='🔄 Reset SDK Firestore'}
+        }
+    });
     const _bAuditSync=$('btnSyncDiagAudit');if(_bAuditSync)_bAuditSync.addEventListener('click',()=>{
         if(_bAuditSync){_bAuditSync.disabled=true;_bAuditSync.textContent='Analizando…'}
         /* setTimeout para que el botón pueda actualizar UI antes del stringify pesado */
@@ -11333,19 +11388,20 @@ function _checkPayloadGuard(payloadKB){
     }
 }
 
-/* ─── Exposición pública ─────────────────────────────────────────────────────
-   Para que el botón de Diagnóstico pueda dispararlo manualmente. */
+/* Exposición pública para diagnóstico manual.
+   v4.8.2.3 — auto-check al cargar DESACTIVADO. El usuario decide cuándo correr
+   recovery desde Diagnóstico → 🚨 Recovery write. */
 window.recoveryWrite=recoveryWrite;
 window._inspectRemoteDoc=_inspectRemoteDoc;
 window._checkPayloadGuard=_checkPayloadGuard;
+/* Exposición también para diagnóstico manual */
+window._autoCheckRecoveryNeeded=_autoCheckRecoveryNeeded;
 
-/* Auto-check al cargar — espera 4 segundos después de DOMContentLoaded para
-   que el primer snapshot ya haya hidratado memoria */
-if(document.readyState==='complete'||document.readyState==='interactive'){
-    setTimeout(_autoCheckRecoveryNeeded,4000);
-}else{
-    document.addEventListener('DOMContentLoaded',()=>setTimeout(_autoCheckRecoveryNeeded,4000));
-}
+/* v4.8.2.3 — NO auto-check al cargar.
+   La condición que activaba recoveryWrite (doc raíz sin _wireFormat:"v1")
+   se cumplía espuriamente en PC y disparaba overlay "Optimización crítica
+   de base de datos" en cada apertura, bloqueando el gate de subcollections.
+   El usuario puede ejecutar recovery manual desde Diagnóstico. */
 
 })();
 
