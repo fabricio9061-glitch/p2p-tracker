@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.10',
+    APP_VERSION: '4.8.2.11',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,12 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.11', date:'2026-05-27', headline:'💾 Fix CRÍTICO: el import ahora persiste — los datos no reaparecen viejos al reabrir.', changes:[
+        {type:'fix', title:'BUG #17 (CRÍTICO): _aplicarRespaldo no actualizaba el backup local', desc:'Al importar un JSON, _aplicarRespaldo cambiaba AppState.datos (memoria) y subía a subcolecciones (server), pero NUNCA llamaba backupToLocal() para actualizar el respaldo en localStorage. Al reabrir la app, el bootstrap hace restoreFromLocal() PRIMERO y traía el backup VIEJO (pre-import) → los datos importados "desaparecían" y reaparecían los anteriores. v4.8.2.11: tras el restore-push, se fuerza backupToLocal() (invalidando la firma) para que localStorage refleje los datos importados. Log: restore:local-backup-updated. Al reabrir, el bootstrap hidrata con los datos correctos.'},
+        {type:'fix', title:'BUG #18 (CRÍTICO): el cache viejo se mezclaba con el server al reabrir', desc:'El listener subcol hacía merge incremental (docChanges) sobre el array de memoria. Si el cache local tenía ops que ya no existen en el server (residuo pre-import), no se borraban → datos viejos persistían mezclados. v4.8.2.11: en el primer snapshot confirmado del server (fromCache=false) por entidad, se reconcilia el array completo — las ops en memoria cuyo ID no está en el server (y no están pendientes de subir) se eliminan como residuo. Log: subcol:listener:reconciled con removed/serverCount/memoryAfter.'},
+        {type:'fix', title:'Protección: reconcile no corre durante un restore activo', desc:'La reconciliación podría borrar ops recién importadas si el primer snapshot del server llega antes de que el restore-push termine. v4.8.2.11: durante _aplicarRespaldo se marca _subcolRestoreInProgress + las 3 entidades como ya-reconciliadas, evitando borrado prematuro. La reconciliación real ocurre en el siguiente arranque limpio, cuando el cache ya tiene los datos correctos.'},
+        {type:'verified', title:'Cómo probar — EL TEST QUE FALLABA', desc:'1) Subir v4.8.2.11. 2) Reabrir. 3) Menú → Importar datos → tu JSON. 4) Confirmar. Log: subcol:restore-push:done → restore:local-backup-updated. 5) Verificar que los datos importados se ven. 6) CERRAR COMPLETAMENTE la app (force-quit). 7) Esperar 30s. 8) REABRIR. 9) ✅ Los datos deben ser los IMPORTADOS, no los viejos. 10) Diagnóstico → log: subcol:listener:reconciled (si había residuo) con el count limpiado. Este era el bug — ahora el import es persistente.'}
+    ]},
     {version:'4.8.2.10', date:'2026-05-27', headline:'🧹 Limpieza del versionado legacy residual en modo subcol.', changes:[
         {type:'fix', title:'Match:✗ residual tras manual-import', desc:'Después de importar el JSON, _localVersion quedaba en 0 pero _datos._version en 686 → Match:✗ y el write al doc raíz quedaba con versión más vieja que el server, dejando un pending de config sin drenar. v4.8.2.10: en modo subcol, si _localVersion=0 pero _datos._version>0, se alinea _localVersion al valor de los datos antes de escribir. Log: save:subcol-version-aligned. El pending de config (lastSeenVersion/dismissedVersions) ahora drena correctamente al doc raíz pequeño.'},
         {type:'fix', title:'Panel de Diagnóstico: ocultar versionado legacy en modo subcol', desc:'El versionado single-doc (_localVersion vs _datos._version) ya no aplica en modo subcol — las ops viven en subcolecciones, el doc raíz solo tiene config liviano. El panel ahora muestra "📂 Subcollections activo" + "Writes pendientes: N" en vez del Match legacy que confundía. Si N=0, el estado es sano.'},
@@ -2598,11 +2604,6 @@ const CHANGELOG = [
         {type:'fix', title:'BUG #9 (CRÍTICO): editar/eliminar una op no sincronizaba las ventas recalculadas', desc:'Al editar, eliminar o insertar una operación fuera de orden, recalcularLotesYGanancias() recomputa el FIFO de TODAS las ventas posteriores — cambia ganancia y consumedLots de potencialmente cientos de ventas en memoria. Pero subcol_intercept solo subía la op editada (el ID interceptado). Las demás ventas recalculadas quedaban con valores viejos en el server → drift silencioso entre memoria y Firestore. En modo legacy esto no pasaba porque se subía el doc entero. v4.8.2.7: tras el write principal, _subcol_syncChangedDerived compara una firma de campos derivados (ganancia, consumedLots, usdt, comisionPlataforma) capturada antes vs después del recalc, y sube a subcol todas las ops/movimientos cuya firma cambió. Logs: subcol:cascade:detected, subcol:cascade:synced.'},
         {type:'fix', title:'BUG #11 (ALTA): ops de otro dispositivo aparecían sin ganancia/usdt', desc:'Los docs en subcol se guardan strippeados (sin ganancia/consumedLots/usdt/comisionPlataforma — son derivables). Cuando el listener subcol recibía una op creada en otro dispositivo, hacía merge del doc strippeado → la op aparecía con ganancia=undefined, usdt=undefined hasta que algo disparara recalc. La vista mostraba valores rotos. v4.8.2.7: tras procesar cambios del listener en operaciones o movimientos, se dispara recalcularLotesYGanancias() antes de actualizarVista() para reconstruir los derivables localmente. Re-snapshot de firmas para no re-disparar cascada saliente con cambios entrantes.'},
         {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.7. 2) Editar el monto de una compra VIEJA (con ventas posteriores que consumieron su lote). 3) Diagnóstico → log: subcol:write (la op editada) + subcol:cascade:detected + subcol:cascade:synced con el count de ventas recalculadas. 4) Verificar en otro dispositivo / recargando que las ganancias de las ventas posteriores coinciden. 5) Eliminar una compra vieja → mismo patrón: delete + cascade. 6) Las sumas de ganancia total deben ser idénticas en memoria y tras recargar desde server.'}
-    ]},
-    {version:'4.8.2.6', date:'2026-05-27', headline:'🟢 Fix "no está en línea": el estado online ahora viene de los listeners subcol.', changes:[
-        {type:'fix', title:'FIX #7 (CRÍTICO): la app quedaba para siempre en "Sincronizando / Modo local activo"', desc:'El estado "En línea" solo se seteaba desde el listener legacy del doc raíz cuando recibía snapshot del server (fromCache=false). Pero en modo subcol, el listener legacy se desuscribe apenas las 3 subcolecciones reciben su primer snapshot — ANTES de que llegue el snapshot fromCache=false del legacy. Resultado: setSyncStatus(online) nunca corría y la app quedaba congelada en "Sincronizando / Modo local activo / Error al reconectar" aunque los datos sincronizaran bien. v4.8.2.6: los listeners de subcolecciones ahora setean el estado de conexión. Si cualquiera recibe snapshot del server (fromCache=false) → online + baja _datosStale + baja _uiHydratedFromCache. Si todos vienen de cache → "Caché local" hasta que el server confirme.'},
-        {type:'fix', title:'FIX #8 (ALTA): el botón Reconectar no funcionaba en modo subcol', desc:'Tocar el banner de estado llamaba reconnectFirebase, que desuscribía el listener legacy y re-bootstrappeaba esperando que el listener legacy bajara _datosStale. Pero en modo subcol el legacy ya no es la fuente de datos → la reconexión nunca se completaba y caía en "Error al reconectar" tras 12s. v4.8.2.6: reconnectFirebase detecta _subcolActive y toma un camino distinto — reactiva la red de Firestore (enableNetwork) y espera que los listeners subcol (que ya están montados) confirmen con snapshot del server. Sin re-bootstrap, sin desuscribir.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Force-quit PWA + 60s + reabrir. 2) Verificar versión 4.8.2.6. 3) Esperar 10s. 4) El banner debe pasar de "Modo local activo" (amarillo) a "En línea" (verde) cuando los listeners subcol reciban el snapshot del server. 5) Diagnóstico → Estado sync debe decir "online". 6) Crear operación → subcol:write OK, banner sigue verde. 7) Si el banner sigue amarillo: tocar el banner para forzar reconnect, ahora debe funcionar en modo subcol.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -9366,15 +9367,38 @@ async function _aplicarRespaldo(datos,origen){
            atómico por lotes de 400). Las entidades NO migradas (bancos, config)
            van por guardarDatos normal al doc raíz. */
         if(AppState._subcolActive===true){
-            await _subcol_pushFullRestore(datos);
-            /* Forzar guardado del doc raíz para config/bancos (no migrados).
-               guardarDatos drena las migradas y sube solo lo no-migrado. */
-            try{await guardarDatos(true)}catch(_){}
+            AppState._subcolRestoreInProgress=true;
+            try{
+                await _subcol_pushFullRestore(datos);
+                /* Forzar guardado del doc raíz para config/bancos (no migrados).
+                   guardarDatos drena las migradas y sube solo lo no-migrado. */
+                try{await guardarDatos(true)}catch(_){}
+            }finally{
+                /* Liberar el guard tras un margen para que el primer snapshot del
+                   server (que trae las ops recién subidas) no dispare reconcile
+                   prematuro. La reconciliación quedará para el próximo arranque. */
+                AppState._subcolServerReconciled={operaciones:true,movimientos:true,transferencias:true};
+                setTimeout(()=>{AppState._subcolRestoreInProgress=false},2000);
+            }
         }else{
             await guardarDatos(true);
         }
         /* Liberar el lock apenas el push confirma exitosamente — ya no hay necesidad de bloquear */
         AppState._postRestoreLockTs=0;
+        /* ═══ v4.8.2.11 — FIX #17 (CRÍTICO): persistir el backup local con los datos
+           importados. SIN esto, el bootstrap al reabrir hacía restoreFromLocal() y
+           traía el backup VIEJO (pre-import) → los datos importados "desaparecían"
+           al reiniciar. Forzamos invalidando la firma para que backupToLocal escriba
+           sí o sí el estado nuevo. */
+        try{
+            backupToLocal._lastSig=null;
+            backupToLocal();
+            _syncLog&&_syncLog('restore:local-backup-updated',{ops:(datos.operaciones||[]).length});
+        }catch(e){console.warn('[P2P] backup local post-restore falló:',e.message)}
+        /* v4.8.2.11 — re-snapshot de firmas derivadas tras el import para baseline limpia */
+        if(AppState._subcolActive===true && typeof _subcol_snapshotDerivedSigs==='function'){
+            _subcol_snapshotDerivedSigs();
+        }
         alert(`✅ Datos restaurados correctamente.\n\n`
             +`Origen: ${origen}\n`
             +`Operaciones: ${(datos.operaciones||[]).length}\n`
@@ -10182,6 +10206,42 @@ function subcol_setupListeners(){
             if(!AppState.datos[ent])AppState.datos[ent]=[];
             const arr=AppState.datos[ent];
             let changed=false;
+            /* ═══ v4.8.2.11 — FIX #18 (CRÍTICO): reconciliación completa en el primer
+               snapshot del SERVER (no cache).
+               
+               Problema: tras un import, el cache local viejo podía tener ops que ya
+               no existen en el server. El docChanges incremental no las borraba →
+               al reabrir, los datos viejos del cache "reaparecían" mezclados.
+               
+               Solución: cuando llega el primer snapshot confirmado del server para
+               una entidad, reconciliamos el array COMPLETO de memoria contra el set
+               de IDs del server. Las ops en memoria cuyo ID NO está en el server se
+               eliminan (eran residuo del cache). Esto solo corre UNA vez por entidad,
+               en el primer snapshot fromCache=false. */
+            if(!snap.metadata.fromCache && !AppState._subcolServerReconciled){
+                AppState._subcolServerReconciled={};
+            }
+            if(!snap.metadata.fromCache && AppState._subcolServerReconciled && !AppState._subcolServerReconciled[ent] && !AppState._subcolRestoreInProgress){
+                AppState._subcolServerReconciled[ent]=true;
+                const serverIds=new Set();
+                snap.forEach(doc=>serverIds.add(doc.id));
+                /* Solo reconciliar si NO hay writes pendientes para esta entidad
+                   (sino borraríamos ops legítimas que todavía no subieron). */
+                const pendIds=new Set((AppState._subcolPendingWrites||[]).filter(p=>p.entity===ent).map(p=>p.id));
+                const before=arr.length;
+                for(let i=arr.length-1;i>=0;i--){
+                    const item=arr[i];
+                    if(!item||item.id==null)continue;
+                    const idStr=String(item.id);
+                    if(!serverIds.has(idStr) && !pendIds.has(idStr)){
+                        /* Op en memoria que el server no tiene y no está pendiente → residuo del cache */
+                        arr.splice(i,1);
+                        changed=true;
+                    }
+                }
+                const removed=before-arr.length;
+                if(removed>0)log('subcol:listener:reconciled',{entity:ent,removed,serverCount:serverIds.size,memoryAfter:arr.length});
+            }
             snap.docChanges().forEach(change=>{
                 const data=change.doc.data();
                 const idStr=change.doc.id;
@@ -10558,7 +10618,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='exportar-diagnostico')exportarDiagnostico();
         else if(a==='diagnostico-sync')abrirDiagnosticoSync();
         else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}/* v4.8.2.5 — FIX #4: desuscribir listeners subcol y resetear flags */if(AppState._subcolUnsubs){Object.values(AppState._subcolUnsubs).forEach(u=>{try{u&&u()}catch(_){}});AppState._subcolUnsubs={}}AppState._subcolActive=false;AppState._subcolFirstSnapshots={};AppState._subcolRootCleaned=false;AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}/* v4.8.2.5 — FIX #4: desuscribir listeners subcol y resetear flags */if(AppState._subcolUnsubs){Object.values(AppState._subcolUnsubs).forEach(u=>{try{u&&u()}catch(_){}});AppState._subcolUnsubs={}}AppState._subcolActive=false;AppState._subcolFirstSnapshots={};AppState._subcolServerReconciled=null;AppState._subcolRootCleaned=false;AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
     });
 
     // Toggle sections
