@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.7',
+    APP_VERSION: '4.8.2.8',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,14 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.8', date:'2026-05-27', headline:'🛑 STOP pérdida de datos: 4 bugs que borraban operaciones.', changes:[
+        {type:'fix', title:'BUG #12 (CRÍTICO): el retry de pendientes borraba ops válidas', desc:'subcol_retryPendingWrites ejecutaba subcol_delete por cada pending tipo "delete". Pero si quedó un pending delete espurio de una sesión caótica (SDK terminated en v4.8.2.3/2.4), el retry BORRABA del server una op que era válida y existía en memoria. El listener recibía el removed y la borraba de memoria también → pérdida irreversible. v4.8.2.8: el retry de delete ahora verifica PRIMERO si la op está en memoria. Si está → es válida, el pending delete es espurio → se RE-ESCRIBE en vez de borrar. Solo borra del server si la op realmente ya no existe localmente (borrado legítimo del usuario).'},
+        {type:'fix', title:'BUG #14 (CRÍTICO): el listener borraba ops por removed espurios', desc:'El listener subcol borraba de memoria CUALQUIER evento removed, incluso los de cache (fromCache) o cuando había un write nuestro pendiente para esa op. Un estado transitorio del server podía disparar removed de ops buenas. v4.8.2.8: removed solo se aplica si viene del server confirmado (!fromCache) Y no hay write pendiente para esa op. Cada borrado se loguea (subcol:listener:removed-applied / removed-skipped) para trazabilidad total — si desaparece una op, el log dice cuál y por qué.'},
+        {type:'fix', title:'BUG #16 (CRÍTICO): importar JSON no subía las ops a subcol', desc:'_aplicarRespaldo (import/restore manual) llamaba guardarDatos(true) para persistir, pero en modo subcol guardarDatos está bloqueado para entidades migradas. Resultado: las ops importadas quedaban SOLO en memoria, el server seguía con las viejas, y el listener podía borrar las importadas. Importar no funcionaba y empeoraba el drift. v4.8.2.8: en modo subcol, _aplicarRespaldo sube TODAS las ops/movimientos/transferencias a subcolecciones con writeBatch (lotes de 400, idempotente). Logs: subcol:restore-push:start/entity-done/done. AHORA SÍ podés importar tu JSON para recuperar las ops perdidas.'},
+        {type:'fix', title:'BUG #13 (MEDIA): doble activación montaba listeners duplicados', desc:'Si el gate corría dos veces (bootstrap doble, visible en logs con múltiples ui:bootstrap-start), subcol_activate montaba un segundo set de listeners. Dos listeners procesando los mismos snapshots causaban comportamiento errático. v4.8.2.8: guard al inicio de subcol_activate — si ya está activo con listeners montados, no re-montar.'},
+        {type:'verified', title:'CÓMO RECUPERAR TUS OPERACIONES', desc:'1) Subir v4.8.2.8. 2) Force-quit PWA + 60s + reabrir. 3) Esperar a que diga "En línea" (verde). 4) Menú → Importar datos (.json) → elegí el JSON que exportaste antes. 5) Confirmar. 6) Diagnóstico → log: subcol:restore-push:start → entity-done (×3) → done. Esto sube TODAS las ops del JSON a las subcolecciones del server. 7) Las ops perdidas vuelven. 8) Verificá el contador de operaciones.'},
+        {type:'verified', title:'Trazabilidad de borrados', desc:'Si alguna op desaparece de nuevo, Diagnóstico → log ahora muestra exactamente: subcol:listener:removed-applied {entity, id} para cada borrado aplicado, y removed-skipped con la razón para los bloqueados. Esto permite diagnosticar cualquier pérdida futura con precisión.'}
+    ]},
     {version:'4.8.2.7', date:'2026-05-27', headline:'🧮 Fix integridad FIFO: cambios en cascada ahora sí se sincronizan.', changes:[
         {type:'fix', title:'BUG #9 (CRÍTICO): editar/eliminar una op no sincronizaba las ventas recalculadas', desc:'Al editar, eliminar o insertar una operación fuera de orden, recalcularLotesYGanancias() recomputa el FIFO de TODAS las ventas posteriores — cambia ganancia y consumedLots de potencialmente cientos de ventas en memoria. Pero subcol_intercept solo subía la op editada (el ID interceptado). Las demás ventas recalculadas quedaban con valores viejos en el server → drift silencioso entre memoria y Firestore. En modo legacy esto no pasaba porque se subía el doc entero. v4.8.2.7: tras el write principal, _subcol_syncChangedDerived compara una firma de campos derivados (ganancia, consumedLots, usdt, comisionPlataforma) capturada antes vs después del recalc, y sube a subcol todas las ops/movimientos cuya firma cambió. Logs: subcol:cascade:detected, subcol:cascade:synced.'},
         {type:'fix', title:'BUG #11 (ALTA): ops de otro dispositivo aparecían sin ganancia/usdt', desc:'Los docs en subcol se guardan strippeados (sin ganancia/consumedLots/usdt/comisionPlataforma — son derivables). Cuando el listener subcol recibía una op creada en otro dispositivo, hacía merge del doc strippeado → la op aparecía con ganancia=undefined, usdt=undefined hasta que algo disparara recalc. La vista mostraba valores rotos. v4.8.2.7: tras procesar cambios del listener en operaciones o movimientos, se dispara recalcularLotesYGanancias() antes de actualizarVista() para reconstruir los derivables localmente. Re-snapshot de firmas para no re-disparar cascada saliente con cambios entrantes.'},
@@ -2595,13 +2603,6 @@ const CHANGELOG = [
         {type:'fix', title:'BUG: subcol_write perdía ops cuando el SDK estaba terminated', desc:'subcol_write fallaba con "client terminated" y solo logueaba — no marcaba la op como pendiente. Como _subcolActive=true bloquea enqueueSync para entidades migradas, las ops quedaban en memoria sin marca de pendiente. Al recargar, _localDirty=0 hacía creer que no había nada pendiente. v4.8.2.4: subcol_write fallido ahora encola la op en AppState._subcolPendingWrites + localStorage._subcol_pending. Cuando el SDK vuelve a funcionar (subcol_activate diferido 4s después de activar), se ejecuta subcol_retryPendingWrites automáticamente. Idempotente — si se reintentan ops que ya están en server, set() sobrescribe sin duplicar.'},
         {type:'fix', title:'Retry manual disponible vía window._subcolRetryPendingWrites()', desc:'Expuesto en window para diagnóstico. Si después del bootstrap automático quedan ops sin sincronizar, se puede disparar desde consola/debug. Logs subcol:retry:start, subcol:retry:done con retried/failed/remaining.'},
         {type:'verified', title:'Plan post-deploy', desc:'1) Subir v4.8.2.4. 2) Force-quit PWA + esperar 60s + reabrir. 3) Verificar versión 4.8.2.4. 4) Diagnóstico → log: subcol:gate:ok → subcol:mode:activated → subcol:listeners:setup → first-snapshot ×3 → subcol:retry:start con las ops pendientes de la sesión anterior. 5) Si el SDK ahora responde, las ops fallidas suben en este retry. 6) Si subcol:retry:done muestra failed:N, esperar reset diario de cuota Firestore y retry manual con window._subcolRetryPendingWrites(). 7) Crear ops nuevas — deben generar subcol:write OK.'}
-    ]},
-    {version:'4.8.2.3', date:'2026-05-27', headline:'🔧 Auto-check de recovery DESACTIVADO + Reset SDK manual.', changes:[
-        {type:'fix', title:'BUG RAÍZ identificado: recovery auto-check vs subcol gate (carrera)', desc:'Auditoría completa del flujo de bootstrap reveló dos triggers compitiendo: (a) setTimeout(_scheduleGate, 2000) → subcol gate intenta activar runtime nuevo, (b) setTimeout(_autoCheckRecoveryNeeded, 4000) → recovery v4.7.64 inspeccionaba doc raíz y si no tenía _wireFormat:"v1" disparaba recoveryWrite con overlay "Optimización crítica de base de datos". En PC el doc raíz no tenía la marca, entonces recovery disparaba SIEMPRE. Mientras recoveryWrite corría, seteaba _recoveryActive=true que freezeaba el snapshot listener y bloqueaba a Firestore. El gate de subcol intentaba escribir _meta/migration pero el cliente estaba peleando con recoveryWrite → timeout 26s en un write de 100 bytes → gate falla → app queda en legacy → overlay sigue ahí. En iPhone el doc raíz SÍ tenía _wireFormat:"v1" (compresión completada antes), entonces recovery no disparaba, pero el SDK iPhone igual quedó degradado por sesiones anteriores.'},
-        {type:'fix', title:'Recovery auto-check ELIMINADO del bootstrap', desc:'Las dos líneas que disparaban recovery a los 4s post-DOMContentLoaded fueron removidas. La función _autoCheckRecoveryNeeded sigue existiendo en el código (no la borro porque sigue siendo útil manual, expuesta como window._autoCheckRecoveryNeeded) PERO NUNCA se ejecuta automáticamente. El overlay "Optimización crítica de base de datos" no debe aparecer más al abrir la app. Recovery sigue disponible desde Diagnóstico → 🚨 Recovery write con doble confirmación. Esto era exactamente lo que pidió Anibal: nada automático que dispare overlays invasivos.'},
-        {type:'feature', title:'Botón nuevo: 🔄 Reset SDK Firestore en Diagnóstico', desc:'Solución para casos donde el cliente Firestore queda degradado (timeouts en writes triviales, INTERNAL ASSERTION FAILED, write stream exhausted). Doble confirmación (clic + tipear RESET). Ejecuta: (1) desuscribe listeners conocidos, (2) AppState.db.terminate(), (3) AppState.db.clearPersistence() — borra el caché local IndexedDB de Firestore, (4) reload de la página. Datos del server intactos. Caché local se reconstruye al cargar. NO se ejecuta automáticamente nunca. Logs: sdk-reset:start, sdk-reset:terminated, sdk-reset:persistence-cleared, sdk-reset:reloading.'},
-        {type:'verified', title:'Sin acciones automáticas invasivas', desc:'Al abrir la app v4.8.2.3, los únicos triggers automáticos son: (1) bootstrap normal (auth + listener legacy + render), (2) _subcolGate a los 2s (lee _meta/migration, si no existe pero hay sample expandido → escribe meta y activa). Sin overlay recovery. Sin overlay migración. Sin verificación de integridad remota. La app abre limpia.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.3. 2) Hard refresh en PC (Ctrl+Shift+R) — verificar que NO aparece overlay "Optimización crítica de base de datos". 3) Verificar que aparece versión 4.8.2.3 arriba. 4) Diagnóstico → log: debe verse subcol:gate:start → subcol:gate:auto-meta-repair (si subcollections válidas) → subcol:mode:activated. 5) Si el SDK sigue degradado y meta-repair sigue dando timeout: Diagnóstico → 🔄 Reset SDK Firestore → confirmar dos veces. La página recarga limpia. Probar el gate de nuevo. 6) Una vez activado: crear operación nueva → subcol:write en log, NO save:write-start payloadKB.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -9313,7 +9314,22 @@ async function _aplicarRespaldo(datos,origen){
         }else{
             setTimeout(runDeferredRecalc,50);
         }
-        await guardarDatos(true);
+        /* v4.8.2.8 — FIX #16: en modo subcol, guardarDatos está bloqueado para
+           entidades migradas. Un import/restore debe subir TODAS las ops,
+           movimientos y transferencias a las subcolecciones, sino quedan solo en
+           memoria y el listener del server las puede borrar.
+           
+           Subimos cada entidad migrada a su subcolección con writeBatch (rápido,
+           atómico por lotes de 400). Las entidades NO migradas (bancos, config)
+           van por guardarDatos normal al doc raíz. */
+        if(AppState._subcolActive===true){
+            await _subcol_pushFullRestore(datos);
+            /* Forzar guardado del doc raíz para config/bancos (no migrados).
+               guardarDatos drena las migradas y sube solo lo no-migrado. */
+            try{await guardarDatos(true)}catch(_){}
+        }else{
+            await guardarDatos(true);
+        }
         /* Liberar el lock apenas el push confirma exitosamente — ya no hay necesidad de bloquear */
         AppState._postRestoreLockTs=0;
         alert(`✅ Datos restaurados correctamente.\n\n`
@@ -9325,6 +9341,46 @@ async function _aplicarRespaldo(datos,origen){
         console.error('[P2P] Error aplicando respaldo:',e);
         alert('❌ Error al restaurar: '+(e.message||e.code||'desconocido'));
     }
+}
+
+/* ─── _subcol_pushFullRestore ─────────────────────────────────────────────────
+   v4.8.2.8 — Sube TODAS las ops/movimientos/transferencias a subcolecciones.
+   Usado por _aplicarRespaldo cuando _subcolActive=true (import/restore manual).
+   writeBatch por lotes de 400 (límite Firestore). Idempotente: set() sobrescribe. */
+async function _subcol_pushFullRestore(datos){
+    const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
+    const ref=subcol_userRef();
+    if(!ref){log('subcol:restore-push:no-ref',{});return}
+    const ENTITIES=['operaciones','movimientos','transferencias'];
+    log('subcol:restore-push:start',{
+        operaciones:(datos.operaciones||[]).length,
+        movimientos:(datos.movimientos||[]).length,
+        transferencias:(datos.transferencias||[]).length
+    });
+    for(const entity of ENTITIES){
+        const items=datos[entity]||[];
+        let written=0;
+        for(let i=0;i<items.length;i+=400){
+            const slice=items.slice(i,i+400);
+            const batch=AppState.db.batch();
+            slice.forEach(item=>{
+                if(!item||item.id==null)return;
+                const stripped=_subcol_stripPersistFields(item);
+                batch.set(ref.collection(entity).doc(String(item.id)),stripped);
+            });
+            try{
+                await _withTimeout(batch.commit(),30000,'restore-push.'+entity);
+                written+=slice.length;
+            }catch(e){
+                log('subcol:restore-push:batch-failed',{entity,error:e.message,written});
+                throw e;
+            }
+        }
+        log('subcol:restore-push:entity-done',{entity,written});
+    }
+    /* Re-snapshot de firmas tras el restore para baseline limpia */
+    if(typeof _subcol_snapshotDerivedSigs==='function')_subcol_snapshotDerivedSigs();
+    log('subcol:restore-push:done',{});
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -9833,26 +9889,44 @@ async function subcol_retryPendingWrites(){
         return{ok:true,retried:0,failed:0};
     }
     log('subcol:retry:start',{count:pending.length});
-    let retried=0,failed=0;
+    let retried=0,failed=0,skipped=0;
     const queue=pending.slice();
     for(const p of queue){
         if(p.type==='delete'){
-            const r=await subcol_delete(p.entity,p.id);
-            if(r.ok)retried++;else failed++;
+            /* v4.8.2.8 — FIX #12: PROTECCIÓN ANTI-BORRADO.
+               Un retry de delete SOLO procede si la op NO está en memoria. Si está
+               en memoria, significa que es una op VÁLIDA y el pending delete es un
+               artefacto (de una sesión caótica con SDK terminated). Borrarla sería
+               destruir datos buenos. En ese caso, descartamos el pending delete y
+               en su lugar la RE-ESCRIBIMOS para garantizar que esté en server.
+               
+               Solo borramos del server si la op realmente ya no existe localmente
+               (el usuario la borró a propósito). */
+            const item=_subcol_findItemInMemory(p.entity,p.id);
+            if(item){
+                /* Op existe en memoria → el delete pendiente es espurio. Re-escribir. */
+                log('subcol:retry:delete-cancelled-item-exists',{entity:p.entity,id:p.id});
+                const r=await subcol_write(p.entity,p.id,item);
+                if(r.ok){retried++;_subcol_removePendingWrite(p.entity,p.id)}else failed++;
+            }else{
+                /* Op no está en memoria → borrado legítimo. Proceder. */
+                const r=await subcol_delete(p.entity,p.id);
+                if(r.ok)retried++;else failed++;
+            }
         }else{
             const item=_subcol_findItemInMemory(p.entity,p.id);
             if(!item){
-                /* Item ya no está en memoria — usuario lo borró localmente.
-                   Sacar del pending y continuar (sin convertir a delete; si la
-                   op estaba en server alguien va a tener que limpiarla). */
+                /* Item ya no está en memoria. NO convertir a delete (destructivo).
+                   Simplemente sacar del pending. */
                 _subcol_removePendingWrite(p.entity,p.id);
+                skipped++;
                 continue;
             }
             const r=await subcol_write(p.entity,p.id,item);
             if(r.ok)retried++;else failed++;
         }
     }
-    log('subcol:retry:done',{retried,failed,remaining:(AppState._subcolPendingWrites||[]).length});
+    log('subcol:retry:done',{retried,failed,skipped,remaining:(AppState._subcolPendingWrites||[]).length});
     return{ok:true,retried,failed};
 }
 window._subcolRetryPendingWrites=subcol_retryPendingWrites;
@@ -10081,7 +10155,24 @@ function subcol_setupListeners(){
                     else arr.push(data);
                     changed=true;
                 }else if(change.type==='removed'){
-                    if(idx>=0){arr.splice(idx,1);changed=true}
+                    /* v4.8.2.8 — FIX #14: PROTECCIÓN contra borrados espurios.
+                       Solo aplicar 'removed' si:
+                       (a) viene del server confirmado (!fromCache) — los removed de
+                           cache pueden ser artefactos de re-escritura local.
+                       (b) NO hay un write pendiente nuestro para esa misma op (sino
+                           el removed es eco de un estado viejo antes de nuestro write).
+                       Cada borrado se loguea para trazabilidad — si el usuario reporta
+                       ops desaparecidas, el log dice exactamente cuáles y cuándo. */
+                    const fromCache=change.doc.metadata.fromCache;
+                    const tenemosPendiente=(AppState._subcolPendingWrites||[]).some(x=>x.entity===ent&&x.id===idStr&&x.type!=='delete');
+                    if(fromCache){
+                        log('subcol:listener:removed-skipped',{entity:ent,id:idStr,reason:'fromCache'});
+                    }else if(tenemosPendiente){
+                        log('subcol:listener:removed-skipped',{entity:ent,id:idStr,reason:'pending-write-exists'});
+                    }else if(idx>=0){
+                        arr.splice(idx,1);changed=true;
+                        log('subcol:listener:removed-applied',{entity:ent,id:idStr});
+                    }
                 }
             });
             if(changed){
@@ -10160,6 +10251,13 @@ async function _subcol_cleanRootDoc(){
    del doc raíz. Llamada desde el bootstrap después del gate OK. */
 async function subcol_activate(){
     const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
+    /* v4.8.2.8 — FIX #13: guard contra doble activación. Si ya estaba activo
+       con listeners montados, no re-montar (evita listeners duplicados que
+       procesan los mismos snapshots dos veces). */
+    if(AppState._subcolActive===true && AppState._subcolUnsubs && Object.keys(AppState._subcolUnsubs).length>0){
+        log('subcol:activate:already-active',{});
+        return;
+    }
     AppState._subcolActive=true;
     log('subcol:mode:activated',{version:CONFIG.APP_VERSION});
     /* v4.8.2.2 — Corte agresivo del legacy AL MOMENTO de activar:
