@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.8',
+    APP_VERSION: '4.8.2.9',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,14 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.9', date:'2026-05-27', headline:'🔍 Auditoría cruzada (ChatGPT): 4 bugs reales confirmados y fixeados.', changes:[
+        {type:'fix', title:'BUG 8 (CRÍTICO): guardarDatos(forzar) podía re-subir el doc gigante', desc:'Aunque el sync normal estaba bloqueado, un guardarDatos(true) — como el de _aplicarRespaldo tras un import — construía el payload con TODAS las operaciones y lo subía al doc raíz, disparando wire-compress y save:write-start payloadKB:545. v4.8.2.9: en modo subcol, el payload del doc raíz strippea operaciones/movimientos/transferencias/lotes/_wireFormat ANTES de subir. Solo config liviano (bancos, tasas, tags) va al doc raíz. Garantía dura: el doc gigante nunca más se sube. Log: save:subcol-stripped-root.'},
+        {type:'fix', title:'BUG 5 (ALTA): root-clean se reintentaba en cada sesión', desc:'_subcol_cleanRootDoc usaba un flag en memoria (AppState._subcolRootCleaned) que se perdía al recargar. Si el clean fallaba por timeout, cada arranque lo reintentaba → writes innecesarios al doc raíz, presión de cuota, retries eternos. v4.8.2.9: marker PERSISTENTE en localStorage (_subcol_rootclean_{uid}). Una vez intentado (con éxito o timeout), no se reintenta automáticamente. Logs: subcol:root-clean:skipped, root-cleaned, root-clean:failed.'},
+        {type:'fix', title:'BUG 7 (ALTA): snapshot de cache stale podía pisar memoria reciente', desc:'El listener subcol hacía merge de cualquier doc modified, incluso de cache (fromCache). Si abrías offline, el cache stale podía pisar una op recién creada que todavía no llegó al server. v4.8.2.9: si un change viene de cache Y hay un write pendiente para esa op, se mantiene la versión en memoria (más nueva) y se ignora el cache. El snapshot del server la actualiza después. Log: subcol:listener:cache-skip-pending.'},
+        {type:'fix', title:'BUG 1 (trazabilidad): log al strippear merge legacy', desc:'mergeRemoteState ya strippea las entidades migradas en modo subcol desde v4.8.2.5 (FIX #1) — verificado contra el código, ya estaba bien. Se agrega log mergeRemoteState:stripped-migrated para confirmar en el diagnóstico que el merge legacy no toca operaciones migradas.'},
+        {type:'verified', title:'Bugs de la auditoría ya resueltos en versiones previas', desc:'BUG 2 (subcol_write pierde writes) → fixeado v4.8.2.4 con _subcol_addPendingWrite + localStorage. BUG 3 (logout no limpia listeners) → fixeado v4.8.2.5 FIX #4. BUG 6 (delete order) → cubierto por el retry idempotente de FIX #12. La auditoría externa confirmó la arquitectura; estos 4 fixes nuevos cierran los huecos restantes.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.9. 2) Force-quit + reabrir. 3) Crear operación → solo subcol:write, nunca save:write-start. 4) Importar JSON → subcol:restore-push + save:subcol-stripped-root (config liviano), NUNCA payloadKB:545. 5) Recargar varias veces → subcol:root-clean:skipped (no reintenta). 6) El log es la fuente de verdad: si aparece save:write-start payloadKB con número grande, algo falló — reportar.'}
+    ]},
     {version:'4.8.2.8', date:'2026-05-27', headline:'🛑 STOP pérdida de datos: 4 bugs que borraban operaciones.', changes:[
         {type:'fix', title:'BUG #12 (CRÍTICO): el retry de pendientes borraba ops válidas', desc:'subcol_retryPendingWrites ejecutaba subcol_delete por cada pending tipo "delete". Pero si quedó un pending delete espurio de una sesión caótica (SDK terminated en v4.8.2.3/2.4), el retry BORRABA del server una op que era válida y existía en memoria. El listener recibía el removed y la borraba de memoria también → pérdida irreversible. v4.8.2.8: el retry de delete ahora verifica PRIMERO si la op está en memoria. Si está → es válida, el pending delete es espurio → se RE-ESCRIBE en vez de borrar. Solo borra del server si la op realmente ya no existe localmente (borrado legítimo del usuario).'},
         {type:'fix', title:'BUG #14 (CRÍTICO): el listener borraba ops por removed espurios', desc:'El listener subcol borraba de memoria CUALQUIER evento removed, incluso los de cache (fromCache) o cuando había un write nuestro pendiente para esa op. Un estado transitorio del server podía disparar removed de ops buenas. v4.8.2.8: removed solo se aplica si viene del server confirmado (!fromCache) Y no hay write pendiente para esa op. Cada borrado se loguea (subcol:listener:removed-applied / removed-skipped) para trazabilidad total — si desaparece una op, el log dice cuál y por qué.'},
@@ -2597,12 +2605,6 @@ const CHANGELOG = [
         {type:'fix', title:'FIX #5 (MEDIA): backupToLocal stringificaba 1.3MB en cada subcol:write', desc:'guardaOptimista llamaba backupToLocal() siempre, incluso cuando subcol_intercept ya manejaba el write. Resultado: cada operación nueva (~300 bytes a Firestore) disparaba un stringify de 1.3MB del estado completo + localStorage write — anulando el beneficio del switch a subcol. v4.8.2.5: cuando _interceptedBySubcol=true, salteamos backupToLocal. Para entidades NO migradas (bancos, tags, config), backupToLocal sigue corriendo igual. Red de seguridad real ahora: subcol_pending en localStorage + server confirmado.'},
         {type:'fix', title:'FIX #6 (MENOR): re-mount de listeners reseteaba firstSnapshotReceived', desc:'Variable local en setupListeners se reseteaba en cada llamada. Si setupListeners corría dos veces (race), el listener nuevo creía ser el primero y llamaba _subcol_unsubscribeLegacyListener doble (idempotente pero ruidoso). v4.8.2.5: estado a AppState._subcolFirstSnapshots, sobrevive re-mount.'},
         {type:'verified', title:'Cómo probar', desc:'1) Force-quit PWA + 60s + reabrir. 2) Verificar versión 4.8.2.5. 3) Diagnóstico → log debe verse: subcol:gate:ok → subcol:mode:activated → subcol:listeners:setup → first-snapshot ×3 → subcol:legacy-unsub:done → subcol:retry:start (con las 14 ops de v4.8.2.3 que estaban en pending). 4) Crear operación nueva: log debe mostrar subcol:write OK. 5) Eliminar una op de prueba: log debe mostrar subcol:delete OK (no subcol:delete:failed silencioso). 6) Verificar que no haya save:write-start payloadKB:545 en ningún punto.'}
-    ]},
-    {version:'4.8.2.4', date:'2026-05-27', headline:'🛡️ Fix bug raíz: SDK terminate automático + retry de writes perdidos.', changes:[
-        {type:'fix', title:'BUG RAÍZ: registrarError disparaba terminate() del SDK automáticamente', desc:'Cuando Firestore tiraba "INTERNAL ASSERTION FAILED" (bug #6256 del SDK), registrarError llamaba iniciarRecuperacionFirestore() que hacía db.terminate() + clearPersistence() + intentaba reload. Pero en PWA iOS standalone el reload no se ejecutaba (iOS bloquea location.reload en background). Resultado: el SDK quedaba terminated y todos los subcol:write siguientes daban "client has already been terminated" sin posibilidad de recuperación. Esto pasó después que v4.8.2.3 activara subcol mode correctamente. v4.8.2.4: trigger automático DESACTIVADO. El error se registra pero no se dispara terminate. El usuario decide manualmente desde Diagnóstico → Reset SDK Firestore.'},
-        {type:'fix', title:'BUG: subcol_write perdía ops cuando el SDK estaba terminated', desc:'subcol_write fallaba con "client terminated" y solo logueaba — no marcaba la op como pendiente. Como _subcolActive=true bloquea enqueueSync para entidades migradas, las ops quedaban en memoria sin marca de pendiente. Al recargar, _localDirty=0 hacía creer que no había nada pendiente. v4.8.2.4: subcol_write fallido ahora encola la op en AppState._subcolPendingWrites + localStorage._subcol_pending. Cuando el SDK vuelve a funcionar (subcol_activate diferido 4s después de activar), se ejecuta subcol_retryPendingWrites automáticamente. Idempotente — si se reintentan ops que ya están en server, set() sobrescribe sin duplicar.'},
-        {type:'fix', title:'Retry manual disponible vía window._subcolRetryPendingWrites()', desc:'Expuesto en window para diagnóstico. Si después del bootstrap automático quedan ops sin sincronizar, se puede disparar desde consola/debug. Logs subcol:retry:start, subcol:retry:done con retried/failed/remaining.'},
-        {type:'verified', title:'Plan post-deploy', desc:'1) Subir v4.8.2.4. 2) Force-quit PWA + esperar 60s + reabrir. 3) Verificar versión 4.8.2.4. 4) Diagnóstico → log: subcol:gate:ok → subcol:mode:activated → subcol:listeners:setup → first-snapshot ×3 → subcol:retry:start con las ops pendientes de la sesión anterior. 5) Si el SDK ahora responde, las ops fallidas suben en este retry. 6) Si subcol:retry:done muestra failed:N, esperar reset diario de cuota Firestore y retry manual con window._subcolRetryPendingWrites(). 7) Crear ops nuevas — deben generar subcol:write OK.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -5682,6 +5684,7 @@ function mergeRemoteState(d){
         delete d.transferencias;
         delete d.lotes;
         delete d._wireFormat;
+        _syncLog&&_syncLog('mergeRemoteState:stripped-migrated',{kept:'bancos/config/tags'});
     }
     /* ════════════════════════════════════════════════════════════════
        §v4.7.63 — Descompresión wire al recibir snapshot.
@@ -6271,6 +6274,19 @@ async function guardarDatos(forzar,opts){
             _version:newVersion,
             ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
         };
+        /* v4.8.2.9 — BUG 8: en modo subcol, el doc raíz NUNCA debe contener las
+           entidades migradas. Las subcolecciones son la fuente. Esto garantiza que
+           ni siquiera un guardarDatos(forzar=true) (ej. tras restore para subir
+           bancos/config) re-suba el doc gigante de operaciones. Sin wire-compress,
+           sin payloadKB:545. Solo config liviano va al doc raíz. */
+        if(AppState._subcolActive===true){
+            delete payload.operaciones;
+            delete payload.movimientos;
+            delete payload.transferencias;
+            delete payload.lotes;
+            delete payload._wireFormat;
+            _syncLog&&_syncLog('save:subcol-stripped-root',{kept:'config/bancos/tags only'});
+        }
         /* Tamaño FINAL del payload */
         let payloadKB=0;
         try{
@@ -10151,6 +10167,18 @@ function subcol_setupListeners(){
                 if(change.doc.metadata.hasPendingWrites && change.doc.metadata.fromCache)return;
                 const idx=arr.findIndex(x=>x&&String(x.id)===idStr);
                 if(change.type==='added'||change.type==='modified'){
+                    /* v4.8.2.9 — BUG 7: no pisar memoria con cache stale.
+                       Si el cambio viene de cache (fromCache) Y tenemos un write
+                       pendiente para esa op, la versión en memoria es más nueva →
+                       no la sobrescribimos con el dato viejo del cache. El snapshot
+                       del server (fromCache=false) sí la va a actualizar después. */
+                    if(change.doc.metadata.fromCache){
+                        const tienePend=(AppState._subcolPendingWrites||[]).some(x=>x.entity===ent&&x.id===idStr);
+                        if(tienePend && idx>=0){
+                            log('subcol:listener:cache-skip-pending',{entity:ent,id:idStr});
+                            return;/* skip este change, mantener memoria */
+                        }
+                    }
                     if(idx>=0)arr[idx]={...arr[idx],...data};
                     else arr.push(data);
                     changed=true;
@@ -10230,6 +10258,18 @@ async function _subcol_cleanRootDoc(){
     const ref=subcol_userRef();
     if(!ref)return;
     if(AppState._subcolRootCleaned)return;
+    /* v4.8.2.9 — BUG 5: marker PERSISTENTE en localStorage. Si una sesión anterior
+       ya intentó (con éxito o por timeout), no reintentar automáticamente. Evita
+       writes/retries eternos al doc raíz en cada arranque cuando el SDK está lento.
+       El usuario puede forzar limpieza manual si hace falta. */
+    let attemptKey='_subcol_rootclean_'+(AppState.currentUser&&AppState.currentUser.uid||'x');
+    try{
+        if(localStorage.getItem(attemptKey)==='done'){
+            AppState._subcolRootCleaned=true;
+            log('subcol:root-clean:skipped',{reason:'already-attempted-persisted'});
+            return;
+        }
+    }catch(_){}
     try{
         const FV=firebase.firestore.FieldValue;
         await _withTimeout(ref.update({
@@ -10240,9 +10280,14 @@ async function _subcol_cleanRootDoc(){
             _wireFormat:FV.delete()
         }),20000,'subcol.cleanRoot');
         AppState._subcolRootCleaned=true;
+        try{localStorage.setItem(attemptKey,'done')}catch(_){}
         log('subcol:root-cleaned',{fields:['operaciones','movimientos','lotes','transferencias','_wireFormat']});
     }catch(e){
-        log('subcol:root-clean:failed',{error:e.message,note:'doc raíz queda con arrays viejos, no crítico'});
+        /* v4.8.2.9 — incluso si falla por timeout, marcar como intentado para no
+           reintentar en loop. El doc raíz con arrays viejos no es crítico (nadie
+           los lee en modo subcol). */
+        try{localStorage.setItem(attemptKey,'done')}catch(_){}
+        log('subcol:root-clean:failed',{error:e.message,note:'marcado como intentado, no se reintenta'});
     }
 }
 
