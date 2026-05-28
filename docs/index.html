@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.11',
+    APP_VERSION: '4.8.2.12',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,12 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.12', date:'2026-05-28', headline:'⚡ Fix "Error al restaurar: timeout" — import resiliente que no falla completo.', changes:[
+        {type:'fix', title:'BUG (CRÍTICO): restore-push fallaba completo por timeout en un batch', desc:'_subcol_pushFullRestore subía las operaciones en batches de 400 docs con timeout 30s. En PWA iOS con red lenta, un batch de 400 writes no confirmaba a tiempo → "Error al restaurar: timeout: restore-push.operaciones" y el import abortaba ENTERO. Los datos quedaban a medias. v4.8.2.12: (1) batch reducido a 150 docs — más liviano, confirma mejor. (2) timeout subido a 45s. (3) pausa de 150ms entre batches para no saturar el SDK iOS. (4) CLAVE: si un batch falla, NO aborta todo — encola esos items en _subcol_pending para retry automático y CONTINÚA con el resto. El import nunca más falla completo.'},
+        {type:'fix', title:'Backup local se actualiza SIEMPRE, aunque queden pendientes', desc:'El FIX #17 (backup local tras import) ahora corre incluso si algunos batches quedaron pendientes de subir. Así, al reabrir, el bootstrap hidrata con los datos importados completos desde localStorage, mientras los writes pendientes se reintentan en segundo plano contra el server. Los datos del usuario están a salvo localmente desde el momento del import.'},
+        {type:'fix', title:'Mensaje honesto sobre el estado del import', desc:'Si todo subió OK → "Datos restaurados correctamente". Si quedaron registros subiéndose (red lenta) → mensaje claro: "Datos importados y guardados localmente. N registros se están subiendo en segundo plano, se reintentan solos. No cierres la app hasta que diga En línea sin pendientes." Sin falsos errores.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.12. 2) Reabrir. 3) Menú → Importar datos → tu JSON. 4) Confirmar. 5) El import ya NO debe dar "Error al restaurar: timeout". Si la red está lenta, muestra el mensaje de "subiendo en segundo plano". 6) Log: subcol:restore-push:start → entity-done (con written/failed) → done → (si hubo fallos) scheduling-retry. 7) Esperar a "En línea". 8) Force-quit + reabrir → los datos importados persisten. 9) Diagnóstico → Writes pendientes debe llegar a 0 cuando el retry termine.'}
+    ]},
     {version:'4.8.2.11', date:'2026-05-27', headline:'💾 Fix CRÍTICO: el import ahora persiste — los datos no reaparecen viejos al reabrir.', changes:[
         {type:'fix', title:'BUG #17 (CRÍTICO): _aplicarRespaldo no actualizaba el backup local', desc:'Al importar un JSON, _aplicarRespaldo cambiaba AppState.datos (memoria) y subía a subcolecciones (server), pero NUNCA llamaba backupToLocal() para actualizar el respaldo en localStorage. Al reabrir la app, el bootstrap hace restoreFromLocal() PRIMERO y traía el backup VIEJO (pre-import) → los datos importados "desaparecían" y reaparecían los anteriores. v4.8.2.11: tras el restore-push, se fuerza backupToLocal() (invalidando la firma) para que localStorage refleje los datos importados. Log: restore:local-backup-updated. Al reabrir, el bootstrap hidrata con los datos correctos.'},
         {type:'fix', title:'BUG #18 (CRÍTICO): el cache viejo se mezclaba con el server al reabrir', desc:'El listener subcol hacía merge incremental (docChanges) sobre el array de memoria. Si el cache local tenía ops que ya no existen en el server (residuo pre-import), no se borraban → datos viejos persistían mezclados. v4.8.2.11: en el primer snapshot confirmado del server (fromCache=false) por entidad, se reconcilia el array completo — las ops en memoria cuyo ID no está en el server (y no están pendientes de subir) se eliminan como residuo. Log: subcol:listener:reconciled con removed/serverCount/memoryAfter.'},
@@ -2599,11 +2605,6 @@ const CHANGELOG = [
         {type:'fix', title:'BUG #13 (MEDIA): doble activación montaba listeners duplicados', desc:'Si el gate corría dos veces (bootstrap doble, visible en logs con múltiples ui:bootstrap-start), subcol_activate montaba un segundo set de listeners. Dos listeners procesando los mismos snapshots causaban comportamiento errático. v4.8.2.8: guard al inicio de subcol_activate — si ya está activo con listeners montados, no re-montar.'},
         {type:'verified', title:'CÓMO RECUPERAR TUS OPERACIONES', desc:'1) Subir v4.8.2.8. 2) Force-quit PWA + 60s + reabrir. 3) Esperar a que diga "En línea" (verde). 4) Menú → Importar datos (.json) → elegí el JSON que exportaste antes. 5) Confirmar. 6) Diagnóstico → log: subcol:restore-push:start → entity-done (×3) → done. Esto sube TODAS las ops del JSON a las subcolecciones del server. 7) Las ops perdidas vuelven. 8) Verificá el contador de operaciones.'},
         {type:'verified', title:'Trazabilidad de borrados', desc:'Si alguna op desaparece de nuevo, Diagnóstico → log ahora muestra exactamente: subcol:listener:removed-applied {entity, id} para cada borrado aplicado, y removed-skipped con la razón para los bloqueados. Esto permite diagnosticar cualquier pérdida futura con precisión.'}
-    ]},
-    {version:'4.8.2.7', date:'2026-05-27', headline:'🧮 Fix integridad FIFO: cambios en cascada ahora sí se sincronizan.', changes:[
-        {type:'fix', title:'BUG #9 (CRÍTICO): editar/eliminar una op no sincronizaba las ventas recalculadas', desc:'Al editar, eliminar o insertar una operación fuera de orden, recalcularLotesYGanancias() recomputa el FIFO de TODAS las ventas posteriores — cambia ganancia y consumedLots de potencialmente cientos de ventas en memoria. Pero subcol_intercept solo subía la op editada (el ID interceptado). Las demás ventas recalculadas quedaban con valores viejos en el server → drift silencioso entre memoria y Firestore. En modo legacy esto no pasaba porque se subía el doc entero. v4.8.2.7: tras el write principal, _subcol_syncChangedDerived compara una firma de campos derivados (ganancia, consumedLots, usdt, comisionPlataforma) capturada antes vs después del recalc, y sube a subcol todas las ops/movimientos cuya firma cambió. Logs: subcol:cascade:detected, subcol:cascade:synced.'},
-        {type:'fix', title:'BUG #11 (ALTA): ops de otro dispositivo aparecían sin ganancia/usdt', desc:'Los docs en subcol se guardan strippeados (sin ganancia/consumedLots/usdt/comisionPlataforma — son derivables). Cuando el listener subcol recibía una op creada en otro dispositivo, hacía merge del doc strippeado → la op aparecía con ganancia=undefined, usdt=undefined hasta que algo disparara recalc. La vista mostraba valores rotos. v4.8.2.7: tras procesar cambios del listener en operaciones o movimientos, se dispara recalcularLotesYGanancias() antes de actualizarVista() para reconstruir los derivables localmente. Re-snapshot de firmas para no re-disparar cascada saliente con cambios entrantes.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.7. 2) Editar el monto de una compra VIEJA (con ventas posteriores que consumieron su lote). 3) Diagnóstico → log: subcol:write (la op editada) + subcol:cascade:detected + subcol:cascade:synced con el count de ventas recalculadas. 4) Verificar en otro dispositivo / recargando que las ganancias de las ventas posteriores coinciden. 5) Eliminar una compra vieja → mismo patrón: delete + cascade. 6) Las sumas de ganancia total deben ser idénticas en memoria y tras recargar desde server.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -9366,10 +9367,11 @@ async function _aplicarRespaldo(datos,origen){
            Subimos cada entidad migrada a su subcolección con writeBatch (rápido,
            atómico por lotes de 400). Las entidades NO migradas (bancos, config)
            van por guardarDatos normal al doc raíz. */
+        let pushResult={totalFailed:0};
         if(AppState._subcolActive===true){
             AppState._subcolRestoreInProgress=true;
             try{
-                await _subcol_pushFullRestore(datos);
+                pushResult=await _subcol_pushFullRestore(datos)||{totalFailed:0};
                 /* Forzar guardado del doc raíz para config/bancos (no migrados).
                    guardarDatos drena las migradas y sube solo lo no-migrado. */
                 try{await guardarDatos(true)}catch(_){}
@@ -9389,7 +9391,8 @@ async function _aplicarRespaldo(datos,origen){
            importados. SIN esto, el bootstrap al reabrir hacía restoreFromLocal() y
            traía el backup VIEJO (pre-import) → los datos importados "desaparecían"
            al reiniciar. Forzamos invalidando la firma para que backupToLocal escriba
-           sí o sí el estado nuevo. */
+           sí o sí el estado nuevo. Esto corre SIEMPRE, aunque hayan quedado writes
+           pendientes — el backup local refleja lo que el usuario importó. */
         try{
             backupToLocal._lastSig=null;
             backupToLocal();
@@ -9399,11 +9402,21 @@ async function _aplicarRespaldo(datos,origen){
         if(AppState._subcolActive===true && typeof _subcol_snapshotDerivedSigs==='function'){
             _subcol_snapshotDerivedSigs();
         }
-        alert(`✅ Datos restaurados correctamente.\n\n`
-            +`Origen: ${origen}\n`
-            +`Operaciones: ${(datos.operaciones||[]).length}\n`
-            +`Bancos activos: ${Object.values(datos.bancos||{}).filter(b=>b&&b.activo).length}\n\n`
-            +`Los datos fueron sincronizados con Firebase.`);
+        const pendientes=pushResult&&pushResult.totalFailed>0;
+        if(pendientes){
+            alert(`✅ Datos importados y guardados localmente.\n\n`
+                +`Operaciones: ${(datos.operaciones||[]).length}\n`
+                +`Bancos activos: ${Object.values(datos.bancos||{}).filter(b=>b&&b.activo).length}\n\n`
+                +`⏳ ${pushResult.totalFailed} registros se están subiendo en segundo plano `
+                +`(la conexión estaba lenta). Se reintentan solos. Tus datos están a salvo localmente — `
+                +`no cierres la app hasta que el indicador diga "En línea" sin pendientes.`);
+        }else{
+            alert(`✅ Datos restaurados correctamente.\n\n`
+                +`Origen: ${origen}\n`
+                +`Operaciones: ${(datos.operaciones||[]).length}\n`
+                +`Bancos activos: ${Object.values(datos.bancos||{}).filter(b=>b&&b.activo).length}\n\n`
+                +`Los datos fueron sincronizados con Firebase.`);
+        }
     }catch(e){
         console.error('[P2P] Error aplicando respaldo:',e);
         alert('❌ Error al restaurar: '+(e.message||e.code||'desconocido'));
@@ -9411,9 +9424,16 @@ async function _aplicarRespaldo(datos,origen){
 }
 
 /* ─── _subcol_pushFullRestore ─────────────────────────────────────────────────
-   v4.8.2.8 — Sube TODAS las ops/movimientos/transferencias a subcolecciones.
+   v4.8.2.12 — Sube TODAS las ops/movimientos/transferencias a subcolecciones.
    Usado por _aplicarRespaldo cuando _subcolActive=true (import/restore manual).
-   writeBatch por lotes de 400 (límite Firestore). Idempotente: set() sobrescribe. */
+   
+   Cambios v4.8.2.12:
+     • Batch reducido a 150 (antes 400) — más liviano, confirma mejor en PWA iOS
+       con red lenta. 400 writes en un commit daba timeout 30s.
+     • Timeout 45s por batch (antes 30s).
+     • Si un batch falla, NO aborta todo el restore. Encola los items del batch
+       fallido en _subcol_pending para retry posterior, y CONTINÚA con el resto.
+       El import nunca más falla completo por un batch lento. */
 async function _subcol_pushFullRestore(datos){
     const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
     const ref=subcol_userRef();
@@ -9424,11 +9444,13 @@ async function _subcol_pushFullRestore(datos){
         movimientos:(datos.movimientos||[]).length,
         transferencias:(datos.transferencias||[]).length
     });
+    const BATCH_SIZE=150;
+    let totalFailed=0;
     for(const entity of ENTITIES){
         const items=datos[entity]||[];
-        let written=0;
-        for(let i=0;i<items.length;i+=400){
-            const slice=items.slice(i,i+400);
+        let written=0,failed=0;
+        for(let i=0;i<items.length;i+=BATCH_SIZE){
+            const slice=items.slice(i,i+BATCH_SIZE);
             const batch=AppState.db.batch();
             slice.forEach(item=>{
                 if(!item||item.id==null)return;
@@ -9436,18 +9458,32 @@ async function _subcol_pushFullRestore(datos){
                 batch.set(ref.collection(entity).doc(String(item.id)),stripped);
             });
             try{
-                await _withTimeout(batch.commit(),30000,'restore-push.'+entity);
+                await _withTimeout(batch.commit(),45000,'restore-push.'+entity);
                 written+=slice.length;
             }catch(e){
-                log('subcol:restore-push:batch-failed',{entity,error:e.message,written});
-                throw e;
+                /* v4.8.2.12 — NO abortar todo. Encolar este batch para retry y seguir. */
+                log('subcol:restore-push:batch-failed',{entity,batchStart:i,error:e.message,willRetry:true});
+                slice.forEach(item=>{
+                    if(item&&item.id!=null)_subcol_addPendingWrite(entity,String(item.id),'write');
+                });
+                failed+=slice.length;
+                totalFailed+=slice.length;
             }
+            /* Pequeña pausa entre batches para no saturar el SDK en iOS */
+            await new Promise(r=>setTimeout(r,150));
         }
-        log('subcol:restore-push:entity-done',{entity,written});
+        log('subcol:restore-push:entity-done',{entity,written,failed});
     }
-    /* Re-snapshot de firmas tras el restore para baseline limpia */
     if(typeof _subcol_snapshotDerivedSigs==='function')_subcol_snapshotDerivedSigs();
-    log('subcol:restore-push:done',{});
+    log('subcol:restore-push:done',{totalFailed});
+    /* Si quedaron pendientes, programar retry diferido */
+    if(totalFailed>0){
+        log('subcol:restore-push:scheduling-retry',{pending:totalFailed});
+        setTimeout(()=>{
+            if(typeof subcol_retryPendingWrites==='function')subcol_retryPendingWrites().catch(_=>{});
+        },5000);
+    }
+    return{totalFailed};
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
