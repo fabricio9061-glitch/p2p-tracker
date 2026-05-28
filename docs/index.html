@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.6',
+    APP_VERSION: '4.8.2.7',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.7', date:'2026-05-27', headline:'🧮 Fix integridad FIFO: cambios en cascada ahora sí se sincronizan.', changes:[
+        {type:'fix', title:'BUG #9 (CRÍTICO): editar/eliminar una op no sincronizaba las ventas recalculadas', desc:'Al editar, eliminar o insertar una operación fuera de orden, recalcularLotesYGanancias() recomputa el FIFO de TODAS las ventas posteriores — cambia ganancia y consumedLots de potencialmente cientos de ventas en memoria. Pero subcol_intercept solo subía la op editada (el ID interceptado). Las demás ventas recalculadas quedaban con valores viejos en el server → drift silencioso entre memoria y Firestore. En modo legacy esto no pasaba porque se subía el doc entero. v4.8.2.7: tras el write principal, _subcol_syncChangedDerived compara una firma de campos derivados (ganancia, consumedLots, usdt, comisionPlataforma) capturada antes vs después del recalc, y sube a subcol todas las ops/movimientos cuya firma cambió. Logs: subcol:cascade:detected, subcol:cascade:synced.'},
+        {type:'fix', title:'BUG #11 (ALTA): ops de otro dispositivo aparecían sin ganancia/usdt', desc:'Los docs en subcol se guardan strippeados (sin ganancia/consumedLots/usdt/comisionPlataforma — son derivables). Cuando el listener subcol recibía una op creada en otro dispositivo, hacía merge del doc strippeado → la op aparecía con ganancia=undefined, usdt=undefined hasta que algo disparara recalc. La vista mostraba valores rotos. v4.8.2.7: tras procesar cambios del listener en operaciones o movimientos, se dispara recalcularLotesYGanancias() antes de actualizarVista() para reconstruir los derivables localmente. Re-snapshot de firmas para no re-disparar cascada saliente con cambios entrantes.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.7. 2) Editar el monto de una compra VIEJA (con ventas posteriores que consumieron su lote). 3) Diagnóstico → log: subcol:write (la op editada) + subcol:cascade:detected + subcol:cascade:synced con el count de ventas recalculadas. 4) Verificar en otro dispositivo / recargando que las ganancias de las ventas posteriores coinciden. 5) Eliminar una compra vieja → mismo patrón: delete + cascade. 6) Las sumas de ganancia total deben ser idénticas en memoria y tras recargar desde server.'}
+    ]},
     {version:'4.8.2.6', date:'2026-05-27', headline:'🟢 Fix "no está en línea": el estado online ahora viene de los listeners subcol.', changes:[
         {type:'fix', title:'FIX #7 (CRÍTICO): la app quedaba para siempre en "Sincronizando / Modo local activo"', desc:'El estado "En línea" solo se seteaba desde el listener legacy del doc raíz cuando recibía snapshot del server (fromCache=false). Pero en modo subcol, el listener legacy se desuscribe apenas las 3 subcolecciones reciben su primer snapshot — ANTES de que llegue el snapshot fromCache=false del legacy. Resultado: setSyncStatus(online) nunca corría y la app quedaba congelada en "Sincronizando / Modo local activo / Error al reconectar" aunque los datos sincronizaran bien. v4.8.2.6: los listeners de subcolecciones ahora setean el estado de conexión. Si cualquiera recibe snapshot del server (fromCache=false) → online + baja _datosStale + baja _uiHydratedFromCache. Si todos vienen de cache → "Caché local" hasta que el server confirme.'},
         {type:'fix', title:'FIX #8 (ALTA): el botón Reconectar no funcionaba en modo subcol', desc:'Tocar el banner de estado llamaba reconnectFirebase, que desuscribía el listener legacy y re-bootstrappeaba esperando que el listener legacy bajara _datosStale. Pero en modo subcol el legacy ya no es la fuente de datos → la reconexión nunca se completaba y caía en "Error al reconectar" tras 12s. v4.8.2.6: reconnectFirebase detecta _subcolActive y toma un camino distinto — reactiva la red de Firestore (enableNetwork) y espera que los listeners subcol (que ya están montados) confirmen con snapshot del server. Sin re-bootstrap, sin desuscribir.'},
@@ -2597,13 +2602,6 @@ const CHANGELOG = [
         {type:'feature', title:'Botón nuevo: 🔄 Reset SDK Firestore en Diagnóstico', desc:'Solución para casos donde el cliente Firestore queda degradado (timeouts en writes triviales, INTERNAL ASSERTION FAILED, write stream exhausted). Doble confirmación (clic + tipear RESET). Ejecuta: (1) desuscribe listeners conocidos, (2) AppState.db.terminate(), (3) AppState.db.clearPersistence() — borra el caché local IndexedDB de Firestore, (4) reload de la página. Datos del server intactos. Caché local se reconstruye al cargar. NO se ejecuta automáticamente nunca. Logs: sdk-reset:start, sdk-reset:terminated, sdk-reset:persistence-cleared, sdk-reset:reloading.'},
         {type:'verified', title:'Sin acciones automáticas invasivas', desc:'Al abrir la app v4.8.2.3, los únicos triggers automáticos son: (1) bootstrap normal (auth + listener legacy + render), (2) _subcolGate a los 2s (lee _meta/migration, si no existe pero hay sample expandido → escribe meta y activa). Sin overlay recovery. Sin overlay migración. Sin verificación de integridad remota. La app abre limpia.'},
         {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.3. 2) Hard refresh en PC (Ctrl+Shift+R) — verificar que NO aparece overlay "Optimización crítica de base de datos". 3) Verificar que aparece versión 4.8.2.3 arriba. 4) Diagnóstico → log: debe verse subcol:gate:start → subcol:gate:auto-meta-repair (si subcollections válidas) → subcol:mode:activated. 5) Si el SDK sigue degradado y meta-repair sigue dando timeout: Diagnóstico → 🔄 Reset SDK Firestore → confirmar dos veces. La página recarga limpia. Probar el gate de nuevo. 6) Una vez activado: crear operación nueva → subcol:write en log, NO save:write-start payloadKB.'}
-    ]},
-    {version:'4.8.2.2', date:'2026-05-27', headline:'✂️ Auto-repair simple del marker + corte agresivo del legacy.', changes:[
-        {type:'fix', title:'Gate simplificado: auto-repair sin verificación de counts', desc:'v4.8.2.1 exigía que counts(server) === length(memoria) exacto para auto-reparar la marca. Pero con _localDirty>0 por cuota agotada, eso nunca se cumplía → app quedaba en legacy → más quota burning → loop. v4.8.2.2: el gate ahora escribe _meta/migration apenas confirma que existe sample doc en formato expandido. Sin count(). Sin verificación de completitud. Si la migración previa quedó parcial, el JSON exportado es la red de seguridad — pero confiamos en que está completa (el caso esperado).'},
-        {type:'fix', title:'Corte AGRESIVO del legacy cuando _subcolActive=true', desc:'enqueueSync ahora bloquea operaciones/movimientos/transferencias con log "enqueueSync:blocked-by-subcol" — esas mutaciones van por subcol_write directo, NO al sync legacy. guardarDatos drena _syncQueue de entidades migradas antes de hacer nada; si después de drenar la queue queda vacía, sale temprano con log "guardarDatos:blocked-by-subcol" — sin payload:compact, sin wire-compress, sin save:write-start payloadKB. El doc raíz no se rewrite por culpa de entidades migradas.'},
-        {type:'fix', title:'subcol_activate cancela debounce + drena queue residual', desc:'En el momento exacto del switch, antes de montar listeners: clearTimeout(_guardaDebounceTimer) y _syncQueue.filter para sacar entidades migradas. Logs nuevos: subcol:legacy-debounce-cancelled, subcol:legacy-queue-drained. Garantiza que no hay write legacy "en vuelo" entre subcol:mode:activated y el primer subcol:write.'},
-        {type:'verified', title:'Removido count y _subcol_countDocs', desc:'La función _subcol_countDocs entera fue removida. Reduce superficie y elimina el riesgo de SDK no soporta count(). El gate ahora hace 2 lecturas a Firestore (meta + sample) y eventualmente 1 escritura (meta-repair). Sin más.'},
-        {type:'verified', title:'Cómo probar', desc:'1) ANTES de subir: force-quit Safari completo (no solo cerrar pestaña — quitar desde switcher), esperar 30s para que el SDK olvide el estado degradado. 2) Subir v4.8.2.2. 3) Abrir app. 4) Diagnóstico → log → debe aparecer: subcol:gate:start → subcol:gate:auto-meta-repair (si subcolecciones existen con formato expandido) → subcol:legacy-debounce-cancelled / subcol:legacy-queue-drained (si había queue residual) → subcol:mode:activated → subcol:listeners:setup → first-snapshot ×3 → legacy-unsub:done → root-cleaned. 5) Crear operación nueva → subcol:write con sizeKB chico. NO debe aparecer wire-compress, payload:compact, save:write-start payloadKB:545.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -9909,6 +9907,9 @@ function subcol_intercept(type,entity,id){
     if(!ENTITIES.includes(entity))return false;
     if(type==='delete'){
         subcol_delete(entity,id).catch(e=>console.warn('[subcol] delete failed:',e.message));
+        /* v4.8.2.6 — BUG #9: eliminar una op recalcula FIFO de ventas posteriores.
+           Subir las ops/movimientos cuyos derivados cambiaron. */
+        _subcol_syncChangedDerived(id);
         return true;
     }
     /* create o update: leemos el item de memoria y escribimos a subcol */
@@ -9918,7 +9919,88 @@ function subcol_intercept(type,entity,id){
         return false;/* fallback a legacy si no lo encontramos */
     }
     subcol_write(entity,id,item).catch(e=>console.warn('[subcol] write failed:',e.message));
+    /* v4.8.2.6 — BUG #9: crear/editar una op (o movimiento USDT) recalcula el FIFO
+       de TODAS las ventas posteriores vía recalcularLotesYGanancias. Esas ventas
+       tienen ganancia/consumedLots nuevos en memoria pero NO se suben (solo se
+       interceptó el ID editado). Resultado: drift silencioso entre memoria y server.
+       
+       Solución: tras el write principal, detectar qué OTRAS ops/movimientos
+       cambiaron sus campos derivados y subirlas en batch. La firma se capturó
+       en _subcol_snapshotDerivedSigs (llamada antes del recalc desde guardaOptimista). */
+    if(entity==='operaciones'||entity==='movimientos'){
+        _subcol_syncChangedDerived(id);
+    }
     return true;
+}
+
+/* ─── _subcol_snapshotDerivedSigs / _subcol_syncChangedDerived ────────────────
+   BUG #9 fix. Mecanismo para sincronizar cambios derivados en cascada.
+   
+   _subcol_snapshotDerivedSigs(): captura una firma de los campos derivados
+   (ganancia, consumedLots, usdt, comisionPlataforma, valorUYU) de cada op y
+   movimiento ANTES de que recalcularLotesYGanancias muera. Se guarda en
+   AppState._subcolDerivedSigs.
+   
+   _subcol_syncChangedDerived(excludeId): después del recalc, compara las firmas
+   actuales contra las capturadas. Las ops/movimientos cuya firma cambió (excepto
+   excludeId que ya se subió) se suben a subcol. */
+function _subcol_derivedSig(entity,item){
+    if(!item)return '';
+    if(entity==='operaciones'){
+        return [item.ganancia,item.usdt,item.comisionPlataforma,
+                Array.isArray(item.consumedLots)?item.consumedLots.length:0,
+                Array.isArray(item.consumedLots)?JSON.stringify(item.consumedLots):''].join('|');
+    }
+    if(entity==='movimientos'){
+        return [item.valorUYU,Array.isArray(item.consumedLots)?JSON.stringify(item.consumedLots):''].join('|');
+    }
+    return '';
+}
+function _subcol_snapshotDerivedSigs(){
+    if(AppState._subcolActive!==true)return;
+    const sigs={operaciones:{},movimientos:{}};
+    (AppState.datos.operaciones||[]).forEach(op=>{if(op&&op.id!=null)sigs.operaciones[String(op.id)]=_subcol_derivedSig('operaciones',op)});
+    (AppState.datos.movimientos||[]).forEach(m=>{if(m&&m.id!=null)sigs.movimientos[String(m.id)]=_subcol_derivedSig('movimientos',m)});
+    AppState._subcolDerivedSigs=sigs;
+}
+function _subcol_syncChangedDerived(excludeId){
+    if(AppState._subcolActive!==true)return;
+    const log=(ev,d)=>{try{_syncLog&&_syncLog(ev,d||{})}catch(_){}};
+    const prev=AppState._subcolDerivedSigs;
+    if(!prev){return}/* no hubo snapshot previo → nada que comparar */
+    const exclude=excludeId!=null?String(excludeId):null;
+    const changed={operaciones:[],movimientos:[]};
+    ['operaciones','movimientos'].forEach(entity=>{
+        const arr=AppState.datos[entity]||[];
+        arr.forEach(item=>{
+            if(!item||item.id==null)return;
+            const idStr=String(item.id);
+            if(idStr===exclude)return;/* ya se subió en el write principal */
+            const before=prev[entity][idStr];
+            const after=_subcol_derivedSig(entity,item);
+            /* Si la firma cambió (o es nueva op que no estaba en el snapshot previo) */
+            if(before!==after){
+                changed[entity].push(idStr);
+            }
+        });
+    });
+    const total=changed.operaciones.length+changed.movimientos.length;
+    if(total===0)return;
+    log('subcol:cascade:detected',{operaciones:changed.operaciones.length,movimientos:changed.movimientos.length});
+    /* Subir cada entidad cambiada. Fire-and-forget con encolado en fallo. */
+    let subidos=0;
+    ['operaciones','movimientos'].forEach(entity=>{
+        changed[entity].forEach(idStr=>{
+            const item=_subcol_findItemInMemory(entity,idStr);
+            if(item){
+                subcol_write(entity,idStr,item).catch(e=>console.warn('[subcol] cascade write failed:',e.message));
+                subidos++;
+            }
+        });
+    });
+    log('subcol:cascade:synced',{count:subidos});
+    /* Actualizar el snapshot de firmas al estado actual */
+    _subcol_snapshotDerivedSigs();
 }
 
 /* ─── subcol_setupListeners ──────────────────────────────────────────────────
@@ -10003,12 +10085,27 @@ function subcol_setupListeners(){
                 }
             });
             if(changed){
-                /* Disparar render diferido */
+                /* v4.8.2.6 — BUG #11: los docs de subcol vienen strippeados (sin
+                   ganancia/consumedLots/usdt/comisionPlataforma — son derivables).
+                   Cuando llegan cambios del server (op creada/editada en otro
+                   dispositivo), hay que RECALCULAR los derivados localmente antes
+                   de renderizar, sino la op aparece con ganancia/usdt undefined.
+                   
+                   Solo para operaciones y movimientos (transferencias no afectan FIFO).
+                   Diferido + debounced para batchear ráfagas de cambios. */
                 if(typeof actualizarVista==='function'){
                     clearTimeout(AppState._subcolRenderTimer);
                     AppState._subcolRenderTimer=setTimeout(()=>{
-                        try{actualizarVista()}catch(_){}
-                    },120);
+                        try{
+                            if((ent==='operaciones'||ent==='movimientos')&&typeof recalcularLotesYGanancias==='function'){
+                                recalcularLotesYGanancias();
+                                /* Re-snapshot de firmas: estos cambios vienen del server,
+                                   no deben re-dispararse como cascada saliente. */
+                                if(typeof _subcol_snapshotDerivedSigs==='function')_subcol_snapshotDerivedSigs();
+                            }
+                            actualizarVista();
+                        }catch(_){}
+                    },150);
                 }
             }
         },err=>{
@@ -10089,6 +10186,12 @@ async function subcol_activate(){
         }
     }catch(_){}
     subcol_setupListeners();
+    /* v4.8.2.6 — BUG #9: capturar baseline de firmas derivadas al activar.
+       Permite detectar qué ops/movimientos cambian su FIFO/ganancia en cascada
+       cuando se edita/elimina/inserta una operación. */
+    setTimeout(()=>{
+        if(typeof _subcol_snapshotDerivedSigs==='function')_subcol_snapshotDerivedSigs();
+    },2000);
     /* v4.8.2.4 — Reintentar writes que quedaron pendientes de sesiones anteriores
        (donde el SDK estaba terminated). Diferido 4s para dar tiempo a que los
        listeners hidraten desde server. */
