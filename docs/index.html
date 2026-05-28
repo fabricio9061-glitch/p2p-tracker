@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.14',
+    APP_VERSION: '4.8.2.15',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,12 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.15', date:'2026-05-28', headline:'🔢 Fix orden de fechas invertido + verificación real del import.', changes:[
+        {type:'fix', title:'BUG (claro): las operaciones aparecían en orden invertido', desc:'La página 1 mostraba las ops más viejas (01/05) y la 129 las más nuevas (28/05). Causa: en modo subcol el array de operaciones se llena por docChanges, que Firestore entrega ordenado por ID de documento, NO por fecha. La función de display (aplicarOpsFilters) no ordenaba — mostraba el array tal cual. v4.8.2.15: las operaciones ahora se ordenan SIEMPRE por timestamp descendente (más reciente primero) antes de paginar. Página 1 = lo último. Independiente del orden interno del array.'},
+        {type:'fix', title:'Verificación REAL del import contra el servidor', desc:'Para cortar la incertidumbre sobre si el import persiste: al terminar, _subcol_pushFullRestore ahora CUENTA los docs reales en el servidor (get desde server, no cache) y compara con el JSON. El mensaje final muestra "Operaciones en el JSON: N / Operaciones ahora en el servidor: M" y si coinciden. Si no coinciden, avisa. Log: subcol:restore-push:server-verified. Ya no hay un "OK" optimista — el número del server es la verdad.'},
+        {type:'verified', title:'Cómo diagnosticar el problema de persistencia', desc:'1) Subir v4.8.2.15. 2) Reabrir, esperar "En línea". 3) Importar JSON, esperar. 4) LEER EL MENSAJE FINAL: dice cuántas ops quedaron en el servidor. 5) Si JSON=Server (ej. 1281=1281) → el import quedó perfecto, cerrá y reabrí, deben persistir. 6) Si NO coinciden o dice PARCIAL → la red cortó; esperá "En línea" y reimportá. 7) IMPORTANTE: mandá una captura del MENSAJE FINAL del import (con los números JSON vs Server) — eso dice exactamente qué está pasando.'},
+        {type:'verified', title:'El orden invertido confirmó que estás en modo subcol', desc:'Que las fechas salieran ordenadas por ID de documento (no por fecha) confirma que la app está leyendo de las subcolecciones correctamente. El problema de persistencia no es que no use subcol — es que el import puede no estar completando el reemplazo del servidor. La verificación de count nueva nos va a decir con certeza.'}
+    ]},
     {version:'4.8.2.14', date:'2026-05-28', headline:'🎯 Auditoría cruzada #2: los 3 bugs que dejaban sobrevivir los datos viejos.', changes:[
         {type:'fix', title:'BUG #2 (CRÍTICO): los pending writes no guardaban el payload, solo el ID', desc:'Esta era la causa directa de la pérdida. _subcol_addPendingWrite guardaba solo {entity,id,type}. Cuando un batch del import fallaba, el retry buscaba el item en memoria — pero si cerrabas la app, el listener pisaba memoria, o el import quedaba parcial, el item no estaba y el retry lo descartaba como "skipped" → las ops del JSON que fallaron al subir se PERDÍAN. v4.8.2.14: el pending ahora guarda el payload completo (stripped) del item en entry.data. El retry usa p.data primero y solo busca en memoria si no lo tiene. Un import parcial ahora recupera todas las ops aunque ya no estén en memoria.'},
         {type:'fix', title:'BUG #1 (CRÍTICO): el import declaraba "correcto" sin verificar que borró las viejas', desc:'_subcol_pushFullRestore borra del server las ops viejas (orphans) que el JSON no tiene. Pero si el escaneo de orphans fallaba por timeout (orphan-scan-failed), solo lo logueaba y SEGUÍA — el import decía "Datos restaurados correctamente" aunque las viejas siguieran en Firestore. Por eso reaparecían al reabrir. v4.8.2.14: si el scan o el borrado de orphans falla, se marca orphansUnverified=true y el import se declara PARCIAL con mensaje claro: "Importación parcial, no cierres la app, volvé a importar para completar la limpieza". El import nunca más miente sobre su estado.'},
@@ -2596,13 +2602,6 @@ const CHANGELOG = [
         {type:'fix', title:'BUG #18 (CRÍTICO): el cache viejo se mezclaba con el server al reabrir', desc:'El listener subcol hacía merge incremental (docChanges) sobre el array de memoria. Si el cache local tenía ops que ya no existen en el server (residuo pre-import), no se borraban → datos viejos persistían mezclados. v4.8.2.11: en el primer snapshot confirmado del server (fromCache=false) por entidad, se reconcilia el array completo — las ops en memoria cuyo ID no está en el server (y no están pendientes de subir) se eliminan como residuo. Log: subcol:listener:reconciled con removed/serverCount/memoryAfter.'},
         {type:'fix', title:'Protección: reconcile no corre durante un restore activo', desc:'La reconciliación podría borrar ops recién importadas si el primer snapshot del server llega antes de que el restore-push termine. v4.8.2.11: durante _aplicarRespaldo se marca _subcolRestoreInProgress + las 3 entidades como ya-reconciliadas, evitando borrado prematuro. La reconciliación real ocurre en el siguiente arranque limpio, cuando el cache ya tiene los datos correctos.'},
         {type:'verified', title:'Cómo probar — EL TEST QUE FALLABA', desc:'1) Subir v4.8.2.11. 2) Reabrir. 3) Menú → Importar datos → tu JSON. 4) Confirmar. Log: subcol:restore-push:done → restore:local-backup-updated. 5) Verificar que los datos importados se ven. 6) CERRAR COMPLETAMENTE la app (force-quit). 7) Esperar 30s. 8) REABRIR. 9) ✅ Los datos deben ser los IMPORTADOS, no los viejos. 10) Diagnóstico → log: subcol:listener:reconciled (si había residuo) con el count limpiado. Este era el bug — ahora el import es persistente.'}
-    ]},
-    {version:'4.8.2.10', date:'2026-05-27', headline:'🧹 Limpieza del versionado legacy residual en modo subcol.', changes:[
-        {type:'fix', title:'Match:✗ residual tras manual-import', desc:'Después de importar el JSON, _localVersion quedaba en 0 pero _datos._version en 686 → Match:✗ y el write al doc raíz quedaba con versión más vieja que el server, dejando un pending de config sin drenar. v4.8.2.10: en modo subcol, si _localVersion=0 pero _datos._version>0, se alinea _localVersion al valor de los datos antes de escribir. Log: save:subcol-version-aligned. El pending de config (lastSeenVersion/dismissedVersions) ahora drena correctamente al doc raíz pequeño.'},
-        {type:'fix', title:'Panel de Diagnóstico: ocultar versionado legacy en modo subcol', desc:'El versionado single-doc (_localVersion vs _datos._version) ya no aplica en modo subcol — las ops viven en subcolecciones, el doc raíz solo tiene config liviano. El panel ahora muestra "📂 Subcollections activo" + "Writes pendientes: N" en vez del Match legacy que confundía. Si N=0, el estado es sano.'},
-        {type:'fix', title:'reevaluarEstadoSync funciona en modo subcol', desc:'La función que auto-limpia errores de sync requería el listener legacy activo (que en subcol está desuscripto a propósito) → nunca limpiaba el badge de error en modo subcol. v4.8.2.10: en subcol, la salud se mide por listeners subcol montados + sin writes pendientes + online. El estado "En línea" se mantiene estable sin falsos errores.'},
-        {type:'fix', title:'config liviano va al doc raíz sin re-subir ops', desc:'Combinado con el FIX BUG 8 de v4.8.2.9 (strip de ops del payload raíz), ahora un update de config (lastSeenVersion, tags, dismissedVersions) sube solo el doc pequeño — nunca dispara save:write-start payloadKB:545. queue drena a 0.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.10. 2) Reabrir. 3) Diagnóstico → sección VERSIONES debe decir "📂 Subcollections activo" + "Writes pendientes: 0 ✓" (ya no Match:✗). 4) _syncQueue size debe llegar a 0 (el pending de config drena). 5) Estado sync: online estable. 6) Crear operación → subcol:write. Ningún save:write-start payloadKB en todo el flujo.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -3543,7 +3542,19 @@ function _opsFiltersActive(){
 function aplicarOpsFilters(ops){
     _initOpsFilters();
     const f=AppState.ui.opsFilters;
-    if(f.tipo==='all'&&f.banco==='all'&&f.resultado==='all'&&f.fecha==='mes')return ops;
+    /* v4.8.2.15 — ORDEN: en modo subcol el array se llena por docChanges (orden
+       por ID de doc, no por fecha) → la lista salía desordenada/invertida.
+       Ordenamos SIEMPRE por timestamp descendente (más reciente primero) para que
+       la página 1 muestre lo último, independiente del orden interno del array. */
+    const _sortDesc=arr=>arr.slice().sort((a,b)=>{
+        const ta=a.timestamp||((a.fecha||'')+'T'+(a.hora||'00:00'));
+        const tb=b.timestamp||((b.fecha||'')+'T'+(b.hora||'00:00'));
+        if(tb<ta)return -1;
+        if(tb>ta)return 1;
+        /* desempate por id (numérico si se puede) para orden estable */
+        return String(b.id||'').localeCompare(String(a.id||''));
+    });
+    if(f.tipo==='all'&&f.banco==='all'&&f.resultado==='all'&&f.fecha==='mes')return _sortDesc(ops);
     /* Para filtros de fecha distintos a "mes" usamos la lista completa */
     let src=(f.fecha==='mes')?ops:AppState.datos.operaciones;
     /* CRÍTICO: usar getUDate() (timezone Uruguay, UTC-3) — NO new Date() + toISOString() 
@@ -3555,7 +3566,7 @@ function aplicarOpsFilters(ops){
     const ayerStr=fmtUY(ayerUY);
     const hace7UY=new Date(hoyUY.getTime()-6*86400000);
     const hace7Str=fmtUY(hace7UY);
-    return src.filter(op=>{
+    return _sortDesc(src.filter(op=>{
         if(f.tipo!=='all'&&op.tipo!==f.tipo)return false;
         /* Banco: considera op.banco y aportes si hay split */
         if(f.banco!=='all'){
@@ -3575,7 +3586,7 @@ function aplicarOpsFilters(ops){
             if(f.fecha==='7dias'&&(op.fecha<hace7Str||op.fecha>hoyStr))return false;
         }
         return true;
-    });
+    }));
 }
 /* Lista de bancos que aparecen en las operaciones (para chip dinámico) */
 function _bancosEnOperaciones(){
@@ -9422,11 +9433,16 @@ async function _aplicarRespaldo(datos,origen){
                 +`(la conexión estaba lenta). Se reintentan solos. Tus datos están a salvo localmente — `
                 +`no cierres la app hasta que el indicador diga "En línea" sin pendientes.`);
         }else{
+            const sc=pushResult.serverCounts||{};
+            const opsServer=sc.operaciones!==undefined?sc.operaciones:'?';
+            const jsonOps=(datos.operaciones||[]).length;
+            const match=opsServer===jsonOps;
             alert(`✅ Datos restaurados correctamente.\n\n`
                 +`Origen: ${origen}\n`
-                +`Operaciones: ${(datos.operaciones||[]).length}\n`
-                +`Bancos activos: ${Object.values(datos.bancos||{}).filter(b=>b&&b.activo).length}\n\n`
-                +`El servidor quedó sincronizado exactamente con el backup importado.`);
+                +`Operaciones en el JSON: ${jsonOps}\n`
+                +`Operaciones ahora en el servidor: ${opsServer}\n`
+                +`${match?'✓ Coinciden exactamente.':'⚠️ No coinciden — puede haber quedado algo pendiente.'}\n\n`
+                +`${match?'Ya podés cerrar y reabrir — los datos van a persistir.':'Esperá "En línea" y reimportá si los números no cuadran.'}`);
         }
     }catch(e){
         console.error('[P2P] Error aplicando respaldo:',e);
@@ -9527,7 +9543,23 @@ async function _subcol_pushFullRestore(datos){
         }
     }
     if(typeof _subcol_snapshotDerivedSigs==='function')_subcol_snapshotDerivedSigs();
-    log('subcol:restore-push:done',{totalFailed,orphansUnverified});
+    /* ═══ v4.8.2.15 — VERIFICACIÓN FINAL: contar los docs reales en el server
+       después de subir + borrar orphans. Si el count del server coincide con el
+       del JSON, el import quedó perfecto. Este número va al mensaje final para
+       que el usuario tenga certeza, no solo un "OK" optimista. */
+    const serverCounts={};
+    try{
+        for(const entity of ENTITIES){
+            const snap=await _withTimeout(ref.collection(entity).get({source:'server'}),30000,'verify-count.'+entity);
+            serverCounts[entity]=snap.size;
+        }
+        log('subcol:restore-push:server-verified',serverCounts);
+    }catch(e){
+        log('subcol:restore-push:verify-failed',{error:e.message});
+        /* No pudimos verificar el count final → no afirmar éxito total */
+        orphansUnverified=true;
+    }
+    log('subcol:restore-push:done',{totalFailed,orphansUnverified,serverCounts});
     /* Si quedaron pendientes, programar retry diferido */
     if(totalFailed>0){
         log('subcol:restore-push:scheduling-retry',{pending:totalFailed});
@@ -9535,7 +9567,7 @@ async function _subcol_pushFullRestore(datos){
             if(typeof subcol_retryPendingWrites==='function')subcol_retryPendingWrites().catch(_=>{});
         },5000);
     }
-    return{totalFailed,orphansUnverified};
+    return{totalFailed,orphansUnverified,serverCounts};
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
