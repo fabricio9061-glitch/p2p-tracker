@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.9',
+    APP_VERSION: '4.8.2.10',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,13 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.10', date:'2026-05-27', headline:'🧹 Limpieza del versionado legacy residual en modo subcol.', changes:[
+        {type:'fix', title:'Match:✗ residual tras manual-import', desc:'Después de importar el JSON, _localVersion quedaba en 0 pero _datos._version en 686 → Match:✗ y el write al doc raíz quedaba con versión más vieja que el server, dejando un pending de config sin drenar. v4.8.2.10: en modo subcol, si _localVersion=0 pero _datos._version>0, se alinea _localVersion al valor de los datos antes de escribir. Log: save:subcol-version-aligned. El pending de config (lastSeenVersion/dismissedVersions) ahora drena correctamente al doc raíz pequeño.'},
+        {type:'fix', title:'Panel de Diagnóstico: ocultar versionado legacy en modo subcol', desc:'El versionado single-doc (_localVersion vs _datos._version) ya no aplica en modo subcol — las ops viven en subcolecciones, el doc raíz solo tiene config liviano. El panel ahora muestra "📂 Subcollections activo" + "Writes pendientes: N" en vez del Match legacy que confundía. Si N=0, el estado es sano.'},
+        {type:'fix', title:'reevaluarEstadoSync funciona en modo subcol', desc:'La función que auto-limpia errores de sync requería el listener legacy activo (que en subcol está desuscripto a propósito) → nunca limpiaba el badge de error en modo subcol. v4.8.2.10: en subcol, la salud se mide por listeners subcol montados + sin writes pendientes + online. El estado "En línea" se mantiene estable sin falsos errores.'},
+        {type:'fix', title:'config liviano va al doc raíz sin re-subir ops', desc:'Combinado con el FIX BUG 8 de v4.8.2.9 (strip de ops del payload raíz), ahora un update de config (lastSeenVersion, tags, dismissedVersions) sube solo el doc pequeño — nunca dispara save:write-start payloadKB:545. queue drena a 0.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.10. 2) Reabrir. 3) Diagnóstico → sección VERSIONES debe decir "📂 Subcollections activo" + "Writes pendientes: 0 ✓" (ya no Match:✗). 4) _syncQueue size debe llegar a 0 (el pending de config drena). 5) Estado sync: online estable. 6) Crear operación → subcol:write. Ningún save:write-start payloadKB en todo el flujo.'}
+    ]},
     {version:'4.8.2.9', date:'2026-05-27', headline:'🔍 Auditoría cruzada (ChatGPT): 4 bugs reales confirmados y fixeados.', changes:[
         {type:'fix', title:'BUG 8 (CRÍTICO): guardarDatos(forzar) podía re-subir el doc gigante', desc:'Aunque el sync normal estaba bloqueado, un guardarDatos(true) — como el de _aplicarRespaldo tras un import — construía el payload con TODAS las operaciones y lo subía al doc raíz, disparando wire-compress y save:write-start payloadKB:545. v4.8.2.9: en modo subcol, el payload del doc raíz strippea operaciones/movimientos/transferencias/lotes/_wireFormat ANTES de subir. Solo config liviano (bancos, tasas, tags) va al doc raíz. Garantía dura: el doc gigante nunca más se sube. Log: save:subcol-stripped-root.'},
         {type:'fix', title:'BUG 5 (ALTA): root-clean se reintentaba en cada sesión', desc:'_subcol_cleanRootDoc usaba un flag en memoria (AppState._subcolRootCleaned) que se perdía al recargar. Si el clean fallaba por timeout, cada arranque lo reintentaba → writes innecesarios al doc raíz, presión de cuota, retries eternos. v4.8.2.9: marker PERSISTENTE en localStorage (_subcol_rootclean_{uid}). Una vez intentado (con éxito o timeout), no se reintenta automáticamente. Logs: subcol:root-clean:skipped, root-cleaned, root-clean:failed.'},
@@ -2596,15 +2603,6 @@ const CHANGELOG = [
         {type:'fix', title:'FIX #7 (CRÍTICO): la app quedaba para siempre en "Sincronizando / Modo local activo"', desc:'El estado "En línea" solo se seteaba desde el listener legacy del doc raíz cuando recibía snapshot del server (fromCache=false). Pero en modo subcol, el listener legacy se desuscribe apenas las 3 subcolecciones reciben su primer snapshot — ANTES de que llegue el snapshot fromCache=false del legacy. Resultado: setSyncStatus(online) nunca corría y la app quedaba congelada en "Sincronizando / Modo local activo / Error al reconectar" aunque los datos sincronizaran bien. v4.8.2.6: los listeners de subcolecciones ahora setean el estado de conexión. Si cualquiera recibe snapshot del server (fromCache=false) → online + baja _datosStale + baja _uiHydratedFromCache. Si todos vienen de cache → "Caché local" hasta que el server confirme.'},
         {type:'fix', title:'FIX #8 (ALTA): el botón Reconectar no funcionaba en modo subcol', desc:'Tocar el banner de estado llamaba reconnectFirebase, que desuscribía el listener legacy y re-bootstrappeaba esperando que el listener legacy bajara _datosStale. Pero en modo subcol el legacy ya no es la fuente de datos → la reconexión nunca se completaba y caía en "Error al reconectar" tras 12s. v4.8.2.6: reconnectFirebase detecta _subcolActive y toma un camino distinto — reactiva la red de Firestore (enableNetwork) y espera que los listeners subcol (que ya están montados) confirmen con snapshot del server. Sin re-bootstrap, sin desuscribir.'},
         {type:'verified', title:'Cómo probar', desc:'1) Force-quit PWA + 60s + reabrir. 2) Verificar versión 4.8.2.6. 3) Esperar 10s. 4) El banner debe pasar de "Modo local activo" (amarillo) a "En línea" (verde) cuando los listeners subcol reciban el snapshot del server. 5) Diagnóstico → Estado sync debe decir "online". 6) Crear operación → subcol:write OK, banner sigue verde. 7) Si el banner sigue amarillo: tocar el banner para forzar reconnect, ahora debe funcionar en modo subcol.'}
-    ]},
-    {version:'4.8.2.5', date:'2026-05-27', headline:'🔬 Auditoría completa: 6 bugs fixeados (3 críticos, 1 alta, 1 media, 1 menor).', changes:[
-        {type:'fix', title:'FIX #1 (CRÍTICO): listener legacy pisaba memoria con doc raíz stale', desc:'mergeRemoteState procesaba operaciones/movimientos/transferencias del doc raíz aunque _subcolActive=true. Eso permitía que el listener legacy (que corre 2s antes que el gate) mergeara un doc raíz viejo encima de memoria con ops nuevas correctas. v4.8.2.5: mergeRemoteState strippea operaciones, movimientos, transferencias, lotes y _wireFormat del input cuando _subcolActive=true. Los listeners de subcolecciones son única fuente para esas entidades.'},
-        {type:'fix', title:'FIX #2 (CRÍTICO): subcol_delete no encolaba pendientes', desc:'subcol_write encolaba retry on fail desde v4.8.2.4, pero subcol_delete no. Si fallaba (SDK terminated, red), memoria borraba la op pero server la mantenía → drift inverso. v4.8.2.5: subcol_delete fallido encola con type:"delete". subcol_retryPendingWrites distingue por tipo y reintenta correctamente. Si una op tuvo write fallido y luego delete fallido, gana el último (consistente con intención del usuario).'},
-        {type:'fix', title:'FIX #3 (CRÍTICO): listener subcol skipeaba snapshots reales del server', desc:'Condición "if(hasPendingWrites)return" skipeaba TODO snapshot con flag pendiente, incluyendo los que vienen del server con writes inflight no relacionados. v4.8.2.5: cambio a "if(hasPendingWrites && fromCache)return" — solo skipea echos locales del SDK, no snapshots del server. Esto permite que docs nuevos del server lleguen a memoria aunque haya otros writes inflight.'},
-        {type:'fix', title:'FIX #4 (ALTA): logout no desuscribía listeners subcol', desc:'Al cerrar sesión, AppState.unsubscribe se desuscribía (legacy) pero AppState._subcolUnsubs quedaba activo. Si otro usuario hacía login, los listeners del anterior seguían escuchando paths del usuario equivocado — memory leak + bug de privacidad. v4.8.2.5: handler de logout desuscribe los 3 listeners subcol, resetea _subcolActive, _subcolFirstSnapshots, _subcolRootCleaned. Estado limpio para próximo login.'},
-        {type:'fix', title:'FIX #5 (MEDIA): backupToLocal stringificaba 1.3MB en cada subcol:write', desc:'guardaOptimista llamaba backupToLocal() siempre, incluso cuando subcol_intercept ya manejaba el write. Resultado: cada operación nueva (~300 bytes a Firestore) disparaba un stringify de 1.3MB del estado completo + localStorage write — anulando el beneficio del switch a subcol. v4.8.2.5: cuando _interceptedBySubcol=true, salteamos backupToLocal. Para entidades NO migradas (bancos, tags, config), backupToLocal sigue corriendo igual. Red de seguridad real ahora: subcol_pending en localStorage + server confirmado.'},
-        {type:'fix', title:'FIX #6 (MENOR): re-mount de listeners reseteaba firstSnapshotReceived', desc:'Variable local en setupListeners se reseteaba en cada llamada. Si setupListeners corría dos veces (race), el listener nuevo creía ser el primero y llamaba _subcol_unsubscribeLegacyListener doble (idempotente pero ruidoso). v4.8.2.5: estado a AppState._subcolFirstSnapshots, sobrevive re-mount.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Force-quit PWA + 60s + reabrir. 2) Verificar versión 4.8.2.5. 3) Diagnóstico → log debe verse: subcol:gate:ok → subcol:mode:activated → subcol:listeners:setup → first-snapshot ×3 → subcol:legacy-unsub:done → subcol:retry:start (con las 14 ops de v4.8.2.3 que estaban en pending). 4) Crear operación nueva: log debe mostrar subcol:write OK. 5) Eliminar una op de prueba: log debe mostrar subcol:delete OK (no subcol:delete:failed silencioso). 6) Verificar que no haya save:write-start payloadKB:545 en ningún punto.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -4970,8 +4968,16 @@ function reevaluarEstadoSync(){
     if(!AppState.currentUser)return;
     if(typeof iniciarRecuperacionFirestore!=='undefined'&&iniciarRecuperacionFirestore._activa)return;
     /* Síntomas de que en realidad estamos OK aunque el badge diga error */
-    const listenerActivo=AppState.unsubscribe!==null&&AppState.unsubscribe!==undefined;
-    const versionesMatch=AppState._localVersion===((AppState.datos&&AppState.datos._version)||0);
+    const subcolActivo=AppState._subcolActive===true;
+    /* v4.8.2.10 — en modo subcol, el listener legacy está desuscripto (esperado)
+       y el versionado single-doc no aplica. La salud se mide por: listeners subcol
+       montados, sin pending subcol, online. */
+    const listenerActivo=subcolActivo
+        ? (AppState._subcolUnsubs && Object.keys(AppState._subcolUnsubs).length>0)
+        : (AppState.unsubscribe!==null&&AppState.unsubscribe!==undefined);
+    const versionesMatch=subcolActivo
+        ? ((AppState._subcolPendingWrites||[]).length===0)
+        : (AppState._localVersion===((AppState.datos&&AppState.datos._version)||0));
     const sinPending=_syncQueue.length===0&&_localDirty===0;
     const sinFlight=!_guardando&&!_guardarPendiente;
     const online=navigator.onLine;
@@ -5492,6 +5498,8 @@ function getSyncDiagnostics(){
         syncState:AppState.ui.syncState||'unknown',
         localVersion:AppState._localVersion,
         dataVersion:(AppState.datos&&AppState.datos._version)||0,
+        subcolActive:AppState._subcolActive===true,
+        subcolPending:(AppState._subcolPendingWrites||[]).length,
         localDirty:_localDirty,
         syncQueueSize:_syncQueue.length,
         syncQueueSample:_syncQueue.slice(0,5),
@@ -6142,6 +6150,15 @@ async function guardarDatos(forzar,opts){
            — al cargarse, recalcularLotesYGanancias los sobrescribe con los reconstruidos. */
         const tStart=performance.now();
         _syncLog('save:prep-start',{});
+        /* v4.8.2.10 — en modo subcol, si _localVersion quedó en 0 (típico tras un
+           manual-import que setea _localVersion=0) pero _datos._version tiene un
+           valor mayor, alinear _localVersion al valor de los datos para que el
+           write al doc raíz NO quede con una versión más vieja que la del server.
+           Esto resuelve el Match:✗ y el pending de config que no drenaba. */
+        if(AppState._subcolActive===true && (AppState._localVersion||0)===0 && AppState.datos && (AppState.datos._version||0)>0){
+            AppState._localVersion=AppState.datos._version;
+            _syncLog('save:subcol-version-aligned',{to:AppState._localVersion});
+        }
         const serverVersionConocido=AppState._localVersion||0;
         const newVersion=serverVersionConocido+1;
         _syncLog('payload:compact-start',{});
@@ -7075,9 +7092,19 @@ function renderDiagnosticoSync(){
         html+='Firebase client:  ✓ activo\n';
     }
     html+='\n━━━ VERSIONES ━━━\n';
-    html+='_localVersion:    '+d.localVersion+'\n';
-    html+='_datos._version:  '+d.dataVersion+'\n';
-    html+='Match:            '+fmtBool(d.localVersion===d.dataVersion)+'\n';
+    if(d.subcolActive){
+        /* v4.8.2.10 — en modo subcol el versionado single-doc legacy ya no aplica.
+           Las ops viven en subcolecciones; el doc raíz solo tiene config liviano.
+           Mostrar el estado subcol en vez del Match legacy que confunde. */
+        html+='Modo:             📂 Subcollections activo\n';
+        html+='Doc raíz:         solo config (bancos/tasas/tags)\n';
+        if(d.subcolPending>0)html+='Writes pendientes: '+d.subcolPending+'\n';
+        else html+='Writes pendientes: 0 ✓\n';
+    }else{
+        html+='_localVersion:    '+d.localVersion+'\n';
+        html+='_datos._version:  '+d.dataVersion+'\n';
+        html+='Match:            '+fmtBool(d.localVersion===d.dataVersion)+'\n';
+    }
     if(d.restoredFrom)html+='Restored from:    '+d.restoredFrom+'\n';
     if(d.postRestoreLockExpires)html+='Lock expira:      '+d.postRestoreLockExpires+'\n';
     if(d.datosStale)html+='⚠ Datos stale (esperando reconciliación)\n';
