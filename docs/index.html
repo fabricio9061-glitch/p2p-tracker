@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.5',
+    APP_VERSION: '4.8.2.6',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.6', date:'2026-05-27', headline:'🟢 Fix "no está en línea": el estado online ahora viene de los listeners subcol.', changes:[
+        {type:'fix', title:'FIX #7 (CRÍTICO): la app quedaba para siempre en "Sincronizando / Modo local activo"', desc:'El estado "En línea" solo se seteaba desde el listener legacy del doc raíz cuando recibía snapshot del server (fromCache=false). Pero en modo subcol, el listener legacy se desuscribe apenas las 3 subcolecciones reciben su primer snapshot — ANTES de que llegue el snapshot fromCache=false del legacy. Resultado: setSyncStatus(online) nunca corría y la app quedaba congelada en "Sincronizando / Modo local activo / Error al reconectar" aunque los datos sincronizaran bien. v4.8.2.6: los listeners de subcolecciones ahora setean el estado de conexión. Si cualquiera recibe snapshot del server (fromCache=false) → online + baja _datosStale + baja _uiHydratedFromCache. Si todos vienen de cache → "Caché local" hasta que el server confirme.'},
+        {type:'fix', title:'FIX #8 (ALTA): el botón Reconectar no funcionaba en modo subcol', desc:'Tocar el banner de estado llamaba reconnectFirebase, que desuscribía el listener legacy y re-bootstrappeaba esperando que el listener legacy bajara _datosStale. Pero en modo subcol el legacy ya no es la fuente de datos → la reconexión nunca se completaba y caía en "Error al reconectar" tras 12s. v4.8.2.6: reconnectFirebase detecta _subcolActive y toma un camino distinto — reactiva la red de Firestore (enableNetwork) y espera que los listeners subcol (que ya están montados) confirmen con snapshot del server. Sin re-bootstrap, sin desuscribir.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Force-quit PWA + 60s + reabrir. 2) Verificar versión 4.8.2.6. 3) Esperar 10s. 4) El banner debe pasar de "Modo local activo" (amarillo) a "En línea" (verde) cuando los listeners subcol reciban el snapshot del server. 5) Diagnóstico → Estado sync debe decir "online". 6) Crear operación → subcol:write OK, banner sigue verde. 7) Si el banner sigue amarillo: tocar el banner para forzar reconnect, ahora debe funcionar en modo subcol.'}
+    ]},
     {version:'4.8.2.5', date:'2026-05-27', headline:'🔬 Auditoría completa: 6 bugs fixeados (3 críticos, 1 alta, 1 media, 1 menor).', changes:[
         {type:'fix', title:'FIX #1 (CRÍTICO): listener legacy pisaba memoria con doc raíz stale', desc:'mergeRemoteState procesaba operaciones/movimientos/transferencias del doc raíz aunque _subcolActive=true. Eso permitía que el listener legacy (que corre 2s antes que el gate) mergeara un doc raíz viejo encima de memoria con ops nuevas correctas. v4.8.2.5: mergeRemoteState strippea operaciones, movimientos, transferencias, lotes y _wireFormat del input cuando _subcolActive=true. Los listeners de subcolecciones son única fuente para esas entidades.'},
         {type:'fix', title:'FIX #2 (CRÍTICO): subcol_delete no encolaba pendientes', desc:'subcol_write encolaba retry on fail desde v4.8.2.4, pero subcol_delete no. Si fallaba (SDK terminated, red), memoria borraba la op pero server la mantenía → drift inverso. v4.8.2.5: subcol_delete fallido encola con type:"delete". subcol_retryPendingWrites distingue por tipo y reintenta correctamente. Si una op tuvo write fallido y luego delete fallido, gana el último (consistente con intención del usuario).'},
@@ -2599,13 +2604,6 @@ const CHANGELOG = [
         {type:'fix', title:'subcol_activate cancela debounce + drena queue residual', desc:'En el momento exacto del switch, antes de montar listeners: clearTimeout(_guardaDebounceTimer) y _syncQueue.filter para sacar entidades migradas. Logs nuevos: subcol:legacy-debounce-cancelled, subcol:legacy-queue-drained. Garantiza que no hay write legacy "en vuelo" entre subcol:mode:activated y el primer subcol:write.'},
         {type:'verified', title:'Removido count y _subcol_countDocs', desc:'La función _subcol_countDocs entera fue removida. Reduce superficie y elimina el riesgo de SDK no soporta count(). El gate ahora hace 2 lecturas a Firestore (meta + sample) y eventualmente 1 escritura (meta-repair). Sin más.'},
         {type:'verified', title:'Cómo probar', desc:'1) ANTES de subir: force-quit Safari completo (no solo cerrar pestaña — quitar desde switcher), esperar 30s para que el SDK olvide el estado degradado. 2) Subir v4.8.2.2. 3) Abrir app. 4) Diagnóstico → log → debe aparecer: subcol:gate:start → subcol:gate:auto-meta-repair (si subcolecciones existen con formato expandido) → subcol:legacy-debounce-cancelled / subcol:legacy-queue-drained (si había queue residual) → subcol:mode:activated → subcol:listeners:setup → first-snapshot ×3 → legacy-unsub:done → root-cleaned. 5) Crear operación nueva → subcol:write con sizeKB chico. NO debe aparecer wire-compress, payload:compact, save:write-start payloadKB:545.'}
-    ]},
-    {version:'4.8.2.1', date:'2026-05-26', headline:'🔧 Auto-repair de _meta/migration si las subcollections están completas.', changes:[
-        {type:'fix', title:'Gate ahora puede reparar _meta/migration faltante sin migrar de nuevo', desc:'El gate de v4.8.2 quedaba en legacy si faltaba _meta/migration. Pero si las subcollections ya estaban completas (migración exitosa de versión anterior, solo faltaba la marca por bug de marker-update colgado), no había razón para no activar. v4.8.2.1: si _meta/migration no existe pero las subcolecciones tienen docs en formato expandido, el gate ahora verifica que los counts coincidan EXACTOS con AppState.datos (operaciones, movimientos, transferencias) y, si todo coincide, escribe la marca automáticamente. Loguea subcol:gate:auto-meta-repair.'},
-        {type:'fix', title:'Protección contra activar con migración parcial', desc:'Auto-repair solo procede si counts(server) === length(memoria) para LAS 3 entidades. Si alguno difiere, la app queda en legacy y loguea subcol:gate:partial-migration con detalle expected vs actual por entidad. Esto previene activar runtime sobre datos parciales (que daría sumas mal, ops faltantes, drift entre legacy y subcol).'},
-        {type:'fix', title:'Conteo de docs con fallback controlado', desc:'_subcol_countDocs intenta count().get() (agregado servidor, barato). Si el SDK no soporta count(), fallback a .get() entera y .size — más costoso pero exacto. Sin fallback silencioso a "asumir OK".'},
-        {type:'verified', title:'Cero acciones automáticas adicionales', desc:'El gate NO migra datos, NO copia docs, NO reescribe nada salvo el doc chico _meta/migration (~100 bytes). Si auto-repair falla por red, la app queda en legacy sin tocar nada. Próximo arranque reintenta (idempotente).'},
-        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.1. 2) Reabrir app. 3) Diagnóstico → log. 4) Buscar: subcol:gate:start → subcol:gate:auto-meta-repair (si tus subcollections están completas) o subcol:gate:partial-migration (si counts no coinciden, con detalle). 5) Si auto-meta-repair: continúa con subcol:mode:activated → subcol:listeners:setup → primeros snapshots → legacy-unsub → root-cleaned. 6) Crear operación nueva → subcol:write con sizeKB chico. NO debe aparecer wire-compress/save:write-start payloadKB.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -2703,6 +2701,28 @@ async function reconnectFirebase(){
     setSyncStatus('reconnecting');
     /* Marcar datos como stale ANTES de reconectar — bloquea escrituras hasta recibir datos frescos */
     AppState._datosStale=true;
+    /* v4.8.2.5 — FIX #8: en modo subcol, el reconnect NO debe desuscribir/re-bootstrappear
+       el listener legacy (que ya no es la fuente de datos). Los listeners subcol siguen
+       activos. Solo reactivamos la red de Firestore y esperamos que los listeners subcol
+       confirmen con un snapshot del server (que baja _datosStale vía FIX #7). */
+    if(AppState._subcolActive===true){
+        try{
+            if(AppState.db){try{await AppState.db.enableNetwork()}catch(e){}}
+            /* Esperar confirmación del server vía listeners subcol (máx 8s) */
+            await new Promise((res)=>{
+                const t=setTimeout(()=>res(),8000);
+                const check=setInterval(()=>{
+                    if(!AppState._datosStale){clearInterval(check);clearTimeout(t);res()}
+                },200);
+            });
+            AppState._datosStale=false;
+            setSyncStatus('online');
+        }catch(e){
+            AppState._datosStale=false;
+            setSyncStatus(navigator.onLine?'online':'offline');
+        }
+        return;
+    }
     const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000));
     try{
         await Promise.race([timeout,(async()=>{
@@ -9939,6 +9959,24 @@ function subcol_setupListeners(){
                    desuscribir el listener legacy con seguridad */
                 if(ENTITIES.every(e=>AppState._subcolFirstSnapshots[e])){
                     _subcol_unsubscribeLegacyListener();
+                }
+            }
+            /* v4.8.2.5 — FIX #7: marcar estado de conexión desde el listener subcol.
+               Antes, "En línea" solo se seteaba desde el listener legacy del doc raíz.
+               Pero en modo subcol el legacy se desuscribe → setSyncStatus('online')
+               nunca corría → la app quedaba para siempre en "Sincronizando / Modo
+               local activo / Error al reconectar".
+               
+               Ahora: si CUALQUIER listener subcol recibe snapshot del server
+               (fromCache=false), marcamos online y bajamos el flag de stale. Si todos
+               vienen de cache todavía, mostramos "syncing" hasta que el server confirme. */
+            if(typeof setSyncStatus==='function'){
+                if(!snap.metadata.fromCache){
+                    AppState._datosStale=false;
+                    if(AppState._uiHydratedFromCache)AppState._uiHydratedFromCache=false;
+                    setSyncStatus('online');
+                }else if(AppState.ui&&AppState.ui.syncState!=='online'){
+                    setSyncStatus('syncing','Caché local');
                 }
             }
             /* Procesar cambios incrementales */
