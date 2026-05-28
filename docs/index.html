@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.12',
+    APP_VERSION: '4.8.2.13',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,12 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.13', date:'2026-05-28', headline:'🔁 Fix raíz: el import ahora REEMPLAZA el server (borra las ops viejas).', changes:[
+        {type:'fix', title:'BUG RAÍZ (CRÍTICO): el import solo agregaba, nunca borraba las viejas del server', desc:'Diagnóstico por capturas: tras un reset, a los segundos reaparecían 60 ops viejas con datos que NO eran del JSON importado. Causa: las ops viejas estaban en el SERVER (subcolecciones), no en el cache. _subcol_pushFullRestore hacía set() de cada op del JSON — sobrescribía las que coinciden por ID, pero NUNCA borraba del server las que el JSON no tiene. Si el server tenía 3700 ops (con viejas) y el JSON 3644, quedaban 56 viejas mezcladas que el listener bajaba en cada arranque. v4.8.2.13: el restore ahora hace REEMPLAZO COMPLETO — lee los IDs del server, sube los del JSON, y BORRA los que el JSON no tiene. El server queda EXACTAMENTE igual al JSON importado. Logs: subcol:restore-push:deleting-orphans, orphans-deleted.'},
+        {type:'fix', title:'Por qué los resets no alcanzaban', desc:'El reset SDK limpia el cache local, pero al reconectar el listener trae del server. Como el server tenía las viejas (el import nunca las borró), reaparecían. El reset no era el problema — el server desactualizado sí. Ahora que el import reemplaza el server completo, tras importar el server queda limpio y los resets/reaperturas muestran los datos correctos.'},
+        {type:'fix', title:'Borrado de huérfanos resiliente', desc:'El borrado de ops huérfanas usa batches de 150 con timeout 45s y pausa entre batches (igual que la subida). Si un batch de borrado falla, encola los IDs como pending delete para retry — no aborta. El import sigue siendo robusto ante red lenta.'},
+        {type:'verified', title:'Cómo probar — IMPORTANTE', desc:'1) Subir v4.8.2.13. 2) Force-quit + reabrir + esperar "En línea". 3) Menú → Importar datos → tu JSON. 4) Confirmar y ESPERAR a que termine (puede tardar con red lenta — va a borrar las viejas y subir las del JSON). 5) Log: subcol:restore-push:start → entity-done → deleting-orphans (las viejas) → orphans-deleted → done. 6) Cuando diga "Datos restaurados correctamente", el server quedó = JSON. 7) Force-quit + reabrir → ahora SÍ deben verse los datos del JSON, las viejas ya no están en el server. 8) Si la red corta el proceso, el mensaje avisa que hay pendientes — esperá a que el retry termine antes de cerrar.'}
+    ]},
     {version:'4.8.2.12', date:'2026-05-28', headline:'⚡ Fix "Error al restaurar: timeout" — import resiliente que no falla completo.', changes:[
         {type:'fix', title:'BUG (CRÍTICO): restore-push fallaba completo por timeout en un batch', desc:'_subcol_pushFullRestore subía las operaciones en batches de 400 docs con timeout 30s. En PWA iOS con red lenta, un batch de 400 writes no confirmaba a tiempo → "Error al restaurar: timeout: restore-push.operaciones" y el import abortaba ENTERO. Los datos quedaban a medias. v4.8.2.12: (1) batch reducido a 150 docs — más liviano, confirma mejor. (2) timeout subido a 45s. (3) pausa de 150ms entre batches para no saturar el SDK iOS. (4) CLAVE: si un batch falla, NO aborta todo — encola esos items en _subcol_pending para retry automático y CONTINÚA con el resto. El import nunca más falla completo.'},
         {type:'fix', title:'Backup local se actualiza SIEMPRE, aunque queden pendientes', desc:'El FIX #17 (backup local tras import) ahora corre incluso si algunos batches quedaron pendientes de subir. Así, al reabrir, el bootstrap hidrata con los datos importados completos desde localStorage, mientras los writes pendientes se reintentan en segundo plano contra el server. Los datos del usuario están a salvo localmente desde el momento del import.'},
@@ -2597,14 +2603,6 @@ const CHANGELOG = [
         {type:'fix', title:'BUG 1 (trazabilidad): log al strippear merge legacy', desc:'mergeRemoteState ya strippea las entidades migradas en modo subcol desde v4.8.2.5 (FIX #1) — verificado contra el código, ya estaba bien. Se agrega log mergeRemoteState:stripped-migrated para confirmar en el diagnóstico que el merge legacy no toca operaciones migradas.'},
         {type:'verified', title:'Bugs de la auditoría ya resueltos en versiones previas', desc:'BUG 2 (subcol_write pierde writes) → fixeado v4.8.2.4 con _subcol_addPendingWrite + localStorage. BUG 3 (logout no limpia listeners) → fixeado v4.8.2.5 FIX #4. BUG 6 (delete order) → cubierto por el retry idempotente de FIX #12. La auditoría externa confirmó la arquitectura; estos 4 fixes nuevos cierran los huecos restantes.'},
         {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.9. 2) Force-quit + reabrir. 3) Crear operación → solo subcol:write, nunca save:write-start. 4) Importar JSON → subcol:restore-push + save:subcol-stripped-root (config liviano), NUNCA payloadKB:545. 5) Recargar varias veces → subcol:root-clean:skipped (no reintenta). 6) El log es la fuente de verdad: si aparece save:write-start payloadKB con número grande, algo falló — reportar.'}
-    ]},
-    {version:'4.8.2.8', date:'2026-05-27', headline:'🛑 STOP pérdida de datos: 4 bugs que borraban operaciones.', changes:[
-        {type:'fix', title:'BUG #12 (CRÍTICO): el retry de pendientes borraba ops válidas', desc:'subcol_retryPendingWrites ejecutaba subcol_delete por cada pending tipo "delete". Pero si quedó un pending delete espurio de una sesión caótica (SDK terminated en v4.8.2.3/2.4), el retry BORRABA del server una op que era válida y existía en memoria. El listener recibía el removed y la borraba de memoria también → pérdida irreversible. v4.8.2.8: el retry de delete ahora verifica PRIMERO si la op está en memoria. Si está → es válida, el pending delete es espurio → se RE-ESCRIBE en vez de borrar. Solo borra del server si la op realmente ya no existe localmente (borrado legítimo del usuario).'},
-        {type:'fix', title:'BUG #14 (CRÍTICO): el listener borraba ops por removed espurios', desc:'El listener subcol borraba de memoria CUALQUIER evento removed, incluso los de cache (fromCache) o cuando había un write nuestro pendiente para esa op. Un estado transitorio del server podía disparar removed de ops buenas. v4.8.2.8: removed solo se aplica si viene del server confirmado (!fromCache) Y no hay write pendiente para esa op. Cada borrado se loguea (subcol:listener:removed-applied / removed-skipped) para trazabilidad total — si desaparece una op, el log dice cuál y por qué.'},
-        {type:'fix', title:'BUG #16 (CRÍTICO): importar JSON no subía las ops a subcol', desc:'_aplicarRespaldo (import/restore manual) llamaba guardarDatos(true) para persistir, pero en modo subcol guardarDatos está bloqueado para entidades migradas. Resultado: las ops importadas quedaban SOLO en memoria, el server seguía con las viejas, y el listener podía borrar las importadas. Importar no funcionaba y empeoraba el drift. v4.8.2.8: en modo subcol, _aplicarRespaldo sube TODAS las ops/movimientos/transferencias a subcolecciones con writeBatch (lotes de 400, idempotente). Logs: subcol:restore-push:start/entity-done/done. AHORA SÍ podés importar tu JSON para recuperar las ops perdidas.'},
-        {type:'fix', title:'BUG #13 (MEDIA): doble activación montaba listeners duplicados', desc:'Si el gate corría dos veces (bootstrap doble, visible en logs con múltiples ui:bootstrap-start), subcol_activate montaba un segundo set de listeners. Dos listeners procesando los mismos snapshots causaban comportamiento errático. v4.8.2.8: guard al inicio de subcol_activate — si ya está activo con listeners montados, no re-montar.'},
-        {type:'verified', title:'CÓMO RECUPERAR TUS OPERACIONES', desc:'1) Subir v4.8.2.8. 2) Force-quit PWA + 60s + reabrir. 3) Esperar a que diga "En línea" (verde). 4) Menú → Importar datos (.json) → elegí el JSON que exportaste antes. 5) Confirmar. 6) Diagnóstico → log: subcol:restore-push:start → entity-done (×3) → done. Esto sube TODAS las ops del JSON a las subcolecciones del server. 7) Las ops perdidas vuelven. 8) Verificá el contador de operaciones.'},
-        {type:'verified', title:'Trazabilidad de borrados', desc:'Si alguna op desaparece de nuevo, Diagnóstico → log ahora muestra exactamente: subcol:listener:removed-applied {entity, id} para cada borrado aplicado, y removed-skipped con la razón para los bloqueados. Esto permite diagnosticar cualquier pérdida futura con precisión.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -9473,6 +9471,37 @@ async function _subcol_pushFullRestore(datos){
             await new Promise(r=>setTimeout(r,150));
         }
         log('subcol:restore-push:entity-done',{entity,written,failed});
+        /* ═══ v4.8.2.13 — REEMPLAZO COMPLETO: borrar del server las ops que el
+           JSON importado NO tiene. Sin esto, set() solo pisaba las que coinciden
+           y dejaba las viejas → el import "no reemplazaba", reaparecían al abrir.
+           
+           Leemos los IDs actuales del server y borramos los que no están en el
+           JSON. Esto hace que el server quede EXACTAMENTE igual al JSON. */
+        try{
+            const jsonIds=new Set(items.filter(x=>x&&x.id!=null).map(x=>String(x.id)));
+            const serverSnap=await _withTimeout(ref.collection(entity).get({source:'server'}),45000,'restore-orphans.'+entity);
+            const orphans=[];
+            serverSnap.forEach(doc=>{if(!jsonIds.has(doc.id))orphans.push(doc.id)});
+            if(orphans.length>0){
+                log('subcol:restore-push:deleting-orphans',{entity,count:orphans.length});
+                for(let j=0;j<orphans.length;j+=BATCH_SIZE){
+                    const oslice=orphans.slice(j,j+BATCH_SIZE);
+                    const dbatch=AppState.db.batch();
+                    oslice.forEach(id=>dbatch.delete(ref.collection(entity).doc(id)));
+                    try{
+                        await _withTimeout(dbatch.commit(),45000,'restore-del-orphans.'+entity);
+                    }catch(e){
+                        log('subcol:restore-push:orphan-del-failed',{entity,error:e.message});
+                        oslice.forEach(id=>_subcol_addPendingWrite(entity,id,'delete'));
+                        totalFailed+=oslice.length;
+                    }
+                    await new Promise(r=>setTimeout(r,150));
+                }
+                log('subcol:restore-push:orphans-deleted',{entity,count:orphans.length});
+            }
+        }catch(e){
+            log('subcol:restore-push:orphan-scan-failed',{entity,error:e.message});
+        }
     }
     if(typeof _subcol_snapshotDerivedSigs==='function')_subcol_snapshotDerivedSigs();
     log('subcol:restore-push:done',{totalFailed});
