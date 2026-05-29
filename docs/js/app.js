@@ -3,7 +3,7 @@ import { P2PRepository } from './firebase/repository.js';
 import { state, resetState, setEntity, upsertEntityItem, removeEntityItem } from './core/state.js';
 import { uid, today, timeNow, roundMoney, truncMoney } from './core/money.js';
 import { rebuildFifo } from './business/fifo.js';
-import { render, setStatus } from './ui/render.js';
+import { render, setStatus, setOperationFilter } from './ui/render.js';
 import { downloadJson } from './import_export/export.js';
 import { importFile } from './import_export/import.js';
 
@@ -65,6 +65,7 @@ function bindAppUi() {
   };
   $('opFecha').value = today();
   $('opForm').onsubmit = createOperation;
+  bindOperationUi();
 }
 
 async function loadConfig() {
@@ -85,6 +86,56 @@ function setupListeners() {
     });
     state.unsubscribers.push(unsub);
   }
+}
+
+function bindOperationUi() {
+  document.querySelectorAll('.op-toggle-btn').forEach(btn => {
+    btn.onclick = () => setOperationType(btn.dataset.type);
+  });
+  document.querySelectorAll('.tasa-step').forEach(btn => {
+    btn.onclick = () => {
+      const input = $('opTasa');
+      const next = Number(input.value || 0) + Number(btn.dataset.step || 0);
+      input.value = next > 0 ? next.toFixed(2) : '';
+      updateOperationPreview();
+    };
+  });
+  ['opMonto','opTasa','opComision'].forEach(id => $(id)?.addEventListener('input', updateOperationPreview));
+  $('filterAll')?.addEventListener('click', () => setOperationFilter('all'));
+  $('filterCompra')?.addEventListener('click', () => setOperationFilter('compra'));
+  $('filterVenta')?.addEventListener('click', () => setOperationFilter('venta'));
+  $('toggleForm')?.addEventListener('click', () => {
+    $('opForm')?.classList.toggle('hidden-form');
+    $('toggleForm').textContent = $('opForm')?.classList.contains('hidden-form') ? 'Mostrar' : 'Ocultar';
+  });
+  setOperationType('venta');
+  updateOperationPreview();
+}
+
+function setOperationType(type) {
+  $('opTipo').value = type;
+  document.querySelectorAll('.op-toggle-btn').forEach(btn => {
+    btn.classList.toggle('active-compra', btn.dataset.type === 'compra' && type === 'compra');
+    btn.classList.toggle('active-venta', btn.dataset.type === 'venta' && type === 'venta');
+  });
+  const label = $('opMontoLabel');
+  if (label) label.textContent = type === 'compra' ? 'Comprás por (UYU)' : 'Vendés por (UYU)';
+  const submit = $('opSubmit');
+  if (submit) {
+    submit.classList.toggle('compra', type === 'compra');
+    submit.classList.toggle('venta', type === 'venta');
+    submit.textContent = type === 'compra' ? '📥 Comprar USDT' : '📤 Vender USDT';
+  }
+}
+
+function updateOperationPreview() {
+  const monto = Number($('opMonto')?.value || 0);
+  const tasa = Number($('opTasa')?.value || 0);
+  const pct = Number($('opComision')?.value || 0);
+  const usdt = tasa > 0 ? truncMoney(monto / tasa, 2) : 0;
+  const fee = truncMoney(usdt * pct / 100, 2);
+  if ($('previewUsdt')) $('previewUsdt').textContent = usdt.toFixed(2);
+  if ($('previewFee')) $('previewFee').textContent = `${fee.toFixed(2)} USDT`;
 }
 
 function applyChanges(entity, changes, metadata) {
@@ -131,7 +182,7 @@ async function createOperation(ev) {
     await repo.setItem('operaciones', op);
     setStatus('En línea');
     $('opMonto').value = '';
-    $('opTasa').value = '';
+    updateOperationPreview();
   } catch (e) {
     console.error(e);
     setStatus('Pendiente local');

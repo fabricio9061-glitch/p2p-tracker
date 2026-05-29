@@ -13,6 +13,7 @@
 <body>
   <div id="authView" class="auth-shell">
     <div class="auth-card">
+      <div class="auth-logo">₮</div>
       <h1>P2P Tracker</h1>
       <p>v5 modular · subcollections</p>
       <input id="authEmail" type="email" placeholder="Email" autocomplete="email" />
@@ -25,55 +26,132 @@
 
   <div id="appView" class="app hidden">
     <header class="topbar">
-      <div>
+      <div class="topbar-title">
         <h1>Registro P2P</h1>
         <span id="syncStatus" class="status">Iniciando…</span>
       </div>
-      <button id="btnLogout" class="secondary small">Salir</button>
+      <button id="btnLogout" class="secondary icon-btn" title="Salir">⎋</button>
     </header>
 
     <main class="layout">
-      <section class="card hero">
-        <div>
-          <span class="label">Saldo USDT</span>
+      <section class="hero-grid">
+        <article class="metric-card usdt-card">
+          <span class="metric-icon">₮</span>
+          <span class="label">USDT</span>
           <strong id="saldoUsdt">0.00</strong>
+          <small id="lotesCount">0 lotes</small>
+        </article>
+        <article class="metric-card bank-total-card">
+          <span class="metric-icon">🏦</span>
+          <span class="label">Total bancos</span>
+          <strong id="totalBancos">$0,00</strong>
+          <small>UYU disponible</small>
+        </article>
+      </section>
+
+      <section class="section activity-section">
+        <div class="section-head plain">
+          <h2>📊 Actividad del período</h2>
+          <span id="periodLabel" class="pill">Mes</span>
         </div>
-        <div>
-          <span class="label">Ganancia total</span>
-          <strong id="gananciaTotal">$0</strong>
+        <div class="activity-grid">
+          <article class="activity-card compra">
+            <span>Compras</span>
+            <strong id="comprasMonto">$0,00</strong>
+            <small id="comprasMeta">0 ops · 0 USDT</small>
+          </article>
+          <article class="activity-card venta">
+            <span>Ventas</span>
+            <strong id="ventasMonto">$0,00</strong>
+            <small id="ventasMeta">0 ops · 0 USDT</small>
+          </article>
+          <article class="activity-card gain-card">
+            <span>Ganancia</span>
+            <strong id="gananciaTotal">$0,00</strong>
+            <small id="opsCount">0 ops</small>
+          </article>
         </div>
       </section>
 
+      <section class="section banks-section">
+        <div class="section-head plain"><h2>💼 Mis saldos</h2></div>
+        <div id="banksGrid" class="banks-grid"></div>
+      </section>
+
       <section class="card form-card">
-        <h2>Nueva operación</h2>
-        <form id="opForm">
+        <div class="section-head compact">
+          <h2>＋ Nueva operación</h2>
+          <button type="button" id="toggleForm" class="ghost small">Ocultar</button>
+        </div>
+        <form id="opForm" class="op-form">
+          <input id="opTipo" type="hidden" value="venta" />
+          <div class="op-toggle" role="tablist" aria-label="Tipo de operación">
+            <button type="button" class="op-toggle-btn" data-type="compra">📥 Comprar USDT</button>
+            <button type="button" class="op-toggle-btn active-venta" data-type="venta">📤 Vender USDT</button>
+          </div>
+
+          <label class="field-label" id="opMontoLabel" for="opMonto">Vendés por (UYU)</label>
+          <input id="opMonto" type="number" step="0.01" placeholder="0,00" inputmode="decimal" />
+
+          <div class="tasa-block">
+            <label for="opTasa">Tasa por USDT</label>
+            <div class="tasa-row">
+              <button type="button" class="tasa-step" data-step="-0.10">−</button>
+              <input id="opTasa" type="number" step="0.001" placeholder="40.30" inputmode="decimal" />
+              <button type="button" class="tasa-step" data-step="0.10">＋</button>
+            </div>
+          </div>
+
           <div class="grid2">
-            <select id="opTipo"><option value="compra">Compra</option><option value="venta">Venta</option></select>
-            <select id="opMoneda"><option value="UYU">UYU</option><option value="USD">USD</option></select>
+            <div>
+              <label class="field-label" for="opBanco">Banco</label>
+              <input id="opBanco" placeholder="Itau" value="Itau" />
+            </div>
+            <div>
+              <label class="field-label" for="opFecha">Fecha</label>
+              <input id="opFecha" type="date" />
+            </div>
           </div>
+
           <div class="grid2">
-            <input id="opBanco" placeholder="Banco" value="Itau" />
-            <input id="opFecha" type="date" />
+            <div>
+              <label class="field-label" for="opMoneda">Moneda</label>
+              <select id="opMoneda"><option value="UYU">UYU</option><option value="USD">USD</option></select>
+            </div>
+            <div>
+              <label class="field-label" for="opComision">Comisión Binance %</label>
+              <input id="opComision" type="number" step="0.01" placeholder="0.14" value="0.14" inputmode="decimal" />
+            </div>
           </div>
-          <div class="grid3">
-            <input id="opMonto" type="number" step="0.01" placeholder="Monto" />
-            <input id="opTasa" type="number" step="0.001" placeholder="Tasa" />
-            <input id="opComision" type="number" step="0.01" placeholder="Comisión %" value="0.14" />
+
+          <div id="opPreview" class="op-preview">
+            <div><span>USDT estimado</span><strong id="previewUsdt">0.00</strong></div>
+            <div><span>Comisión</span><strong id="previewFee">0.00 USDT</strong></div>
           </div>
-          <button type="submit">Guardar operación</button>
+
+          <button id="opSubmit" type="submit" class="op-submit venta">📤 Vender USDT</button>
         </form>
+      </section>
+
+      <section class="card list-card">
+        <div class="section-head compact">
+          <h2>📋 Operaciones</h2>
+          <div class="list-actions">
+            <button id="filterAll" class="chip active" type="button">Todas</button>
+            <button id="filterCompra" class="chip" type="button">Compras</button>
+            <button id="filterVenta" class="chip" type="button">Ventas</button>
+          </div>
+        </div>
+        <div id="opsList" class="list compact-list"></div>
       </section>
 
       <section class="card tools">
         <h2>Backup</h2>
-        <button id="btnExport" class="secondary">Exportar JSON</button>
-        <label class="file-btn">Importar JSON<input id="fileImport" type="file" accept="application/json" hidden></label>
+        <div class="tool-grid">
+          <button id="btnExport" class="secondary">Exportar JSON</button>
+          <label class="file-btn">Importar JSON<input id="fileImport" type="file" accept="application/json" hidden></label>
+        </div>
         <p class="hint">Import reemplaza server completo solo con confirmación.</p>
-      </section>
-
-      <section class="card list-card">
-        <div class="section-head"><h2>Operaciones</h2><span id="opsCount">0</span></div>
-        <div id="opsList" class="list"></div>
       </section>
     </main>
   </div>

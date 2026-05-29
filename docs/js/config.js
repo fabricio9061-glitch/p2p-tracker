@@ -1,4 +1,4 @@
-export const APP_VERSION = '5.0.0-alpha.1';
+export const APP_VERSION = '5.0.0-alpha.2';
 
 export const firebaseConfig = {
   apiKey: 'AIzaSyC5GPlXKziT4XdGpcdUR_gtnQE5RIrricw',
