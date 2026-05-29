@@ -1,0 +1,598 @@
+           §REDISEÑO v4.7.44 — Restyle visual (mockup) sin tocar navegación
+           Bloque al final del <style> → sobrescribe reglas previas por
+           cascada/especificidad sin borrar el CSS original (reversible).
+           ════════════════════════════════════════════════════════════════ */
+        body{background:#f1f5f9}
+        .container{max-width:560px}
+
+        /* ── Header rediseñado: título izquierda + cluster derecha ── */
+        .header{text-align:left!important;display:flex!important;align-items:flex-start;
+            justify-content:space-between;gap:12px;margin-bottom:20px;padding-top:4px;
+            min-height:auto}
+        .header h1{transform:none!important;font-size:1.5em!important;font-weight:800;
+            letter-spacing:-0.02em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .header .header-left{display:flex;flex-direction:column;gap:7px}
+        .header .sync-status{transform:none!important;margin-top:0!important;align-self:flex-start;
+            font-weight:600;padding:5px 13px;font-size:0.72em}
+        .sync-status.online{background:#dcfce7;color:#15803d}
+        .sync-status.online .sync-dot{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,0.18)}
+        .menu-container{position:static!important;display:flex;gap:9px;align-items:center}
+        .news-bell,.menu-btn{background:#fff;border:1px solid #e8edf3;border-radius:14px;
+            box-shadow:0 1px 3px rgba(15,23,42,0.05);width:46px;height:46px;
+            display:flex;align-items:center;justify-content:center;padding:0}
+        .news-bell-icon{font-size:1.1em}
+        .menu-btn{flex-direction:column;gap:4px}
+        .menu-btn span{width:18px}
+
+        /* ── Tarjeta GANANCIA HOY (hero con sparkline) ── */
+        .cards{grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:22px}
+        .card{border-radius:16px;border:1px solid #e8edf3;padding:15px;
+            box-shadow:0 1px 3px rgba(15,23,42,0.04)}
+        .card.main-card{grid-column:span 2;border-radius:20px;padding:20px;
+            background:linear-gradient(135deg,#f0fdf4 0%,#e7f9ed 100%);
+            border:1.5px solid #bbf7d0;position:relative;overflow:hidden}
+        .card.main-card.negative{background:linear-gradient(135deg,#fef2f2 0%,#fde8e8 100%);
+            border-color:#fecaca}
+        .card.main-card .card-title{font-size:0.74em;letter-spacing:0.04em;
+            color:#15803d;font-weight:700}
+        .card.main-card.negative .card-title{color:#b91c1c}
+        /* v4.7.45 — Número más chico para que NO tape el sparkline.
+           Se le reserva ~45% del ancho al gráfico a la derecha.
+           v4.7.55: white-space:nowrap defensivo para que el bloque "-$N" no
+           se parta en dos líneas dejando el "-" arriba solo. */
+        .card.main-card #gananciaHoy{font-size:1.85em!important;font-weight:850;
+            letter-spacing:-0.03em;margin:2px 0 6px;line-height:1.05;
+            max-width:55%;position:relative;z-index:2;
+            white-space:nowrap;overflow:visible}
+        #cardGananciaHoy .spark-wrap{position:absolute;right:14px;top:50%;
+            transform:translateY(-50%);width:150px;height:70px;
+            pointer-events:none;opacity:0.85;z-index:1}
+        #cardGananciaHoy .hoy-meta{display:flex;align-items:center;gap:10px;
+            font-size:0.72em;color:#475569;flex-wrap:wrap;max-width:60%;
+            position:relative;z-index:2}
+        #cardGananciaHoy .hoy-meta b{color:#0284c7}
+        #cardGananciaHoy [id="fechaHoy"]{position:relative;z-index:2}
+        .spread-trend{font-size:0.92em;padding:1px 7px;border-radius:9px;font-weight:700}
+        .spread-trend.up{background:#dcfce7;color:#15803d}
+        .spread-trend.down{background:#fee2e2;color:#dc2626}
+
+        /* ── Actividad del período ── */
+        .section-title{font-size:1.05em;font-weight:750;color:#1e293b;
+            margin:22px 0 12px;letter-spacing:-0.01em}
+        .cards-actividad{gap:12px}
+        .card-compra,.card-venta{border-radius:16px;padding:16px;border:none;
+            box-shadow:0 1px 3px rgba(15,23,42,0.05)}
+        .card-compra{background:linear-gradient(135deg,#f0fdf4,#dcfce7);
+            border-left:4px solid #22c55e}
+        .card-venta{background:linear-gradient(135deg,#fef2f2,#fee2e2);
+            border-left:4px solid #ef4444}
+        .card-compra [id^=total],.card-venta [id^=total]{font-size:1.05em!important;
+            font-weight:800;letter-spacing:-0.02em}
+
+        /* ── Mis Saldos: scroll horizontal ── */
+        .bancos-total-card{background:#fff;border:1px solid #e8edf3;border-radius:16px;
+            padding:15px 18px;display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:12px;box-shadow:0 1px 3px rgba(15,23,42,0.04)}
+        .bancos-total-card .bt-label{font-size:0.92em;font-weight:650;color:#334155;
+            display:flex;align-items:center;gap:8px}
+        .bancos-total-card .bt-value{font-size:1.25em;font-weight:800;color:#15803d}
+        .bancos-scroll{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 8px;
+            scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+        .bancos-scroll::-webkit-scrollbar{height:0}
+        .bancos-scroll>*{scroll-snap-align:start;flex:0 0 auto;min-width:150px}
+
+        /* ── Formulario Nueva Operación: quick amounts ── */
+        .quick-amounts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+        .quick-amt-btn{flex:1;min-width:62px;background:#f8fafc;border:1px solid #e8edf3;
+            border-radius:11px;padding:10px 4px;font-size:0.86em;font-weight:650;
+            color:#475569;cursor:pointer;text-align:center;transition:all 0.15s}
+        .quick-amt-btn:active{transform:scale(0.96)}
+        .quick-amt-btn.sel{background:#dbeafe;border-color:#3b82f6;color:#1d4ed8}
+
+        @media(min-width:640px){
+            .card.main-card{grid-column:span 2}
+            .cards-actividad{grid-template-columns:repeat(2,1fr)}
+        }
+
+        /* ── Mis Saldos: hero como tarjeta + scroll horizontal de cuentas ── */
+        #saldosTotales{background:#fff;border:1px solid #e8edf3;border-radius:16px;
+            padding:15px 18px;display:flex;align-items:center;gap:10px;
+            margin-bottom:12px;box-shadow:0 1px 3px rgba(15,23,42,0.04)}
+        .saldos-hero-label{font-size:0.88em;font-weight:650;color:#334155}
+        .saldos-hero-value{font-size:1.05em;font-weight:800}
+        #bancosGrid{display:flex!important;grid-template-columns:none!important;
+            gap:8px;overflow-x:auto;padding:2px 2px 10px;
+            scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+        #bancosGrid::-webkit-scrollbar{height:0}
+        /* ════════════════════════════════════════════════════════════════
+           §FASE 2B v4.7.50 — Tarjetas de bancos: LAS 3 SIEMPRE EN PANTALLA
+           ════════════════════════════════════════════════════════════════
+           Solución de fondo (no más parches de ancho):
+           1. Ancho FIJO = exactamente 1/3 del viewport menos gaps. Las 3
+              entran siempre, en cualquier teléfono. No se desliza.
+           2. El MONTO se adapta: clamp() reduce la fuente si el número es
+              largo ($103.694,49) para caber en el ancho fijo SIN cortar.
+           3. El límite de Itau (US$10.251/12.500) pasa a ser mínimo y
+              discreto — es info secundaria, no dicta el ancho.
+           4. Layout vertical compacto tipo mockup.
+           ════════════════════════════════════════════════════════════════ */
+        #bancosGrid>*{scroll-snap-align:start;flex:0 0 auto;
+            /* 1/3 del ancho del contenedor, menos los 2 gaps de 8px */
+            width:calc((100% - 16px) / 3)!important;
+            min-width:0!important;max-width:none!important;
+            padding:12px 9px!important;border-radius:var(--r-md)!important;
+            box-shadow:var(--sh-sm);display:flex;flex-direction:column;
+            justify-content:center;min-height:88px;overflow:hidden}
+        #bancosGrid .banco-nombre{
+            font-size:clamp(0.62rem,2.9vw,0.78rem)!important;
+            font-weight:var(--fw-bold)!important;margin-bottom:3px;
+            white-space:nowrap;overflow:hidden;
+            max-width:100%}
+        /* v4.7.52: el nombre se achica para entrar completo (sin "...").
+           "Mercado Pago" es el más largo; baja hasta 0.56rem si hace falta. */
+        #bancosGrid .banco-nombre-txt{
+            font-size:clamp(0.56rem,2.6vw,0.78rem);
+            overflow:hidden;white-space:nowrap;min-width:0;
+            text-overflow:clip}
+        #bancosGrid .banco-logo-img{flex:0 0 auto}
+        /* El monto se achica solo si es largo, para nunca cortarse.
+           clamp(min, escala-por-viewport, max): en pantallas chicas y
+           números grandes baja hasta 0.82rem; nunca usa ellipsis. */
+        #bancosGrid .banco-saldo{
+            font-size:clamp(0.82rem,3.7vw,1.18rem)!important;
+            font-weight:var(--fw-extra)!important;
+            font-variant-numeric:tabular-nums;letter-spacing:-0.03em;
+            white-space:nowrap;overflow:visible;line-height:1.12;
+            max-width:100%}
+        #bancosGrid .banco-moneda{
+            font-size:clamp(0.55rem,2.2vw,0.66rem)!important;
+            margin-top:2px;color:var(--c-text-mute)}
+        /* Límite Itau: mínimo y discreto, no ensancha la tarjeta */
+        #bancosGrid .banco-limite-txt{
+            font-size:clamp(0.5rem,2vw,0.6rem)!important;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+            margin-top:2px;color:var(--c-text-faint);max-width:100%}
+        #bancosGrid>*:active{transform:scale(0.97)}
+        /* Desktop: las tarjetas pueden ser más anchas (hay espacio) */
+        @media(min-width:640px){
+            #bancosGrid{flex-wrap:nowrap;gap:12px}
+            #bancosGrid>*{width:auto!important;min-width:150px!important;
+                padding:14px 16px!important}
+            #bancosGrid .banco-saldo{font-size:1.2rem!important}
+            #bancosGrid .banco-nombre{font-size:0.85rem!important}
+        }
+
+        /* ════════════════════════════════════════════════════════════════
+           §FASE 2A v4.7.49 — Pulido visual mobile premium (mockup)
+           ════════════════════════════════════════════════════════════════
+           Consume los tokens de Fase 1 (§DESIGN SYSTEM v4.7.48).
+           Bloque al final → sobrescribe lo anterior por cascada.
+           SOLO afecta pantalla principal (home). Las pantallas del menú
+           hamburguesa heredan únicamente fuente+fondo global (inevitable
+           con un cambio de tipografía), su layout NO se rediseña.
+           No se toca JS, navegación, sync, ni estructura HTML.
+           ════════════════════════════════════════════════════════════════ */
+
+        /* ── Tipografía Inter + fondo premium (global, intencional) ── */
+        body{font-family:var(--ff-sans)!important;
+            background:var(--c-bg)!important;
+            -webkit-font-smoothing:antialiased;
+            text-rendering:optimizeLegibility}
+        .container{max-width:560px}
+
+        /* ── Header premium ── */
+        .header h1{font-size:var(--fs-xl)!important;font-weight:var(--fw-extra)!important;
+            letter-spacing:var(--tracking-tight);color:var(--c-text)}
+        .header .sync-status{border-radius:var(--r-pill);font-weight:var(--fw-semi);
+            padding:5px 13px;font-size:var(--fs-xs)}
+        .sync-status.online{background:var(--c-success-bg);color:var(--c-brand-strong)}
+        .sync-status.online .sync-dot{background:#22c55e;box-shadow:var(--sh-glow-success)}
+        .news-bell,.menu-btn{background:var(--c-surface);border:1px solid var(--c-border);
+            border-radius:var(--r-md);box-shadow:var(--sh-sm);width:46px;height:46px;
+            transition:transform var(--dur-fast) var(--ease-out)}
+        .news-bell:active,.menu-btn:active{transform:scale(0.94)}
+
+        /* ── Tarjeta GANANCIA HOY: hero premium con glow sutil ── */
+        .card.main-card{border-radius:var(--r-2xl);padding:var(--sp-5);
+            background:linear-gradient(150deg,var(--c-brand-softer) 0%,var(--c-brand-soft) 100%);
+            border:1.5px solid #bbf7d0;box-shadow:var(--sh-md),0 0 32px rgba(34,197,94,0.07);
+            position:relative;overflow:hidden}
+        .card.main-card.negative{background:linear-gradient(150deg,#fef2f2 0%,var(--c-danger-bg) 100%);
+            border-color:#fecaca;box-shadow:var(--sh-md),0 0 32px rgba(239,68,68,0.06)}
+        .card.main-card .card-title{font-size:var(--fs-sm);font-weight:var(--fw-bold);
+            letter-spacing:var(--tracking-wide);color:var(--c-brand-strong)}
+        .card.main-card.negative .card-title{color:#b91c1c}
+        .card.main-card #gananciaHoy{font-size:var(--fs-2xl)!important;
+            font-weight:var(--fw-extra);letter-spacing:var(--tracking-tight);
+            font-variant-numeric:tabular-nums;line-height:var(--lh-tight);
+            margin:var(--sp-1) 0 var(--sp-2);max-width:55%;position:relative;z-index:2;
+            /* v4.7.55 fix: el monto es UN bloque tipográfico — nunca debe
+               envolver. Si por algún motivo no entra en 55%, baja el font-size
+               adaptativamente. Resuelve "-" en línea separada con montos grandes. */
+            white-space:nowrap;overflow:visible;
+            font-size:clamp(1.05rem,5.6vw,var(--fs-2xl))!important;
+            display:inline-block;width:max-content}
+        #cardGananciaHoy .hoy-meta{font-size:var(--fs-sm);color:var(--c-text-soft);
+            gap:var(--sp-3)}
+
+        /* ── Cards generales: superficie flotante ── */
+        .card{border-radius:var(--r-lg);border:1px solid var(--c-border);
+            box-shadow:var(--sh-sm)}
+        .card-compra,.card-venta{border-radius:var(--r-lg);
+            box-shadow:var(--sh-sm);border:none}
+        .card-compra{background:linear-gradient(145deg,var(--c-brand-softer),var(--c-brand-soft));
+            border-left:4px solid #22c55e}
+        .card-venta{background:linear-gradient(145deg,#fef2f2,var(--c-danger-bg));
+            border-left:4px solid #ef4444}
+        .card-compra [id^=total],.card-venta [id^=total]{
+            font-size:var(--fs-md)!important;font-weight:var(--fw-bold);
+            font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-tight)}
+
+        /* ── Section titles premium ── */
+        .section-title{font-size:var(--fs-md);font-weight:var(--fw-bold);
+            color:var(--c-text);letter-spacing:var(--tracking-tight);
+            margin:var(--sp-6) 0 var(--sp-3)}
+
+        /* ── Mis Saldos premium ── */
+        #saldosTotales{background:var(--c-surface);border:1px solid var(--c-border);
+            border-radius:var(--r-lg);box-shadow:var(--sh-sm);padding:var(--sp-4) var(--sp-5)}
+        .saldos-hero-label{font-size:var(--fs-sm);font-weight:var(--fw-semi);
+            color:var(--c-text-soft)}
+        .saldos-hero-value{font-size:var(--fs-md);font-weight:var(--fw-extra);
+            font-variant-numeric:tabular-nums}
+        #bancosGrid>*{border-radius:var(--r-md)!important;box-shadow:var(--sh-sm);
+            transition:transform var(--dur-fast) var(--ease-out)}
+        #bancosGrid>*:active{transform:scale(0.98)}
+        #bancosGrid .banco-saldo{font-variant-numeric:tabular-nums;
+            letter-spacing:var(--tracking-tight)}
+
+        /* ── Nueva Operación: inputs y botones premium ── */
+        .form-group input,.form-group select,#monto,#tasa,#comisionBanco{
+            border-radius:var(--r-md)!important;border:1.5px solid var(--c-border)!important;
+            font-size:var(--fs-md)!important;padding:13px 14px!important;
+            transition:border-color var(--dur-fast) var(--ease-out),
+                       box-shadow var(--dur-fast) var(--ease-out);
+            background:var(--c-surface)}
+        .form-group input:focus,.form-group select:focus,
+        #monto:focus,#tasa:focus,#comisionBanco:focus{
+            border-color:var(--c-accent)!important;
+            box-shadow:var(--sh-glow-accent)!important;outline:none}
+        .quick-amt-btn{border-radius:var(--r-pill);background:var(--c-surface-2);
+            border:1px solid var(--c-border);font-weight:var(--fw-semi);
+            color:var(--c-text-soft);padding:10px 6px;
+            transition:all var(--dur-fast) var(--ease-out)}
+        .quick-amt-btn:active{transform:scale(0.95)}
+        .quick-amt-btn.sel{background:var(--c-accent-soft);
+            border-color:var(--c-accent);color:var(--c-accent-strong)}
+
+        /* ── Microinteracción global suave en cards del home ── */
+        .cards .card,.cards-actividad .card-compra,.cards-actividad .card-venta{
+            animation:uFadeIn var(--dur-base) var(--ease-out)}
+
+        /* ════════════ FIN FASE 2A v4.7.49 ════════════ */
+
+        /* ════════════════════════════════════════════════════════════════
+           §v4.7.53 — Mini-cajas operativas en GANANCIA HOY + chevrons
+           ════════════════════════════════════════════════════════════════
+           Filosofía: herramienta operativa premium, no fintech casual.
+           Mini-cajas compactas que dan info útil de un vistazo, sin scroll
+           extra ni decoración. Cada caja vale más que un párrafo de texto.
+           ════════════════════════════════════════════════════════════════ */
+
+        /* La línea original "X ops hoy" queda chiquita arriba de las cajas */
+        #cardGananciaHoy .hoy-meta-line{font-size:var(--fs-xs);
+            color:var(--c-text-soft);margin:2px 0 var(--sp-2);
+            max-width:55%;position:relative;z-index:2}
+
+        /* Grid de mini-cajas: 3 cajas + botón "Ver detalle" alineado a la
+           derecha. En mobile las cajas son pequeñas, alta densidad. */
+        #cardGananciaHoy .hoy-cells{display:grid;
+            grid-template-columns:repeat(3,minmax(0,1fr)) auto;
+            gap:var(--sp-2);align-items:center;
+            margin-top:var(--sp-3);position:relative;z-index:2;
+            max-width:100%}
+        .hoy-cell{background:rgba(255,255,255,0.55);
+            border:1px solid rgba(34,197,94,0.18);
+            border-radius:var(--r-sm);padding:6px 7px;
+            min-width:0;position:relative;
+            backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+        .card.main-card.negative .hoy-cell{
+            border-color:rgba(239,68,68,0.18);
+            background:rgba(255,255,255,0.6)}
+        .hoy-cell-v{font-size:clamp(0.78rem,3.3vw,0.95rem);
+            font-weight:var(--fw-extra);color:var(--c-text);
+            font-variant-numeric:tabular-nums;
+            letter-spacing:var(--tracking-tight);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+            line-height:1.1;display:flex;align-items:center;gap:3px}
+        .hoy-cell-l{font-size:clamp(0.56rem,2.3vw,0.68rem);
+            color:var(--c-text-soft);font-weight:var(--fw-medium);
+            line-height:1.15;margin-top:2px;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+        /* Color semántico de flechas/porcentajes */
+        .hc-up{color:var(--c-success)!important}
+        .hc-down{color:var(--c-danger)!important}
+        .hc-flat{color:var(--c-text-mute)!important}
+        .hc-arrow{font-weight:var(--fw-bold);font-size:0.92em}
+
+        /* Botón "Ver detalle ›" — compacto, alineado a la derecha del grid */
+        .hoy-detail-btn{background:transparent;border:none;
+            color:var(--c-brand-strong);font-size:var(--fs-xs);
+            font-weight:var(--fw-semi);font-family:inherit;
+            padding:6px 4px;cursor:pointer;white-space:nowrap;
+            display:flex;align-items:center;gap:2px;
+            transition:opacity var(--dur-fast) var(--ease-out)}
+        .hoy-detail-btn:active{opacity:0.6}
+        .card.main-card.negative .hoy-detail-btn{color:#b91c1c}
+        .hd-chev{font-size:1.15em;font-weight:var(--fw-bold);
+            line-height:0.8;margin-left:1px}
+
+        /* En pantallas muy chicas (<360px), si las 3 cajas + botón no entran,
+           el botón pasa abajo a la derecha en una fila propia */
+        @media(max-width:359px){
+            #cardGananciaHoy .hoy-cells{
+                grid-template-columns:repeat(3,minmax(0,1fr));
+                grid-template-rows:auto auto}
+            .hoy-detail-btn{grid-column:1/-1;justify-self:end;
+                padding:2px 4px}
+        }
+
+        /* ── Chevron › en tarjetas de saldo (cosmético, indica clickeable) ── */
+        .banco-mini-card{position:relative}
+        .banco-mini-card::after{content:'›';position:absolute;
+            top:8px;right:10px;font-size:0.95rem;
+            color:var(--c-text-mute);font-weight:var(--fw-bold);
+            line-height:1;opacity:0.55;pointer-events:none;
+            transition:opacity var(--dur-fast) var(--ease-out),
+                       transform var(--dur-fast) var(--ease-out)}
+        .banco-mini-card:active::after{opacity:1;transform:translateX(2px)}
+        /* Si la tarjeta tiene gauge (límite), el chevron se mueve un poco
+           para no superponerse con el indicador del gauge */
+        .banco-mini-card.has-gauge::after{top:8px;right:8px}
+
+        /* ════════════ FIN v4.7.53 ════════════ */
+
+        /* ════════════════════════════════════════════════════════════════
+           §v4.7.54 — Camino C: arreglar "celular gigante centrado" en desktop
+           ════════════════════════════════════════════════════════════════
+           Filosofía: mobile-first se mantiene EXACTO. Este bloque SOLO
+           activa cambios ≥1024px (tablet landscape + desktop). Aprovecha
+           la infraestructura desktop que ya existía (.desktop-columns con
+           grid 320px+1fr en línea ~998) que estaba siendo anulada por dos
+           overrides de max-width:560px en bloques previos sin media query.
+           Solución: re-expandir el container y restaurar grids en desktop,
+           sin tocar las reglas mobile.
+           ════════════════════════════════════════════════════════════════ */
+
+        @media (min-width: 1024px) {
+            /* — Container: aprovechar el ancho real — */
+            .container{max-width:var(--dk-max-width)!important;
+                padding:24px 32px 40px!important}
+
+            /* — Header: alineado horizontal, sin centrar — */
+            .header{align-items:center;gap:16px;margin-bottom:20px}
+            .header .header-left{flex-direction:row;align-items:center;gap:14px}
+            .header h1{font-size:1.4em!important}
+
+            /* — Bloque superior: ganancia + actividad lado a lado — */
+            .cards{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);
+                gap:16px;align-items:stretch}
+            .card.main-card{grid-column:auto;padding:22px 24px}
+            .card.main-card #gananciaHoy{font-size:2.4em!important;
+                max-width:none}
+            #cardGananciaHoy .spark-wrap{width:200px;height:80px}
+            #cardGananciaHoy .hoy-meta-line{max-width:none}
+
+            /* — Actividad del período: 2 columnas como ya estaba previsto — */
+            .cards-actividad{display:grid;
+                grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+            .card-compra,.card-venta{padding:18px 20px}
+            .card-compra [id^=total],.card-venta [id^=total]{
+                font-size:1.4em!important}
+
+            /* — Saldos: hero compacto + tarjetas en fila horizontal real — */
+            #saldosTotales{padding:14px 22px}
+            .saldos-hero-label{font-size:1em}
+            .saldos-hero-value{font-size:1.25em}
+
+            #bancosGrid{display:grid!important;
+                grid-template-columns:repeat(auto-fill,minmax(180px,1fr))!important;
+                gap:14px;overflow-x:visible;padding:4px 0}
+            #bancosGrid>*{width:auto!important;min-width:0!important;
+                max-width:none!important;padding:14px 16px!important;
+                min-height:auto}
+            #bancosGrid .banco-nombre{font-size:0.95rem!important}
+            #bancosGrid .banco-nombre-txt{font-size:0.95rem}
+            #bancosGrid .banco-saldo{font-size:1.35rem!important}
+            #bancosGrid .banco-moneda{font-size:0.72rem!important}
+            #bancosGrid .banco-limite-txt{font-size:0.7rem!important;
+                color:var(--c-text-mute)}
+
+            /* — Bloque inferior: Nueva Op (izq) + Operaciones (der) — */
+            .desktop-columns{display:grid!important;
+                grid-template-columns:360px 1fr;gap:20px;align-items:start}
+            .col-left{position:sticky;top:16px}
+            .col-right{min-width:0}
+
+            /* — Mini-cajas del hero: un poco más cómodas en desktop — */
+            #cardGananciaHoy .hoy-cells{
+                grid-template-columns:repeat(3,minmax(0,1fr)) auto;
+                gap:10px;margin-top:14px}
+            .hoy-cell{padding:9px 12px}
+            .hoy-cell-v{font-size:1.05rem}
+            .hoy-cell-l{font-size:0.72rem}
+
+            /* — En desktop el chevron de saldos se ve más cerca del borde — */
+            .banco-mini-card::after{top:10px;right:12px;font-size:1.05rem}
+        }
+
+        @media (min-width: 1440px) {
+            /* Ultrawide: un poquito más de aire al hero + ganancia más grande */
+            .card.main-card #gananciaHoy{font-size:2.8em!important}
+            #cardGananciaHoy .spark-wrap{width:240px;height:90px}
+            .desktop-columns{grid-template-columns:400px 1fr;gap:24px}
+        }
+
+        /* ════════════ FIN v4.7.54 ════════════ */
+
+        /* ════════════════════════════════════════════════════════════════
+           §v4.7.56 — Formulario denso (mobile only) + pills de tasa REF
+           ════════════════════════════════════════════════════════════════
+           Filosofía: herramienta operativa, no fintech casual.
+           Quirúrgico: NO reescribe el formulario, solo comprime alturas y
+           paddings de elementos que ocupaban demasiado espacio vertical
+           para el flujo de 40 ops/día. Resalta la última tasa usada como
+           "REF" (pill principal con borde grueso y fondo) para tocarla en
+           1 click sin tipear.
+           Desktop NO se toca: el bloque está dentro de @media max-width:1023px.
+           ════════════════════════════════════════════════════════════════ */
+
+        @media (max-width: 1023px) {
+            /* — Toggle Comprar/Vender más bajo, sin perder claridad — */
+            .op-toggle{margin-bottom:8px;border-width:1.5px}
+            .op-toggle-btn{padding:7px 4px;font-size:0.84em}
+
+            /* — Input de monto más compacto — */
+            .form-group{margin-bottom:7px}
+            .form-group label{font-size:0.72em;margin-bottom:3px;
+                color:var(--c-text-soft);font-weight:var(--fw-semi)}
+            .form-group input,.form-group select{
+                padding:9px 12px!important;font-size:15.5px!important;
+                border-radius:var(--r-md)!important;min-height:0}
+            #monto{padding:11px 12px!important;font-size:1.05rem!important;
+                font-weight:var(--fw-semi);font-variant-numeric:tabular-nums}
+
+            /* — Tasa: número grande pero contenedor más bajo,
+                 botones +/- más chicos para que el número sea protagonista — */
+            .tasa-block{padding:6px 8px;margin-bottom:8px}
+            .tasa-block label{font-size:0.68em;color:var(--c-text-soft);
+                font-weight:var(--fw-semi);margin-bottom:2px}
+            .tasa-block input{font-size:1.45rem!important;padding:0!important;
+                font-weight:var(--fw-extra);font-variant-numeric:tabular-nums}
+            .tasa-input-row{gap:6px}
+            .tasa-block .tasa-step-btn{
+                width:30px!important;height:30px!important;
+                font-size:1em!important;border-radius:var(--r-sm)!important}
+
+            /* — Pills de tasas recientes: la primera (más reciente) como REF — */
+            #tasaTagsContainer{display:flex;flex-wrap:wrap;gap:5px;
+                margin-top:6px;justify-content:center}
+            #tasaTagsContainer .tag-pill{
+                font-size:0.78em!important;padding:5px 10px!important;
+                border-radius:var(--r-pill)!important;
+                background:var(--c-surface)!important;
+                border:1px solid var(--c-border)!important;
+                color:var(--c-text-soft)!important;
+                font-weight:var(--fw-semi);
+                font-variant-numeric:tabular-nums;
+                transition:transform var(--dur-fast) var(--ease-out)}
+            #tasaTagsContainer .tag-pill:active{transform:scale(0.94)}
+            /* v4.7.62: la pill "activa" es la que coincide con el valor del
+               input de tasa (puede ser cualquiera, no necesariamente la 1ª).
+               Antes se usaba :first-child y SIEMPRE marcaba la primera, lo
+               que daba feedback engañoso al tocar otra. */
+            #tasaTagsContainer .tag-pill-active{
+                background:var(--c-accent-soft)!important;
+                border-color:var(--c-accent)!important;
+                color:var(--c-accent-strong)!important;
+                font-weight:var(--fw-bold);
+                box-shadow:0 0 0 2px rgba(59,130,246,0.08)}
+
+            /* — Fila Banco + Comisión: más compacta — */
+            /* v4.7.57 fix: NO limitar el ancho de #comisionBancoGroup —
+               el grid .form-row ya lo divide al 50/50 con .col anterior.
+               Limitarlo rompía el layout y dejaba label/input separados
+               en una columna estrecha. Solo se ajusta el input. */
+            .form-row{gap:7px;margin-bottom:7px}
+            .form-row .form-group{margin-bottom:0}
+            /* v4.7.58: simetría visual Sale de ↔ Com. banco.
+               Ambos campos ocupan el 50% por el grid, pero el select tiene
+               chevron a la derecha que lo hace ver más "lleno". El input de
+               comisión queda visualmente más chico/centrado. Igualamos:
+               mismo width:100%, mismo padding, misma min-height, mismo radius.
+               El text-align:right de la comisión se mantiene (es lo natural
+               para un valor numérico de input) pero ahora con el mismo aire
+               interno que el select. */
+            #banco,#comisionBanco{
+                width:100%!important;box-sizing:border-box;
+                padding:11px 13px!important;min-height:42px;
+                font-size:1rem!important;
+                border-radius:var(--r-md)!important;
+                border:1.5px solid var(--c-border)!important;
+                background:var(--c-surface)}
+            #comisionBanco{text-align:right;font-variant-numeric:tabular-nums;
+                font-weight:var(--fw-semi)}
+
+            /* — Bloque "Comisión Binance / 0,14%": más denso — */
+            .com-row{padding:7px 11px!important;font-size:0.88em!important;
+                margin-bottom:8px!important}
+            .com-edit input{font-size:0.86em!important;width:42px!important}
+
+            /* — Botón principal "Comprar/Vender USDT": un poco más bajo — */
+            .op-btn-wrap{margin-top:8px;padding:6px 0 0}
+            .op-btn-wrap .btn{padding:11px 16px;font-size:0.95em;
+                border-radius:var(--r-md)}
+
+            /* — Resumen / preview op (Recibirás aprox.): más compacto — */
+            .op-summary{padding:7px 10px!important;margin-top:6px!important}
+            .op-summary-row{padding:2px 0!important;font-size:0.78em!important}
+            .op-summary-row.main{padding:3px 0!important;font-size:0.95em!important}
+            .op-meta{font-size:0.66em!important}
+
+            /* — Help text del banco más chico — */
+            #bancoHelp,#tasaHelp{font-size:0.68em!important;
+                margin-top:2px!important}
+        }
+
+        /* ════════════ FIN v4.7.56 ════════════ */
+
+        /* ════════════════════════════════════════════════════════════════
+           §v4.7.59 — Botón deshabilitado por split inválido (visual)
+           ════════════════════════════════════════════════════════════════
+           Cuando una fila de split no tiene banco, el botón "Comprar"
+           queda deshabilitado visualmente. Se nota distinto de un disabled
+           normal (cooldown, guardando) — más opaco y con cursor not-allowed.
+           ════════════════════════════════════════════════════════════════ */
+        .btn-split-invalid{
+            opacity:0.45!important;
+            cursor:not-allowed!important;
+            pointer-events:none!important;
+            filter:saturate(0.6)}
+
+        /* — Feedback visual de fila inválida en el split — */
+        /* Crítico para uso operativo: si solo el botón es gris, el usuario
+           no sabe DÓNDE está el problema. Acá marcamos la fila concreta. */
+        .split-extra-row-invalid{
+            background:#fef2f2;
+            border:1.5px solid #fecaca;
+            border-radius:8px;
+            padding:6px;
+            margin-bottom:4px}
+        .split-extra-row-invalid select{
+            border-color:#ef4444!important;
+            background:#fff5f5!important;
+            color:#b91c1c!important}
+        .split-extra-row-invalid select:focus{
+            outline:none;
+            box-shadow:0 0 0 3px rgba(239,68,68,0.18)}
+        .split-row-hint-err{
+            font-size:0.68em;
+            color:#b91c1c;
+            font-weight:600;
+            margin:-2px 4px 8px;
+            display:flex;align-items:center;gap:4px}
+
+        /* ════════════════════════════════════════════════════════════════
+           §v4.7.61 — Sparkline: subir la curva solo en mobile
+           ════════════════════════════════════════════════════════════════
+           El sparkline está posicionado con top:50% transform:translateY(-50%)
+           (centrado vertical). Con el monto grande arriba y las mini-cajas
+           abajo, queda justo en el medio y la parte alta de la curva tapa
+           la línea punteada de "Otros ingresos" y el chip de Spread prom.
+           Fix mínimo: subir el centro a ~38% solo en mobile. Desktop NO se
+           toca — la card es más ancha y no hay superposición.
+           ════════════════════════════════════════════════════════════════ */
+        @media (max-width: 1023px) {
+            #cardGananciaHoy .spark-wrap{top:38%!important}
+        }
