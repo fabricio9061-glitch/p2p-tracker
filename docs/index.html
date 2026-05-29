@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.19',
+    APP_VERSION: '4.8.2.20',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,13 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.20', date:'2026-05-29', headline:'🔧 Reparación manual desde JSON con verificación de formato expandido.', changes:[
+        {type:'fix', title:'Diagnóstico confirmado: el server tiene formato COMPRIMIDO', desc:'El muestreo de 20 docs (v4.8.2.19) confirmó que NINGÚN documento en subcol tiene formato expandido — todos están comprimidos (t, mo, u, bk en vez de tipo, monto, usdt, banco), residuo de migraciones viejas. Por eso el gate entra en modo seguro correctamente. La solución es reconstruir desde tu JSON, que SÍ tiene formato expandido.'},
+        {type:'fix', title:'Import verifica formato expandido tras escribir', desc:'_subcol_pushFullRestore ahora, después de subir, lee 5 docs del server y confirma que quedaron en formato expandido (tipo:string, monto:number). Si el formato sigue comprimido o inválido, devuelve formatOk:false. Log: subcol:restore-push:format-check.'},
+        {type:'fix', title:'La reparación NO declara éxito si el formato no quedó bien', desc:'El import solo recrea _meta/migration=v2 y sale de modo seguro si: (a) no quedaron orphans sin verificar, Y (b) el formato del server quedó expandido confirmado. Si el formato sigue comprimido, mantiene modo seguro y avisa: "La reparación NO se completó". Nunca autocorrige silenciosamente.'},
+        {type:'verified', title:'Cómo reparar tu caso', desc:'1) Subir v4.8.2.20. 2) IMPORTANTE: asegurate de que la cuota de Firestore esté disponible (si ves "client terminated", esperá unos minutos y reabrí). 3) Menú → Importar datos → tu JSON backup (el que tiene formato expandido). 4) ESPERAR — va a borrar el formato comprimido viejo y escribir expandido limpio. 5) Mensaje final: "Formato servidor: ✓ expandido" + counts coinciden. 6) Si dice "La reparación NO se completó", el JSON puede tener formato comprimido — avisame. 7) Tras éxito: cerrar + reabrir → gate debe dar subcol:mode:activated.'},
+        {type:'verified', title:'Reparación 100% manual, sin auto-corrección', desc:'Cumple tu regla definitiva: si el gate detecta bad-format, la app NO autocorrige. Solo el import manual desde tu JSON reconstruye la estructura. Sin rutas automáticas (eliminadas en v4.8.2.18). Guard de cliente terminado (v4.8.2.19). El usuario controla cuándo y con qué JSON repara.'}
+    ]},
     {version:'4.8.2.19', date:'2026-05-29', headline:'🩹 Fix modo seguro falso por 1 doc corrupto + guard de cliente terminado.', changes:[
         {type:'fix', title:'El gate bloqueaba TODO por un solo documento corrupto', desc:'El log mostró subcol:gate:bad-format con tipo/monto undefined, y entró en modo seguro — pero tenías 3714 operaciones válidas. Causa: el gate leía UN solo doc con limit(1) (ordenado por ID); si ese resultaba ser un residuo corrupto de un import fallido (había 1 huérfano, repair:orphans-cleaned:1), juzgaba mal toda la estructura. v4.8.2.19: si el primer doc no valida, el gate muestrea 20 docs. Si AL MENOS UNO tiene formato correcto, la estructura es válida y activa subcol. Solo entra en modo seguro si NINGUNO de los 20 valida. Un doc corrupto aislado ya no bloquea la app.'},
         {type:'fix', title:'El listener ahora ignora documentos corruptos', desc:'Si un doc de operación tiene tipo/monto undefined (basura de import fallido), el listener lo saltea en vez de meterlo en memoria y contaminar los cálculos. Log: subcol:listener:skip-corrupt.'},
@@ -2599,12 +2606,6 @@ const CHANGELOG = [
         {type:'verified', title:'Por qué tu workaround funcionó (y por qué ahora es automático)', desc:'Borraste Firebase + reimportaste → eso limpió el doc raíz legacy y dejó las subcolecciones, así el gate las detectó. v4.8.2.16 hace eso automáticamente: detecta el doc legacy grande, lo migra a subcolecciones, valida y marca completed. No vas a tener que volver a borrar nada a mano.'},
         {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.16. 2) Force-quit + reabrir. 3) Diagnóstico → LOG debe mostrar UN SOLO "ui:bootstrap-start" (no 3). 4) Estado: subcol activo (gate:ok o migrated-from-legacy). 5) NO debe haber "resource-exhausted". 6) Crear operación → subcol:write. 7) Las lecturas de Firestore deben bajar drásticamente (un bootstrap, no tres). 8) Si tenías doc legacy, el log muestra subcol:migrate:start → entity-done → migrated-from-legacy una sola vez.'},
         {type:'pending', title:'Próximo: limpieza de herramientas legacy', desc:'Con subcol activo de verdad y la cuota controlada, la próxima versión (v4.8.3) elimina recovery/migration manual/reset SDK/auditorías de compresión y simplifica guardarDatos a config-only. Primero confirmar que el bootstrap único + migración automática funcionan en tu dispositivo.'}
-    ]},
-    {version:'4.8.2.15', date:'2026-05-28', headline:'🔢 Fix orden de fechas invertido + verificación real del import.', changes:[
-        {type:'fix', title:'BUG (claro): las operaciones aparecían en orden invertido', desc:'La página 1 mostraba las ops más viejas (01/05) y la 129 las más nuevas (28/05). Causa: en modo subcol el array de operaciones se llena por docChanges, que Firestore entrega ordenado por ID de documento, NO por fecha. La función de display (aplicarOpsFilters) no ordenaba — mostraba el array tal cual. v4.8.2.15: las operaciones ahora se ordenan SIEMPRE por timestamp descendente (más reciente primero) antes de paginar. Página 1 = lo último. Independiente del orden interno del array.'},
-        {type:'fix', title:'Verificación REAL del import contra el servidor', desc:'Para cortar la incertidumbre sobre si el import persiste: al terminar, _subcol_pushFullRestore ahora CUENTA los docs reales en el servidor (get desde server, no cache) y compara con el JSON. El mensaje final muestra "Operaciones en el JSON: N / Operaciones ahora en el servidor: M" y si coinciden. Si no coinciden, avisa. Log: subcol:restore-push:server-verified. Ya no hay un "OK" optimista — el número del server es la verdad.'},
-        {type:'verified', title:'Cómo diagnosticar el problema de persistencia', desc:'1) Subir v4.8.2.15. 2) Reabrir, esperar "En línea". 3) Importar JSON, esperar. 4) LEER EL MENSAJE FINAL: dice cuántas ops quedaron en el servidor. 5) Si JSON=Server (ej. 1281=1281) → el import quedó perfecto, cerrá y reabrí, deben persistir. 6) Si NO coinciden o dice PARCIAL → la red cortó; esperá "En línea" y reimportá. 7) IMPORTANTE: mandá una captura del MENSAJE FINAL del import (con los números JSON vs Server) — eso dice exactamente qué está pasando.'},
-        {type:'verified', title:'El orden invertido confirmó que estás en modo subcol', desc:'Que las fechas salieran ordenadas por ID de documento (no por fecha) confirma que la app está leyendo de las subcolecciones correctamente. El problema de persistencia no es que no use subcol — es que el import puede no estar completando el reemplazo del servidor. La verificación de count nueva nos va a decir con certeza.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -8794,8 +8795,12 @@ async function _aplicarRespaldo(datos,origen){
             AppState._subcolRestoreInProgress=true;
             try{
                 pushResult=await _subcol_pushFullRestore(datos)||{totalFailed:0};
-                /* Si veníamos de safe-mode, recrear _meta/migration y activar subcol. */
-                if(AppState._subcolSafeMode===true && !pushResult.orphansUnverified){
+                /* v4.8.2.20 — recrear _meta y activar subcol SOLO si: (a) veníamos
+                   de safe-mode, (b) no quedaron orphans sin verificar, y (c) el
+                   formato quedó EXPANDIDO confirmado (formatOk). Si el formato sigue
+                   comprimido o falló la verificación, NO declarar éxito: mantener
+                   safe-mode para que el usuario reintente. */
+                if(AppState._subcolSafeMode===true && !pushResult.orphansUnverified && pushResult.formatOk===true){
                     try{
                         const ref=subcol_userRef();
                         if(ref){
@@ -8840,7 +8845,18 @@ async function _aplicarRespaldo(datos,origen){
         }
         const pendientes=pushResult&&pushResult.totalFailed>0;
         const orphansSinVerificar=pushResult&&pushResult.orphansUnverified===true;
-        if(orphansSinVerificar){
+        const formatoMal=pushResult&&pushResult.formatOk===false;
+        if(formatoMal && !pendientes && !orphansSinVerificar){
+            /* ═══ v4.8.2.20: subió todo pero el formato en server NO quedó expandido.
+               Algo está mal (¿strip dejó formato raro? ¿el JSON tenía formato
+               comprimido?). NO declarar reparado — mantener safe-mode. */
+            alert(`⚠️ La reparación NO se completó.\n\n`
+                +`Se subieron los datos pero el formato en el servidor no quedó `
+                +`correcto (sigue en formato comprimido o inválido).\n\n`
+                +`La app sigue en modo seguro para protegerte. `
+                +`Verificá que el JSON sea un backup válido y reintentá. `
+                +`Si persiste, puede que el JSON mismo tenga formato comprimido.`);
+        }else if(orphansSinVerificar){
             /* ═══ v4.8.2.14 — FIX #1: el import NO pudo verificar/borrar las ops
                viejas del server. Declarar PARCIAL — no decir "correcto". */
             alert(`⚠️ Importación PARCIAL — no cierres la app todavía.\n\n`
@@ -8850,8 +8866,7 @@ async function _aplicarRespaldo(datos,origen){
                 +`se cortó durante la limpieza). Si cerrás ahora, podrían reaparecer `
                 +`datos viejos.\n\n`
                 +`👉 Esperá a que el indicador diga "En línea", luego volvé a importar `
-                +`el mismo JSON para completar la limpieza. Los reintentos automáticos `
-                +`también van a intentar borrar lo que quedó.`);
+                +`el mismo JSON para completar la limpieza.`);
         }else if(pendientes){
             alert(`✅ Datos importados y guardados localmente.\n\n`
                 +`Operaciones: ${(datos.operaciones||[]).length}\n`
@@ -8868,8 +8883,9 @@ async function _aplicarRespaldo(datos,origen){
                 +`Origen: ${origen}\n`
                 +`Operaciones en el JSON: ${jsonOps}\n`
                 +`Operaciones ahora en el servidor: ${opsServer}\n`
+                +`Formato servidor: ${pushResult.formatOk?'✓ expandido':'?'}\n`
                 +`${match?'✓ Coinciden exactamente.':'⚠️ No coinciden — puede haber quedado algo pendiente.'}\n\n`
-                +`${match?'Ya podés cerrar y reabrir — los datos van a persistir.':'Esperá "En línea" y reimportá si los números no cuadran.'}`);
+                +`${match?'Ya podés cerrar y reabrir — la estructura quedó correcta.':'Esperá "En línea" y reimportá si los números no cuadran.'}`);
         }
     }catch(e){
         console.error('[P2P] Error aplicando respaldo:',e);
@@ -8986,7 +9002,26 @@ async function _subcol_pushFullRestore(datos){
         /* No pudimos verificar el count final → no afirmar éxito total */
         orphansUnverified=true;
     }
-    log('subcol:restore-push:done',{totalFailed,orphansUnverified,serverCounts});
+    /* ═══ v4.8.2.20 — VERIFICACIÓN DE FORMATO EXPANDIDO ═══
+       Tras escribir, confirmar que los docs en operaciones/ quedaron en formato
+       EXPANDIDO (tipo:string, monto:number), no comprimido (t, mo, etc). Si el
+       server tiene formato comprimido, el restore NO sirvió y NO debe declararse
+       éxito — el gate seguiría en bad-format. */
+    let formatOk=false;
+    try{
+        const fmtSnap=await _withTimeout(ref.collection('operaciones').limit(5).get({source:'server'}),15000,'verify-format');
+        let validCount=0;
+        fmtSnap.forEach(d=>{
+            const x=d.data();
+            if(typeof x.tipo==='string' && typeof x.monto==='number')validCount++;
+        });
+        formatOk=validCount>0;
+        log('subcol:restore-push:format-check',{validCount,checked:fmtSnap.size,formatOk});
+    }catch(e){
+        log('subcol:restore-push:format-check-failed',{error:e.message});
+        formatOk=false;
+    }
+    log('subcol:restore-push:done',{totalFailed,orphansUnverified,serverCounts,formatOk});
     /* Si quedaron pendientes, programar retry diferido */
     if(totalFailed>0){
         log('subcol:restore-push:scheduling-retry',{pending:totalFailed});
@@ -8994,7 +9029,7 @@ async function _subcol_pushFullRestore(datos){
             if(typeof subcol_retryPendingWrites==='function')subcol_retryPendingWrites().catch(_=>{});
         },5000);
     }
-    return{totalFailed,orphansUnverified,serverCounts};
+    return{totalFailed,orphansUnverified,serverCounts,formatOk};
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
