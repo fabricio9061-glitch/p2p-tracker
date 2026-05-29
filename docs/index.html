@@ -2113,7 +2113,7 @@
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header">📦 Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAudit" style="background:#a855f7">🔍 Auditar tamaño</button><button class="btn" id="btnSyncDiagAuditCp" style="background:#0891b2">💰 Auditar comisión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagAuditSplits" style="background:#d97706">🧩 Auditar splits</button><button class="btn" id="btnSyncDiagAuditWire" style="background:#7c3aed">🗜️ Auditar compresión</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagRecovery" style="background:#dc2626">🚨 Recovery write</button><button class="btn" id="btnSyncDiagMigrate" style="background:#0d9488">🚀 Migrar subcollections</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagSdkReset" style="background:#ea580c">🔄 Reset SDK Firestore</button><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button></div><div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px"><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
+    <div id="modalSyncDiag" class="modal"><div class="modal-content" style="max-width:520px"><div class="modal-header">🔧 Diagnóstico de sincronización</div><div id="syncDiagContent" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.78em;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word">Cargando…</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn" id="btnSyncDiagRefresh" style="background:#3b82f6">🔄 Actualizar</button><button class="btn" id="btnSyncDiagForceSync" style="background:#16a34a">⚡ Forzar sync</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" id="btnSyncDiagCopy" style="background:#64748b">📋 Copiar</button><button class="btn btn-cancel" id="btnCerrarSyncDiag">Cerrar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header">📊 Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.15',
+    APP_VERSION: '4.8.2.17',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,21 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.17', date:'2026-05-28', headline:'🧹 Limpieza arquitectónica: eliminada toda la capa de recovery legacy (~1540 líneas).', changes:[
+        {type:'fix', title:'Eliminado el sistema de Recovery completo', desc:'Borrado definitivamente (no escondido): iniciarRecuperacionFirestore() — la función que llamaba db.terminate()+clearPersistence() y que causó pérdidas de datos —, recoveryWrite(), _autoCheckRecoveryNeeded(), _checkPayloadGuard(), el overlay "Optimización crítica" y todos sus helpers. También los 8 chequeos de recovery embebidos en guardarDatos, el listener y cargarDatosUsuario. En modo subcollections no hay doc gigante que "recuperar", así que toda esta maquinaria era código durmiente peligroso.'},
+        {type:'fix', title:'Eliminados los botones de rescate del Diagnóstico', desc:'Quitados (botón + handler): "Recovery write", "Reset SDK Firestore" (terminate+clearPersistence — te causó problemas de cache), "Migrar subcollections" (redundante: el gate ahora migra solo), y las 4 auditorías de compresión/comisión/splits/tamaño. El panel de Diagnóstico queda con lo útil: Actualizar, Forzar sync, Copiar, Cerrar.'},
+        {type:'fix', title:'Eliminadas las funciones de auditoría legacy', desc:'Borradas analizarPayload(), auditarComisionPlataforma(), auditarSplitsCorruptos(), auditarCompresionWire() — herramientas para diagnosticar el doc gigante single-doc que ya no existe en modo subcol. Reportaban números engañosos (ej: "savingsKB:759" que no aplica con subcolecciones).'},
+        {type:'verified', title:'Resultado: ~1540 líneas de JS menos, sin pérdida de funcionalidad', desc:'El JS pasó de 10.018 a 8.477 líneas. Se eliminó complejidad acumulada y código que tocaba terminate()/clearPersistence(). Lo esencial queda intacto: backup local, retry de pending writes, listeners subcol, reconciliación, import/export. Wire-compress se mantiene por ahora (todavía toca lectura de docs remotos — se evaluará en una fase posterior). Próximo: optimizar el listener legacy del doc raíz (mayor consumo de Firestore) y mover config a un doc chico.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.17. 2) Force-quit + reabrir. 3) Verificar versión 4.8.2.17. 4) Diagnóstico → solo 4 botones (Actualizar, Forzar sync, Copiar, Cerrar) — sin Recovery, sin Reset SDK, sin Migrar, sin auditorías. 5) Crear/editar operaciones → funciona normal. 6) Todo el flujo subcol intacto. La app es más simple y sin las herramientas peligrosas.'}
+    ]},
+    {version:'4.8.2.16', date:'2026-05-28', headline:'🔒 Causa raíz encontrada: bootstrap en loop + nunca activaba subcollections.', changes:[
+        {type:'fix', title:'CAUSA RAÍZ (CRÍTICO): la app corría en modo LEGACY, nunca en subcollections', desc:'El diagnóstico lo confirmó: "subcol:gate:no-meta-and-no-data → subcol:mode:legacy". El gate no encontraba _meta/migration NI subcolecciones (las ops estaban en el doc raíz legacy), así que caía a legacy PERMANENTE y leía/escribía el doc de 976KB. Por eso los datos viejos volvían (leía el doc raíz, no subcol) y todos los fixes de subcol no se ejecutaban. v4.8.2.16: si el gate no encuentra subcolecciones pero SÍ hay un doc legacy con operaciones, MIGRA automáticamente — sube todo a subcolecciones, valida conteos, marca _meta/migration.status=completed, y activa subcol. El legacy deja de ser el modo normal.'},
+        {type:'fix', title:'CRÍTICO: bootstrap en loop agotaba la cuota de Firestore', desc:'El log mostró 3 "ui:bootstrap-start" en 9 segundos y 3 errores "resource-exhausted: Quota exceeded". Causa: onAuthStateChanged dispara showApp() cada vez que Firebase re-emite el estado de auth (refresh de token, reconexión, sync de tabs), y cada uno re-ejecutaba TODO el bootstrap — montaba listeners nuevos, releía el doc de 976KB. v4.8.2.16: guard global window.__APP_BOOTSTRAPPED_UID__ — si ya bootstrappeamos para este usuario, no repetir. Si cambia de usuario, primero limpia los listeners viejos. Un solo bootstrap por carga de app. Log: ui:bootstrap-skipped.'},
+        {type:'fix', title:'Gate robusto: no cae a legacy por falta de meta', desc:'El gate ahora: (1) si meta=v2 → activa subcol; (2) si no hay meta pero hay subcolecciones → activa y repara meta; (3) si no hay subcol pero hay doc legacy con datos → MIGRA y activa; (4) si todo vacío (cuenta nueva) → activa subcol y marca meta. Solo NO activa si la migración falla por red/cuota, y ahí el legacy queda como fallback de SOLO LECTURA hasta el próximo intento. Nunca más legacy permanente.'},
+        {type:'verified', title:'Por qué tu workaround funcionó (y por qué ahora es automático)', desc:'Borraste Firebase + reimportaste → eso limpió el doc raíz legacy y dejó las subcolecciones, así el gate las detectó. v4.8.2.16 hace eso automáticamente: detecta el doc legacy grande, lo migra a subcolecciones, valida y marca completed. No vas a tener que volver a borrar nada a mano.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.16. 2) Force-quit + reabrir. 3) Diagnóstico → LOG debe mostrar UN SOLO "ui:bootstrap-start" (no 3). 4) Estado: subcol activo (gate:ok o migrated-from-legacy). 5) NO debe haber "resource-exhausted". 6) Crear operación → subcol:write. 7) Las lecturas de Firestore deben bajar drásticamente (un bootstrap, no tres). 8) Si tenías doc legacy, el log muestra subcol:migrate:start → entity-done → migrated-from-legacy una sola vez.'},
+        {type:'pending', title:'Próximo: limpieza de herramientas legacy', desc:'Con subcol activo de verdad y la cuota controlada, la próxima versión (v4.8.3) elimina recovery/migration manual/reset SDK/auditorías de compresión y simplifica guardarDatos a config-only. Primero confirmar que el bootstrap único + migración automática funcionan en tu dispositivo.'}
+    ]},
     {version:'4.8.2.15', date:'2026-05-28', headline:'🔢 Fix orden de fechas invertido + verificación real del import.', changes:[
         {type:'fix', title:'BUG (claro): las operaciones aparecían en orden invertido', desc:'La página 1 mostraba las ops más viejas (01/05) y la 129 las más nuevas (28/05). Causa: en modo subcol el array de operaciones se llena por docChanges, que Firestore entrega ordenado por ID de documento, NO por fecha. La función de display (aplicarOpsFilters) no ordenaba — mostraba el array tal cual. v4.8.2.15: las operaciones ahora se ordenan SIEMPRE por timestamp descendente (más reciente primero) antes de paginar. Página 1 = lo último. Independiente del orden interno del array.'},
         {type:'fix', title:'Verificación REAL del import contra el servidor', desc:'Para cortar la incertidumbre sobre si el import persiste: al terminar, _subcol_pushFullRestore ahora CUENTA los docs reales en el servidor (get desde server, no cache) y compara con el JSON. El mensaje final muestra "Operaciones en el JSON: N / Operaciones ahora en el servidor: M" y si coinciden. Si no coinciden, avisa. Log: subcol:restore-push:server-verified. Ya no hay un "OK" optimista — el número del server es la verdad.'},
@@ -2590,18 +2605,6 @@ const CHANGELOG = [
         {type:'fix', title:'Por qué los resets no alcanzaban', desc:'El reset SDK limpia el cache local, pero al reconectar el listener trae del server. Como el server tenía las viejas (el import nunca las borró), reaparecían. El reset no era el problema — el server desactualizado sí. Ahora que el import reemplaza el server completo, tras importar el server queda limpio y los resets/reaperturas muestran los datos correctos.'},
         {type:'fix', title:'Borrado de huérfanos resiliente', desc:'El borrado de ops huérfanas usa batches de 150 con timeout 45s y pausa entre batches (igual que la subida). Si un batch de borrado falla, encola los IDs como pending delete para retry — no aborta. El import sigue siendo robusto ante red lenta.'},
         {type:'verified', title:'Cómo probar — IMPORTANTE', desc:'1) Subir v4.8.2.13. 2) Force-quit + reabrir + esperar "En línea". 3) Menú → Importar datos → tu JSON. 4) Confirmar y ESPERAR a que termine (puede tardar con red lenta — va a borrar las viejas y subir las del JSON). 5) Log: subcol:restore-push:start → entity-done → deleting-orphans (las viejas) → orphans-deleted → done. 6) Cuando diga "Datos restaurados correctamente", el server quedó = JSON. 7) Force-quit + reabrir → ahora SÍ deben verse los datos del JSON, las viejas ya no están en el server. 8) Si la red corta el proceso, el mensaje avisa que hay pendientes — esperá a que el retry termine antes de cerrar.'}
-    ]},
-    {version:'4.8.2.12', date:'2026-05-28', headline:'⚡ Fix "Error al restaurar: timeout" — import resiliente que no falla completo.', changes:[
-        {type:'fix', title:'BUG (CRÍTICO): restore-push fallaba completo por timeout en un batch', desc:'_subcol_pushFullRestore subía las operaciones en batches de 400 docs con timeout 30s. En PWA iOS con red lenta, un batch de 400 writes no confirmaba a tiempo → "Error al restaurar: timeout: restore-push.operaciones" y el import abortaba ENTERO. Los datos quedaban a medias. v4.8.2.12: (1) batch reducido a 150 docs — más liviano, confirma mejor. (2) timeout subido a 45s. (3) pausa de 150ms entre batches para no saturar el SDK iOS. (4) CLAVE: si un batch falla, NO aborta todo — encola esos items en _subcol_pending para retry automático y CONTINÚA con el resto. El import nunca más falla completo.'},
-        {type:'fix', title:'Backup local se actualiza SIEMPRE, aunque queden pendientes', desc:'El FIX #17 (backup local tras import) ahora corre incluso si algunos batches quedaron pendientes de subir. Así, al reabrir, el bootstrap hidrata con los datos importados completos desde localStorage, mientras los writes pendientes se reintentan en segundo plano contra el server. Los datos del usuario están a salvo localmente desde el momento del import.'},
-        {type:'fix', title:'Mensaje honesto sobre el estado del import', desc:'Si todo subió OK → "Datos restaurados correctamente". Si quedaron registros subiéndose (red lenta) → mensaje claro: "Datos importados y guardados localmente. N registros se están subiendo en segundo plano, se reintentan solos. No cierres la app hasta que diga En línea sin pendientes." Sin falsos errores.'},
-        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.12. 2) Reabrir. 3) Menú → Importar datos → tu JSON. 4) Confirmar. 5) El import ya NO debe dar "Error al restaurar: timeout". Si la red está lenta, muestra el mensaje de "subiendo en segundo plano". 6) Log: subcol:restore-push:start → entity-done (con written/failed) → done → (si hubo fallos) scheduling-retry. 7) Esperar a "En línea". 8) Force-quit + reabrir → los datos importados persisten. 9) Diagnóstico → Writes pendientes debe llegar a 0 cuando el retry termine.'}
-    ]},
-    {version:'4.8.2.11', date:'2026-05-27', headline:'💾 Fix CRÍTICO: el import ahora persiste — los datos no reaparecen viejos al reabrir.', changes:[
-        {type:'fix', title:'BUG #17 (CRÍTICO): _aplicarRespaldo no actualizaba el backup local', desc:'Al importar un JSON, _aplicarRespaldo cambiaba AppState.datos (memoria) y subía a subcolecciones (server), pero NUNCA llamaba backupToLocal() para actualizar el respaldo en localStorage. Al reabrir la app, el bootstrap hace restoreFromLocal() PRIMERO y traía el backup VIEJO (pre-import) → los datos importados "desaparecían" y reaparecían los anteriores. v4.8.2.11: tras el restore-push, se fuerza backupToLocal() (invalidando la firma) para que localStorage refleje los datos importados. Log: restore:local-backup-updated. Al reabrir, el bootstrap hidrata con los datos correctos.'},
-        {type:'fix', title:'BUG #18 (CRÍTICO): el cache viejo se mezclaba con el server al reabrir', desc:'El listener subcol hacía merge incremental (docChanges) sobre el array de memoria. Si el cache local tenía ops que ya no existen en el server (residuo pre-import), no se borraban → datos viejos persistían mezclados. v4.8.2.11: en el primer snapshot confirmado del server (fromCache=false) por entidad, se reconcilia el array completo — las ops en memoria cuyo ID no está en el server (y no están pendientes de subir) se eliminan como residuo. Log: subcol:listener:reconciled con removed/serverCount/memoryAfter.'},
-        {type:'fix', title:'Protección: reconcile no corre durante un restore activo', desc:'La reconciliación podría borrar ops recién importadas si el primer snapshot del server llega antes de que el restore-push termine. v4.8.2.11: durante _aplicarRespaldo se marca _subcolRestoreInProgress + las 3 entidades como ya-reconciliadas, evitando borrado prematuro. La reconciliación real ocurre en el siguiente arranque limpio, cuando el cache ya tiene los datos correctos.'},
-        {type:'verified', title:'Cómo probar — EL TEST QUE FALLABA', desc:'1) Subir v4.8.2.11. 2) Reabrir. 3) Menú → Importar datos → tu JSON. 4) Confirmar. Log: subcol:restore-push:done → restore:local-backup-updated. 5) Verificar que los datos importados se ven. 6) CERRAR COMPLETAMENTE la app (force-quit). 7) Esperar 30s. 8) REABRIR. 9) ✅ Los datos deben ser los IMPORTADOS, no los viejos. 10) Diagnóstico → log: subcol:listener:reconciled (si había residuo) con el count limpiado. Este era el bug — ahora el import es persistente.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -4977,7 +4980,6 @@ function repairOrphanPendingStates(){
    Esta función verifica el estado real y baja el badge si corresponde. */
 function reevaluarEstadoSync(){
     if(!AppState.currentUser)return;
-    if(typeof iniciarRecuperacionFirestore!=='undefined'&&iniciarRecuperacionFirestore._activa)return;
     /* Síntomas de que en realidad estamos OK aunque el badge diga error */
     const subcolActivo=AppState._subcolActive===true;
     /* v4.8.2.10 — en modo subcol, el listener legacy está desuscripto (esperado)
@@ -5021,487 +5023,6 @@ function _syncLog(event,payload){
     }catch(e){/* no-op */}
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   §AUDIT-COMISION — Verificación de derivabilidad de comisionPlataforma
-   ═══════════════════════════════════════════════════════════════════
-   Objetivo: determinar si comisionPlataforma puede stripearse del payload
-   remoto sin perder trazabilidad financiera. Se considera "derivable" sí y
-   solo sí, para CADA operación, vale:
-     
-     comisionPlataforma guardada == truncar(usdtBase × comisionPct/100, 2)
-   
-   donde usdtBase = roundMoney(monto/tasa, 2) para compras
-                    truncar(monto/tasa, 2)    para ventas
-   
-   Esta es LA fórmula canónica que usa recalcularLotesYGanancias (línea ~3611).
-   
-   Categorías de discrepancia:
-     - exact:        100% coincidencia (centavo a centavo)
-     - tolerance:    discrepancia ≤0.01 USDT (redondeo aceptable)
-     - small:        0.01 < discrepancia ≤0.10 USDT (sospechoso pero menor)
-     - significant:  discrepancia >0.10 USDT (PRESERVAR comisionPlataforma)
-     - missing-pct:  op sin comisionPct (legacy, fórmula no aplicable)
-     - missing-cp:   op sin comisionPlataforma (campo ausente)
-     - invalid:      datos malformados (tasa<=0, monto<=0, etc)
-   
-   Verdict:
-     - SAFE-TO-STRIP: si todas las ops son exact o tolerance
-     - DO-NOT-STRIP:  si hay ANY small/significant/missing-pct */
-/* ════════════════════════════════════════════════════════════════
-   §AUDITORÍA SPLITS v4.7.59 — Detectar ops con split corrupto
-   ════════════════════════════════════════════════════════════════
-   Investiga si existen operaciones con aportes corruptos por el bug
-   de "fila de split con banco vacío" que pudo haberse disparado en
-   versiones anteriores. Detecta:
-     - ops con campo aportes presente pero algún aporte sin banco
-     - ops con campo aportes pero algún banco no existe en CONFIG
-     - ops sin aportes que parecen incoherentes (saldo banco insuficiente
-       en momento de la op vs monto, indicio de que faltó split)
-
-   Pura LECTURA — no muta nada. Devuelve un reporte para revisar.
-   Es herramienta de diagnóstico, no de fix automático. El usuario
-   decide qué hacer con las ops detectadas (editar manual o borrar+rehacer).
-   ════════════════════════════════════════════════════════════════ */
-/* ════════════════════════════════════════════════════════════════
-   §AUDITORÍA COMPRESIÓN WIRE v4.7.63
-   ════════════════════════════════════════════════════════════════
-   Verifica que cada operación en memoria puede comprimirse y
-   descomprimirse sin pérdida. Pura lectura — no modifica nada.
-   
-   Reporta:
-     - cuántas ops pasaron el round-trip exacto
-     - cuántas tienen diff en algún campo crítico (y cuál)
-     - ahorro proyectado de tamaño
-   ════════════════════════════════════════════════════════════════ */
-function auditarCompresionWire(){
-    const ops=Array.isArray(AppState.datos.operaciones)?AppState.datos.operaciones:[];
-    const result={
-        totalOps:ops.length,
-        roundtripOk:0,
-        diffsPorCampo:{},
-        opsConDiff:[],
-        bancoNoMapeado:[],
-        tipoNoMapeado:[],
-        monedaNoMapeado:[],
-        sizeBefore:0,
-        sizeAfter:0,
-        savingsKB:0,
-        verdict:'unknown'
-    };
-    const camposCriticos=['id','fecha','hora','tipo','banco','moneda','monto','tasa','usdt','comisionBanco'];
-    ops.forEach(op=>{
-        /* Verificar mapeos antes de comprimir */
-        if(op.banco&&!(op.banco in WIRE_BANCO_TO_INT)){
-            result.bancoNoMapeado.push({id:op.id,banco:op.banco});
-        }
-        if(op.tipo&&!(op.tipo in WIRE_TIPO_TO_INT)){
-            result.tipoNoMapeado.push({id:op.id,tipo:op.tipo});
-        }
-        if(op.moneda&&!(op.moneda in WIRE_MONEDA_TO_INT)){
-            result.monedaNoMapeado.push({id:op.id,moneda:op.moneda});
-        }
-        /* Round-trip */
-        const c=_compressOpForWire(op);
-        const r=_decompressOpFromWire(c);
-        let ok=true;
-        const diffsLocal=[];
-        camposCriticos.forEach(k=>{
-            if(op[k]!==undefined&&op[k]!==r[k]){
-                ok=false;
-                diffsLocal.push({campo:k,antes:op[k],despues:r[k]});
-                result.diffsPorCampo[k]=(result.diffsPorCampo[k]||0)+1;
-            }
-        });
-        /* comisionPct: tolerancia (puede haberse omitido por default) */
-        if(op.comisionPct!==undefined){
-            const diff=Math.abs(op.comisionPct-r.comisionPct);
-            if(diff>WIRE_COMISION_PCT_EPS+0.0001){
-                ok=false;
-                diffsLocal.push({campo:'comisionPct',antes:op.comisionPct,despues:r.comisionPct});
-                result.diffsPorCampo.comisionPct=(result.diffsPorCampo.comisionPct||0)+1;
-            }
-        }
-        if(ok)result.roundtripOk++;
-        else if(result.opsConDiff.length<10)result.opsConDiff.push({id:op.id,diffs:diffsLocal});
-    });
-    /* Tamaño aproximado before/after */
-    try{
-        const sBefore=JSON.stringify(ops).length;
-        const sAfter=JSON.stringify(ops.map(_compressOpForWire)).length;
-        result.sizeBefore=sBefore;
-        result.sizeAfter=sAfter;
-        result.savingsKB=Math.round((sBefore-sAfter)/1024);
-    }catch(e){/* no critical */}
-    /* Veredicto */
-    const totalProblems=result.bancoNoMapeado.length+result.tipoNoMapeado.length+
-                        result.monedaNoMapeado.length+(result.totalOps-result.roundtripOk);
-    if(totalProblems===0)result.verdict='SAFE-TO-COMPRESS';
-    else result.verdict='ISSUES-DETECTED';
-    _syncLog&&_syncLog('audit-wire:done',{
-        verdict:result.verdict,
-        roundtripOk:result.roundtripOk,
-        total:result.totalOps,
-        savingsKB:result.savingsKB
-    });
-    return result;
-}
-
-function auditarSplitsCorruptos(){
-    const ops=Array.isArray(AppState.datos.operaciones)?AppState.datos.operaciones:[];
-    const bancos=AppState.datos.bancos||{};
-    const result={
-        totalOps:ops.length,
-        bancoVacio:[],
-        bancoInexistente:[],
-        aportesVacios:[],
-        sumaIncorrecta:[],
-        resumen:''
-    };
-    ops.forEach(op=>{
-        if(!Array.isArray(op.aportes))return; /* op sin split, OK */
-        let sumaAportes=0;
-        let tieneBancoVacio=false;
-        let bancosInexistentes=[];
-        op.aportes.forEach((a,idx)=>{
-            const m=Number(a&&a.monto)||0;
-            sumaAportes+=m;
-            if(!a||!a.banco){
-                tieneBancoVacio=true;
-            }else if(!bancos[a.banco]){
-                bancosInexistentes.push(a.banco);
-            }
-        });
-        const ref={id:op.id,fecha:op.fecha,hora:op.hora,tipo:op.tipo,
-            monto:op.monto,banco:op.banco,aportes:op.aportes};
-        if(tieneBancoVacio)result.bancoVacio.push(ref);
-        if(bancosInexistentes.length>0){
-            result.bancoInexistente.push({...ref,bancosFantasma:bancosInexistentes});
-        }
-        if(op.aportes.length===0)result.aportesVacios.push(ref);
-        /* Suma de aportes vs monto: tolerar 0.01 por roundeos */
-        if(op.tipo==='compra'){
-            const totalEsperado=Number(op.monto)+Number(op.comisionBanco||0);
-            if(Math.abs(sumaAportes-totalEsperado)>0.05){
-                result.sumaIncorrecta.push({...ref,
-                    sumaAportes:roundMoney(sumaAportes),
-                    esperado:roundMoney(totalEsperado),
-                    diferencia:roundMoney(sumaAportes-totalEsperado)});
-            }
-        }
-    });
-    const totalAnomalias=result.bancoVacio.length+result.bancoInexistente.length+
-        result.aportesVacios.length+result.sumaIncorrecta.length;
-    if(totalAnomalias===0){
-        result.resumen=`✓ ${ops.length} operaciones revisadas. No se detectaron splits corruptos.`;
-        result.verdict='CLEAN';
-    }else{
-        const partes=[];
-        if(result.bancoVacio.length)partes.push(`${result.bancoVacio.length} con banco vacío`);
-        if(result.bancoInexistente.length)partes.push(`${result.bancoInexistente.length} con banco inexistente`);
-        if(result.aportesVacios.length)partes.push(`${result.aportesVacios.length} con aportes vacíos`);
-        if(result.sumaIncorrecta.length)partes.push(`${result.sumaIncorrecta.length} con suma de aportes ≠ monto`);
-        result.resumen=`⚠ ${totalAnomalias} operación(es) con anomalía: ${partes.join(', ')}`;
-        result.verdict='ANOMALIES';
-    }
-    _syncLog&&_syncLog('audit-splits:done',{
-        verdict:result.verdict,
-        bancoVacio:result.bancoVacio.length,
-        bancoInexistente:result.bancoInexistente.length,
-        aportesVacios:result.aportesVacios.length,
-        sumaIncorrecta:result.sumaIncorrecta.length
-    });
-    return result;
-}
-
-
-function auditarComisionPlataforma(){
-    const ops=Array.isArray(AppState.datos.operaciones)?AppState.datos.operaciones:[];
-    const result={
-        totalOps:ops.length,
-        exact:0,
-        tolerance:0,
-        small:0,
-        significant:0,
-        missingPct:0,
-        missingCp:0,
-        invalid:0,
-        worstCases:[],
-        legacyCases:[],
-        verdict:'unknown',
-        formula:'truncar(usdtBase × comisionPct/100, 2) donde usdtBase=roundMoney(m/t,2) para compras y truncar(m/t,2) para ventas',
-        tiempoAnalisisMs:0
-    };
-    if(ops.length===0){result.verdict='no-ops';return result}
-    const t0=performance.now();
-    /* Funciones puras locales — evitar dependencia de helpers globales por si la auditoría
-       se ejecuta en contextos donde estos pudieron redefinirse. */
-    const _trunc=(n,d=2)=>{if(isNaN(n)||!isFinite(n))return 0;const f=Number(n+'e'+d);return Number(Math.floor(f)+'e-'+d)};
-    const _round=(n,d=2)=>{if(isNaN(n)||!isFinite(n))return 0;const r=Number(Math.round(parseFloat(n+'e'+d))+'e-'+d);return Object.is(r,-0)?0:r};
-    const _usdtBase=(n,tipo)=>tipo==='compra'?_round(n,2):_trunc(n,2);
-    const discrepancias=[];
-    ops.forEach((op,idx)=>{
-        if(!op||typeof op!=='object'){result.invalid++;return}
-        /* Datos inválidos: tasa<=0, monto inválido, etc. */
-        if(!op.tasa||op.tasa<=0||!op.monto||op.monto<=0||!op.tipo){
-            result.invalid++;
-            return;
-        }
-        /* comisionPct ausente: legacy. NO podemos verificar derivabilidad. */
-        if(op.comisionPct===undefined||op.comisionPct===null){
-            result.missingPct++;
-            if(result.legacyCases.length<5){
-                result.legacyCases.push({
-                    idx,id:safeIdTail(op.id,10),
-                    fecha:op.fecha,tipo:op.tipo,
-                    cpGuardada:op.comisionPlataforma,
-                    razon:'sin comisionPct'
-                });
-            }
-            return;
-        }
-        /* comisionPlataforma ausente: campo no fue persistido. */
-        if(op.comisionPlataforma===undefined||op.comisionPlataforma===null){
-            result.missingCp++;
-            return;
-        }
-        /* Calcular el valor esperado con la fórmula canónica del FIFO replay */
-        const cpct=op.comisionPct/100;
-        const uBaseExpected=_usdtBase(op.monto/op.tasa,op.tipo);
-        const cpExpected=_trunc(uBaseExpected*cpct,2);
-        const cpGuardada=Number(op.comisionPlataforma)||0;
-        const diff=Math.abs(cpGuardada-cpExpected);
-        /* Categorizar la discrepancia */
-        if(diff===0){
-            result.exact++;
-        }else if(diff<=0.01){
-            result.tolerance++;
-            /* Aún registramos algunos para inspección visual */
-            if(discrepancias.length<20){
-                discrepancias.push({idx,id:safeIdTail(op.id,10),diff,cpGuardada,cpExpected,
-                                    monto:op.monto,tasa:op.tasa,usdt:op.usdt,comisionPct:op.comisionPct,
-                                    fecha:op.fecha,tipo:op.tipo,category:'tolerance'});
-            }
-        }else if(diff<=0.10){
-            result.small++;
-            discrepancias.push({idx,id:safeIdTail(op.id,10),diff,cpGuardada,cpExpected,
-                                monto:op.monto,tasa:op.tasa,usdt:op.usdt,comisionPct:op.comisionPct,
-                                fecha:op.fecha,tipo:op.tipo,category:'small'});
-        }else{
-            result.significant++;
-            discrepancias.push({idx,id:safeIdTail(op.id,10),diff,cpGuardada,cpExpected,
-                                monto:op.monto,tasa:op.tasa,usdt:op.usdt,comisionPct:op.comisionPct,
-                                fecha:op.fecha,tipo:op.tipo,category:'significant'});
-        }
-    });
-    /* Ordenar discrepancias por magnitud descendente, quedarnos con las top 10 */
-    result.worstCases=discrepancias.sort((a,b)=>b.diff-a.diff).slice(0,10);
-    /* Verdict */
-    const hasReal=result.significant>0||result.small>0||result.missingPct>0;
-    if(hasReal){
-        result.verdict='DO-NOT-STRIP';
-        result.verdictReason=
-            (result.significant>0?result.significant+' ops con discrepancia >0.10 USDT. ':'')+
-            (result.small>0?result.small+' ops con discrepancia 0.01-0.10 USDT. ':'')+
-            (result.missingPct>0?result.missingPct+' ops legacy sin comisionPct (no podemos derivar). ':'');
-    }else if(result.exact===0&&result.tolerance===0){
-        result.verdict='INSUFFICIENT-DATA';
-        result.verdictReason='No hay ops verificables (todas inválidas o sin comisionPlataforma)';
-    }else{
-        result.verdict='SAFE-TO-STRIP';
-        result.verdictReason='Todas las ops verificables coinciden con la fórmula (exact: '+result.exact+', tolerance: '+result.tolerance+')';
-    }
-    result.tiempoAnalisisMs=Math.round(performance.now()-t0);
-    return result;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   §PAYLOAD-AUDIT — Análisis exhaustivo de qué pesa en el documento
-   ═══════════════════════════════════════════════════════════════════
-   Mide tamaños reales (no estimaciones) de cada sección del payload.
-   Útil para identificar campos inflados, datos derivados accidentalmente
-   persistidos, arrays repetidos, metadata UI persistida, etc.
-   
-   Costo: ~30-100ms en mobile (un JSON.stringify por sección). Se ejecuta
-   bajo demanda desde el panel de diagnóstico, no en cada save. */
-function analizarPayload(datos){
-    if(!datos||typeof datos!=='object')return null;
-    const t0=performance.now();
-    const result={
-        totalKB:0,
-        remoteKB:0,
-        savedByStripKB:0,
-        savedByStripPct:0,
-        secciones:{},
-        topKeys:[],
-        topOperaciones:[],
-        avgBytesPerOp:0,
-        cantidadOps:0,
-        flags:{},
-        memUsedMB:null,
-        tiempoStringifyMs:0
-    };
-    /* Tamaño raw total */
-    const tStringify=performance.now();
-    let rawJson='';
-    try{rawJson=JSON.stringify(datos)}catch(e){return{error:'serializacion-fallo',msg:e.message}}
-    result.tiempoStringifyMs=Math.round(performance.now()-tStringify);
-    result.totalKB=Math.round(rawJson.length/1024);
-    /* ═══ v4.7.41: medir tamaño REAL del payload remoto ═══
-       Hasta v4.7.40, el panel reportaba el tamaño de AppState.datos (estado local).
-       Pero AppState.datos local SIEMPRE tiene lotes, saldoUsdt, ganancia, consumedLots
-       porque recalcularLotesYGanancias los reconstruye. El payload remoto NO los lleva.
-       
-       Ahora simulamos el strip exacto que guardarDatos aplica:
-         - Per-op: _syncState, consumedLots, ganancia
-         - Top-level: lotes, saldoUsdt
-       Y medimos el resultado. Eso es lo que realmente sube a Firestore. */
-    try{
-        const stripPerOp=arr=>Array.isArray(arr)?arr.map(x=>{
-            if(!x||typeof x!=='object')return x;
-            const{_syncState,consumedLots,ganancia,comisionPlataforma,...rest}=x;
-            return rest;
-        }):arr;
-        const stripRuntimeOnly=arr=>Array.isArray(arr)?arr.map(x=>{
-            if(!x||typeof x!=='object'||!x._syncState)return x;
-            const{_syncState,...rest}=x;
-            return rest;
-        }):arr;
-        const simulado={
-            ...datos,
-            operaciones:stripPerOp(datos.operaciones),
-            movimientos:stripRuntimeOnly(datos.movimientos),
-            transferencias:stripRuntimeOnly(datos.transferencias),
-            conversiones:stripRuntimeOnly(datos.conversiones||[])
-        };
-        delete simulado.lotes;
-        delete simulado.saldoUsdt;
-        const remoteJson=JSON.stringify(simulado);
-        result.remoteKB=Math.round(remoteJson.length/1024);
-        result.savedByStripKB=Math.max(0,result.totalKB-result.remoteKB);
-        result.savedByStripPct=result.totalKB>0?Math.round(100*result.savedByStripKB/result.totalKB):0;
-    }catch(e){result.remoteKB=0}
-    /* Tamaño por sección de primer nivel */
-    Object.keys(datos).forEach(key=>{
-        try{
-            const val=datos[key];
-            const json=JSON.stringify(val);
-            const kb=Math.round(json.length/1024);
-            const bytes=json.length;
-            result.secciones[key]={
-                bytes,
-                kb,
-                pctTotal:rawJson.length?Math.round(100*bytes/rawJson.length):0,
-                tipo:Array.isArray(val)?'array':typeof val,
-                len:Array.isArray(val)?val.length:(val&&typeof val==='object'?Object.keys(val).length:1)
-            };
-        }catch(e){/* skip */}
-    });
-    /* Top 20 keys por bytes */
-    result.topKeys=Object.entries(result.secciones)
-        .sort((a,b)=>b[1].bytes-a[1].bytes)
-        .slice(0,20)
-        .map(([k,v])=>({key:k,kb:v.kb,pct:v.pctTotal,len:v.len,tipo:v.tipo}));
-    /* Análisis específico de operaciones */
-    const ops=datos.operaciones||[];
-    result.cantidadOps=ops.length;
-    if(ops.length>0){
-        let totalOpsBytes=0;
-        const opSizes=[];
-        const fieldFreq={};
-        const fieldBytes={};
-        ops.forEach((op,i)=>{
-            try{
-                const js=JSON.stringify(op);
-                totalOpsBytes+=js.length;
-                opSizes.push({idx:i,id:op&&op.id,bytes:js.length});
-                /* Contar uso de cada campo y bytes acumulados */
-                if(op&&typeof op==='object'){
-                    Object.keys(op).forEach(k=>{
-                        fieldFreq[k]=(fieldFreq[k]||0)+1;
-                        try{
-                            const fb=JSON.stringify(op[k]).length+k.length+4; /* "k":v, */
-                            fieldBytes[k]=(fieldBytes[k]||0)+fb;
-                        }catch(e){}
-                    });
-                }
-            }catch(e){}
-        });
-        result.avgBytesPerOp=Math.round(totalOpsBytes/ops.length);
-        /* Top 10 operaciones más pesadas */
-        result.topOperaciones=opSizes.sort((a,b)=>b.bytes-a.bytes).slice(0,10)
-            .map(o=>({id:safeIdTail(o.id,10),bytes:o.bytes,kb:Math.round(o.bytes/100)/10}));
-        /* Top campos dentro de operaciones por bytes acumulados */
-        result.campoOpsTop=Object.entries(fieldBytes)
-            .sort((a,b)=>b[1]-a[1])
-            .slice(0,15)
-            .map(([k,b])=>({campo:k,bytesTotal:b,kbTotal:Math.round(b/1024),
-                            freq:fieldFreq[k],pct:totalOpsBytes?Math.round(100*b/totalOpsBytes):0}));
-        /* Detección de duplicación: si un campo de string aparece miles de veces 
-           con valores repetidos, podría compactarse */
-        const stringRepetitions={};
-        ops.forEach(op=>{
-            if(!op||typeof op!=='object')return;
-            Object.keys(op).forEach(k=>{
-                const v=op[k];
-                if(typeof v==='string'&&v.length>2){
-                    if(!stringRepetitions[k])stringRepetitions[k]={};
-                    stringRepetitions[k][v]=(stringRepetitions[k][v]||0)+1;
-                }
-            });
-        });
-        /* Top valores repetidos: campo:valor con cuántas veces aparece */
-        const repTop=[];
-        Object.entries(stringRepetitions).forEach(([campo,valores])=>{
-            Object.entries(valores).forEach(([v,count])=>{
-                if(count>=10){
-                    repTop.push({campo,valor:v.slice(0,30),count,bytesGastadosUnnecesarios:count*v.length});
-                }
-            });
-        });
-        result.valoresRepetidos=repTop.sort((a,b)=>b.bytesGastadosUnnecesarios-a.bytesGastadosUnnecesarios).slice(0,10);
-    }
-    /* ═══ v4.7.41: flags ahora distinguen "local enriquecido" (esperado) de 
-       "problemas reales" (algo que está mal). 
-       
-       AppState.datos local SIEMPRE tiene lotes/saldoUsdt/ganancia/consumedLots después
-       de recalcular — eso es por diseño. Marcar esos como ⚠ era falso positivo.
-       
-       Problemas reales que sí marcamos:
-         - syncStateOrphans: items con _syncState pending sin razón
-         - tasasRecientes/dismissedVersions inflados (acumulación sin limpiar)
-         - tagsLen muy grande (acumulación) */
-    result.flags.tieneLotesLocal=Array.isArray(datos.lotes)&&datos.lotes.length>0;
-    result.flags.tieneLotesKB=result.secciones.lotes?result.secciones.lotes.kb:0;
-    result.flags.tieneSaldoUsdtLocal=datos.saldoUsdt!==undefined;
-    result.flags.tieneTasasRecientes=Array.isArray(datos.tasasRecientes)&&datos.tasasRecientes.length>0;
-    result.flags.tasasRecientesLen=result.flags.tieneTasasRecientes?datos.tasasRecientes.length:0;
-    result.flags.dismissedVersionsLen=Array.isArray(datos.dismissedVersions)?datos.dismissedVersions.length:0;
-    result.flags.tagsLen=Array.isArray(datos.tags)?datos.tags.length:0;
-    /* Detección de campos _syncState que NO deberían haberse persistido */
-    let syncStateOrphans=0;
-    ['operaciones','movimientos','transferencias','conversiones'].forEach(k=>{
-        const arr=datos[k]||[];
-        arr.forEach(item=>{if(item&&item._syncState)syncStateOrphans++});
-    });
-    result.flags.syncStateOrphans=syncStateOrphans;
-    /* Memoria del heap (Chrome/Edge/Brave) */
-    try{
-        if(performance.memory&&performance.memory.usedJSHeapSize){
-            result.memUsedMB=Math.round(performance.memory.usedJSHeapSize/1024/1024);
-            result.memLimitMB=Math.round(performance.memory.jsHeapSizeLimit/1024/1024);
-        }
-    }catch(e){}
-    result.tiempoAnalisisMs=Math.round(performance.now()-t0);
-    /* ═══ Veredicto basado en payload REMOTO (lo que realmente sube a Firestore) ═══
-       Antes (v4.7.40-): el verdict usaba totalKB (state local), reportando "Crítico"
-       aunque el payload remoto fuera mucho más chico. Ahora usa remoteKB. */
-    const judgeKB=result.remoteKB||result.totalKB;
-    if(judgeKB<700)result.estado='✓ Seguro';
-    else if(judgeKB<850)result.estado='⚠ Alto';
-    else if(judgeKB<950)result.estado='⚠⚠ Muy alto';
-    else result.estado='🛑 Crítico (cerca del límite 1MB)';
-    return result;
-}
 function getSyncDiagnostics(){
     return {
         version:CONFIG.APP_VERSION,
@@ -5522,7 +5043,6 @@ function getSyncDiagnostics(){
         retryActive:_retryTimer!==null&&_retryTimer!==undefined,
         debounceActive:_guardaDebounceTimer!==null,
         listenerActive:AppState.unsubscribe!==null,
-        recoveryActive:!!(typeof iniciarRecuperacionFirestore!=='undefined'&&iniciarRecuperacionFirestore._activa),
         clientTerminated:!!AppState._clientTerminated,
         clientTerminatedAt:AppState._clientTerminatedAt||null,
         restoredFrom:AppState._restoredFrom,
@@ -5546,9 +5066,6 @@ async function forzarSyncManual(){
     if(AppState._clientTerminated){
         try{if(typeof mostrarBannerClienteTerminado==='function')mostrarBannerClienteTerminado()}catch(_){}
         return{ok:false,reason:'Firebase quedó en estado inválido. Recargá la app para reactivar.'};
-    }
-    if(typeof iniciarRecuperacionFirestore!=='undefined'&&iniciarRecuperacionFirestore._activa){
-        return{ok:false,reason:'Recovery en progreso — esperá a que termine'};
     }
     _syncLog('manual-sync:start',{queueSize:_syncQueue.length,guardando:_guardando,dirty:_localDirty});
     /* 1. Flush del debounce si está pendiente */
@@ -6046,26 +5563,6 @@ async function guardarDatos(forzar,opts){
             return;
         }
     }
-    /* ═══ v4.7.64 — Guards contra recovery write activa ═══
-       _recoveryActive: recoveryWrite() en curso. NINGÚN write competidor — el doc
-         remoto debe ser reemplazado por el snapshot comprimido limpio sin
-         interferencias. La única excepción: el propio recoveryWrite llama a este
-         path interno con opts.allowDuringRecovery=true.
-       _recoverySafeMode: recovery falló, modo seguro hasta acción manual del usuario.
-         Bloquea TODOS los writes incluyendo recovery. La única salida es restoreBackup()
-         o exportar manualmente.
-       
-       _localDirty se preserva durante el bloqueo: cuando recovery termine OK, la
-       próxima edición real del usuario sincroniza lo pendiente. */
-    const allowDuringRecovery=opts&&opts.allowDuringRecovery===true;
-    if(AppState._recoveryActive&&!allowDuringRecovery){
-        _syncLog&&_syncLog('save:blocked-by-recovery',{forzar:!!forzar});
-        return;
-    }
-    if(AppState._recoverySafeMode){
-        _syncLog&&_syncLog('save:blocked-by-safemode',{forzar:!!forzar});
-        return;
-    }
     /* ═══ Guard contra cliente Firestore terminado (v4.7.42) ═══
        Si en algún save anterior detectamos 'failed-precondition: client terminated',
        no intentamos más writes. Cada call fallaría instantáneamente con el mismo error
@@ -6074,15 +5571,6 @@ async function guardarDatos(forzar,opts){
     if(AppState._clientTerminated){
         console.warn('[P2P] guardarDatos abortado: Firebase client terminated. Recargá la app.');
         try{if(typeof mostrarBannerClienteTerminado==='function')mostrarBannerClienteTerminado()}catch(_){}
-        return;
-    }
-    /* ═══ Guard contra recovery en progreso ═══
-       Si iniciarRecuperacionFirestore está limpiando el SDK (terminate + clearPersistence),
-       cualquier write nuevo sería sobre una instancia inválida → INTERNAL ASSERTION garantizado.
-       El backup local ya tiene los datos, así que es seguro abortar — al recargar, 
-       restoreFromLocal los recupera. */
-    if(iniciarRecuperacionFirestore._activa){
-        console.warn('[P2P] guardarDatos abortado: recovery en progreso');
         return;
     }
     /* BLINDAJE ANTI-WIPE: si estoy por pushear un estado vacío pero existe un backup local
@@ -6345,11 +5833,6 @@ async function guardarDatos(forzar,opts){
         AppState._localVersion=newVersion;
         AppState.datos._version=newVersion;
         _syncLog('save:write-start',{payloadKB});
-        /* v4.7.64 — Guard permanente: si el payload supera 850 KB, bloquear
-           writes y mostrar alerta. Nunca más zona crítica silenciosa. */
-        try{
-            if(typeof window._checkPayloadGuard==='function')window._checkPayloadGuard(payloadKB);
-        }catch(_){}
         /* Guardar el version pre-bump para poder hacer rollback si el write falla.
            Sin esto, un error de red dejaría _localVersion adelantado y el snapshot 
            listener pensaría que estamos sincronizados cuando en realidad no escribimos. */
@@ -6554,11 +6037,6 @@ async function guardarDatos(forzar,opts){
 
 function cargarDatosUsuario(){
     if(!AppState.currentUser)return;
-    /* ═══ Guard contra recovery en progreso ═══
-       Si iniciarRecuperacionFirestore está corriendo (terminate + clearPersistence + reload),
-       NO setear nuevo onSnapshot — la instancia vieja del SDK está siendo desmontada.
-       Setear un listener acá causaría INTERNAL ASSERTION sobre la instancia ya terminada. */
-    if(iniciarRecuperacionFirestore._activa)return;
     /* ═══ Idempotencia ═══
        Limpieza explícita del listener anterior antes de crear uno nuevo. Si hay un 
        cargarDatosUsuario en flight (raro pero posible en re-login rápido), evitamos
@@ -6569,25 +6047,6 @@ function cargarDatosUsuario(){
     }
     AppState.unsubscribe=AppState.db.collection('users').doc(AppState.currentUser.uid)
     .onSnapshot({includeMetadataChanges:true},doc=>{
-        /* Si recovery está en progreso, ignorar snapshots — la instancia se va a recargar */
-        if(iniciarRecuperacionFirestore._activa)return;
-        /* ═══ v4.7.64 — Freeze del listener durante recoveryWrite ═══
-           CRÍTICO: durante recoveryWrite, snapshots entrantes pueden traer:
-           (a) el doc legacy de 951 KB (estado pre-recovery) — rehidrataría memoria
-               con el formato viejo y contaminaría el snapshot que vamos a escribir.
-           (b) el doc comprimido que NUESTRO recovery write acaba de subir, pero
-               antes de que recoveryWrite verifique el resultado — race que rompe
-               el flujo de verificación.
-           Mientras _recoveryActive: NO procesar snapshots. recoveryWrite hace su
-           propio ref.get() controlado al final para verificar. Cuando recovery
-           termina (success o fail), levantamos el flag y los snapshots vuelven. */
-        if(AppState._recoveryActive){
-            _syncLog&&_syncLog('snapshot:ignored-during-recovery',{
-                fromCache:doc.metadata.fromCache,
-                hasPending:doc.metadata.hasPendingWrites
-            });
-            return;
-        }
         const fromCache=doc.metadata.fromCache;
         const hasPending=doc.metadata.hasPendingWrites;
         if(typeof _syncLog==='function')_syncLog('snapshot:received',{fromCache,hasPending,exists:doc.exists,v:doc.exists?(doc.data()._version||0):0});
@@ -6829,25 +6288,36 @@ function showApp(u){
     $('menuUserAvatar').textContent=(uname[0]||'U').toUpperCase();
     $('authContainer').classList.add('hidden');
     $('appContainer').classList.add('active');
-    /* ═══════════════════════════════════════════════════════════════════
-       §UI-BOOTSTRAP v4.7.38 — Hidratar UI desde cache local INMEDIATAMENTE
-       ═══════════════════════════════════════════════════════════════════
-       Antes (v4.7.37 y anteriores): la UI esperaba el primer snapshot de Firestore
-       para renderizar. Si el snapshot tardaba (red lenta, doc pesado, hasPending:true 
-       skipea el render), el overlay "Cargando..." quedaba visible indefinidamente.
+    /* ═══════════════════════════════════════════════════════════════════════
+       v4.8.2.16 — GUARD DE BOOTSTRAP ÚNICO (CRÍTICO — quema de cuota)
+       ═══════════════════════════════════════════════════════════════════════
+       onAuthStateChanged dispara showApp() CADA vez que Firebase re-emite el
+       estado de auth: refresh de token, reconexión de red, sincronización de
+       tabs. Sin guard, cada re-emisión re-ejecutaba TODO el bootstrap (montaba
+       listeners nuevos, disparaba snapshots, releía el doc de 976KB) → el log
+       mostró 3 bootstraps en 9s y FirebaseError: resource-exhausted (cuota
+       agotada).
        
-       Ahora: leemos el backup local (que YA contiene un estado válido del último
-       cierre/sync exitoso), poblamos AppState.datos, renderizamos la UI completa,
-       y ocultamos el overlay en <100ms. Después, onSnapshot trae las novedades del 
-       servidor y mergeRemoteState las aplica encima — la UI se actualiza naturalmente.
-       
-       Garantías:
-       - Si NO hay backup local (primer login, cuenta nueva), se mantiene el flow
-         original — cargarDatosUsuario espera el snapshot, watchdog cubre timeouts.
-       - Si hay backup, AppState._localVersion queda con la versión del backup, así 
-         mergeRemoteState puede comparar correctamente cuando llegue el snapshot.
-       - El render desde cache marca AppState._uiHydratedFromCache=true para que el
-         badge muestre "Modo local — sincronizando…" hasta que llegue el snapshot real. */
+       Ahora: si ya bootstrappeamos para ESTE usuario, no repetir. Solo si cambia
+       el usuario (logout→login con otra cuenta) se permite re-bootstrap, y en ese
+       caso primero se limpian los listeners viejos. */
+    if(window.__APP_BOOTSTRAPPED_UID__===u.uid){
+        _syncLog('ui:bootstrap-skipped',{reason:'already-bootstrapped',uid:safeIdTail(u.uid,8)});
+        /* Asegurar que el overlay no quedó colgado, nada más. */
+        const ov=$('loadingOverlay');
+        if(ov&&!ov.classList.contains('hidden'))ov.classList.add('hidden');
+        return;
+    }
+    /* Si había un bootstrap de OTRO usuario, limpiar sus listeners antes de re-montar. */
+    if(window.__APP_BOOTSTRAPPED_UID__&&window.__APP_BOOTSTRAPPED_UID__!==u.uid){
+        _syncLog('ui:bootstrap-cleanup-prev-user',{prev:safeIdTail(window.__APP_BOOTSTRAPPED_UID__,8),next:safeIdTail(u.uid,8)});
+        try{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}}catch(_){}
+        try{if(AppState._subcolUnsubs){Object.values(AppState._subcolUnsubs).forEach(fn=>{try{fn&&fn()}catch(_){}});AppState._subcolUnsubs={}}}catch(_){}
+        AppState._subcolActive=false;
+        AppState._subcolFirstSnapshots={};
+        AppState._subcolServerReconciled=null;
+    }
+    window.__APP_BOOTSTRAPPED_UID__=u.uid;
     _syncLog('ui:bootstrap-start',{uid:safeIdTail(u.uid,8)});
     let hidratoDesdeCache=false;
     try{
@@ -6936,24 +6406,12 @@ function registrarError(tipo,detalle){
         /* "FIRESTORE INTERNAL ASSERTION FAILED: Unexpected state" — bug conocido del SDK 
            Firestore (issue #6256, abierto desde 2022). Una vez que ocurre, el SDK queda en 
            estado inválido y todas las queries fallan hasta recargar la página.
-           Lo registramos UNA vez por sesión.
-           
-           v4.8.2.4: AUTO-TRIGGER DESACTIVADO. Antes de v4.8.2.4 esto disparaba
-           iniciarRecuperacionFirestore() automáticamente, que llamaba db.terminate()
-           y trataba de recargar. Pero en PWA iOS standalone el reload no se ejecutaba
-           y el SDK quedaba terminated → todas las ops siguientes daban "client has
-           already been terminated". Y peor: como subcol_write no marca _localDirty
-           cuando _subcolActive=true, las ops quedaban perdidas en memoria sin marca
-           de pendiente.
-           
-           Ahora: registramos el error y NADA MÁS. El usuario decide si recargar la
-           página manualmente, o usar el botón Reset SDK Firestore en Diagnóstico. */
+           Lo registramos UNA vez por sesión y NO disparamos nada automático.
+           El usuario puede recargar la página manualmente si lo necesita. */
         const isFirestoreInternal=det.includes('INTERNAL ASSERTION FAILED')||det.includes('INTERNAL UNHANDLED ERROR');
         if(isFirestoreInternal){
             if(registrarError._firestoreInternalSeen)return; /* skip duplicados */
             registrarError._firestoreInternalSeen=true;
-            /* v4.8.2.4 — NO disparar recovery automática. Solo loguear.
-               setTimeout(()=>iniciarRecuperacionFirestore(),1500);  ← BORRADO */
         }
         const log=_readErrLog();
         log.push({
@@ -6969,79 +6427,6 @@ function registrarError(tipo,detalle){
     }catch(e){/* no-op */}
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   §FBR — Recuperación automática del SDK Firestore
-   ═══════════════════════════════════════════════════════════════════
-   El SDK Firestore tiene un bug conocido (issue #6256) donde IndexedDB
-   queda en estado inconsistente y lanza "INTERNAL ASSERTION FAILED".
-   Una vez que ocurre, el SDK no se recupera solo — necesita un reload.
-   
-   Estrategia:
-   1. Mostrar aviso claro al usuario (pero no modal bloqueante)
-   2. Forzar flush del backup local antes de cualquier acción
-   3. Llamar clearIndexedDbPersistence() para limpiar el estado corrupto
-   4. Recargar la página
-   
-   Como backupToLocal() corre antes del debounce, los datos están a salvo
-   en localStorage. Al recargar, restoreFromLocal() los recupera. */
-function iniciarRecuperacionFirestore(){
-    if(iniciarRecuperacionFirestore._activa)return;
-    iniciarRecuperacionFirestore._activa=true;
-    /* ═══ Cancelar todo trabajo en flight ═══
-       Cualquier retry timer, debounce timer o snapshot listener activo apuntando a la 
-       instancia corrupta del SDK podría disparar más errores durante la recovery.
-       Cortamos todo antes de tocar el SDK. */
-    try{
-        clearTimeout(_retryTimer);
-        clearTimeout(_guardaDebounceTimer);
-        _guardaDebounceTimer=null;
-        _guardaFirstPendingTs=0;
-        if(AppState.unsubscribe){
-            try{AppState.unsubscribe()}catch(e){}
-            AppState.unsubscribe=null;
-        }
-        /* Garantizar que cualquier mutación pendiente esté en localStorage antes de tocar Firebase */
-        if(typeof backupToLocal==='function')backupToLocal();
-    }catch(e){/* aún si falla, seguimos */}
-    setSyncStatus('offline','Reiniciando conexión segura…');
-    /* Aviso visible pero no bloqueante */
-    try{
-        const banner=document.createElement('div');
-        banner.style.cssText='position:fixed;top:0;left:0;right:0;background:#fef3c7;color:#78350f;padding:14px 18px;font-size:0.88em;font-weight:600;text-align:center;z-index:99999;box-shadow:0 2px 8px rgba(0,0,0,0.15);line-height:1.4';
-        banner.innerHTML='⚠️ Detectamos un problema con la base de datos local. Reiniciando en 3 segundos para evitar pérdida de datos…<br><span style="font-weight:400;font-size:0.85em;opacity:0.85">Tus datos están respaldados localmente.</span>';
-        document.body.appendChild(banner);
-    }catch(e){}
-    /* ═══ Limpieza ordenada del SDK Firestore ═══
-       Secuencia obligatoria según docs:
-       1. terminate() — cierra todas las conexiones y libera resources
-       2. clearPersistence() — borra IndexedDB del SDK (solo funciona post-terminate)
-       3. reload() — fresh start
-       
-       Cualquier paso puede fallar (terminate timeout, clearPersistence con quota, etc).
-       Si algo falla, igual recargamos — la página fresh re-inicializa todo correctamente. */
-    setTimeout(()=>{
-        const reload=()=>{try{location.reload()}catch(e){window.location.href=window.location.href}};
-        const TERMINATE_TIMEOUT=4000;
-        const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('terminate-timeout')),ms))]);
-        try{
-            const db=AppState.db||(firebase.firestore&&firebase.firestore());
-            if(!db||typeof db.terminate!=='function'){reload();return}
-            withTimeout(db.terminate(),TERMINATE_TIMEOUT)
-                .then(()=>{
-                    /* Después de terminate, db.clearPersistence existe pero la instancia ya
-                       no se puede usar para queries — solo para clearPersistence. */
-                    if(typeof db.clearPersistence==='function'){
-                        return withTimeout(db.clearPersistence(),TERMINATE_TIMEOUT);
-                    }
-                })
-                .then(reload)
-                .catch(err=>{
-                    console.warn('[P2P] Recovery cleanup falló (no crítico, recargando igual):',err&&err.message);
-                    reload();
-                });
-        }catch(e){console.warn('[P2P] Recovery exception:',e.message);reload()}
-    },3000);
-}
 function instalarErrorBoundary(){
     window.addEventListener('error',e=>{
         registrarError('window.error',
@@ -7094,7 +6479,6 @@ function renderDiagnosticoSync(){
     html+='Online:           '+fmtBool(d.online)+'\n';
     html+='Estado sync:      '+d.syncState+'\n';
     html+='Listener activo:  '+fmtBool(d.listenerActive)+'\n';
-    html+='Recovery activa:  '+fmtBool(d.recoveryActive)+'\n';
     /* v4.7.42: estado del cliente Firebase. Si está terminado, sync remoto bloqueado. */
     if(d.clientTerminated){
         html+='Firebase client:  🛑 TERMINATED — requiere recarga\n';
@@ -9936,6 +9320,74 @@ async function subcol_migrate(progressCallback){
    escribe la marca automáticamente y activa. SIN verificación de counts. Confiamos
    en que la migración previa quedó completa — si no, el usuario lo va a notar y
    tiene siempre el JSON exportable como red de seguridad. */
+/* ─── _subcolGate_migrateFromLegacy ───────────────────────────────────────────
+   v4.8.2.16 — Migra el doc raíz legacy a subcolecciones automáticamente.
+   Lee operaciones/movimientos/transferencias del doc raíz, las sube a sus
+   subcolecciones en batches, valida conteos y marca _meta/migration=v2.
+   Devuelve {ok, ops, movs, transfs} o {ok:false, reason}. */
+async function _subcolGate_migrateFromLegacy(ref,log){
+    let rootData=null;
+    try{
+        const rootSnap=await _withTimeout(ref.get({source:'server'}),15000,'migrate.root.get');
+        if(!rootSnap.exists)return{ok:false,reason:'no-legacy-data'};
+        rootData=rootSnap.data();
+    }catch(e){
+        return{ok:false,reason:'root-read: '+e.message};
+    }
+    const ops=Array.isArray(rootData.operaciones)?rootData.operaciones:[];
+    const movs=Array.isArray(rootData.movimientos)?rootData.movimientos:[];
+    const transfs=Array.isArray(rootData.transferencias)?rootData.transferencias:[];
+    if(ops.length===0&&movs.length===0&&transfs.length===0){
+        return{ok:false,reason:'no-legacy-data'};
+    }
+    log('subcol:migrate:start',{ops:ops.length,movs:movs.length,transfs:transfs.length});
+    const ENTITIES=[['operaciones',ops],['movimientos',movs],['transferencias',transfs]];
+    const BATCH=150;
+    for(const [entity,items] of ENTITIES){
+        for(let i=0;i<items.length;i+=BATCH){
+            const slice=items.slice(i,i+BATCH);
+            const batch=AppState.db.batch();
+            slice.forEach(item=>{
+                if(!item||item.id==null)return;
+                const stripped=(typeof _subcol_stripPersistFields==='function')?_subcol_stripPersistFields(item):item;
+                batch.set(ref.collection(entity).doc(String(item.id)),stripped);
+            });
+            try{
+                await _withTimeout(batch.commit(),45000,'migrate.'+entity);
+            }catch(e){
+                return{ok:false,reason:'batch-'+entity+': '+e.message};
+            }
+            await new Promise(r=>setTimeout(r,150));
+        }
+        log('subcol:migrate:entity-done',{entity,count:items.length});
+    }
+    /* Validar conteos en server */
+    try{
+        for(const [entity,items] of ENTITIES){
+            if(items.length===0)continue;
+            const snap=await _withTimeout(ref.collection(entity).get({source:'server'}),30000,'migrate.verify.'+entity);
+            if(snap.size<items.length){
+                return{ok:false,reason:'verify-'+entity+': server '+snap.size+' < expected '+items.length};
+            }
+        }
+    }catch(e){
+        return{ok:false,reason:'verify: '+e.message};
+    }
+    /* Marcar meta=completed */
+    try{
+        await _withTimeout(ref.collection('_meta').doc('migration').set({
+            schemaVersion:SUBCOL_SCHEMA_V2,
+            status:'completed',
+            migratedAt:firebase.firestore.FieldValue.serverTimestamp(),
+            migratedBy:CONFIG.APP_VERSION,
+            counts:{operaciones:ops.length,movimientos:movs.length,transferencias:transfs.length}
+        }),15000,'migrate.meta.set');
+    }catch(e){
+        return{ok:false,reason:'meta-set: '+e.message};
+    }
+    return{ok:true,ops:ops.length,movs:movs.length,transfs:transfs.length};
+}
+
 async function _subcolGate(){
     const log=(ev,data)=>{try{_syncLog&&_syncLog(ev,data||{})}catch(_){}};
     const ref=subcol_userRef();
@@ -9966,23 +9418,52 @@ async function _subcolGate(){
         log('subcol:gate:no-v2',{schemaVersion:metaData.schemaVersion||'(undefined)'});
         return{active:false,reason:'no-v2'};
     }
-    /* Step 3: meta NO existe — auto-repair simple sin count.
-       Verificación única: existe subcolección operaciones con sample expandido. */
+    /* Step 3: meta NO existe — verificar si ya hay datos en subcolecciones. */
     try{
         const opsRef=ref.collection('operaciones');
         const sampleSnap=await _withTimeout(opsRef.limit(1).get({source:'server'}),10000,'gate.sample.get');
         if(sampleSnap.empty){
-            log('subcol:gate:no-meta-and-no-data',{});
-            return{active:false,reason:'no-meta-and-no-data'};
+            /* ═══════════════════════════════════════════════════════════════════
+               v4.8.2.16 — NO caer a legacy. Si la subcolección está vacía pero el
+               doc raíz legacy tiene operaciones, MIGRAR automáticamente.
+               
+               Antes: subcol:gate:no-meta-and-no-data → modo legacy permanente con
+               el doc de 976KB como fuente. Ese era el bug raíz: la app nunca salía
+               de legacy y el doc crecía hacia el límite de 1MB.
+               
+               Ahora: leer el doc raíz; si tiene operaciones, subirlas a las
+               subcolecciones, marcar meta=v2, activar subcol. */
+            log('subcol:gate:no-subcol-checking-legacy',{});
+            const migrated=await _subcolGate_migrateFromLegacy(ref,log);
+            if(migrated.ok){
+                log('subcol:gate:migrated-from-legacy',{ops:migrated.ops,movs:migrated.movs,transfs:migrated.transfs});
+                return{active:true,reason:'migrated-from-legacy'};
+            }
+            if(migrated.reason==='no-legacy-data'){
+                /* Ni subcol ni legacy con datos → cuenta nueva/vacía. Activar subcol
+                   igual (es el modo correcto para empezar) y marcar meta. */
+                try{
+                    await _withTimeout(ref.collection('_meta').doc('migration').set({
+                        schemaVersion:SUBCOL_SCHEMA_V2,
+                        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+                        createdBy:CONFIG.APP_VERSION,
+                        note:'empty-account'
+                    }),15000,'gate.empty-meta.set');
+                }catch(_){}
+                log('subcol:gate:empty-account-subcol',{});
+                return{active:true,reason:'empty-account'};
+            }
+            /* Migración falló (red/cuota) → NO activar, reintentar próxima sesión.
+               Mientras tanto legacy sigue como fallback de SOLO LECTURA. */
+            log('subcol:gate:migration-failed',{error:migrated.reason});
+            return{active:false,reason:'migration-failed: '+migrated.reason};
         }
         const sample=sampleSnap.docs[0].data();
         const expanded=typeof sample.tipo==='string' && typeof sample.monto==='number';
         if(!expanded){
             log('subcol:gate:bad-format',{
                 hasTipo:typeof sample.tipo,
-                hasMonto:typeof sample.monto,
-                hasT:typeof sample.t,
-                hasMo:typeof sample.mo
+                hasMonto:typeof sample.monto
             });
             return{active:false,reason:'bad-format'};
         }
@@ -10767,7 +10248,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='exportar-diagnostico')exportarDiagnostico();
         else if(a==='diagnostico-sync')abrirDiagnosticoSync();
         else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}/* v4.8.2.5 — FIX #4: desuscribir listeners subcol y resetear flags */if(AppState._subcolUnsubs){Object.values(AppState._subcolUnsubs).forEach(u=>{try{u&&u()}catch(_){}});AppState._subcolUnsubs={}}AppState._subcolActive=false;AppState._subcolFirstSnapshots={};AppState._subcolServerReconciled=null;AppState._subcolRootCleaned=false;AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}/* v4.8.2.5 — FIX #4: desuscribir listeners subcol y resetear flags */if(AppState._subcolUnsubs){Object.values(AppState._subcolUnsubs).forEach(u=>{try{u&&u()}catch(_){}});AppState._subcolUnsubs={}}AppState._subcolActive=false;AppState._subcolFirstSnapshots={};AppState._subcolServerReconciled=null;AppState._subcolRootCleaned=false;window.__APP_BOOTSTRAPPED_UID__=null;AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
     });
 
     // Toggle sections
@@ -10889,311 +10370,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     const _bRefSync=$('btnSyncDiagRefresh');if(_bRefSync)_bRefSync.addEventListener('click',renderDiagnosticoSync);
     const _bForceSync=$('btnSyncDiagForceSync');if(_bForceSync)_bForceSync.addEventListener('click',ejecutarForzarSync);
     const _bCopySync=$('btnSyncDiagCopy');if(_bCopySync)_bCopySync.addEventListener('click',copiarDiagnosticoSync);
-    /* v4.8.2.3 — Reset manual del SDK Firestore.
-       Para casos donde el cliente quedó degradado (timeouts en writes triviales,
-       INTERNAL ASSERTION FAILED, write stream exhausted). terminate() + 
-       clearIndexedDbPersistence() + reload deja el SDK en estado limpio.
-       
-       SOLO MANUAL. Confirmación doble. NUNCA se ejecuta automáticamente. */
-    const _bSdkReset=$('btnSyncDiagSdkReset');if(_bSdkReset)_bSdkReset.addEventListener('click',async()=>{
-        const msg='🔄 RESET SDK FIRESTORE\n\n'+
-            'Esto va a:\n'+
-            '1) Terminar el cliente Firestore actual.\n'+
-            '2) Borrar el caché local IndexedDB de Firestore.\n'+
-            '3) Recargar la página.\n\n'+
-            'Cuándo usarlo:\n'+
-            '• Writes triviales tardan >20s sin razón aparente.\n'+
-            '• Aparecen errores "INTERNAL ASSERTION FAILED" o "Write stream exhausted".\n'+
-            '• Cuota Firestore está disponible pero la app no sincroniza.\n\n'+
-            'Tus datos en server NO se tocan. El caché local se reconstruye al cargar.\n\n'+
-            '¿Continuar?';
-        if(!confirm(msg))return;
-        const conf=prompt('Para confirmar, tipeá: RESET');
-        if(conf!=='RESET'){alert('Cancelado.');return}
-        _bSdkReset.disabled=true;_bSdkReset.textContent='Reseteando…';
-        try{
-            _syncLog&&_syncLog('sdk-reset:start',{appVersion:CONFIG.APP_VERSION});
-            /* Desuscribir listeners conocidos antes de terminate */
-            try{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}}catch(_){}
-            try{
-                if(AppState._subcolUnsubs){
-                    Object.values(AppState._subcolUnsubs).forEach(u=>{try{u&&u()}catch(_){}});
-                    AppState._subcolUnsubs={};
-                }
-            }catch(_){}
-            /* Terminate cliente */
-            try{
-                await AppState.db.terminate();
-                _syncLog&&_syncLog('sdk-reset:terminated',{});
-            }catch(e){
-                _syncLog&&_syncLog('sdk-reset:terminate-error',{error:String(e&&e.message||e)});
-            }
-            /* Limpiar IndexedDB persistence */
-            try{
-                await AppState.db.clearPersistence();
-                _syncLog&&_syncLog('sdk-reset:persistence-cleared',{});
-            }catch(e){
-                _syncLog&&_syncLog('sdk-reset:clear-error',{error:String(e&&e.message||e)});
-            }
-            _syncLog&&_syncLog('sdk-reset:reloading',{});
-            /* Pequeña espera para que el log se vea, después reload */
-            setTimeout(()=>{window.location.reload()},500);
-        }catch(e){
-            alert('Error: '+(e&&e.message||e));
-            if(_bSdkReset){_bSdkReset.disabled=false;_bSdkReset.textContent='🔄 Reset SDK Firestore'}
-        }
-    });
-    const _bAuditSync=$('btnSyncDiagAudit');if(_bAuditSync)_bAuditSync.addEventListener('click',()=>{
-        if(_bAuditSync){_bAuditSync.disabled=true;_bAuditSync.textContent='Analizando…'}
-        /* setTimeout para que el botón pueda actualizar UI antes del stringify pesado */
-        setTimeout(()=>{
-            try{
-                window._ultimaAuditoria=analizarPayload(AppState.datos);
-                _syncLog('audit:done',{totalKB:window._ultimaAuditoria&&window._ultimaAuditoria.totalKB,
-                                       estado:window._ultimaAuditoria&&window._ultimaAuditoria.estado});
-                renderDiagnosticoSync();
-            }catch(e){
-                console.error('[P2P] Análisis falló:',e);
-                alert('Análisis falló: '+e.message);
-            }finally{
-                if(_bAuditSync){_bAuditSync.disabled=false;_bAuditSync.textContent='🔍 Auditar tamaño'}
-            }
-        },50);
-    });
-    const _bAuditCp=$('btnSyncDiagAuditCp');if(_bAuditCp)_bAuditCp.addEventListener('click',()=>{
-        if(_bAuditCp){_bAuditCp.disabled=true;_bAuditCp.textContent='Verificando…'}
-        /* setTimeout para que el botón pueda actualizar UI antes del análisis */
-        setTimeout(()=>{
-            try{
-                window._ultimaAuditoriaComision=auditarComisionPlataforma();
-                _syncLog('audit-comision:done',{
-                    verdict:window._ultimaAuditoriaComision.verdict,
-                    exact:window._ultimaAuditoriaComision.exact,
-                    tolerance:window._ultimaAuditoriaComision.tolerance,
-                    small:window._ultimaAuditoriaComision.small,
-                    significant:window._ultimaAuditoriaComision.significant,
-                    missingPct:window._ultimaAuditoriaComision.missingPct
-                });
-                renderDiagnosticoSync();
-            }catch(e){
-                console.error('[P2P] Auditoría comisión falló:',e);
-                alert('Auditoría comisión falló: '+e.message);
-            }finally{
-                if(_bAuditCp){_bAuditCp.disabled=false;_bAuditCp.textContent='💰 Auditar comisión'}
-            }
-        },50);
-    });
-    /* v4.7.59 — botón Auditar splits para detectar ops corruptas */
-    const _bAuditSp=$('btnSyncDiagAuditSplits');if(_bAuditSp)_bAuditSp.addEventListener('click',()=>{
-        if(_bAuditSp){_bAuditSp.disabled=true;_bAuditSp.textContent='Verificando…'}
-        setTimeout(()=>{
-            try{
-                const r=auditarSplitsCorruptos();
-                window._ultimaAuditoriaSplits=r;
-                let detalle=r.resumen+'\n\n';
-                if(r.bancoVacio.length){
-                    detalle+=`━ Banco vacío (${r.bancoVacio.length}) ━\n`;
-                    r.bancoVacio.slice(0,5).forEach(o=>{
-                        detalle+=`  ${o.fecha} ${o.hora} · ${o.tipo} · $${fmtNum(o.monto,2)} · banco principal: ${o.banco}\n`;
-                    });
-                    if(r.bancoVacio.length>5)detalle+=`  ... y ${r.bancoVacio.length-5} más\n`;
-                    detalle+='\n';
-                }
-                if(r.bancoInexistente.length){
-                    detalle+=`━ Banco inexistente (${r.bancoInexistente.length}) ━\n`;
-                    r.bancoInexistente.slice(0,5).forEach(o=>{
-                        detalle+=`  ${o.fecha} ${o.hora} · ${o.tipo} · $${fmtNum(o.monto,2)} · fantasmas: ${o.bancosFantasma.join(', ')}\n`;
-                    });
-                    if(r.bancoInexistente.length>5)detalle+=`  ... y ${r.bancoInexistente.length-5} más\n`;
-                    detalle+='\n';
-                }
-                if(r.sumaIncorrecta.length){
-                    detalle+=`━ Suma incorrecta (${r.sumaIncorrecta.length}) ━\n`;
-                    r.sumaIncorrecta.slice(0,5).forEach(o=>{
-                        detalle+=`  ${o.fecha} ${o.hora} · esperado $${fmtNum(o.esperado,2)} · suma $${fmtNum(o.sumaAportes,2)} · diff $${fmtNum(o.diferencia,2)}\n`;
-                    });
-                    if(r.sumaIncorrecta.length>5)detalle+=`  ... y ${r.sumaIncorrecta.length-5} más\n`;
-                    detalle+='\n';
-                }
-                detalle+='Esta es una herramienta de diagnóstico — no se modificó ningún dato.\nRevisar y editar/borrar manualmente las operaciones afectadas si es necesario.';
-                alert(detalle);
-                renderDiagnosticoSync();
-            }catch(e){
-                console.error('[P2P] Auditoría splits falló:',e);
-                alert('Auditoría splits falló: '+e.message);
-            }finally{
-                if(_bAuditSp){_bAuditSp.disabled=false;_bAuditSp.textContent='🧩 Auditar splits'}
-            }
-        },50);
-    });
-    /* v4.7.63 — botón Auditar compresión wire */
-    const _bAuditWire=$('btnSyncDiagAuditWire');if(_bAuditWire)_bAuditWire.addEventListener('click',()=>{
-        if(_bAuditWire){_bAuditWire.disabled=true;_bAuditWire.textContent='Verificando…'}
-        setTimeout(()=>{
-            try{
-                const r=auditarCompresionWire();
-                window._ultimaAuditoriaCompresion=r;
-                let detalle='━━━ AUDITORÍA COMPRESIÓN WIRE ━━━\n\n';
-                detalle+='Veredicto: '+r.verdict+'\n';
-                detalle+='Total ops: '+r.totalOps+'\n';
-                detalle+='Round-trip OK: '+r.roundtripOk+'/'+r.totalOps+'\n';
-                detalle+='\nTamaños:\n';
-                detalle+='  Sin comprimir: '+Math.round(r.sizeBefore/1024)+' KB\n';
-                detalle+='  Comprimido:    '+Math.round(r.sizeAfter/1024)+' KB\n';
-                detalle+='  Ahorro:        '+r.savingsKB+' KB ('+(r.sizeBefore>0?Math.round(100*(r.sizeBefore-r.sizeAfter)/r.sizeBefore):0)+'%)\n';
-                if(r.bancoNoMapeado.length){
-                    detalle+='\n⚠ Bancos NO mapeados ('+r.bancoNoMapeado.length+'):\n';
-                    r.bancoNoMapeado.slice(0,5).forEach(b=>detalle+='  • '+b.banco+' (op '+b.id+')\n');
-                    if(r.bancoNoMapeado.length>5)detalle+='  ... y '+(r.bancoNoMapeado.length-5)+' más\n';
-                }
-                if(r.tipoNoMapeado.length){
-                    detalle+='\n⚠ Tipos NO mapeados ('+r.tipoNoMapeado.length+'):\n';
-                    r.tipoNoMapeado.slice(0,5).forEach(t=>detalle+='  • '+t.tipo+' (op '+t.id+')\n');
-                }
-                if(r.monedaNoMapeado.length){
-                    detalle+='\n⚠ Monedas NO mapeadas ('+r.monedaNoMapeado.length+'):\n';
-                    r.monedaNoMapeado.slice(0,5).forEach(m=>detalle+='  • '+m.moneda+' (op '+m.id+')\n');
-                }
-                if(r.opsConDiff.length){
-                    detalle+='\n⚠ Round-trip con diff:\n';
-                    r.opsConDiff.forEach(o=>{
-                        detalle+='  • op '+o.id+': ';
-                        detalle+=o.diffs.map(d=>d.campo+' '+JSON.stringify(d.antes)+'→'+JSON.stringify(d.despues)).join(', ');
-                        detalle+='\n';
-                    });
-                }
-                detalle+='\nHerramienta de diagnóstico — no modifica datos.';
-                alert(detalle);
-                renderDiagnosticoSync();
-            }catch(e){
-                console.error('[P2P] Auditoría compresión falló:',e);
-                alert('Auditoría compresión falló: '+e.message);
-            }finally{
-                if(_bAuditWire){_bAuditWire.disabled=false;_bAuditWire.textContent='🗜️ Auditar compresión'}
-            }
-        },50);
-    });
-    /* v4.7.64 — botón manual Recovery write */
-    const _bRecovery=$('btnSyncDiagRecovery');if(_bRecovery)_bRecovery.addEventListener('click',()=>{
-        const msg=
-            '🚨 RECOVERY WRITE\n\n'+
-            'Esto va a forzar la migración del documento remoto al formato comprimido.\n\n'+
-            '• Bloquea toda la app durante la operación (~30-60s).\n'+
-            '• No vas a poder operar hasta que termine.\n'+
-            '• Si falla, entra en modo seguro con opciones manuales.\n\n'+
-            '¿Continuar?';
-        if(!confirm(msg))return;
-        cerrarModal('modalSyncDiag');
-        setTimeout(()=>{
-            if(typeof window.recoveryWrite==='function'){
-                window.recoveryWrite({trigger:'manual-diag'});
-            }else{
-                alert('Recovery no disponible (función no encontrada).');
-            }
-        },300);
-    });
-    /* v4.8.1.2 — botón Migrar subcollections (manual, sin auto-disparo).
-       Doble confirmación + overlay con botón Cancelar siempre visible. */
-    const _bMig=$('btnSyncDiagMigrate');if(_bMig)_bMig.addEventListener('click',async()=>{
-        if(typeof subcol_migrate!=='function'){alert('Migración no disponible.');return}
-        _bMig.disabled=true;_bMig.textContent='Verificando…';
-        try{
-            const yaMig=await subcol_isMigrated();
-            if(yaMig){alert('✓ Ya está migrado a subcollections.\nNo se ejecuta de nuevo.');return}
-            const counts={
-                ops:(AppState.datos.operaciones||[]).length,
-                movs:(AppState.datos.movimientos||[]).length,
-                lotes:(AppState.datos.lotes||[]).length,
-                transfs:(AppState.datos.transferencias||[]).length
-            };
-            const msg=
-                '🚀 MIGRAR A SUBCOLLECTIONS\n\n'+
-                'Va a copiar a subcollections:\n'+
-                '• operaciones: '+counts.ops+'\n'+
-                '• movimientos: '+counts.movs+'\n'+
-                '• lotes: '+counts.lotes+'\n'+
-                '• transferencias: '+counts.transfs+'\n\n'+
-                'v4.8.1.2:\n'+
-                '• Marca en doc chico separado (no en doc raíz).\n'+
-                '• Cada batch con timeout 30s.\n'+
-                '• Si se cuelga, podés cancelar.\n'+
-                '• Idempotente (reintentar es seguro).\n\n'+
-                '¿Continuar?';
-            if(!confirm(msg))return;
-            const pal=prompt('Para confirmar, tipeá: MIGRAR');
-            if(pal!=='MIGRAR'){alert('Cancelado.');return}
-            cerrarModal('modalSyncDiag');
-            /* Crear overlay con botón Cancelar */
-            window._subcolCancel=false;
-            const ov=document.createElement('div');
-            ov.id='migOverlay';
-            ov.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,0.96);'+
-                'display:flex;align-items:center;justify-content:center;padding:20px;'+
-                'font-family:-apple-system,system-ui,sans-serif;color:#e2e8f0';
-            ov.innerHTML=
-                '<div style="max-width:380px;width:100%;background:#1e293b;border-radius:14px;padding:24px;text-align:center">'+
-                    '<div id="migIcon" style="font-size:42px;margin-bottom:8px">⚙️</div>'+
-                    '<div id="migTitle" style="font-size:1.1em;font-weight:700;color:#5eead4;margin-bottom:8px">Migrando a subcollections</div>'+
-                    '<div style="font-size:0.82em;color:#cbd5e1;margin-bottom:14px">No cierres la app.</div>'+
-                    '<div id="migSpinner" style="display:inline-block;width:36px;height:36px;border:4px solid #334155;border-top-color:#5eead4;border-radius:50%;animation:rwspin 0.9s linear infinite;margin-bottom:14px"></div>'+
-                    '<div id="migPhase" style="font-size:0.82em;color:#94a3b8;background:#0f172a;padding:10px;border-radius:8px;min-height:42px;display:flex;align-items:center;justify-content:center">Iniciando…</div>'+
-                    '<button id="migCancelBtn" style="margin-top:14px;padding:9px 18px;background:#475569;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:0.85em">Cancelar</button>'+
-                '</div>';
-            document.body.appendChild(ov);
-            document.getElementById('migCancelBtn').onclick=()=>{
-                window._subcolCancel=true;
-                const ph=document.getElementById('migPhase');
-                if(ph)ph.textContent='Cancelando… (al terminar el batch actual)';
-            };
-            const phaseEl=()=>document.getElementById('migPhase');
-            try{
-                const result=await subcol_migrate((ev,data)=>{
-                    const el=phaseEl();if(!el)return;
-                    if(ev==='entity:start')el.textContent='Migrando '+data.entity+' ('+data.total+')…';
-                    else if(ev==='batch:committing')el.textContent=data.entity+': commit '+data.cumulative+'…';
-                    else if(ev==='batch:ok')el.textContent=data.entity+': ✓ '+data.cumulative;
-                    else if(ev==='entity:done')el.textContent='✓ '+data.entity;
-                    else if(ev==='marker:set')el.textContent='Marcando…';
-                });
-                const el=document.getElementById('migOverlay');if(!el)return;
-                const spinner=document.getElementById('migSpinner');if(spinner)spinner.style.display='none';
-                const cancelBtn=document.getElementById('migCancelBtn');
-                if(result.ok&&!result.skipped){
-                    const icon=document.getElementById('migIcon');if(icon)icon.textContent='✅';
-                    const title=document.getElementById('migTitle');if(title)title.textContent='Listo';
-                    const ph=phaseEl();if(ph){ph.style.color='#5eead4';ph.textContent='Completado en '+(result.ms/1000).toFixed(1)+'s'}
-                    if(cancelBtn){cancelBtn.textContent='Cerrar';cancelBtn.onclick=()=>el.remove()}
-                }else if(result.skipped){
-                    const ph=phaseEl();if(ph)ph.textContent='Ya estaba migrado.';
-                    if(cancelBtn){cancelBtn.textContent='Cerrar';cancelBtn.onclick=()=>el.remove()}
-                }else{
-                    const icon=document.getElementById('migIcon');if(icon)icon.textContent='⚠️';
-                    const title=document.getElementById('migTitle');if(title){title.style.color='#fca5a5';title.textContent='No se completó'}
-                    const ph=phaseEl();if(ph){
-                        ph.style.color='#fecaca';
-                        ph.innerHTML='<div style="text-align:left;font-size:0.78em">'+
-                            '<div><b>'+(result.error||'unknown')+'</b></div>'+
-                            (result.diagnostic?'<div style="margin-top:6px;color:#fca5a5">'+result.diagnostic+'</div>':'')+
-                            '<div style="margin-top:8px;color:#cbd5e1">La app sigue funcionando. Podés reintentar.</div>'+
-                            '</div>';
-                    }
-                    if(cancelBtn){cancelBtn.textContent='Cerrar';cancelBtn.onclick=()=>el.remove()}
-                }
-            }catch(e){
-                const el=document.getElementById('migOverlay');
-                if(el){
-                    const ph=phaseEl();if(ph){ph.style.color='#fecaca';ph.textContent='Error inesperado: '+(e.message||e)}
-                    const cancelBtn=document.getElementById('migCancelBtn');
-                    if(cancelBtn){cancelBtn.textContent='Cerrar';cancelBtn.onclick=()=>el.remove()}
-                }
-            }
-        }catch(e){
-            alert('Error: '+(e&&e.message||e));
-        }finally{
-            if(_bMig){_bMig.disabled=false;_bMig.textContent='🚀 Migrar subcollections'}
-            window._subcolCancel=false;
-        }
-    });
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
     $('btnGuardarLote').addEventListener('click',guardarLote);
@@ -11434,612 +10610,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     })();
 });
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   §RECOVERY-WRITE v4.7.64 — Migración controlada legacy → comprimido
-   ═══════════════════════════════════════════════════════════════════════════════
-   PROBLEMA QUE RESUELVE:
-   El doc remoto quedó en estado degradado (~951 KB legacy) después de múltiples
-   resource-exhausted/timeouts. v4.7.63 implementó compresión wire que reduce el
-   payload a ~537 KB, pero el flujo normal de sync no logra completar el primer
-   write comprimido encima del doc legacy gigante (Firestore aplica throttling).
-   
-   ESTRATEGIA:
-   1. Detectar al cargar: doc remoto sin _wireFormat + memoria con ops → recovery
-   2. Bloquear TODOS los writes (queue, listener, telemetry, config, banners)
-   3. Hacer UN write dedicado, sin transaction, sin metadata extra, sin queue
-   4. Timeout 90s + retries 3x con backoff 5s/15s/30s
-   5. Verificar leyendo el doc post-write: _wireFormat, count, sumas
-   6. Si OK: forzar reload limpio (cache reset + listener re-subscribe)
-   7. Si falla: modo seguro con UI de restauración manual
-   
-   NO se llama solo (excepto detección automática inicial). El usuario también
-   puede dispararlo manualmente desde Diagnóstico.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-(function setupRecoveryWrite(){
-'use strict';
-
-const RECOVERY_LOG=(ev,data)=>{
-    /* Log dedicado con prefijo "recovery:" para que sea fácilmente filtrable en
-       el diagnóstico. Reusa _syncLog para que aparezca en el mismo buffer. */
-    try{
-        if(typeof _syncLog==='function')_syncLog('recovery:'+ev,data||{});
-        else console.log('[P2P recovery]',ev,data||{});
-    }catch(_){}
-};
-
-/* ─── UI Overlay bloqueante ───────────────────────────────────────────────────
-   Overlay full-screen con z-index máximo. Mientras está visible, el usuario no
-   puede interactuar con NADA de la app. Muestra: fase, retry count, conexión. */
-function _ensureRecoveryOverlay(){
-    let el=document.getElementById('recoveryOverlay');
-    if(el)return el;
-    el=document.createElement('div');
-    el.id='recoveryOverlay';
-    el.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.96);'+
-        'display:flex;align-items:center;justify-content:center;padding:20px;'+
-        'font-family:-apple-system,system-ui,sans-serif;color:#e2e8f0';
-    el.innerHTML=
-        '<div style="max-width:380px;width:100%;background:#1e293b;border-radius:14px;'+
-        'padding:24px;box-shadow:0 25px 50px rgba(0,0,0,0.5);text-align:center">'+
-            '<div id="recoveryIcon" style="font-size:48px;margin-bottom:8px">⚠️</div>'+
-            '<div style="font-size:1.15em;font-weight:700;color:#fbbf24;margin-bottom:12px;'+
-                'line-height:1.3">Optimización crítica de base de datos en progreso</div>'+
-            '<div style="font-size:0.9em;color:#cbd5e1;margin-bottom:18px;line-height:1.45">'+
-                'No cierres la app ni cambies de pestaña. La operación puede tardar hasta un minuto.</div>'+
-            '<div id="recoverySpinner" style="display:inline-block;width:40px;height:40px;'+
-                'border:4px solid #334155;border-top-color:#3b82f6;border-radius:50%;'+
-                'animation:rwspin 0.9s linear infinite;margin-bottom:16px"></div>'+
-            '<div id="recoveryPhase" style="font-size:0.88em;color:#94a3b8;'+
-                'background:#0f172a;padding:10px 12px;border-radius:8px;margin-bottom:8px;'+
-                'min-height:42px;display:flex;align-items:center;justify-content:center">'+
-                'Inicializando…</div>'+
-            '<div id="recoveryMeta" style="font-size:0.72em;color:#64748b;margin-top:6px">'+
-                'Intento 1 · Conexión: verificando</div>'+
-            '<div id="recoveryActions" style="margin-top:18px;display:none"></div>'+
-        '</div>';
-    /* Spinner keyframes inline una sola vez */
-    if(!document.getElementById('rwspinStyle')){
-        const s=document.createElement('style');
-        s.id='rwspinStyle';
-        s.textContent='@keyframes rwspin{to{transform:rotate(360deg)}}';
-        document.head.appendChild(s);
-    }
-    document.body.appendChild(el);
-    return el;
-}
-function _setRecoveryPhase(text){
-    const p=document.getElementById('recoveryPhase');
-    if(p)p.textContent=text;
-}
-function _setRecoveryMeta(attempt,maxAttempts){
-    const m=document.getElementById('recoveryMeta');
-    if(m){
-        const conn=navigator.onLine?'OK':'sin conexión';
-        m.textContent='Intento '+attempt+'/'+maxAttempts+' · Conexión: '+conn;
-    }
-}
-function _hideRecoveryOverlay(){
-    const el=document.getElementById('recoveryOverlay');
-    if(el)el.remove();
-}
-function _setRecoveryError(title,desc,actions){
-    /* Cambia el overlay a modo error con opciones manuales */
-    const el=_ensureRecoveryOverlay();
-    const icon=document.getElementById('recoveryIcon');if(icon)icon.textContent='🛑';
-    const spinner=document.getElementById('recoverySpinner');if(spinner)spinner.style.display='none';
-    const phase=document.getElementById('recoveryPhase');
-    if(phase){
-        phase.style.background='#7f1d1d';
-        phase.style.color='#fecaca';
-        phase.textContent=desc;
-    }
-    /* El header amarillo de "Optimización en progreso" → rojo */
-    const card=el.querySelector('div > div:nth-child(2)');
-    if(card){card.style.color='#fca5a5';card.textContent=title}
-    const sub=el.querySelector('div > div:nth-child(3)');
-    if(sub)sub.textContent='Recovery falló. Restauración manual requerida.';
-    const meta=document.getElementById('recoveryMeta');if(meta)meta.style.display='none';
-    const ac=document.getElementById('recoveryActions');
-    if(ac&&Array.isArray(actions)){
-        ac.style.display='block';
-        ac.innerHTML='';
-        actions.forEach(a=>{
-            const b=document.createElement('button');
-            b.textContent=a.label;
-            b.style.cssText='display:block;width:100%;margin-bottom:8px;padding:11px 14px;'+
-                'border:none;border-radius:8px;font-size:0.92em;font-weight:600;cursor:pointer;'+
-                'background:'+(a.color||'#475569')+';color:#fff';
-            b.addEventListener('click',a.onClick);
-            ac.appendChild(b);
-        });
-    }
-}
-
-/* ─── Detección del estado del doc remoto ─────────────────────────────────────
-   Lee el doc directamente con ref.get(). NO usa el listener (que estaría en
-   freeze). Pregunta: ¿tiene _wireFormat? Si no, es legacy → recovery candidate.
-   Devuelve: {exists, wireFormat, version, sizeApprox} o null si no hay user. */
-async function _inspectRemoteDoc(){
-    if(!AppState.currentUser||!AppState.db)return null;
-    const ref=AppState.db.collection('users').doc(AppState.currentUser.uid);
-    try{
-        const snap=await ref.get();
-        if(!snap.exists)return{exists:false,wireFormat:null,version:0,sizeApprox:0};
-        const d=snap.data();
-        const sizeApprox=JSON.stringify(d).length;
-        return{
-            exists:true,
-            wireFormat:d._wireFormat||null,
-            version:d._version||0,
-            sizeApprox,
-            countOps:Array.isArray(d.operaciones)?d.operaciones.length:0
-        };
-    }catch(e){
-        RECOVERY_LOG('inspect:failed',{error:String(e&&e.message||e)});
-        return null;
-    }
-}
-
-/* ─── Construcción del payload mínimo de recovery ────────────────────────────
-   Estrategia: tomar AppState.datos (memoria expandida, autoritativa), comprimir
-   operaciones, escribir set(merge:false) con SOLO los campos que la app necesita.
-   
-   QUÉ INCLUIMOS:
-     - operaciones (comprimidas)
-     - movimientos, transferencias, conversiones, bancos, lotes (sin tocar)
-     - tags, tasasRecientes, saldoUsdt
-     - ultimasTasas (compra/venta/USD)
-     - comisionPlataforma, comisionUSD
-     - ultimoMesProcesado
-     - _version, _wireFormat:'v1'
-     - ultimaActualizacion (server timestamp)
-   
-   QUÉ NO INCLUIMOS (intencionalmente, para mantener el write mínimo):
-     - lastSeenVersion (es metadata cosmética del modal "qué hay nuevo")
-     - dismissedVersions (mismo motivo)
-     - _syncState orphans (residuos de sync)
-     - Cualquier campo derivable (lotes top-level, ya stripped en flujo normal) */
-function _buildRecoveryPayload(){
-    const d=AppState.datos||{};
-    /* Strip de campos runtime por op */
-    const stripDerived=arr=>Array.isArray(arr)?arr.map(x=>{
-        if(!x||typeof x!=='object')return x;
-        const{_syncState,consumedLots,ganancia,comisionPlataforma,...rest}=x;
-        return rest;
-    }):[];
-    const stripRuntime=arr=>Array.isArray(arr)?arr.map(x=>{
-        if(!x||typeof x!=='object'||!x._syncState)return x;
-        const{_syncState,...rest}=x;
-        return rest;
-    }):[];
-    const opsStripped=stripDerived(d.operaciones);
-    /* Comprimir operaciones */
-    const opsCompr=_compressOpsArrayForWire(opsStripped);
-    const newVersion=(AppState._localVersion||0)+1;
-    return{
-        operaciones:opsCompr,
-        movimientos:stripRuntime(d.movimientos),
-        transferencias:stripRuntime(d.transferencias),
-        conversiones:stripRuntime(d.conversiones||[]),
-        bancos:d.bancos||{},
-        tags:Array.isArray(d.tags)?d.tags:[],
-        tasasRecientes:Array.isArray(d.tasasRecientes)?d.tasasRecientes:[],
-        saldoUsdt:typeof d.saldoUsdt==='number'?d.saldoUsdt:0,
-        ultimaTasaCompra:d.ultimaTasaCompra||0,
-        ultimaTasaVenta:d.ultimaTasaVenta||0,
-        ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,
-        ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,
-        comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,
-        comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,
-        ultimoMesProcesado:d.ultimoMesProcesado||'',
-        _version:newVersion,
-        _wireFormat:WIRE_FORMAT_VERSION,
-        ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
-    };
-}
-
-/* ─── Validación pre-write completa (condición #4) ───────────────────────────
-   Verifica que la compresión preserva integridad ANTES de escribir. Si algo
-   falla, NO se escribe nada. */
-function _validateRecoveryPayload(payload,snapAntes){
-    const errors=[];
-    /* 1. Counts coherentes */
-    if(!Array.isArray(payload.operaciones)){
-        errors.push('operaciones no es array');
-        return{ok:false,errors};
-    }
-    if(payload.operaciones.length!==snapAntes.countOps){
-        errors.push('countOps cambió: '+snapAntes.countOps+' → '+payload.operaciones.length);
-    }
-    /* 2. Round-trip de operaciones */
-    let opsRT;
-    try{opsRT=_decompressOpsArrayFromWire(payload.operaciones);}
-    catch(e){errors.push('decompress falló: '+e.message);return{ok:false,errors}}
-    /* 3. Comparar sumas críticas */
-    const snapDespues=_capturarSnapshotIntegridad({
-        operaciones:opsRT,
-        movimientos:payload.movimientos,
-        transferencias:payload.transferencias,
-        lotes:[],
-        bancos:payload.bancos
-    });
-    const cmp=_compararSnapshotsIntegridad(snapAntes,snapDespues);
-    if(!cmp.ok)cmp.diffs.forEach(d=>errors.push('integridad: '+d));
-    /* 4. Tamaño del payload — no debe acercarse al 1MB */
-    let sizeKB=0;
-    try{
-        /* serverTimestamp() no es serializable directamente; stub para medir */
-        const{ultimaActualizacion,...rest}=payload;
-        sizeKB=Math.round(JSON.stringify(rest).length/1024);
-    }catch(_){}
-    if(sizeKB>900)errors.push('payload demasiado grande: '+sizeKB+' KB');
-    /* 5. FIFO sanity — verificar lotes/saldos no rotos
-       (No comparamos contra antes porque recovery viene de memoria saneada;
-       solo verificamos consistencia interna) */
-    return{ok:errors.length===0,errors,sizeKB,snapDespues};
-}
-
-/* ─── Verificación POST-write — leer doc remoto y confirmar ──────────────────
-   Lee el doc recién escrito con ref.get(). Verifica:
-     - existe
-     - _wireFormat === 'v1'
-     - count operaciones === esperado
-     - _version === esperado
-     - tamaño aproximado < 700 KB
-   Devuelve: {ok, diffs} */
-async function _verifyRecoveryWrite(expectedVersion,expectedCount){
-    if(!AppState.currentUser||!AppState.db)return{ok:false,diffs:['no user/db']};
-    const ref=AppState.db.collection('users').doc(AppState.currentUser.uid);
-    try{
-        /* Force server-only get para no leer del cache local (que tendría
-           el doc viejo si el listener estaba frozen) */
-        const snap=await ref.get({source:'server'});
-        if(!snap.exists)return{ok:false,diffs:['doc no existe post-write']};
-        const d=snap.data();
-        const diffs=[];
-        if(d._wireFormat!==WIRE_FORMAT_VERSION){
-            diffs.push('_wireFormat='+d._wireFormat+' (esperado: '+WIRE_FORMAT_VERSION+')');
-        }
-        if(!Array.isArray(d.operaciones)){
-            diffs.push('operaciones no es array');
-        }else if(d.operaciones.length!==expectedCount){
-            diffs.push('countOps='+d.operaciones.length+' (esperado: '+expectedCount+')');
-        }
-        if((d._version||0)!==expectedVersion){
-            diffs.push('_version='+(d._version||0)+' (esperado: '+expectedVersion+')');
-        }
-        const sizeKB=Math.round(JSON.stringify(d).length/1024);
-        if(sizeKB>800)diffs.push('payload remoto sigue grande: '+sizeKB+' KB');
-        return{ok:diffs.length===0,diffs,sizeKB,version:d._version||0,countOps:Array.isArray(d.operaciones)?d.operaciones.length:0};
-    }catch(e){
-        return{ok:false,diffs:['get post-write falló: '+(e.message||String(e))]};
-    }
-}
-
-/* ─── Reset post-recovery exitoso (condición #6) ─────────────────────────────
-   Boot limpio sobre el doc nuevo: limpiar caches legacy, resetear syncQueue,
-   resetear localDirty, re-suscribir listener. NO recargamos la página entera
-   (eso reiniciaría TODA la app y la experiencia sería brusca). Hacemos un
-   reset controlado en lugar. */
-async function _postRecoveryReset(){
-    RECOVERY_LOG('reset:start',{});
-    /* 1. Clear syncQueue */
-    if(typeof _syncQueue!=='undefined'&&Array.isArray(_syncQueue))_syncQueue.length=0;
-    /* 2. Reset localDirty */
-    if(typeof _localDirty!=='undefined')_localDirty=0;
-    /* 3. Reset flags */
-    if(typeof _syncPending!=='undefined')_syncPending=0;
-    if(typeof _syncErrors!=='undefined')_syncErrors=0;
-    if(typeof _guardando!=='undefined')_guardando=false;
-    if(typeof _guardarPendiente!=='undefined')_guardarPendiente=false;
-    /* 4. Re-suscribir listener para empezar con stream limpio */
-    try{
-        if(AppState.unsubscribe){
-            AppState.unsubscribe();
-            AppState.unsubscribe=null;
-        }
-    }catch(_){}
-    /* 5. Liberar el flag de recovery ANTES de re-suscribir */
-    AppState._recoveryActive=false;
-    /* 6. Re-suscribir — el snapshot va a llegar con el doc comprimido nuevo */
-    try{
-        if(typeof cargarDatosUsuario==='function')cargarDatosUsuario();
-    }catch(e){
-        RECOVERY_LOG('reset:resubscribe-failed',{error:String(e&&e.message||e)});
-    }
-    RECOVERY_LOG('reset:done',{});
-}
-
-/* ─── Write helper con timeout extendido ─────────────────────────────────────
-   Wrap de ref.set con timeout configurable y rejection limpia. Usa set(payload)
-   plano (no transaction). Si el SDK termina o resuelve, se cancela el timeout. */
-function _writeWithTimeout(ref,payload,timeoutMs){
-    return new Promise((resolve,reject)=>{
-        let done=false;
-        const handle=setTimeout(()=>{
-            if(done)return;
-            done=true;
-            reject(new Error('recovery-write-timeout'));
-        },timeoutMs);
-        ref.set(payload).then(()=>{
-            if(done)return;
-            done=true;
-            clearTimeout(handle);
-            resolve();
-        }).catch(err=>{
-            if(done)return;
-            done=true;
-            clearTimeout(handle);
-            reject(err);
-        });
-    });
-}
-
-/* ─── ORQUESTACIÓN PRINCIPAL: recoveryWrite ──────────────────────────────────
-   1. Marcar _recoveryActive (bloquea writes, freeze listener)
-   2. Mostrar overlay
-   3. Capturar snapshot integridad ANTES
-   4. Construir payload comprimido
-   5. Validar (round-trip + sumas + tamaño)
-   6. Loop de write con backoff: 3 intentos, timeouts 90s, esperas 5/15/30s
-   7. Verificar post-write con ref.get({source:'server'})
-   8. Si OK: reset limpio
-   9. Si falla: modo seguro con UI manual
-   
-   IMPORTANTE: una sola corrida a la vez. Si ya está activa, return inmediato. */
-let _recoveryRunning=false;
-async function recoveryWrite(opts){
-    if(_recoveryRunning){
-        RECOVERY_LOG('start:already-running',{});
-        return{ok:false,reason:'already-running'};
-    }
-    _recoveryRunning=true;
-    AppState._recoveryActive=true;
-    const trigger=opts&&opts.trigger||'auto';
-    RECOVERY_LOG('start',{trigger,memOps:(AppState.datos&&AppState.datos.operaciones||[]).length});
-    _ensureRecoveryOverlay();
-    _setRecoveryPhase('Verificando integridad local…');
-    _setRecoveryMeta(1,3);
-    /* ── Fase 1: snapshot integridad ANTES ── */
-    let snapAntes;
-    try{
-        snapAntes=_capturarSnapshotIntegridad({
-            operaciones:AppState.datos.operaciones||[],
-            movimientos:AppState.datos.movimientos||[],
-            transferencias:AppState.datos.transferencias||[],
-            lotes:[],
-            bancos:AppState.datos.bancos||{}
-        });
-        RECOVERY_LOG('snap-antes',{countOps:snapAntes.countOps,sumUsdt:snapAntes.sumUsdt.toFixed(2)});
-    }catch(e){
-        RECOVERY_LOG('snap-antes:failed',{error:String(e&&e.message||e)});
-        _enterSafeMode('Error capturando snapshot inicial: '+(e&&e.message||e));
-        _recoveryRunning=false;
-        return{ok:false,reason:'snap-antes-failed'};
-    }
-    /* ── Fase 2: construir + validar payload ── */
-    _setRecoveryPhase('Comprimiendo datos…');
-    let payload,validation;
-    try{
-        payload=_buildRecoveryPayload();
-        validation=_validateRecoveryPayload(payload,snapAntes);
-        RECOVERY_LOG('payload-built',{
-            ops:payload.operaciones.length,
-            sizeKB:validation.sizeKB,
-            valid:validation.ok
-        });
-    }catch(e){
-        RECOVERY_LOG('payload-build:failed',{error:String(e&&e.message||e)});
-        _enterSafeMode('Error construyendo payload: '+(e&&e.message||e));
-        _recoveryRunning=false;
-        return{ok:false,reason:'build-failed'};
-    }
-    if(!validation.ok){
-        RECOVERY_LOG('payload-invalid',{errors:validation.errors});
-        _enterSafeMode('Validación pre-write falló:\n• '+validation.errors.join('\n• '));
-        _recoveryRunning=false;
-        return{ok:false,reason:'validation-failed',errors:validation.errors};
-    }
-    /* ── Fase 3: loop de write con backoff ── */
-    const RETRY_DELAYS=[5000,15000,30000];
-    const MAX_ATTEMPTS=3;
-    const WRITE_TIMEOUT=90000;
-    const ref=AppState.db.collection('users').doc(AppState.currentUser.uid);
-    let lastError=null;
-    let writeOk=false;
-    for(let attempt=1;attempt<=MAX_ATTEMPTS;attempt++){
-        _setRecoveryPhase('Escribiendo snapshot ('+validation.sizeKB+' KB)…');
-        _setRecoveryMeta(attempt,MAX_ATTEMPTS);
-        RECOVERY_LOG('write-start',{attempt,maxAttempts:MAX_ATTEMPTS,sizeKB:validation.sizeKB});
-        const tStart=performance.now();
-        try{
-            await _writeWithTimeout(ref,payload,WRITE_TIMEOUT);
-            const ms=Math.round(performance.now()-tStart);
-            RECOVERY_LOG('write-confirmed',{attempt,ms});
-            writeOk=true;
-            break;
-        }catch(err){
-            const ms=Math.round(performance.now()-tStart);
-            lastError=err;
-            const errCode=err&&err.code||'';
-            const errMsg=err&&err.message||String(err);
-            RECOVERY_LOG('write-failed',{attempt,ms,errCode,errMsg});
-            if(attempt<MAX_ATTEMPTS){
-                _setRecoveryPhase('Reintento en '+(RETRY_DELAYS[attempt-1]/1000)+'s…');
-                await new Promise(res=>setTimeout(res,RETRY_DELAYS[attempt-1]));
-            }
-        }
-    }
-    if(!writeOk){
-        RECOVERY_LOG('failed-all-attempts',{lastError:String(lastError)});
-        _enterSafeMode('No se pudo escribir el snapshot comprimido después de '+
-            MAX_ATTEMPTS+' intentos.\nÚltimo error: '+
-            (lastError&&lastError.message||String(lastError)));
-        _recoveryRunning=false;
-        return{ok:false,reason:'write-failed',error:lastError};
-    }
-    /* ── Fase 4: verificación post-write ── */
-    _setRecoveryPhase('Verificando integridad remota…');
-    await new Promise(res=>setTimeout(res,1500));/* breathing room */
-    const verification=await _verifyRecoveryWrite(payload._version,payload.operaciones.length);
-    RECOVERY_LOG('verify',verification);
-    if(!verification.ok){
-        _enterSafeMode('Verificación post-write falló:\n• '+verification.diffs.join('\n• '));
-        _recoveryRunning=false;
-        return{ok:false,reason:'verify-failed',diffs:verification.diffs};
-    }
-    /* ── Fase 5: reset limpio ── */
-    _setRecoveryPhase('Sincronizando estado limpio…');
-    AppState._localVersion=verification.version;
-    if(AppState.datos)AppState.datos._version=verification.version;
-    /* Limpiar backup local viejo si existe — el doc nuevo es la fuente de verdad */
-    try{
-        if(typeof clearLocalBackup==='function')clearLocalBackup();
-    }catch(_){}
-    await _postRecoveryReset();
-    _setRecoveryPhase('✓ Listo. Optimización completada.');
-    RECOVERY_LOG('success',{
-        sizeBefore:opts&&opts.sizeBefore||null,
-        sizeAfter:verification.sizeKB,
-        version:verification.version,
-        countOps:verification.countOps
-    });
-    /* Esperar 1.5s para que el usuario vea el ✓ antes de cerrar */
-    setTimeout(()=>{_hideRecoveryOverlay();_recoveryRunning=false},1500);
-    return{ok:true,sizeKB:verification.sizeKB,version:verification.version};
-}
-
-/* ─── Entrar a modo seguro ───────────────────────────────────────────────────
-   Bloquea TODO. Muestra al usuario opciones manuales. */
-function _enterSafeMode(reasonText){
-    AppState._recoveryActive=false;/* recovery terminó (mal) */
-    AppState._recoverySafeMode=true;/* pero quedamos bloqueados */
-    RECOVERY_LOG('safemode:enter',{reason:reasonText});
-    _setRecoveryError(
-        'Recovery falló',
-        reasonText,
-        [
-            {label:'🔄 Reintentar recovery',color:'#3b82f6',onClick:()=>{
-                AppState._recoverySafeMode=false;
-                _hideRecoveryOverlay();
-                setTimeout(()=>recoveryWrite({trigger:'manual-retry'}),300);
-            }},
-            {label:'📤 Exportar estado actual (JSON)',color:'#16a34a',onClick:()=>{
-                try{
-                    if(typeof exportarDatos==='function')exportarDatos();
-                    else alert('Función de exportar no disponible. Anotá los datos críticos manualmente.');
-                }catch(e){alert('Error exportando: '+(e.message||e))}
-            }},
-            {label:'♻️ Restaurar desde backup local',color:'#a855f7',onClick:()=>{
-                if(!confirm('Esto sobrescribe el estado actual con el último backup local. ¿Continuar?'))return;
-                try{
-                    if(typeof restoreFromLocal==='function'){
-                        const b=restoreFromLocal();
-                        if(b&&b.datos){
-                            AppState.datos=b.datos;
-                            AppState._localVersion=b.v||0;
-                            alert('Backup restaurado a memoria. Reintentá recovery cuando quieras.');
-                        }else alert('No hay backup local disponible.');
-                    }
-                }catch(e){alert('Error restaurando: '+(e.message||e))}
-            }},
-            {label:'❌ Cerrar (queda en modo seguro)',color:'#64748b',onClick:()=>{
-                _hideRecoveryOverlay();
-                /* _recoverySafeMode sigue true — writes seguirán bloqueados hasta
-                   que el usuario haga un reintento exitoso o recargue la página */
-            }}
-        ]
-    );
-}
-
-/* ─── Detección automática inicial ───────────────────────────────────────────
-   Se llama UNA vez después del primer snapshot exitoso. Si el doc remoto NO
-   tiene _wireFormat y memoria tiene ops, dispara recovery automáticamente. */
-let _autoCheckDone=false;
-async function _autoCheckRecoveryNeeded(){
-    if(_autoCheckDone)return;
-    _autoCheckDone=true;
-    /* Esperar a que la app esté estable */
-    if(!AppState.currentUser||!AppState.db)return;
-    if(!AppState.datos||!Array.isArray(AppState.datos.operaciones))return;
-    if(AppState.datos.operaciones.length===0)return;/* fresh user, nada que migrar */
-    /* Pequeña espera para que el bootstrap termine */
-    await new Promise(res=>setTimeout(res,2500));
-    /* Re-chequear que no se inició otra recovery */
-    if(_recoveryRunning||AppState._recoveryActive)return;
-    /* Inspeccionar doc remoto */
-    const info=await _inspectRemoteDoc();
-    if(!info){
-        RECOVERY_LOG('auto-check:inspect-null',{});
-        return;
-    }
-    if(!info.exists){
-        RECOVERY_LOG('auto-check:remote-empty',{});
-        return;
-    }
-    if(info.wireFormat===WIRE_FORMAT_VERSION){
-        RECOVERY_LOG('auto-check:already-compressed',{sizeKB:Math.round(info.sizeApprox/1024)});
-        return;
-    }
-    /* Doc remoto legacy detectado */
-    RECOVERY_LOG('auto-check:legacy-detected',{
-        sizeKB:Math.round(info.sizeApprox/1024),
-        countOps:info.countOps,
-        version:info.version
-    });
-    /* Dispará recovery */
-    recoveryWrite({trigger:'auto-detect',sizeBefore:Math.round(info.sizeApprox/1024)});
-}
-
-/* ─── Guard permanente post-recovery — payload > 850 KB ──────────────────────
-   Si en algún momento el payload local proyectado supera 850 KB, bloquear
-   nuevos writes y alertar. Nunca más zona crítica silenciosa. */
-function _checkPayloadGuard(payloadKB){
-    if(payloadKB>850&&!AppState._payloadGuardTriggered){
-        AppState._payloadGuardTriggered=true;
-        AppState._recoverySafeMode=true;/* freno los writes */
-        RECOVERY_LOG('payload-guard:tripped',{payloadKB});
-        try{
-            _setRecoveryError(
-                '⚠️ Payload crítico ('+payloadKB+' KB)',
-                'El tamaño del documento se acercó al límite de Firestore. Writes bloqueados preventivamente.',
-                [
-                    {label:'📤 Exportar backup',color:'#16a34a',onClick:()=>{
-                        try{if(typeof exportarDatos==='function')exportarDatos()}catch(_){}
-                    }},
-                    {label:'🔧 Forzar recovery write',color:'#3b82f6',onClick:()=>{
-                        AppState._recoverySafeMode=false;
-                        AppState._payloadGuardTriggered=false;
-                        _hideRecoveryOverlay();
-                        setTimeout(()=>recoveryWrite({trigger:'guard-trip'}),300);
-                    }},
-                    {label:'❌ Continuar de todas formas',color:'#64748b',onClick:()=>{
-                        AppState._recoverySafeMode=false;
-                        _hideRecoveryOverlay();
-                    }}
-                ]
-            );
-        }catch(_){}
-    }
-}
-
-/* Exposición pública para diagnóstico manual.
-   v4.8.2.3 — auto-check al cargar DESACTIVADO. El usuario decide cuándo correr
-   recovery desde Diagnóstico → 🚨 Recovery write. */
-window.recoveryWrite=recoveryWrite;
-window._inspectRemoteDoc=_inspectRemoteDoc;
-window._checkPayloadGuard=_checkPayloadGuard;
-/* Exposición también para diagnóstico manual */
-window._autoCheckRecoveryNeeded=_autoCheckRecoveryNeeded;
-
-/* v4.8.2.3 — NO auto-check al cargar.
-   La condición que activaba recoveryWrite (doc raíz sin _wireFormat:"v1")
-   se cumplía espuriamente en PC y disparaba overlay "Optimización crítica
-   de base de datos" en cada apertura, bloqueando el gate de subcollections.
-   El usuario puede ejecutar recovery manual desde Diagnóstico. */
-
-})();
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    §SUBCOL-GATE v4.8.2 — Activación del runtime subcol post-bootstrap
