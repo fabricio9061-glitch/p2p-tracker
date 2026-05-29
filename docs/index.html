@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.64',
+    APP_VERSION: '4.7.65',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,9 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.65', date:'2026-05-29', headline:'🔧 Fix: el botón "Resetear aplicación" ahora borra los datos de verdad.', changes:[
+        {type:'fix', title:'"Resetear aplicación" no persistía el reset', desc:'borrarTodo() llamaba a guardarDatos() sin forzar y sin limpiar el backup local. Con el estado ya vacío, el blindaje anti-wipe abortaba el write (detectaba "vacío + backup con datos"), así que Firebase conservaba los datos viejos y el próximo snapshot los restauraba (Branch 1 del listener). El reset parecía funcionar pero los datos volvían al recargar. FIX: borrarTodo ahora limpia el backup local (clave principal y _prev) y llama guardarDatos(true) para saltear el guard SOLO en esta acción explícita y doble-confirmada. El blindaje anti-wipe sigue intacto para todos los demás writes. Cómo probar: con datos cargados, Resetear → confirmar dos veces → recargar (F5): los datos NO deben volver.'}
+    ]},
     {version:'4.7.64', date:'2026-05-26', headline:'🚨 Recovery Write: migración controlada legacy → comprimido + payload guard permanente.', changes:[
         {type:'fix', title:'CRÍTICO: rescate del doc remoto en estado degradado', desc:'Después de v4.7.63 el doc remoto quedó atrapado en formato legacy (~951 KB) porque Firestore aplicaba throttling sobre writes encima de él. La compresión funcionaba (payload local 537 KB confirmado en logs) pero ningún write se confirmaba. SOLUCIÓN: módulo recoveryWrite() aislado — bloquea TODOS los writes accesorios, congela el listener, escribe UN solo doc comprimido limpio con timeout 90s y 3 reintentos con backoff 5s/15s/30s, verifica leyendo del servidor, hace reset limpio del estado.'},
         {type:'feature', title:'Detección automática al cargar', desc:'4 segundos después de DOMContentLoaded: si el doc remoto NO tiene _wireFormat:"v1" y memoria tiene operaciones, dispara recoveryWrite() automáticamente. Una sola vez por sesión. Si ya está comprimido, no hace nada (log: already-compressed).'},
@@ -9081,7 +9084,19 @@ async function borrarTodo(){
             AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
             inicializarBancos();AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
             $('comisionPlataforma').value='0,14';setText('comisionPctLabel','0,14');
-            await guardarDatos();actualizarVista();
+            /* v4.7.65 FIX (B1): limpiar el backup local ANTES de guardar. Sin esto, el
+               blindaje anti-wipe de guardarDatos aborta el write (estado vacío + backup con
+               datos) y el próximo snapshot restaura los datos viejos por Branch 1 → el reset
+               "no funcionaba". El guard anti-wipe sigue intacto para todos los demás writes. */
+            try{
+                if(AppState.currentUser){
+                    localStorage.removeItem('p2p_backup_'+AppState.currentUser.uid);
+                    localStorage.removeItem('p2p_backup_'+AppState.currentUser.uid+'_prev');
+                }
+            }catch(_){}
+            if(typeof backupToLocal==='function')backupToLocal._lastSig=null;
+            /* forzar=true → saltea el guard anti-wipe SOLO en esta acción explícita y doble-confirmada */
+            await guardarDatos(true);actualizarVista();
         }catch(e){console.error('[P2P] Error reiniciando datos:',e)}
     }
 }
