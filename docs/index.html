@@ -2241,7 +2241,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2.17',
+    APP_VERSION: '4.8.2.18',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -2571,6 +2571,13 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.2.18', date:'2026-05-28', headline:'🔒 MODO SEGURO: nunca más volver a legacy single-doc ni migrar automáticamente.', changes:[
+        {type:'fix', title:'ELIMINADA la migración automática desde legacy', desc:'v4.8.2.16 había agregado auto-migración cuando el gate no encontraba subcolecciones — pero eso era la ruta peligrosa: disparaba subcol:migrate:start al abrir, consumía cuota y podía mezclar datos viejos. ELIMINADA por completo la función _subcolGate_migrateFromLegacy y toda ruta que migre sola. La app nunca más migra automáticamente al abrir.'},
+        {type:'fix', title:'MODO SEGURO en vez de fallback a legacy', desc:'Antes, si el gate fallaba (sin _meta, sin subcol, timeout, cuota), la app caía a legacy single-doc → revivía el doc gigante de 976KB, wire-compress y save:write-start payloadKB:569, agotando la cuota. AHORA: si el gate no confirma subcolecciones, la app entra en MODO SEGURO. guardarDatos legacy queda BLOQUEADO (save:blocked-safe-mode) — nunca escribe el doc gigante. Los datos locales siguen visibles. Se avisa al usuario: "estructura remota incompleta, importá tu backup para reparar".'},
+        {type:'fix', title:'Reparación SOLO manual vía import', desc:'La única forma de salir del modo seguro y reconstruir la estructura es que el usuario importe su backup JSON explícitamente. El import sube los datos a subcolecciones, recrea _meta/migration, y activa subcol. Nunca automático, siempre disparado por el usuario, con el JSON como fuente de verdad.'},
+        {type:'fix', title:'Regla definitiva cumplida', desc:'Nunca más: subcol:migrate:start al abrir, subcol:mode:legacy, wire-compress automático, ni save:write-start con payload grande por fallo del gate. Si subcollections no está disponible → modo seguro/offline, jamás single-doc.'},
+        {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.18. 2) Force-quit + reabrir. 3) Si el gate encuentra subcol (caso normal): subcol:mode:activated, todo funciona. 4) Si por algún motivo no encuentra _meta/subcol: log subcol:mode:SAFE + alerta de modo seguro, y NUNCA save:write-start payloadKB grande. 5) En modo seguro, para reparar: Menú → Importar datos → tu JSON → recrea la estructura y sale de safe-mode. 6) El log jamás debe volver a mostrar subcol:migrate:start ni payloadKB:569 al abrir.'}
+    ]},
     {version:'4.8.2.17', date:'2026-05-28', headline:'🧹 Limpieza arquitectónica: eliminada toda la capa de recovery legacy (~1540 líneas).', changes:[
         {type:'fix', title:'Eliminado el sistema de Recovery completo', desc:'Borrado definitivamente (no escondido): iniciarRecuperacionFirestore() — la función que llamaba db.terminate()+clearPersistence() y que causó pérdidas de datos —, recoveryWrite(), _autoCheckRecoveryNeeded(), _checkPayloadGuard(), el overlay "Optimización crítica" y todos sus helpers. También los 8 chequeos de recovery embebidos en guardarDatos, el listener y cargarDatosUsuario. En modo subcollections no hay doc gigante que "recuperar", así que toda esta maquinaria era código durmiente peligroso.'},
         {type:'fix', title:'Eliminados los botones de rescate del Diagnóstico', desc:'Quitados (botón + handler): "Recovery write", "Reset SDK Firestore" (terminate+clearPersistence — te causó problemas de cache), "Migrar subcollections" (redundante: el gate ahora migra solo), y las 4 auditorías de compresión/comisión/splits/tamaño. El panel de Diagnóstico queda con lo útil: Actualizar, Forzar sync, Copiar, Cerrar.'},
@@ -2599,12 +2606,6 @@ const CHANGELOG = [
         {type:'verified', title:'Por qué estos 3 juntos resuelven el problema persistente', desc:'El síntoma (datos viejos reaparecen) tenía 3 capas: (1) el import decía OK sin borrar las viejas del server [BUG #1], (2) las ops que fallaban al subir se perdían porque el retry no tenía el payload [BUG #2], (3) las pendientes podían borrarse por reconciliación temprana [BUG #3]. Los tres están cerrados. Ahora: import → si algo falla, lo dice y reintenta con el payload real; si todo va bien, el server queda EXACTO al JSON.'},
         {type:'verified', title:'Cómo probar', desc:'1) Subir v4.8.2.14. 2) Force-quit + reabrir + esperar "En línea". 3) Menú → Importar datos → tu JSON. 4) ESPERAR a que termine. 5) Si dice "Datos restaurados correctamente" + "El servidor quedó sincronizado exactamente con el backup" → OK, el server quedó limpio. 6) Si dice "Importación PARCIAL" → esperá "En línea" y volvé a importar el mismo JSON. 7) Cuando sea exitoso: force-quit + reabrir → los datos del JSON persisten, las viejas NO vuelven. 8) Log clave: subcol:restore-push:done {totalFailed:0, orphansUnverified:false}.'},
         {type:'pending', title:'Próximo: limpieza de herramientas legacy (bugs 4,5,6 de la auditoría)', desc:'Una vez confirmado que el import persiste, la próxima versión (v4.8.3) eliminará por completo: recoveryWrite, _autoCheckRecoveryNeeded, _checkPayloadGuard, overlay recovery, botón Recovery, "Migrar subcollections", "Reset SDK Firestore", auditorías de compresión, y simplificará guardarDatos a config-only directo (sin wire-compress). Primero estabilidad del import, después limpieza.'}
-    ]},
-    {version:'4.8.2.13', date:'2026-05-28', headline:'🔁 Fix raíz: el import ahora REEMPLAZA el server (borra las ops viejas).', changes:[
-        {type:'fix', title:'BUG RAÍZ (CRÍTICO): el import solo agregaba, nunca borraba las viejas del server', desc:'Diagnóstico por capturas: tras un reset, a los segundos reaparecían 60 ops viejas con datos que NO eran del JSON importado. Causa: las ops viejas estaban en el SERVER (subcolecciones), no en el cache. _subcol_pushFullRestore hacía set() de cada op del JSON — sobrescribía las que coinciden por ID, pero NUNCA borraba del server las que el JSON no tiene. Si el server tenía 3700 ops (con viejas) y el JSON 3644, quedaban 56 viejas mezcladas que el listener bajaba en cada arranque. v4.8.2.13: el restore ahora hace REEMPLAZO COMPLETO — lee los IDs del server, sube los del JSON, y BORRA los que el JSON no tiene. El server queda EXACTAMENTE igual al JSON importado. Logs: subcol:restore-push:deleting-orphans, orphans-deleted.'},
-        {type:'fix', title:'Por qué los resets no alcanzaban', desc:'El reset SDK limpia el cache local, pero al reconectar el listener trae del server. Como el server tenía las viejas (el import nunca las borró), reaparecían. El reset no era el problema — el server desactualizado sí. Ahora que el import reemplaza el server completo, tras importar el server queda limpio y los resets/reaperturas muestran los datos correctos.'},
-        {type:'fix', title:'Borrado de huérfanos resiliente', desc:'El borrado de ops huérfanas usa batches de 150 con timeout 45s y pausa entre batches (igual que la subida). Si un batch de borrado falla, encola los IDs como pending delete para retry — no aborta. El import sigue siendo robusto ante red lenta.'},
-        {type:'verified', title:'Cómo probar — IMPORTANTE', desc:'1) Subir v4.8.2.13. 2) Force-quit + reabrir + esperar "En línea". 3) Menú → Importar datos → tu JSON. 4) Confirmar y ESPERAR a que termine (puede tardar con red lenta — va a borrar las viejas y subir las del JSON). 5) Log: subcol:restore-push:start → entity-done → deleting-orphans (las viejas) → orphans-deleted → done. 6) Cuando diga "Datos restaurados correctamente", el server quedó = JSON. 7) Force-quit + reabrir → ahora SÍ deben verse los datos del JSON, las viejas ya no están en el server. 8) Si la red corta el proceso, el mensaje avisa que hay pendientes — esperá a que el retry termine antes de cerrar.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
@@ -5536,6 +5537,15 @@ function updateSyncBadge(){
 
 async function guardarDatos(forzar,opts){
     if(!AppState.currentUser)return;
+    /* ═══ v4.8.2.18 — BLOQUEO EN MODO SEGURO ═══
+       Si el gate no pudo confirmar subcolecciones (_subcolSafeMode), NUNCA escribir
+       el doc raíz legacy. Eso reviviría el doc gigante de 976KB + wire-compress +
+       save:write-start payloadKB:569 y podría agotar la cuota o mezclar datos viejos.
+       Los datos locales están a salvo; el usuario repara importando el backup. */
+    if(AppState._subcolSafeMode===true){
+        _syncLog&&_syncLog('save:blocked-safe-mode',{forzar:!!forzar});
+        return;
+    }
     /* ═══ v4.8.2.2 — Corte legacy cuando _subcolActive ═══
        Si subcol runtime está activo, las entidades migradas (operaciones/
        movimientos/transferencias) NO deben pasar por el sync legacy.
@@ -8761,17 +8771,36 @@ async function _aplicarRespaldo(datos,origen){
            atómico por lotes de 400). Las entidades NO migradas (bancos, config)
            van por guardarDatos normal al doc raíz. */
         let pushResult={totalFailed:0};
-        if(AppState._subcolActive===true){
+        /* v4.8.2.18 — el import SUBE a subcolecciones tanto si subcol ya está activo
+           como si estamos en MODO SEGURO. En safe-mode, el import es la reparación
+           manual: sube los datos del JSON a subcol, recrea _meta, y sale de safe-mode.
+           Es la única vía autorizada para reconstruir la estructura — explícita,
+           disparada por el usuario, nunca automática. */
+        if(AppState._subcolActive===true || AppState._subcolSafeMode===true){
             AppState._subcolRestoreInProgress=true;
             try{
                 pushResult=await _subcol_pushFullRestore(datos)||{totalFailed:0};
-                /* Forzar guardado del doc raíz para config/bancos (no migrados).
-                   guardarDatos drena las migradas y sube solo lo no-migrado. */
-                try{await guardarDatos(true)}catch(_){}
+                /* Si veníamos de safe-mode, recrear _meta/migration y activar subcol. */
+                if(AppState._subcolSafeMode===true && !pushResult.orphansUnverified){
+                    try{
+                        const ref=subcol_userRef();
+                        if(ref){
+                            await _withTimeout(ref.collection('_meta').doc('migration').set({
+                                schemaVersion:'v2',
+                                repairedAt:firebase.firestore.FieldValue.serverTimestamp(),
+                                repairedBy:CONFIG.APP_VERSION,
+                                note:'import-repair'
+                            }),15000,'import.meta.repair');
+                            _syncLog&&_syncLog('subcol:meta-repaired-by-import',{});
+                            AppState._subcolSafeMode=false;
+                            if(typeof subcol_activate==='function')await subcol_activate();
+                        }
+                    }catch(e){_syncLog&&_syncLog('subcol:meta-repair-failed',{error:e.message})}
+                }else if(AppState._subcolActive===true){
+                    /* subcol ya activo: subir config no-migrada al doc raíz (chico). */
+                    try{await guardarDatos(true)}catch(_){}
+                }
             }finally{
-                /* Liberar el guard tras un margen para que el primer snapshot del
-                   server (que trae las ops recién subidas) no dispare reconcile
-                   prematuro. La reconciliación quedará para el próximo arranque. */
                 AppState._subcolServerReconciled={operaciones:true,movimientos:true,transferencias:true};
                 setTimeout(()=>{AppState._subcolRestoreInProgress=false},2000);
             }
@@ -9320,74 +9349,6 @@ async function subcol_migrate(progressCallback){
    escribe la marca automáticamente y activa. SIN verificación de counts. Confiamos
    en que la migración previa quedó completa — si no, el usuario lo va a notar y
    tiene siempre el JSON exportable como red de seguridad. */
-/* ─── _subcolGate_migrateFromLegacy ───────────────────────────────────────────
-   v4.8.2.16 — Migra el doc raíz legacy a subcolecciones automáticamente.
-   Lee operaciones/movimientos/transferencias del doc raíz, las sube a sus
-   subcolecciones en batches, valida conteos y marca _meta/migration=v2.
-   Devuelve {ok, ops, movs, transfs} o {ok:false, reason}. */
-async function _subcolGate_migrateFromLegacy(ref,log){
-    let rootData=null;
-    try{
-        const rootSnap=await _withTimeout(ref.get({source:'server'}),15000,'migrate.root.get');
-        if(!rootSnap.exists)return{ok:false,reason:'no-legacy-data'};
-        rootData=rootSnap.data();
-    }catch(e){
-        return{ok:false,reason:'root-read: '+e.message};
-    }
-    const ops=Array.isArray(rootData.operaciones)?rootData.operaciones:[];
-    const movs=Array.isArray(rootData.movimientos)?rootData.movimientos:[];
-    const transfs=Array.isArray(rootData.transferencias)?rootData.transferencias:[];
-    if(ops.length===0&&movs.length===0&&transfs.length===0){
-        return{ok:false,reason:'no-legacy-data'};
-    }
-    log('subcol:migrate:start',{ops:ops.length,movs:movs.length,transfs:transfs.length});
-    const ENTITIES=[['operaciones',ops],['movimientos',movs],['transferencias',transfs]];
-    const BATCH=150;
-    for(const [entity,items] of ENTITIES){
-        for(let i=0;i<items.length;i+=BATCH){
-            const slice=items.slice(i,i+BATCH);
-            const batch=AppState.db.batch();
-            slice.forEach(item=>{
-                if(!item||item.id==null)return;
-                const stripped=(typeof _subcol_stripPersistFields==='function')?_subcol_stripPersistFields(item):item;
-                batch.set(ref.collection(entity).doc(String(item.id)),stripped);
-            });
-            try{
-                await _withTimeout(batch.commit(),45000,'migrate.'+entity);
-            }catch(e){
-                return{ok:false,reason:'batch-'+entity+': '+e.message};
-            }
-            await new Promise(r=>setTimeout(r,150));
-        }
-        log('subcol:migrate:entity-done',{entity,count:items.length});
-    }
-    /* Validar conteos en server */
-    try{
-        for(const [entity,items] of ENTITIES){
-            if(items.length===0)continue;
-            const snap=await _withTimeout(ref.collection(entity).get({source:'server'}),30000,'migrate.verify.'+entity);
-            if(snap.size<items.length){
-                return{ok:false,reason:'verify-'+entity+': server '+snap.size+' < expected '+items.length};
-            }
-        }
-    }catch(e){
-        return{ok:false,reason:'verify: '+e.message};
-    }
-    /* Marcar meta=completed */
-    try{
-        await _withTimeout(ref.collection('_meta').doc('migration').set({
-            schemaVersion:SUBCOL_SCHEMA_V2,
-            status:'completed',
-            migratedAt:firebase.firestore.FieldValue.serverTimestamp(),
-            migratedBy:CONFIG.APP_VERSION,
-            counts:{operaciones:ops.length,movimientos:movs.length,transferencias:transfs.length}
-        }),15000,'migrate.meta.set');
-    }catch(e){
-        return{ok:false,reason:'meta-set: '+e.message};
-    }
-    return{ok:true,ops:ops.length,movs:movs.length,transfs:transfs.length};
-}
-
 async function _subcolGate(){
     const log=(ev,data)=>{try{_syncLog&&_syncLog(ev,data||{})}catch(_){}};
     const ref=subcol_userRef();
@@ -9424,39 +9385,18 @@ async function _subcolGate(){
         const sampleSnap=await _withTimeout(opsRef.limit(1).get({source:'server'}),10000,'gate.sample.get');
         if(sampleSnap.empty){
             /* ═══════════════════════════════════════════════════════════════════
-               v4.8.2.16 — NO caer a legacy. Si la subcolección está vacía pero el
-               doc raíz legacy tiene operaciones, MIGRAR automáticamente.
+               v4.8.2.18 — MODO SEGURO. NO migrar automáticamente, NO caer a legacy.
                
-               Antes: subcol:gate:no-meta-and-no-data → modo legacy permanente con
-               el doc de 976KB como fuente. Ese era el bug raíz: la app nunca salía
-               de legacy y el doc crecía hacia el límite de 1MB.
+               Si no hay subcolecciones ni _meta, NO sabemos con certeza el estado
+               remoto. Migrar automáticamente desde el doc raíz es peligroso: consume
+               cuota, puede mezclar datos viejos, y dispara al abrir. Caer a legacy
+               single-doc revive el doc gigante de 976KB y el wire-compress.
                
-               Ahora: leer el doc raíz; si tiene operaciones, subirlas a las
-               subcolecciones, marcar meta=v2, activar subcol. */
-            log('subcol:gate:no-subcol-checking-legacy',{});
-            const migrated=await _subcolGate_migrateFromLegacy(ref,log);
-            if(migrated.ok){
-                log('subcol:gate:migrated-from-legacy',{ops:migrated.ops,movs:migrated.movs,transfs:migrated.transfs});
-                return{active:true,reason:'migrated-from-legacy'};
-            }
-            if(migrated.reason==='no-legacy-data'){
-                /* Ni subcol ni legacy con datos → cuenta nueva/vacía. Activar subcol
-                   igual (es el modo correcto para empezar) y marcar meta. */
-                try{
-                    await _withTimeout(ref.collection('_meta').doc('migration').set({
-                        schemaVersion:SUBCOL_SCHEMA_V2,
-                        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-                        createdBy:CONFIG.APP_VERSION,
-                        note:'empty-account'
-                    }),15000,'gate.empty-meta.set');
-                }catch(_){}
-                log('subcol:gate:empty-account-subcol',{});
-                return{active:true,reason:'empty-account'};
-            }
-            /* Migración falló (red/cuota) → NO activar, reintentar próxima sesión.
-               Mientras tanto legacy sigue como fallback de SOLO LECTURA. */
-            log('subcol:gate:migration-failed',{error:migrated.reason});
-            return{active:false,reason:'migration-failed: '+migrated.reason};
+               Regla definitiva: si falta la estructura subcol, la app queda en MODO
+               SEGURO — bloquea guardarDatos legacy y pide acción manual (importar
+               backup). El usuario migra/repara explícitamente, nunca automático. */
+            log('subcol:gate:no-subcol-safe-mode',{});
+            return{active:false,reason:'safe-mode-no-subcol',safeMode:true};
         }
         const sample=sampleSnap.docs[0].data();
         const expanded=typeof sample.tipo==='string' && typeof sample.monto==='number';
@@ -9465,11 +9405,11 @@ async function _subcolGate(){
                 hasTipo:typeof sample.tipo,
                 hasMonto:typeof sample.monto
             });
-            return{active:false,reason:'bad-format'};
+            return{active:false,reason:'bad-format',safeMode:true};
         }
     }catch(e){
         log('subcol:gate:sample-error',{error:e.message});
-        return{active:false,reason:'sample-error: '+e.message};
+        return{active:false,reason:'sample-error: '+e.message,safeMode:true};
     }
     /* Step 4: escribir _meta/migration y activar. Doc chico, una sola escritura. */
     try{
@@ -10248,7 +10188,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='exportar-diagnostico')exportarDiagnostico();
         else if(a==='diagnostico-sync')abrirDiagnosticoSync();
         else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}/* v4.8.2.5 — FIX #4: desuscribir listeners subcol y resetear flags */if(AppState._subcolUnsubs){Object.values(AppState._subcolUnsubs).forEach(u=>{try{u&&u()}catch(_){}});AppState._subcolUnsubs={}}AppState._subcolActive=false;AppState._subcolFirstSnapshots={};AppState._subcolServerReconciled=null;AppState._subcolRootCleaned=false;window.__APP_BOOTSTRAPPED_UID__=null;AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}/* v4.8.2.5 — FIX #4: desuscribir listeners subcol y resetear flags */if(AppState._subcolUnsubs){Object.values(AppState._subcolUnsubs).forEach(u=>{try{u&&u()}catch(_){}});AppState._subcolUnsubs={}}AppState._subcolActive=false;AppState._subcolSafeMode=false;AppState._subcolFirstSnapshots={};AppState._subcolServerReconciled=null;AppState._subcolRootCleaned=false;window.__APP_BOOTSTRAPPED_UID__=null;AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
     });
 
     // Toggle sections
@@ -10644,9 +10584,36 @@ async function _runGate(){
         return;
     }
     if(result.active){
+        AppState._subcolSafeMode=false;
         await subcol_activate();
+    }else if(result.safeMode===true){
+        /* ═══════════════════════════════════════════════════════════════════
+           v4.8.2.18 — MODO SEGURO. El gate no pudo confirmar subcolecciones.
+           NO caer a legacy single-doc. Bloquear guardarDatos legacy (que escribe
+           el doc gigante + wire-compress) y avisar al usuario para acción manual.
+           Las lecturas siguen funcionando desde el backup local hidratado. */
+        AppState._subcolSafeMode=true;
+        try{_syncLog&&_syncLog('subcol:mode:SAFE',{reason:result.reason})}catch(_){}
+        try{if(typeof setSyncStatus==='function')setSyncStatus('offline','Estructura remota incompleta')}catch(_){}
+        try{
+            if(!sessionStorage.getItem('_safeModeWarned')){
+                sessionStorage.setItem('_safeModeWarned','1');
+                setTimeout(()=>{
+                    alert('⚠️ Modo seguro activado\n\n'
+                        +'No se pudo confirmar la estructura de datos en el servidor '
+                        +'(subcolecciones o _meta faltantes).\n\n'
+                        +'Para protegerte, la app NO va a escribir en el formato viejo. '
+                        +'Tus datos locales están a salvo y podés seguir consultándolos.\n\n'
+                        +'Para reparar: Menú → Importar datos → tu último backup JSON. '
+                        +'Eso reconstruye la estructura correcta en el servidor.');
+                },800);
+            }
+        }catch(_){}
     }else{
-        try{_syncLog&&_syncLog('subcol:mode:legacy',{reason:result.reason})}catch(_){}
+        /* Gate falló por red/timeout (no safe-mode explícito). Tampoco caer a
+           legacy: activar modo seguro igual. Nunca escribir el doc gigante. */
+        AppState._subcolSafeMode=true;
+        try{_syncLog&&_syncLog('subcol:mode:SAFE',{reason:result.reason||'gate-failed'})}catch(_){}
     }
 }
 
