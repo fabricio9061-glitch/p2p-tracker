@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.67',
+    APP_VERSION: '4.7.69',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,12 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.7.69', date:'2026-05-29', headline:'🧹 Quitado el panel de Diagnóstico de sincronización del menú.', changes:[
+        {type:'improve', title:'Diagnóstico de sincronización retirado de la UI', desc:'Se quitaron del menú las dos entradas de diagnóstico y el panel (modal) de Diagnóstico de sincronización. Las protecciones automáticas de datos (logger interno de sync, compresión wire, recovery-write, anti-wipe) NO se tocaron: corren en segundo plano y son las que mantienen tus datos a salvo. La exportación/importación de datos (respaldo manual) tampoco se tocó. La estructura del proyecto sigue modular (src/css y src/js).'}
+    ]},
+    {version:'4.7.68', date:'2026-05-29', headline:'🧹 Mantenimiento: limpieza de código muerto (sin cambios funcionales).', changes:[
+        {type:'improve', title:'Eliminadas 5 funciones sin uso', desc:'Se quitaron 5 funciones internas que no estaban referenciadas en ninguna parte del proyecto (ni en JS, ni en HTML, ni como string), verificado con parser. Eran utilidades obsoletas o reemplazadas. Como ninguna se invocaba, la eliminación no cambia ningún comportamiento. Por seguridad de datos NO se tocó la lógica de respaldo ni de guardado.'}
+    ]},
     {version:'4.7.67', date:'2026-05-29', headline:'🧹 Mantenimiento: JavaScript movido a módulos externos (sin cambios de lógica).', changes:[
         {type:'improve', title:'Modularización del JS (Fase 2)', desc:'Las ~8350 líneas de JavaScript que estaban embebidas en index.html se movieron a 14 archivos en src/js/, cargados en el MISMO orden que tenían en el archivo original para preservar el orden de ejecución y las dependencias. Cero cambios de lógica o comportamiento: la concatenación de los archivos en orden es idéntica byte a byte al JS original, y no hay funciones llamadas antes de declararse entre archivos (verificado con parser). Siguen siendo scripts clásicos (sin import/export) para no romper los handlers globales. Objetivo: que cada cambio futuro toque un archivo chico y acotado, no un monolito.'}
     ]},

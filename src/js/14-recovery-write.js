@@ -48,8 +48,6 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='restaurar-respaldo')restaurarRespaldoManual();
         else if(a==='exportar-datos')exportarDatos();
         else if(a==='importar-datos')importarDatos();
-        else if(a==='exportar-diagnostico')exportarDiagnostico();
-        else if(a==='diagnostico-sync')abrirDiagnosticoSync();
         else if(a==='borrar-todo')borrarTodo();
         else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
     });

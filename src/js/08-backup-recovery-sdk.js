@@ -281,15 +281,6 @@ function restoreFromLocal(){
         return b;
     }catch(e){return null}
 }
-function restoreFromLocalPrev(){
-    try{
-        if(!AppState.currentUser)return null;
-        const k='p2p_backup_'+AppState.currentUser.uid+'_prev';
-        const raw=localStorage.getItem(k);
-        if(!raw)return null;
-        return JSON.parse(raw);
-    }catch(e){return null}
-}
 /* Clear backup solo cuando el estado actual es DEMOSTRABLEMENTE mayor o igual al backup.
    Nunca borrar si el estado actual está vacío o tiene menos puntaje. */
 function clearLocalBackup(){
@@ -1597,8 +1588,4 @@ function exportarDiagnostico(){
         console.error('[P2P] Error exportando diagnóstico:',e);
         alert('❌ Error exportando diagnóstico: '+(e.message||'desconocido'));
     }
-}
-function limpiarLogErrores(){
-    if(!confirm('¿Borrar el log de errores local?\n\nEsto solo afecta los datos de diagnóstico, no tus datos de la app.'))return;
-    try{localStorage.removeItem(_ERRLOG_KEY);alert('✅ Log de errores borrado.')}catch(e){alert('Error: '+e.message)}
 }

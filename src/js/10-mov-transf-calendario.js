@@ -531,16 +531,6 @@ function calcularIngresosExternosDia(fecha){
     });
     return total;
 }
-function calcularIngresosExternosMes(yyyy_mm){
-    if(!yyyy_mm)return 0;
-    const tasaFb=AppState.datos.ultimaTasaCompra||1;
-    let total=0;
-    AppState.datos.movimientos.forEach(m=>{
-        if(m.tipoMovimiento!=='ingreso'||!m.fecha?.startsWith(yyyy_mm))return;
-        total=roundMoney(total+movimientoValorUYU(m,tasaFb));
-    });
-    return total;
-}
 
 function calcularGananciaDiaria(monedaFiltro){
     const key=_gananciaCacheKey(monedaFiltro);

@@ -460,10 +460,6 @@ function mostrarBannerClienteTerminado(){
            para bloquear nuevos saves. Eso lo gestiona guardarDatos directamente. */
     });
 }
-function ocultarBannerClienteTerminado(){
-    const b=document.getElementById('clientTerminatedBanner');
-    if(b)b.remove();
-}
 function activarCooldown() {
     AppState.ui.enCooldown=true;
     setTimeout(()=>{ AppState.ui.enCooldown=false; },CONFIG.COOLDOWN_MS);
@@ -471,7 +467,6 @@ function activarCooldown() {
 
 /* ═══ Performance instrumentation ═══ */
 const _perf={enabled:false,log(name,ms){if(this.enabled||ms>100)console.log(`[PERF] ${name}: ${ms.toFixed(1)}ms`)}};
-function perfWrap(name,fn){return function(){const t0=performance.now();const r=fn.apply(this,arguments);_perf.log(name,performance.now()-t0);return r}}
 
 /* ═══ Debounced actualizarVista ═══
    actualizarVistaDebounced agrupa múltiples llamadas en un solo frame.
