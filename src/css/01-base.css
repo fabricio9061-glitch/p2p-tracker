@@ -158,6 +158,9 @@
         /* Desktop: behave as sidebar from the right */
         @media (min-width: 768px){
             .menu-panel{
+                top:0;
+                right:0;
+                bottom:0;
                 left:auto;
                 width:420px;
                 max-width:420px;

@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.7.69',
+    APP_VERSION: '4.8.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,14 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.1', date:'2026-05-29', headline:'🐛 Fix: el menú se abría desde abajo en pantallas grandes + limpieza menor.', changes:[
+        {type:'fix', title:'Menú lateral se abría desde abajo (desktop/tablet)', desc:'En pantallas ≥768px el panel del menú tenía inset:0 pero la regla de desktop solo seteaba left:auto sin resetear top/bottom/right, dejando el anclaje inconsistente: el panel se abría desde abajo en vez de deslizar desde la derecha. FIX: se agregó top:0; right:0; bottom:0 en la media query (min-width:768px) de .menu-panel, para que sea una barra lateral derecha de altura completa como estaba diseñado. Cambio solo de CSS, sin tocar lógica.'},
+        {type:'improve', title:'Eliminada forzarSyncManual (código muerto)', desc:'Función que quedó sin uso tras retirar el botón Forzar sync del diagnóstico. Verificado 0 referencias en JS y HTML. El sync automático no la usaba.'}
+    ]},
+    {version:'4.8.0', date:'2026-05-29', headline:'🎯 Versión consolidada: estructura modular estable + limpieza completa.', changes:[
+        {type:'improve', title:'Código del diagnóstico eliminado', desc:'Se eliminaron las 10 funciones internas que quedaron sin uso tras retirar el panel de Diagnóstico de sincronización (visor, auditorías y su cableado de botones). Verificado con parser que ninguna tenía referencias vivas — solo se borró lo que tiene cero llamadas. La maquinaria automática que protege tus datos (recovery-write, payload-guard, inspección remota, logger de sync, anti-wipe, compresión) quedó intacta, igual que exportar/importar.'},
+        {type:'improve', title:'Cierre del trabajo de modularización', desc:'Marca el fin del proceso: CSS y JS separados en src/css y src/js, orden de carga verificado, sin cambios de comportamiento, código muerto limpio. Base estable para futuras actualizaciones.'}
+    ]},
     {version:'4.7.69', date:'2026-05-29', headline:'🧹 Quitado el panel de Diagnóstico de sincronización del menú.', changes:[
         {type:'improve', title:'Diagnóstico de sincronización retirado de la UI', desc:'Se quitaron del menú las dos entradas de diagnóstico y el panel (modal) de Diagnóstico de sincronización. Las protecciones automáticas de datos (logger interno de sync, compresión wire, recovery-write, anti-wipe) NO se tocaron: corren en segundo plano y son las que mantienen tus datos a salvo. La exportación/importación de datos (respaldo manual) tampoco se tocó. La estructura del proyecto sigue modular (src/css y src/js).'}
     ]},
