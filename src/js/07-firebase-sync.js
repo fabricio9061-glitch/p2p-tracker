@@ -31,10 +31,18 @@ let _guardando=false,_guardarPendiente=false,_syncPending=0,_syncErrors=0,_retry
 
 /* ─── Sync queue: tracks what's pending ─── */
 const _syncQueue=[];/* [{type:'create'|'delete'|'update',entity:string,id:string,ts:number}] */
+/* v4.8.2 — Contador monotónico de mutaciones. Lo usa backupToLocal en su firma de
+   deduplicación: antes la firma era version|len|dirty, que NO cambia entre dos
+   ediciones in-place consecutivas (misma versión, mismo length) → la segunda edición
+   quedaba FUERA del backup local hasta el próximo save confirmado. Si el SO mataba
+   la pestaña en esa ventana, esa edición se perdía pese a la promesa de "backup
+   inmediato". Con _mutSeq, cada mutación fuerza un backup nuevo. */
+let _mutSeq=0;
 const _SYNC_QUEUE_MAX=500;/* Cap defensivo: en escenarios offline largos, la queue 
    podría crecer sin tope. 500 es 10x más de lo que un usuario real genera 
    en una sesión típica — suficiente como red de seguridad sin perder casos reales. */
 function enqueueSync(type,entity,id){
+    _mutSeq++;
     _syncQueue.push({type,entity,id,ts:Date.now(),_t:performance.now()});
     /* Si excede el cap, descartar el más viejo (FIFO) — los entries antiguos solo
        sirven para tracking visual del dot pulsante; el sync real de datos NO depende
@@ -54,18 +62,9 @@ function enqueueSync(type,entity,id){
         }
     }
 }
-function clearSyncQueue(){
-    /* Al confirmar sync exitoso, limpiar todos los _syncState:'pending' */
-    _syncQueue.forEach(a=>{
-        const arr=AppState.datos[a.entity];
-        if(Array.isArray(arr)){
-            const item=arr.find(x=>x.id===a.id);
-            if(item&&item._syncState==='pending')delete item._syncState;
-        }
-    });
-    _syncQueue.length=0;
-    _localDirty=0;
-}
+/* v4.8.2: clearSyncQueue() eliminada — código muerto verificado (0 referencias en
+   JS/HTML; solo aparecía citada en un comentario histórico). Su rol lo cumplen el
+   mecanismo de confirmedIds en guardarDatos + repairOrphanPendingStates. */
 
 /* ═══════════════════════════════════════════════════════════════════
    §SANEAMIENTO — Limpieza de _syncState huérfanos

@@ -228,7 +228,10 @@ function backupToLocal(){
            corren ambos en el mismo "ciclo" de mutación. */
         const curV=AppState.datos._version||0;
         const curLen=(AppState.datos.operaciones||[]).length+(AppState.datos.movimientos||[]).length+(AppState.datos.transferencias||[]).length;
-        const sig=curV+'|'+curLen+'|'+_localDirty;
+        /* v4.8.2: la firma incluye _mutSeq — sin él, dos updates in-place seguidos
+           (misma versión, mismo length, mismo dirty) compartían firma y el segundo
+           NO se respaldaba hasta el próximo save confirmado. */
+        const sig=curV+'|'+curLen+'|'+_localDirty+'|'+(typeof _mutSeq!=='undefined'?_mutSeq:0);
         if(backupToLocal._lastSig===sig)return;
         backupToLocal._lastSig=sig;
         const prevKey=k+'_prev';
@@ -594,6 +597,23 @@ async function guardarDatos(forzar,opts){
         try{
             if(typeof window._checkPayloadGuard==='function')window._checkPayloadGuard(payloadKB);
         }catch(_){}
+        /* v4.8.2 FIX: si el guard recién disparó safe mode, abortar TAMBIÉN este write.
+           Antes solo se bloqueaban los writes FUTUROS (el chequeo de _recoverySafeMode
+           está al inicio de guardarDatos), así que el payload >850 KB en curso igual
+           se escribía una vez. Rollback de la versión optimista para que el snapshot
+           listener no crea que estamos sincronizados. Los datos quedan a salvo en el
+           backup local; el usuario decide desde el overlay del guard (exportar /
+           recovery / continuar). */
+        if(AppState._recoverySafeMode&&!allowDuringRecovery){
+            AppState._localVersion=serverVersionConocido;
+            AppState.datos._version=serverVersionConocido;
+            _syncPending=Math.max(0,_syncPending-1);
+            updateSyncBadge();
+            clearTimeout(_syncIndicatorTimer);
+            _syncLog('save:aborted-by-payload-guard',{payloadKB,rolledBackTo:serverVersionConocido});
+            _guardando=false;
+            return;
+        }
         /* Guardar el version pre-bump para poder hacer rollback si el write falla.
            Sin esto, un error de red dejaría _localVersion adelantado y el snapshot 
            listener pensaría que estamos sincronizados cuando en realidad no escribimos. */
@@ -674,13 +694,28 @@ async function guardarDatos(forzar,opts){
         }
         _localDirty=Math.max(0,_localDirty-1);
         if(_syncPending===0&&!_guardarPendiente){
-            /* Cleanup final: cualquier remanente (defensive) + clear local backup */
-            if(_syncQueue.length>0)_syncQueue.length=0;
-            _localDirty=0;
-            setSyncStatus('online');clearLocalBackup();
-            _syncLog('save:queue-drained',{});
-            /* Saneamiento de _syncState huérfanos justo después de drenar */
-            if(typeof repairOrphanPendingStates==='function')repairOrphanPendingStates();
+            /* v4.8.2 FIX (race multi-device): la limpieza defensiva de remanentes solo
+               es segura si NO hay un debounce pendiente. Escenario del bug: el usuario
+               creaba una op mientras el write anterior estaba en vuelo; el write
+               confirmaba, este bloque hacía _syncQueue.length=0 y _localDirty=0 con la
+               op nueva TODAVÍA sin subir (su debounce dispara 100-400ms después). Si en
+               esa ventana llegaba un snapshot de OTRO dispositivo (Branch 2 → merge),
+               mergeRemoteState descartaba la op nueva por "local-only sin entrada en
+               _syncQueue" → pérdida de datos real. Con debounce pendiente, dejamos la
+               queue intacta: ese save la confirmará y drenará en su propio ciclo. */
+            const hayDebouncePendiente=typeof _guardaDebounceTimer!=='undefined'&&_guardaDebounceTimer!==null;
+            if(!hayDebouncePendiente){
+                /* Cleanup final: cualquier remanente (defensive) + clear local backup */
+                if(_syncQueue.length>0)_syncQueue.length=0;
+                _localDirty=0;
+                setSyncStatus('online');clearLocalBackup();
+                _syncLog('save:queue-drained',{});
+                /* Saneamiento de _syncState huérfanos justo después de drenar */
+                if(typeof repairOrphanPendingStates==='function')repairOrphanPendingStates();
+            }else{
+                setSyncStatus('online');
+                _syncLog('save:drain-deferred',{queue:_syncQueue.length,dirty:_localDirty});
+            }
         }
         else setSyncStatus('syncing',_syncPending+' pendiente'+((_syncPending>1)?'s':''));
         updateSyncBadge();
@@ -840,6 +875,11 @@ function cargarDatosUsuario(){
         if(hasPending)return;
 
         const ci=$('comisionPlataforma'),cf=document.activeElement===ci,lcU=AppState.datos.comisionPlataforma,lcD=AppState.datos.comisionUSD;
+        /* v4.8.2: solo resetear la paginación cuando el snapshot realmente reemplazó
+           o mergeó datos (Branch 1 / Branch 2 / restore). Antes, CUALQUIER snapshot
+           que cayera al bloque común (p.ej. eco propio con pending local) devolvía
+           al usuario a la página 1 mientras navegaba el historial. */
+        let snapshotAplicoCambios=false;
         if(doc.exists){
             let d=doc.data();
             /* ════════════════════════════════════════════════════════════════
@@ -880,12 +920,14 @@ function cargarDatosUsuario(){
                     AppState.datos=backup.datos;
                     AppState._localVersion=backup.v||0;
                     AppState._restoredFrom='backup-empty-remote';
+                    snapshotAplicoCambios=true;
                     /* Re-push el backup para rehidratar Firebase — pero sólo si el servidor no tiene
                        algo mayor pendiente de llegar. Esperamos un ciclo antes de pushear. */
                     setTimeout(()=>{if(!esDatosVacios(AppState.datos))guardarDatos(true)},2500);
                 }else{
                     AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||'',dismissedVersions:Array.isArray(d.dismissedVersions)?d.dismissedVersions:[]};
                     AppState._localVersion=serverVersion;
+                    snapshotAplicoCambios=true;
                 }
             }
             /* Branch 2: Remote is newer → ALWAYS merge (never full replace after initial load) */
@@ -912,6 +954,7 @@ function cargarDatosUsuario(){
                 }else{
                     mergeRemoteState(d);
                     AppState._localVersion=serverVersion;
+                    snapshotAplicoCambios=true;
                     /* If we had pending local changes, re-push merged state */
                     if(pending)guardaOptimista('merge','state','reconcile');
                 }
@@ -944,10 +987,12 @@ function cargarDatosUsuario(){
             if(backup&&backup.datos&&!esDatosVacios(backup.datos)){
                 AppState.datos=backup.datos;AppState._localVersion=backup.v||0;
                 AppState._restoredFrom='backup-no-remote';
+                snapshotAplicoCambios=true;
                 console.log('[P2P] Restored from localStorage backup (no remote doc)');
                 setTimeout(()=>guardarDatos(true),2000);
             }else{
                 AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
+                snapshotAplicoCambios=true;
             }
         }
         if(cf){AppState.datos.comisionPlataforma=lcU;AppState.datos.comisionUSD=lcD}
@@ -1040,7 +1085,7 @@ function cargarDatosUsuario(){
             }
             AppState._legacyMigrado=true;
         }
-        AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
+        if(snapshotAplicoCambios){AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1}
         if(!cf){const mon=getMonedaBanco(),cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=fmtNum(cv);setText('comisionPctLabel',fmtNum(cv))}
         actualizarVista();actualizarFormulario();actualizarColorSelect();ocultarLoading();
         setSyncStatus(fromCache?'syncing':'online',fromCache?'Caché local':undefined);

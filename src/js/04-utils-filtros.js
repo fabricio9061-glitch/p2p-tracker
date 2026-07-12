@@ -64,6 +64,17 @@ function pv(id){
     }
     return parseFloat(v)||0;
 }
+/* v4.8.2 — Lector de TASAS/PRECIOS desde un input.
+   PROBLEMA que resuelve: pv() usa una heurística de miles ("40.500" → 40500) pensada
+   para MONTOS. Aplicada a una tasa, tipear "40.500" (queriendo decir 40,5 con 3
+   decimales) producía una tasa 1000× mayor y corrompía la conversión/lote silenciosamente.
+   pvTasa() delega en parsearTasa (coma o punto = decimal, hasta 3 decimales, sin miles)
+   y devuelve 0 si el formato es inválido — los callers ya tratan 0 como "tasa inválida". */
+function pvTasa(id){
+    const el=$(id);if(!el)return 0;
+    const t=parsearTasa(el.value);
+    return t===null?0:t;
+}
 function getUDate(){const n=new Date(),u=n.getTime()+n.getTimezoneOffset()*60000;return new Date(u-3*3600000)}
 function getUDateStr(){const d=getUDate();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function getMesActivo(){const d=getUDate();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
@@ -450,6 +461,13 @@ function fmtFechaHora(fecha,hora,timestamp){
 }
 function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
 function getBancoColor(n){const b=getBancoInfo(n);return b?.color||'#1e293b'}
-function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+/* v4.8.2 FIX SEGURIDAD: la versión anterior (div.textContent → innerHTML) NO escapaba
+   comillas. Como escHtml se usa dentro de atributos (data-tag="...", data-banco="..."),
+   un texto con `"` rompía el atributo y permitía inyectar atributos/handlers (self-XSS
+   con tags o descripciones). Esta versión escapa & < > " ' — segura en texto Y en
+   atributos con comillas dobles o simples. Bonus: sin crear un <div> por llamada
+   (escHtml corre dentro de loops de render — menos GC en móviles de gama baja). */
+const _ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+function escHtml(s){return String(s??'').replace(/[&<>"']/g,c=>_ESC_MAP[c])}
 function colorBanco(n){return`<span style="color:${getBancoColor(n)};font-weight:600">${n}</span>`}
 function getSym(mon){return mon==='USD'?'US$':'$'}

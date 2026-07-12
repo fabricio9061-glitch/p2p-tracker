@@ -586,7 +586,9 @@ function renderizarTasasRecientes(){
     const tasaActualNum=parsearTasa($('tasa').value);
     const epsilon=mon==='USD'?0.0005:0.005;
     cont.innerHTML=recientes.map(t=>{
-        const isActive=isFinite(tasaActualNum)&&Math.abs(t.valor-tasaActualNum)<epsilon;
+        /* v4.8.2: parsearTasa devuelve null para input vacío/inválido, e isFinite(null)
+           es true (coerciona a 0) — comparaba contra 0 en vez de "sin tasa". */
+        const isActive=tasaActualNum!==null&&Math.abs(t.valor-tasaActualNum)<epsilon;
         const cls='tag-pill'+(isActive?' tag-pill-active':'');
         return `<span class="${cls}" data-action="usar-tasa" data-valor="${t.valor}" style="font-size:0.72em;padding:3px 9px;flex-shrink:0">${fmtTasa(t.valor,mon)}</span>`;
     }).join('');

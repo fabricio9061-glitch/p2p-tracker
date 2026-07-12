@@ -22,7 +22,7 @@ function abrirEditarLote(id){
 async function guardarLote(){
     if(AppState.ui.guardandoLote)return;
     const btn=$('btnGuardarLote');if(btn.disabled)return;
-    const p=pv('lotePrecio'),d=pv('loteDisponible');const f=$('loteFecha').value||getUDateStr();
+    const p=pvTasa('lotePrecio'),d=pv('loteDisponible');const f=$('loteFecha').value||getUDateStr();
     if(!p||p<=0||isNaN(p)){alert('Ingresá un precio válido');return}if(d===undefined||d<0||isNaN(d)){alert('Ingresá una cantidad válida');return}
     /* INTEGRIDAD: re-validar al guardar — defensa en profundidad contra DOM forzado */
     if(AppState.ui.loteEditandoId){

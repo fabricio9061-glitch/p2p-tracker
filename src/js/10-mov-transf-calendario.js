@@ -148,7 +148,7 @@ async function guardarMovimiento(){
     const editing=!!editId;
     const original=editing?AppState.datos.movimientos.find(m=>m.id===editId):null;
     if(editing&&!original){AppState.ui.movEditandoId=null;return}
-    const tc=$('movTipoCuenta').value,b=$('movBanco').value,m=pv('movMonto'),desc=$('movDescripcion').value,tRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?pv('movTasaRef'):0;
+    const tc=$('movTipoCuenta').value,b=$('movBanco').value,m=pv('movMonto'),desc=$('movDescripcion').value,tRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?pvTasa('movTasaRef'):0;
     if(!m||m<=0)return alert('Monto inválido');if(tc==='banco'&&!b)return alert('Seleccioná un banco');
     if(tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'&&(!tRef||tRef<=0))return alert('Ingresá una tasa de referencia válida');
     /* INTEGRIDAD: validación dura previa.
@@ -269,7 +269,7 @@ function actualizarTransfUI(){
 
 function actualizarTransfPreview(){
     const pvEl=$('transfConvPreview');if(!esCrossMoneda()){pvEl.style.display='none';return}
-    const o=$('bancoOrigen').value,d=$('bancoDestino').value,m=pv('montoTransferencia'),t=pv('transfTasa');
+    const o=$('bancoOrigen').value,d=$('bancoDestino').value,m=pv('montoTransferencia'),t=pvTasa('transfTasa');
     if(!m||!t){pvEl.style.display='none';return}
     const oi=getBancoInfo(o),di=getBancoInfo(d);
     let recibe;
@@ -332,7 +332,7 @@ async function realizarTransferencia(){
     if(!o||!d||o===d)return alert('Seleccioná bancos diferentes');if(!m||m<=0)return alert('Monto inválido');
     const cross=esCrossMoneda();
     if(editing){
-        const t=cross?pv('transfTasa'):0;
+        const t=cross?pvTasa('transfTasa'):0;
         if(cross&&(!t||t<=0))return alert('Ingresá una tasa de conversión válida');
         /* INTEGRIDAD: calcular deltas netos (revertir + aplicar) y validar ANTES de mutar.
            Esto evita el bug de dejar el estado revertido si el nuevo impacto excede límite. */
@@ -427,7 +427,7 @@ async function realizarTransferencia(){
         return;
     }
     if(cross){
-        const t=pv('transfTasa');
+        const t=pvTasa('transfTasa');
         if(!t||t<=0)return alert('Ingresá una tasa de conversión válida');
         const oi=getBancoInfo(o),di=getBancoInfo(d);
         let montoRecibido;

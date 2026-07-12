@@ -49,7 +49,17 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='exportar-datos')exportarDatos();
         else if(a==='importar-datos')importarDatos();
         else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);AppState.auth.signOut()})}}
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);
+            /* v4.8.2 FIX: vaciar el estado en RAM y la sync queue al cerrar sesión.
+               Antes AppState.datos conservaba los datos del usuario saliente: si otra
+               persona iniciaba sesión en el mismo dispositivo, el watchdog de 3s podía
+               renderizar esos datos ajenos antes del primer snapshot, y las entradas
+               viejas de _syncQueue contaminaban el merge del usuario nuevo. */
+            AppState.datos=crearDatosVacios();
+            AppState._restoredFrom=null;
+            AppState._uiHydratedFromCache=false;
+            _syncQueue.length=0;
+            AppState.auth.signOut()})}}
     });
 
     // Toggle sections
