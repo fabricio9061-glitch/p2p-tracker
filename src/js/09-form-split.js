@@ -168,15 +168,24 @@ function _computeSplitState(){
     if(saldoPrinc>=totalNecesario-SPLIT_EPSILON){
         return{aplicaSplit:false,totalNecesario,saldoPrinc,bancoPrinc,bk};
     }
-    /* Aporte del banco principal: lo que tenga, capeado al total */
-    const aporte1=roundMoney(Math.min(saldoPrinc,totalNecesario));
-    /* Suma de aportes extra (filtrando inválidos) */
+    /* v4.8.3 FIX — El banco principal ahora aporta el REMANENTE (total − extras),
+       capado a su saldo. Antes: aporte1 = min(saldoPrinc, total), es decir el
+       principal quedaba SIEMPRE fijo en su saldo completo y los extras se sumaban
+       ENCIMA → cargar un monto redondo en una cuenta extra (ej. Itaú 8.000 cuando
+       el faltante real era 2.574,98) daba "Exceso" y era imposible balancear.
+       Ahora, al tipear en las cuentas extra, el principal se reduce solo y el total
+       cuadra exacto. Orden importa: primero sumo extras, luego calculo el principal. */
     _initSplitState();
     let aportadoExtra=0;
     AppState.ui.splitExtras.forEach(e=>{
         const m=roundMoney(e.monto||0);
         if(m>0)aportadoExtra=roundMoney(aportadoExtra+m);
     });
+    const remanentePrinc=roundMoney(totalNecesario-aportadoExtra);
+    const aporte1=roundMoney(Math.max(0,Math.min(saldoPrinc,remanentePrinc)));
+    /* Déficit estructural del principal (cuánto NO puede cubrir por sí solo).
+       Constante respecto de los extras — se usa para el título del panel. */
+    const deficitPrincipal=roundMoney(Math.max(0,totalNecesario-saldoPrinc));
     const totalAportado=roundMoney(aporte1+aportadoExtra);
     const faltante=roundMoney(totalNecesario-totalAportado);
     /* Estado normalizado */
@@ -187,6 +196,7 @@ function _computeSplitState(){
         bancoPrinc,bk,
         monto,comisionBanco,totalNecesario,
         saldoPrinc,aporte1,aportadoExtra,totalAportado,
+        deficitPrincipal,
         faltante,
         cubierto,
         exceso,
@@ -219,12 +229,16 @@ function renderSplitPanel(){
         if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();
         return;
     }
-    const{bancoPrinc,totalNecesario,aporte1,totalAportado,faltante,cubierto,exceso}=state;
+    const{bancoPrinc,totalNecesario,aporte1,totalAportado,faltante,cubierto,exceso,deficitPrincipal}=state;
     /* Opciones para banco adicional: activos, distintos del principal y de otros ya elegidos */
     const usados=new Set([bancoPrinc]);AppState.ui.splitExtras.forEach(e=>{if(e.banco)usados.add(e.banco)});
     const disponibles=getBancosActivos().filter(b=>!usados.has(b.nombre));
     const sy=getSym(getBancoInfo(bancoPrinc)?.moneda||'UYU');
-    const faltanteInicial=roundMoney(totalNecesario-aporte1);
+    /* v4.8.3: el título muestra el déficit del principal (cuánto le falta al banco
+       elegido para cubrir solo), constante. Antes usaba total−aporte1, que con el
+       fix del remanente se vuelve dinámico y mostraba "faltan $X" = lo ya aportado
+       por extras — confuso. */
+    const faltanteInicial=deficitPrincipal;
     let h=`<div class="split-panel-title">⚠️ Saldo insuficiente · faltan ${sy}${fmtMonto(faltanteInicial)}</div>
         <div style="font-size:0.7em;color:#78350f;margin-bottom:10px;line-height:1.4">Completá el pago con una o más cuentas adicionales hasta cubrir el total.</div>
         <div class="split-row aporte">
@@ -324,7 +338,10 @@ function getAportes(){
     if(!splitActivo())return null;
     const state=_computeSplitState();
     if(!state||!state.aplicaSplit)return null;
-    const aportes=[{banco:state.bancoPrinc,monto:state.aporte1}];
+    /* v4.8.3: con el aporte del principal ahora dinámico (remanente), puede quedar
+       en 0 si las cuentas extra cubren el total exacto. En ese caso NO lo agregamos:
+       evita persistir un aporte de $0 y un débito nulo al banco principal. */
+    const aportes=state.aporte1>SPLIT_EPSILON?[{banco:state.bancoPrinc,monto:state.aporte1}]:[];
     /* v4.7.59 — flags de invalidez. Antes este loop ignoraba silenciosamente
        las filas con banco vacío, devolviendo "aportes parciales" que parecían
        válidos. Ahora reportamos cada anomalía para que validarAportes y la

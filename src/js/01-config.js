@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.2',
+    APP_VERSION: '4.8.3',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.8.3', date:'2026-07-14', headline:'⚖️ El pago dividido ahora balancea con ambas cuentas.', changes:[
+        {type:'fix', title:'No se podía balancear el pago entre el banco principal y una cuenta extra', desc:'Al comprar con saldo insuficiente, el banco principal quedaba fijo aportando su saldo completo y las cuentas adicionales se sumaban ENCIMA. Si cargabas un monto redondo en la cuenta extra (ej. Itaú 8.000 cuando el faltante real era 2.574,98) el total se pasaba y aparecía "Exceso · ajustá los aportes", sin forma de cuadrar. Ahora el banco principal aporta automáticamente el remanente (total − lo que pusiste en las cuentas extra), capado a su saldo: tipeás el monto de la cuenta extra y el principal se ajusta solo hasta que el total cuadra exacto. El monto del principal se ve actualizarse en vivo mientras editás.'},
+        {type:'improve', title:'Mensajes del panel de split más claros', desc:'El título "Saldo insuficiente · faltan $X" ahora muestra siempre cuánto le falta al banco principal para cubrir solo (valor fijo), en vez de un número que cambiaba de forma confusa al ir cargando las cuentas extra. Si las cuentas adicionales llegan a cubrir el total exacto, el principal aporta $0 y se omite del registro.'}
+    ]},
     {version:'4.8.2', date:'2026-07-12', headline:'🛡️ Auditoría de estabilidad: 8 fixes de sync, datos y seguridad.', changes:[
         {type:'fix', title:'Race multi-dispositivo que podía descartar una operación recién creada', desc:'Si creabas una operación mientras un guardado anterior estaba en vuelo, al confirmarse ese guardado se vaciaba la cola de sync con la operación nueva TODAVÍA sin subir (su debounce dispara 100-400ms después). Si en esa ventana llegaba un snapshot de otro dispositivo, el merge la descartaba por "local-only sin entrada en cola". FIX: la limpieza defensiva del drain solo corre si no hay debounce pendiente.'},
         {type:'fix', title:'Tasas con punto y 3 decimales se multiplicaban ×1000', desc:'Los campos de tasa de conversión, tasa de referencia (ingreso USDT) y precio de lote manual usaban pv(), cuya heurística de miles interpreta "40.500" como 40500. Una conversión o lote quedaba con tasa 1000× mayor en silencio. FIX: nuevo pvTasa() basado en parsearTasa (punto o coma = decimal, sin miles) en los 5 campos afectados.'},
@@ -392,9 +396,6 @@ const CHANGELOG = [
     ]},
     {version:'4.7.69', date:'2026-05-29', headline:'🧹 Quitado el panel de Diagnóstico de sincronización del menú.', changes:[
         {type:'improve', title:'Diagnóstico de sincronización retirado de la UI', desc:'Se quitaron del menú las dos entradas de diagnóstico y el panel (modal) de Diagnóstico de sincronización. Las protecciones automáticas de datos (logger interno de sync, compresión wire, recovery-write, anti-wipe) NO se tocaron: corren en segundo plano y son las que mantienen tus datos a salvo. La exportación/importación de datos (respaldo manual) tampoco se tocó. La estructura del proyecto sigue modular (src/css y src/js).'}
-    ]},
-    {version:'4.7.68', date:'2026-05-29', headline:'🧹 Mantenimiento: limpieza de código muerto (sin cambios funcionales).', changes:[
-        {type:'improve', title:'Eliminadas 5 funciones sin uso', desc:'Se quitaron 5 funciones internas que no estaban referenciadas en ninguna parte del proyecto (ni en JS, ni en HTML, ni como string), verificado con parser. Eran utilidades obsoletas o reemplazadas. Como ninguna se invocaba, la eliminación no cambia ningún comportamiento. Por seguridad de datos NO se tocó la lógica de respaldo ni de guardado.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
