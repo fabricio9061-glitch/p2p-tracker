@@ -149,6 +149,7 @@ function mergeRemoteState(d){
         AppState.datos._archivoSeeds=d._archivoSeeds;
     }
     /* Índice del archivo: unión por mes (remoto pisa por mes) */
+    if(d._archivoSeeds&&d._archivoSeeds.corte)_archivoMarkerSet(String(d._archivoSeeds.corte).slice(0,7));
     if(d._archivoIndex&&d._archivoIndex.meses){
         const _mesesLocal=(AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses)||{};
         AppState.datos._archivoIndex={meses:{..._mesesLocal,...d._archivoIndex.meses},actualizado:d._archivoIndex.actualizado||_mesesLocal.actualizado||''};
@@ -228,6 +229,22 @@ function esDatosVacios(d){
     return true;
 }
 /* Comparar cuál estado tiene más contenido (para decidir si un backup supera al remoto vacío) */
+/* v4.9.4 — Marker local de archivado: recuerda (fuera del doc) que este uid
+   ya archivó y desde qué mes. Permite decisiones correctas de backup ANTES de
+   que llegue el primer snapshot, y en dispositivos con estado viejo. */
+function _archivoMarkerGet(){try{return AppState.currentUser?(localStorage.getItem('p2p_archivo_'+AppState.currentUser.uid)||''):''}catch(_){return ''}}
+function _archivoMarkerSet(cutoffMes){try{if(AppState.currentUser&&cutoffMes)localStorage.setItem('p2p_archivo_'+AppState.currentUser.uid,cutoffMes)}catch(_){}}
+/* Puntaje considerando solo datos >= cutoffMes (''=todo). Un backup pre-archivado
+   está lleno de meses que AHORA viven en docs de archivo: compararlo entero contra
+   el estado slim post-archivado da una señal falsa de "el backup tiene más". */
+function _puntajeDatosDesde(d,cutoffMes){
+    if(!d)return -1;
+    if(!cutoffMes)return _puntajeDatos(d);
+    const f=arr=>(arr||[]).filter(x=>{const m=(x&&typeof x.fecha==='string')?x.fecha.slice(0,7):'';return !m||m>=cutoffMes});
+    return f(d.operaciones).length*10+f(d.movimientos).length*5+f(d.transferencias).length*5
+        +f(d.conversiones||[]).length*5+(d.lotes||[]).length*3
+        +Object.values(d.bancos||{}).filter(b=>b&&b.activo).length*2;
+}
 function _puntajeDatos(d){
     if(!d)return -1;
     return (d.operaciones||[]).length*10
@@ -313,8 +330,11 @@ function clearLocalBackup(){
         if(!AppState.currentUser)return;
         const b=restoreFromLocal();
         if(b&&b.datos){
-            const currentScore=_puntajeDatos(AppState.datos);
-            const backupScore=_puntajeDatos(b.datos);
+            /* v4.9.4 — comparar en la ventana post-corte: el backup pre-archivado
+               "gana" en bruto solo porque contiene meses ya movidos al archivo. */
+            const _cut=_archivoMarkerGet();
+            const currentScore=_puntajeDatosDesde(AppState.datos,_cut);
+            const backupScore=_puntajeDatosDesde(b.datos,_cut);
             /* Si el backup tiene MÁS contenido que el actual → NO borrar.
                Esto protege contra escenarios donde el snapshot remoto llegó vacío
                y nosotros estamos por guardar vacío también. */
@@ -896,6 +916,7 @@ function cargarDatosUsuario(){
             return;
         }
         const fromCache=doc.metadata.fromCache;
+        if(!fromCache)AppState._snapshotServidorOk=true;
         const hasPending=doc.metadata.hasPendingWrites;
         if(typeof _syncLog==='function')_syncLog('snapshot:received',{fromCache,hasPending,exists:doc.exists,v:doc.exists?(doc.data()._version||0):0});
 
@@ -951,9 +972,17 @@ function cargarDatosUsuario(){
                     snapshotAplicoCambios=true;
                     /* Re-push el backup para rehidratar Firebase — pero sólo si el servidor no tiene
                        algo mayor pendiente de llegar. Esperamos un ciclo antes de pushear. */
-                    setTimeout(()=>{if(!esDatosVacios(AppState.datos))guardarDatos(true)},2500);
+                    /* v4.9.4 — si este uid YA archivó (marker) y el backup es pre-archivado
+                       (sin _archivoIndex), NO re-pushear: sobrescribiría el doc slim con las
+                       5.000+ ops viejas y desharía el archivado. Restaurar a memoria está bien
+                       (mejor gordo que nada si el remoto está realmente vacío), pero el push
+                       queda en manos del usuario tras revisar. */
+                    const _bkPreArchivo=_archivoMarkerGet()&&!(backup.datos&&backup.datos._archivoIndex);
+                    if(_bkPreArchivo){console.warn('[P2P] Backup pre-archivado restaurado SOLO en memoria (push manual requerido)');setSyncStatus('offline','Revisión requerida')}
+                    else setTimeout(()=>{if(!esDatosVacios(AppState.datos))guardarDatos(true)},2500);
                 }else{
                     AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:Array.isArray(d.lotesManuales)?d.lotesManuales:(d.lotes||[]),tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||'',dismissedVersions:Array.isArray(d.dismissedVersions)?d.dismissedVersions:[],_archivoSeeds:d._archivoSeeds||null,_archivoIndex:d._archivoIndex||null};
+                    if(d._archivoSeeds&&d._archivoSeeds.corte)_archivoMarkerSet(String(d._archivoSeeds.corte).slice(0,7));
                     AppState._localVersion=serverVersion;
                     snapshotAplicoCambios=true;
                 }

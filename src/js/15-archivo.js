@@ -423,6 +423,7 @@ async function archivarHistorial(opts){
         AppState._recoverySafeMode=false;
         AppState._payloadGuardTriggered=false;
         AppState._recoveryActive=false;
+        if(typeof _archivoMarkerSet==='function')_archivoMarkerSet(plan.cutoffMes);
         setPhase('Guardando documento principal…');
         let res={ok:true};
         if(typeof window.recoveryWrite==='function'){
@@ -474,7 +475,18 @@ async function _archivoResetConexion(){
     if(!confirm('Reiniciar la conexión con Firestore:\n\n• Limpia la cola interna atascada del SDK\n• Recarga la app\n• Tus operaciones quedan intactas (respaldo local)\n\n¿Continuar?'))return;
     try{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}}catch(_){}
     try{await AppState.db.terminate()}catch(e){console.warn('[P2P] terminate:',e&&e.message||e)}
-    try{await AppState.db.clearPersistence()}catch(e){console.warn('[P2P] clearPersistence:',e&&e.message||e)}
+    let limpio=false;
+    try{await AppState.db.clearPersistence();limpio=true}
+    catch(e){
+        console.warn('[P2P] clearPersistence:',e&&e.code||'',e&&e.message||e);
+        /* v4.9.4 — failed-precondition = otra pestaña tiene la base abierta.
+           Recargar sin limpiar dejaría la cola envenenada igual: avisar primero. */
+        if(e&&e.code==='failed-precondition'){
+            alert('No se pudo limpiar la cola: hay OTRA pestaña de la app abierta (Safari u otra ventana).\n\n1. Cerrá todas las pestañas del sitio en Safari\n2. Volvé a tocar "Reiniciar conexión"\n\nSi aun así no se puede: exportá backup primero y luego borrá los datos del sitio en Ajustes → Safari → Avanzado → Datos de sitios web.');
+            location.reload();return;
+        }
+    }
+    if(limpio){try{sessionStorage.setItem('p2p_conn_reset','1')}catch(_){}}
     location.reload();
 }
 window._archivoResetConexion=_archivoResetConexion;
@@ -581,6 +593,13 @@ function _archivoAutoSugerir(){
     try{
         if(!AppState.currentUser||!AppState.datos)return;
         if(AppState._recoveryActive||AppState._recoverySafeMode||_archivoRunning)return;
+        /* v4.9.4 — No sugerir con información vieja:
+           · si este uid ya archivó (marker o índice en memoria), el doc real es chico
+             — la memoria gorda es solo un dispositivo desactualizado por sincronizar;
+           · sin al menos un snapshot de servidor en la sesión, no sabemos nada. */
+        if(AppState.datos._archivoIndex)return;
+        if(typeof _archivoMarkerGet==='function'&&_archivoMarkerGet())return;
+        if(!AppState._snapshotServidorOk)return;
         const bd=calcularBreakdownPayload();
         if(bd.totalKB<=800)return;
         _archivoSugerido=true;
@@ -595,6 +614,39 @@ function _archivoAutoSugerir(){
     }catch(_){}
 }
 document.addEventListener('DOMContentLoaded',()=>{setTimeout(_archivoAutoSugerir,6000)});
+
+/* ─── Watchdog de conexión (v4.9.4) ───────────────────────────────────────
+   "Que la aplicación siempre trate de estar en línea": si a los 12s de boot no
+   llegó NINGÚN snapshot de servidor teniendo internet, kick suave del canal;
+   si a los 25s sigue muda, mostrar el doctor con el botón de reinicio. Cubre
+   la cola envenenada y los canales WebChannel rotos sin esperar a que el
+   usuario intente archivar. */
+let _connWatchdogDone=false;
+async function _connWatchdog(){
+    if(_connWatchdogDone)return;_connWatchdogDone=true;
+    const activo=()=>AppState.currentUser&&navigator.onLine&&!AppState._snapshotServidorOk&&!AppState._recoveryActive&&!_archivoRunning;
+    await new Promise(r=>setTimeout(r,12000));
+    if(!activo())return;
+    console.warn('[P2P][WATCHDOG] Sin snapshot de servidor a los 12s — kick del canal');
+    try{await AppState.db.disableNetwork()}catch(_){}
+    try{await AppState.db.enableNetwork()}catch(_){}
+    await new Promise(r=>setTimeout(r,13000));
+    if(!activo())return;
+    console.warn('[P2P][WATCHDOG] Canal muerto a los 25s — mostrando doctor');
+    let colaAtascada=false;
+    try{await new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error('t')),5000);AppState.db.waitForPendingWrites().then(()=>{clearTimeout(t);res()},()=>{clearTimeout(t);res()})})}catch(_){colaAtascada=true}
+    const ui=window._recoveryUI;if(!ui||!ui.error)return;
+    ui.ensure&&ui.ensure();
+    ui.error('Sin conexión con Firestore',
+        colaAtascada
+            ?'La app no logra hablar con Firestore y hay escrituras internas atascadas de una sesión anterior (la cola persistida bloquea todo lo nuevo). "Reiniciar conexión" limpia SOLO esa cola interna y recarga. Tus operaciones no se tocan: viven en el respaldo local.'
+            :'La app no logra establecer el canal con Firestore en esta red. Probá reiniciar la conexión o cambiar de red.',
+        [
+            {label:'🧹 Reiniciar conexión y recargar',color:'#d97706',onClick:()=>{_archivoResetConexion()}},
+            {label:'Seguir en modo local',color:'#64748b',onClick:()=>{ui.hide&&ui.hide()}}
+        ]);
+}
+document.addEventListener('DOMContentLoaded',()=>{_connWatchdog()});
 
 /* Mostrar el botón 📦 cuando el índice esté hidratado */
 document.addEventListener('DOMContentLoaded',()=>{setTimeout(mostrarBotonArchivo,3500);setTimeout(mostrarBotonArchivo,8000)});

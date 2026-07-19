@@ -942,7 +942,15 @@ function _enterSafeMode(reasonText){
                 }catch(e){alert('Error exportando: '+(e.message||e))}
             }},
             {label:'♻️ Restaurar desde backup local',color:'#a855f7',onClick:()=>{
-                if(!confirm('Esto sobrescribe el estado actual con el último backup local. ¿Continuar?'))return;
+                /* v4.9.4 — backup pre-archivado detectado → advertir explícitamente */
+                let _msj='Esto sobrescribe el estado actual con el último backup local. ¿Continuar?';
+                try{
+                    const _b=restoreFromLocal();
+                    if(_b&&_b.datos&&!_b.datos._archivoIndex&&typeof _archivoMarkerGet==='function'&&_archivoMarkerGet()){
+                        _msj='⚠️ Este backup es ANTERIOR al archivado (contiene todos los meses viejos). Restaurarlo y sincronizar desharía el archivado y volvería al límite de 1 MB.\n\nSolo continuá si sabés lo que hacés. ¿Restaurar igual?';
+                    }
+                }catch(_){}
+                if(!confirm(_msj))return;
                 try{
                     if(typeof restoreFromLocal==='function'){
                         const b=restoreFromLocal();
