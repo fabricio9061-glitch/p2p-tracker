@@ -228,12 +228,34 @@ function _calcularPlanArchivo(datos,mesesAMantener){
            refFull};
 }
 
-/* ─── Formato del doc de archivo: EXPANDIDO ───────────────────────────────
-   Cold storage: ~decenas de ops por mes, el tamaño no importa y el compresor
-   wire no preserva `ganancia` (siempre fue derivable en el doc principal; acá
-   está congelada). Se guarda expandido: autocontenido y legible. El visor
-   mantiene la rama de descompresión por si un doc viejo la tuviera. */
-function _archivoComprimirOps(opsArr){return{ops:opsArr,wire:false}}
+/* ─── Formato del doc de archivo ──────────────────────────────────────────
+   Por defecto EXPANDIDO: autocontenido, legible, y la ganancia (congelada,
+   no derivable acá) viaja dentro de cada op. Si un mes fuera tan grande que
+   el doc expandido se acercara al límite de 1 MiB (>maxKB, def. 900), se
+   comprime con el wire existente y la ganancia va en un sidecar
+   gananciasPorId [[id,gan],...] que el visor y la verificación reaplican.
+   Round-trip verificado antes de elegir la rama comprimida. */
+function _archivoAplicarGanancias(ops,ganMap){
+    const m=new Map((ganMap||[]).map(p=>[String(p[0]),p[1]]));
+    return ops.map(o=>m.has(String(o.id))?{...o,ganancia:m.get(String(o.id))}:o);
+}
+function _archivoComprimirOps(opsArr,maxKB){
+    maxKB=maxKB||900;
+    let kb=0;try{kb=JSON.stringify(opsArr).length/1024}catch(_){return{ops:opsArr,wire:false}}
+    if(kb<=maxKB)return{ops:opsArr,wire:false};
+    if(window._wireCompressionBroken||typeof _compressOpsArrayForWire!=='function')return{ops:opsArr,wire:false};
+    try{
+        const ganMap=opsArr.map(o=>[o.id,roundMoney(o.ganancia||0)]);
+        const compr=_compressOpsArrayForWire(opsArr);
+        const rt=_archivoAplicarGanancias(_decompressOpsArrayFromWire(compr),ganMap);
+        if(rt.length!==opsArr.length)return{ops:opsArr,wire:false};
+        let sA=0,sB=0,gA=0,gB=0;
+        opsArr.forEach(o=>{sA=roundMoney(sA+(o.monto||0));gA=roundMoney(gA+(o.ganancia||0))});
+        rt.forEach(o=>{sB=roundMoney(sB+(o.monto||0));gB=roundMoney(gB+(o.ganancia||0))});
+        if(Math.abs(sA-sB)>ARCHIVO_EPSILON||Math.abs(gA-gB)>ARCHIVO_EPSILON)return{ops:opsArr,wire:false};
+        return{ops:compr,wire:true,ganMap};
+    }catch(_){return{ops:opsArr,wire:false}}
+}
 
 /* ─── ORQUESTACIÓN: archivarHistorial ──────────────────────────────────────
    1. Backup JSON automático (exportarDatos)
@@ -278,12 +300,35 @@ async function archivarHistorial(opts){
             return{ok:false,...plan};
         }
 
-        /* 3 ── escribir docs mensuales con verificación */
+        /* 3 ── escribir docs mensuales con verificación ─────────────────────
+           v4.9.2 — Con timeout + reintentos. El SDK de Firestore no tiene
+           timeout propio: en conexión inestable, ref.set() puede quedar
+           esperando el ACK PARA SIEMPRE (cuelgue real reportado: 7+ min en
+           "Intento 1"). Mismo patrón que guardarDatos (30s) y recovery (90s). */
+        const _conTimeout=(promesa,ms,tag)=>new Promise((res,rej)=>{
+            let fin=false;
+            const h=setTimeout(()=>{if(!fin){fin=true;rej(new Error(tag+' superó '+Math.round(ms/1000)+'s (timeout)'))}},ms);
+            promesa.then(v=>{if(!fin){fin=true;clearTimeout(h);res(v)}},e=>{if(!fin){fin=true;clearTimeout(h);rej(e)}});
+        });
+        const setMeta=(window._recoveryUI&&window._recoveryUI.setMeta)||function(){};
         const userRef=AppState.db.collection('users').doc(AppState.currentUser.uid);
+        /* Ping pre-vuelo: verifica en 1 write chico que (a) hay conexión real y
+           (b) las Security Rules PERMITEN escribir en la subcolección 'archivo'.
+           Si las reglas la bloquean, acá falla en segundos con mensaje claro,
+           en vez de un cuelgue ambiguo con el doc grande. */
+        setPhase('Verificando permisos y conexión…');
+        try{
+            await _conTimeout(userRef.collection('archivo').doc('_ping').set({t:Date.now()}),15000,'ping de conexión');
+        }catch(e){
+            const perm=/permission|insufficient/i.test(String(e&&e.message||e));
+            throw new Error(perm
+                ?'Las reglas de seguridad de Firestore no permiten escribir en la subcolección "archivo". En Firebase Console → Firestore → Reglas, agregá para users/{uid}/archivo la misma regla que ya tenés para monthly_summaries.'
+                :'Sin conexión estable con Firestore ('+(e&&e.message||e)+'). Probá con mejor señal o WiFi.');
+        }
         const total=plan.meses.length;
+        const ARCHIVO_WRITE_TIMEOUT=45000,ARCHIVO_GET_TIMEOUT=15000,ARCHIVO_BACKOFF=[3000,8000];
         for(let i=0;i<total;i++){
             const mes=plan.meses[i],p=plan.porMes[mes];
-            setPhase('Archivando '+mes+' ('+(i+1)+'/'+total+') — '+p.stats.ops+' ops…');
             const compr=_archivoComprimirOps(p.operaciones);
             const docPayload={
                 mes,_archivoFormat:ARCHIVO_FORMAT,
@@ -296,21 +341,43 @@ async function archivarHistorial(opts){
                 appVersion:CONFIG.APP_VERSION,
                 creadoEn:firebase.firestore.FieldValue.serverTimestamp()
             };
+            if(compr.ganMap)docPayload.gananciasPorId=compr.ganMap;
             const ref=userRef.collection('archivo').doc(mes);
-            await ref.set(docPayload);
-            /* read-back: counts + suma de montos deben coincidir */
-            const back=await ref.get({source:'server'});
-            if(!back.exists)throw new Error('verificación: doc '+mes+' no existe post-write');
-            const bd=back.data();
-            const bops=bd._wireFormat?_decompressOpsArrayFromWire(bd.operaciones):(bd.operaciones||[]);
-            let sumBack=0;bops.forEach(o=>{sumBack=roundMoney(sumBack+(o.monto||0))});
-            let sumLocal=0;p.operaciones.forEach(o=>{sumLocal=roundMoney(sumLocal+(o.monto||0))});
-            if(bops.length!==p.stats.ops||(bd.movimientos||[]).length!==p.stats.movs||
-               (bd.transferencias||[]).length!==p.stats.transfs||Math.abs(sumBack-sumLocal)>ARCHIVO_EPSILON){
-                throw new Error('verificación de '+mes+' falló: counts/sumas no coinciden');
+            let escrito=false,ultimoErr=null;
+            for(let intento=1;intento<=3&&!escrito;intento++){
+                setPhase('Archivando '+mes+' ('+(i+1)+'/'+total+') — '+p.stats.ops+' ops…');
+                setMeta('Intento '+intento+'/3 · enviando');
+                try{
+                    await _conTimeout(ref.set(docPayload),ARCHIVO_WRITE_TIMEOUT,'escritura de '+mes);
+                    setMeta('Intento '+intento+'/3 · confirmando');
+                    /* read-back: counts + suma de montos deben coincidir */
+                    const back=await _conTimeout(ref.get({source:'server'}),ARCHIVO_GET_TIMEOUT,'lectura de verificación de '+mes);
+                    if(!back.exists)throw new Error('doc '+mes+' no existe post-write');
+                    const bd=back.data();
+                    let bops=bd._wireFormat?_decompressOpsArrayFromWire(bd.operaciones):(bd.operaciones||[]);
+                    if(bd.gananciasPorId)bops=_archivoAplicarGanancias(bops,bd.gananciasPorId);
+                    let sumBack=0,ganBack=0;bops.forEach(o=>{sumBack=roundMoney(sumBack+(o.monto||0));ganBack=roundMoney(ganBack+(o.ganancia||0))});
+                    let sumLocal=0,ganLocal=0;p.operaciones.forEach(o=>{sumLocal=roundMoney(sumLocal+(o.monto||0));ganLocal=roundMoney(ganLocal+(o.ganancia||0))});
+                    if(bops.length!==p.stats.ops||(bd.movimientos||[]).length!==p.stats.movs||
+                       (bd.transferencias||[]).length!==p.stats.transfs||
+                       Math.abs(sumBack-sumLocal)>ARCHIVO_EPSILON||Math.abs(ganBack-ganLocal)>ARCHIVO_EPSILON){
+                        throw new Error('verificación de '+mes+': counts/sumas no coinciden');
+                    }
+                    escrito=true;
+                }catch(e){
+                    ultimoErr=e;
+                    if(intento<3){
+                        const espera=ARCHIVO_BACKOFF[intento-1];
+                        setPhase('⚠ '+(e&&e.message||e));
+                        setMeta('Reintentando en '+(espera/1000)+'s…');
+                        await new Promise(r=>setTimeout(r,espera));
+                    }
+                }
             }
+            if(!escrito)throw new Error('No se pudo escribir '+mes+' tras 3 intentos. Último error: '+(ultimoErr&&ultimoErr.message||ultimoErr));
         }
 
+        try{await userRef.collection('archivo').doc('_ping').delete()}catch(_){}
         /* 4 ── aplicar en memoria + re-verificar EN VIVO */
         setPhase('Aplicando estado nuevo…');
         const saldoAntes=AppState.datos.saldoUsdt;
@@ -412,7 +479,8 @@ async function _archivoVerMes(mes){
             .collection('archivo').doc(mes).get();
         if(!snap.exists){body.innerHTML='<div style="color:#b91c1c;padding:12px 4px">No se encontró el documento de '+escHtml(mes)+'.</div>';return}
         const d=snap.data();
-        const ops=d._wireFormat?_decompressOpsArrayFromWire(d.operaciones):(d.operaciones||[]);
+        let ops=d._wireFormat?_decompressOpsArrayFromWire(d.operaciones):(d.operaciones||[]);
+        if(d.gananciasPorId)ops=_archivoAplicarGanancias(ops,d.gananciasPorId);
         window._archivoMesCache={mes,data:{...d,operaciones:ops}};
         const s=d.stats||{};
         const filas=ops.slice(0,400).map(o=>
@@ -459,6 +527,30 @@ document.addEventListener('click',e=>{
     else if(a==='archivo-volver')verArchivo();
     else if(a==='archivo-descargar')_archivoDescargarMes();
 });
+/* ─── Auto-sugerencia: si el doc supera 800 KB al cargar, ofrecer archivar ──
+   El payload guard solo salta al intentar GUARDAR; tras recargar la app no hay
+   forma obvia de relanzar el archivado. Esto la da: chequeo único post-boot. */
+let _archivoSugerido=false;
+function _archivoAutoSugerir(){
+    if(_archivoSugerido)return;
+    try{
+        if(!AppState.currentUser||!AppState.datos)return;
+        if(AppState._recoveryActive||AppState._recoverySafeMode||_archivoRunning)return;
+        const bd=calcularBreakdownPayload();
+        if(bd.totalKB<=800)return;
+        _archivoSugerido=true;
+        const ui=window._recoveryUI;if(!ui||!ui.error)return;
+        ui.ensure&&ui.ensure();
+        ui.error('Documento grande ('+bd.totalKB+' KB)',
+            'El documento principal está cerca del límite de Firestore (1 MB). Conviene archivar los meses viejos ahora, antes de que el guard bloquee los writes.',
+            [
+                {label:'📦 Archivar historial ahora',color:'#059669',onClick:()=>{ui.hide&&ui.hide();setTimeout(()=>archivarHistorial({trigger:'auto-sugerencia'}),200)}},
+                {label:'Más tarde',color:'#64748b',onClick:()=>{ui.hide&&ui.hide()}}
+            ]);
+    }catch(_){}
+}
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(_archivoAutoSugerir,6000)});
+
 /* Mostrar el botón 📦 cuando el índice esté hidratado */
 document.addEventListener('DOMContentLoaded',()=>{setTimeout(mostrarBotonArchivo,3500);setTimeout(mostrarBotonArchivo,8000)});
 

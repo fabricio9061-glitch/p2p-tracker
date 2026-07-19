@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.9.1',
+    APP_VERSION: '4.9.2',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.9.2', date:'2026-07-19', headline:'⏱️ El archivado ya no puede colgarse.', changes:[
+        {type:'fix', title:'Archivado colgado en "Intento 1" con conexión inestable', desc:'La escritura de cada doc mensual iba sin timeout: el SDK de Firestore puede quedar esperando la confirmación para siempre si la señal es mala (se reportó un cuelgue de 7+ minutos). Ahora cada mes se escribe con timeout de 45s y hasta 3 intentos con espera progresiva, mostrando "Intento X/3" y el motivo del reintento en pantalla. Además, antes de empezar se hace un ping chico que verifica en segundos la conexión real y que las reglas de Firestore permitan escribir en la subcolección "archivo" — si falta el permiso, lo dice con instrucciones en vez de colgarse.'},
+        {type:'improve', title:'Re-entrada y meses gigantes', desc:'Si al abrir la app el documento supera 800 KB, se ofrece archivar de una (antes solo aparecía al intentar guardar). Y si un mes archivado fuera tan grande que su doc expandido se acercara a 1 MB, se comprime automáticamente con la ganancia congelada en un anexo verificado.'}
+    ]},
     {version:'4.9.1', date:'2026-07-19', headline:'🔒 Deploy a prueba de caché y fin del loop de recovery.', changes:[
         {type:'fix', title:'El iPhone podía quedar ejecutando JavaScript viejo tras actualizar', desc:'Safari y las PWA instaladas cachean los .js/.css agresivamente: subías una versión nueva y el teléfono seguía corriendo la anterior (por eso la pantalla de recovery no mostraba el botón Archivar). Ahora cada asset se carga con ?v=VERSION — al subir una versión, la URL cambia y el navegador está obligado a bajar el código nuevo. El overlay de recovery además muestra la versión en ejecución, para diagnosticar de un vistazo.'},
         {type:'fix', title:'Recovery ya no entra al loop "Escribiendo 851 KB → falló"', desc:'Si el payload ya comprimido supera 800 KB, reescribirlo no puede achicarlo: el write "funcionaba" pero la verificación post-write (<800 KB) fallaba siempre, en cadena. Ahora recovery lo detecta ANTES de escribir y va directo a la pantalla de acciones con la explicación y el botón 📦 Archivar historial como salida real.'}
@@ -395,10 +399,6 @@ const CHANGELOG = [
         {type:'fix', title:'Backup local inmediato se salteaba ediciones consecutivas', desc:'La firma de deduplicación (versión|cantidad|dirty) no cambiaba entre dos ediciones in-place seguidas, por lo que la segunda no se respaldaba hasta el próximo save confirmado. FIX: contador de mutaciones _mutSeq en la firma.'},
         {type:'fix', title:'La paginación volvía a la página 1 con cualquier snapshot', desc:'El reset de paginación corría en el bloque común del listener, incluso para ecos del propio write. FIX: solo se resetea cuando el snapshot realmente reemplazó o mergeó datos.'},
         {type:'improve', title:'Limpieza y micro-fixes', desc:'clearSyncQueue() eliminada (código muerto, 0 referencias). Pill de tasa activa: isFinite(null) tomaba input vacío como tasa 0. CHANGELOG recortado a las 5 versiones que exige la regla del bundle (el warning de consola disparaba en cada carga).'}
-    ]},
-    {version:'4.8.1', date:'2026-05-29', headline:'🐛 Fix: el menú se abría desde abajo en pantallas grandes + limpieza menor.', changes:[
-        {type:'fix', title:'Menú lateral se abría desde abajo (desktop/tablet)', desc:'En pantallas ≥768px el panel del menú tenía inset:0 pero la regla de desktop solo seteaba left:auto sin resetear top/bottom/right, dejando el anclaje inconsistente: el panel se abría desde abajo en vez de deslizar desde la derecha. FIX: se agregó top:0; right:0; bottom:0 en la media query (min-width:768px) de .menu-panel, para que sea una barra lateral derecha de altura completa como estaba diseñado. Cambio solo de CSS, sin tocar lógica.'},
-        {type:'improve', title:'Eliminada forzarSyncManual (código muerto)', desc:'Función que quedó sin uso tras retirar el botón Forzar sync del diagnóstico. Verificado 0 referencias en JS y HTML. El sync automático no la usaba.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
