@@ -2,6 +2,12 @@ function inicializarFirebase(){
     if(typeof firebase==='undefined'){ocultarLoading();return}
     try{
         firebase.initializeApp(CONFIG.firebase);AppState.auth=firebase.auth();AppState.db=firebase.firestore();
+        /* v4.9.3 — Redes/proxies que rompen el WebChannel de Firestore dejan al
+           SDK colgado (writes que nunca resuelven, snapshot que nunca llega,
+           "Modo local activo" eterno). Con auto-detección, el SDK degrada solo
+           a long-polling. Debe llamarse ANTES de cualquier otra operación. */
+        try{AppState.db.settings({experimentalAutoDetectLongPolling:true,merge:true})}
+        catch(e){console.warn('[P2P] settings long-polling:',e&&e.message||e)}
         /* ═══ Persistence init serializado ═══
            Bug conocido del SDK Firestore (issue #6256, "INTERNAL ASSERTION FAILED: Unexpected
            state"): si onSnapshot se dispara antes que enablePersistence resuelva, Firestore 

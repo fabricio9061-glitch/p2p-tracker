@@ -468,7 +468,7 @@ function _ensureRecoveryOverlay(){
             '<div style="font-size:1.15em;font-weight:700;color:#fbbf24;margin-bottom:12px;'+
                 'line-height:1.3">Optimización crítica de base de datos en progreso</div>'+
             '<div style="font-size:0.68em;color:#475569;margin:-8px 0 10px">v'+CONFIG.APP_VERSION+'</div>'+
-            '<div style="font-size:0.9em;color:#cbd5e1;margin-bottom:18px;line-height:1.45">'+
+            '<div id="recoverySubtitle" style="font-size:0.9em;color:#cbd5e1;margin-bottom:18px;line-height:1.45">'+
                 'No cierres la app ni cambies de pestaña. La operación puede tardar hasta un minuto.</div>'+
             '<div id="recoverySpinner" style="display:inline-block;width:40px;height:40px;'+
                 'border:4px solid #334155;border-top-color:#3b82f6;border-radius:50%;'+
@@ -520,8 +520,10 @@ function _setRecoveryError(title,desc,actions){
     /* El header amarillo de "Optimización en progreso" → rojo */
     const card=el.querySelector('div > div:nth-child(2)');
     if(card){card.style.color='#fca5a5';card.textContent=title}
-    const sub=el.querySelector('div > div:nth-child(3)');
-    if(sub)sub.textContent='Recovery falló. Restauración manual requerida.';
+    /* v4.9.3 — target por id: el selector posicional (nth-child) pisaba el
+       sello de versión y dejaba visible el subtítulo viejo en el estado de error */
+    const sub=document.getElementById('recoverySubtitle');
+    if(sub)sub.textContent='Restauración manual requerida.';
     const meta=document.getElementById('recoveryMeta');if(meta)meta.style.display='none';
     const ac=document.getElementById('recoveryActions');
     if(ac&&Array.isArray(actions)){

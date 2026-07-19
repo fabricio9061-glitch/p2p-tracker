@@ -317,13 +317,42 @@ async function archivarHistorial(opts){
            Si las reglas la bloquean, acá falla en segundos con mensaje claro,
            en vez de un cuelgue ambiguo con el doc grande. */
         setPhase('Verificando permisos y conexión…');
-        try{
-            await _conTimeout(userRef.collection('archivo').doc('_ping').set({t:Date.now()}),15000,'ping de conexión');
-        }catch(e){
-            const perm=/permission|insufficient/i.test(String(e&&e.message||e));
-            throw new Error(perm
-                ?'Las reglas de seguridad de Firestore no permiten escribir en la subcolección "archivo". En Firebase Console → Firestore → Reglas, agregá para users/{uid}/archivo la misma regla que ya tenés para monthly_summaries.'
-                :'Sin conexión estable con Firestore ('+(e&&e.message||e)+'). Probá con mejor señal o WiFi.');
+        const _pingRef=userRef.collection('archivo').doc('_ping');
+        const _hacerPing=ms=>_conTimeout(_pingRef.set({t:Date.now()}),ms,'ping de conexión');
+        let _pingOk=false,_pingErr=null;
+        try{await _hacerPing(15000);_pingOk=true}catch(e){_pingErr=e}
+        if(!_pingOk&&!/permission|insufficient/i.test(String(_pingErr&&_pingErr.message||''))){
+            /* v4.9.3 — Doctor de conexión. Con enablePersistence, la cola de
+               escrituras del SDK vive en IndexedDB y SOBREVIVE al cierre de la
+               app: un write grande colgado de un intento anterior bloquea todo
+               lo que venga detrás (Firestore despacha EN ORDEN). Paso 1: kick
+               suave del canal (disable/enable network) y reintento. */
+            setPhase('Conexión trabada — reiniciando canal…');
+            try{await _conTimeout(AppState.db.disableNetwork(),8000,'disableNetwork')}catch(_){}
+            try{await _conTimeout(AppState.db.enableNetwork(),8000,'enableNetwork')}catch(_){}
+            try{await _hacerPing(12000);_pingOk=true}catch(e){_pingErr=e}
+        }
+        if(!_pingOk){
+            const perm=/permission|insufficient/i.test(String(_pingErr&&_pingErr.message||''));
+            if(perm)throw new Error('Las reglas de seguridad de Firestore no permiten escribir en la subcolección "archivo". En Firebase Console → Firestore → Reglas, agregá para users/{uid}/archivo la misma regla que ya tenés para monthly_summaries.');
+            /* Diagnóstico: ¿hay escrituras del SDK atascadas de una sesión previa? */
+            let colaAtascada=false;
+            try{await _conTimeout(AppState.db.waitForPendingWrites(),5000,'pendientes')}catch(_){colaAtascada=true}
+            AppState._recoveryActive=false;
+            AppState._recoverySafeMode=safeModePrevio;
+            _archivoRunning=false;
+            const uiE=window._recoveryUI;
+            const msg=colaAtascada
+                ?'La cola interna de Firestore tiene escrituras atascadas de un intento anterior (probablemente el write grande que quedó colgado). Como la app usa persistencia, esa cola sobrevive al cerrar la app y bloquea todo lo nuevo.\n\n"Reiniciar conexión" limpia SOLO esa cola interna y recarga. Tus operaciones NO se tocan: viven en el respaldo local y se restauran al volver.'
+                :'No hay canal estable con Firestore ('+(_pingErr&&_pingErr.message||_pingErr)+'). Probá con WiFi estable o reiniciá la conexión.';
+            if(uiE&&uiE.error){
+                uiE.error('Sin conexión con Firestore',msg,[
+                    {label:'🔁 Reintentar archivado',color:'#3b82f6',onClick:()=>{uiE.hide&&uiE.hide();setTimeout(()=>archivarHistorial(opts),300)}},
+                    {label:'🧹 Reiniciar conexión y recargar',color:'#d97706',onClick:()=>{_archivoResetConexion()}},
+                    {label:'Cerrar',color:'#64748b',onClick:()=>{uiE.hide&&uiE.hide()}}
+                ]);
+            }else alert(msg);
+            return{ok:false,motivo:'sin-conexion',colaAtascada};
         }
         const total=plan.meses.length;
         const ARCHIVO_WRITE_TIMEOUT=45000,ARCHIVO_GET_TIMEOUT=15000,ARCHIVO_BACKOFF=[3000,8000];
@@ -427,12 +456,28 @@ async function archivarHistorial(opts){
         if(window._recoveryUI&&window._recoveryUI.error){
             window._recoveryUI.error('Archivado interrumpido',msg,[
                 {label:'🔄 Reintentar archivado',color:'#3b82f6',onClick:()=>{if(window._recoveryUI.hide)window._recoveryUI.hide();setTimeout(()=>archivarHistorial(opts),300)}},
+                {label:'🧹 Reiniciar conexión y recargar',color:'#d97706',onClick:()=>{_archivoResetConexion()}},
                 {label:'Cerrar',color:'#64748b',onClick:()=>{if(window._recoveryUI.hide)window._recoveryUI.hide()}}
             ]);
         }else alert(msg);
         return{ok:false,error:e};
     }
 }
+
+/* ─── Reset de conexión: limpia la cola interna persistida del SDK ─────────
+   Seguro para los datos del usuario: las operaciones pendientes de la app NO
+   están en esta cola (el modo seguro las frena ANTES de llegar al SDK); viven
+   en memoria + respaldo localStorage y se restauran al recargar por puntaje.
+   Lo único que se descarta son writes internos colgados (archivo/_ping/recovery),
+   todos idempotentes y regenerables. */
+async function _archivoResetConexion(){
+    if(!confirm('Reiniciar la conexión con Firestore:\n\n• Limpia la cola interna atascada del SDK\n• Recarga la app\n• Tus operaciones quedan intactas (respaldo local)\n\n¿Continuar?'))return;
+    try{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}}catch(_){}
+    try{await AppState.db.terminate()}catch(e){console.warn('[P2P] terminate:',e&&e.message||e)}
+    try{await AppState.db.clearPersistence()}catch(e){console.warn('[P2P] clearPersistence:',e&&e.message||e)}
+    location.reload();
+}
+window._archivoResetConexion=_archivoResetConexion;
 
 /* ─── VISOR read-only del archivo ──────────────────────────────────────────── */
 function mostrarBotonArchivo(){
