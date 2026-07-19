@@ -467,6 +467,7 @@ function _ensureRecoveryOverlay(){
             '<div id="recoveryIcon" style="font-size:48px;margin-bottom:8px">⚠️</div>'+
             '<div style="font-size:1.15em;font-weight:700;color:#fbbf24;margin-bottom:12px;'+
                 'line-height:1.3">Optimización crítica de base de datos en progreso</div>'+
+            '<div style="font-size:0.68em;color:#475569;margin:-8px 0 10px">v'+CONFIG.APP_VERSION+'</div>'+
             '<div style="font-size:0.9em;color:#cbd5e1;margin-bottom:18px;line-height:1.45">'+
                 'No cierres la app ni cambies de pestaña. La operación puede tardar hasta un minuto.</div>'+
             '<div id="recoverySpinner" style="display:inline-block;width:40px;height:40px;'+
@@ -826,6 +827,18 @@ async function recoveryWrite(opts){
         _enterSafeMode('Validación pre-write falló:\n• '+validation.errors.join('\n• '));
         _recoveryRunning=false;
         return{ok:false,reason:'validation-failed',errors:validation.errors};
+    }
+    /* ═══ v4.9.1 — Cortar el loop condenado ANTES de escribir ═══
+       Si el payload YA COMPRIMIDO supera 800 KB, el write va a "funcionar"
+       pero la verificación post-write (<800 KB) va a fallar SIEMPRE: era el
+       loop "Escribiendo 851 KB → Optimización falló" en cadena. La compresión
+       no puede achicar lo ya comprimido — la única salida real es archivar.
+       Se salta con opts.force (escape hatch consciente). */
+    if(validation.sizeKB>800&&typeof window.archivarHistorial==='function'&&!(opts&&opts.force)){
+        RECOVERY_LOG('pre-block:too-big',{sizeKB:validation.sizeKB});
+        _enterSafeMode('El documento comprimido pesa '+validation.sizeKB+' KB (límite de verificación: 800 KB).\n\nReescribirlo no puede achicarlo: la compresión ya está aplicada. La solución es mover los meses viejos a documentos separados con el botón de abajo.');
+        _recoveryRunning=false;
+        return{ok:false,reason:'too-big-use-archive',sizeKB:validation.sizeKB};
     }
     /* ── Fase 3: loop de write con backoff ── */
     const RETRY_DELAYS=[5000,15000,30000];

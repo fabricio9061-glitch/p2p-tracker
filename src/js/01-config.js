@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.9.0',
+    APP_VERSION: '4.9.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.9.1', date:'2026-07-19', headline:'🔒 Deploy a prueba de caché y fin del loop de recovery.', changes:[
+        {type:'fix', title:'El iPhone podía quedar ejecutando JavaScript viejo tras actualizar', desc:'Safari y las PWA instaladas cachean los .js/.css agresivamente: subías una versión nueva y el teléfono seguía corriendo la anterior (por eso la pantalla de recovery no mostraba el botón Archivar). Ahora cada asset se carga con ?v=VERSION — al subir una versión, la URL cambia y el navegador está obligado a bajar el código nuevo. El overlay de recovery además muestra la versión en ejecución, para diagnosticar de un vistazo.'},
+        {type:'fix', title:'Recovery ya no entra al loop "Escribiendo 851 KB → falló"', desc:'Si el payload ya comprimido supera 800 KB, reescribirlo no puede achicarlo: el write "funcionaba" pero la verificación post-write (<800 KB) fallaba siempre, en cadena. Ahora recovery lo detecta ANTES de escribir y va directo a la pantalla de acciones con la explicación y el botón 📦 Archivar historial como salida real.'}
+    ]},
     {version:'4.9.0', date:'2026-07-19', headline:'📦 Archivado histórico: el documento nunca más llega al límite de Firestore.', changes:[
         {type:'new', title:'Archivar historial a documentos mensuales separados', desc:'Todo vivía en UN documento de Firestore (límite duro: 1 MB). Con tu volumen, ni la compresión wire alcanzaba: el guard bloqueó writes a 851 KB y el recovery no podía ayudar (re-comprimir algo ya comprimido da el mismo tamaño). Ahora los meses viejos se mueven a users/{uid}/archivo/{YYYY-MM}: el doc principal conserva los últimos 3 meses y queda chico para siempre. El botón "📦 Archivar historial (recomendado)" aparece en la pantalla del guard y en la de recovery fallido.'},
         {type:'new', title:'FIFO exacto con lotes de arrastre + seeds de tasas', desc:'Antes de archivar, se reproduce el período viejo con el motor real: los lotes que quedan abiertos al corte se convierten en lotes de arrastre (manual/carryover) con su precio y fecha originales, y las últimas tasas (UYU/USD, compra/venta) se guardan como seeds. El recálculo verifica equivalencia total ANTES de aplicar: saldo USDT, disponible por moneda, ganancia de cada operación reciente y tasas — si algo difiere medio centésimo, se aborta sin tocar nada. Cada doc mensual se escribe y se relee de Firestore para verificar counts y sumas.'},
@@ -395,10 +399,6 @@ const CHANGELOG = [
     {version:'4.8.1', date:'2026-05-29', headline:'🐛 Fix: el menú se abría desde abajo en pantallas grandes + limpieza menor.', changes:[
         {type:'fix', title:'Menú lateral se abría desde abajo (desktop/tablet)', desc:'En pantallas ≥768px el panel del menú tenía inset:0 pero la regla de desktop solo seteaba left:auto sin resetear top/bottom/right, dejando el anclaje inconsistente: el panel se abría desde abajo en vez de deslizar desde la derecha. FIX: se agregó top:0; right:0; bottom:0 en la media query (min-width:768px) de .menu-panel, para que sea una barra lateral derecha de altura completa como estaba diseñado. Cambio solo de CSS, sin tocar lógica.'},
         {type:'improve', title:'Eliminada forzarSyncManual (código muerto)', desc:'Función que quedó sin uso tras retirar el botón Forzar sync del diagnóstico. Verificado 0 referencias en JS y HTML. El sync automático no la usaba.'}
-    ]},
-    {version:'4.8.0', date:'2026-05-29', headline:'🎯 Versión consolidada: estructura modular estable + limpieza completa.', changes:[
-        {type:'improve', title:'Código del diagnóstico eliminado', desc:'Se eliminaron las 10 funciones internas que quedaron sin uso tras retirar el panel de Diagnóstico de sincronización (visor, auditorías y su cableado de botones). Verificado con parser que ninguna tenía referencias vivas — solo se borró lo que tiene cero llamadas. La maquinaria automática que protege tus datos (recovery-write, payload-guard, inspección remota, logger de sync, anti-wipe, compresión) quedó intacta, igual que exportar/importar.'},
-        {type:'improve', title:'Cierre del trabajo de modularización', desc:'Marca el fin del proceso: CSS y JS separados en src/css y src/js, orden de carga verificado, sin cambios de comportamiento, código muerto limpio. Base estable para futuras actualizaciones.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
