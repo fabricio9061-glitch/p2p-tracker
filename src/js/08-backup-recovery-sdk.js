@@ -132,6 +132,28 @@ function mergeRemoteState(d){
     AppState.datos.comisionPlataforma=d.comisionPlataforma!==undefined?d.comisionPlataforma:AppState.datos.comisionPlataforma;
     AppState.datos.comisionUSD=d.comisionUSD!==undefined?d.comisionUSD:AppState.datos.comisionUSD;
     AppState.datos.ultimoMesProcesado=d.ultimoMesProcesado&&d.ultimoMesProcesado>(AppState.datos.ultimoMesProcesado||'')?d.ultimoMesProcesado:(AppState.datos.ultimoMesProcesado||d.ultimoMesProcesado||'');
+    /* ═══ v4.9.0 — Lotes manuales/carryover + metadata de archivado ═══
+       Los lotes manuales ahora viajan en d.lotesManuales (no derivables).
+       Regla: remoto manda, EXCEPTO lotes con edición local pendiente en
+       _syncQueue (entity 'lotes') y los marcados para borrar (delIds).
+       Los no-manuales locales se preservan tal cual: recalcular los regenera. */
+    if(Array.isArray(d.lotesManuales)){
+        const _pendLotes=new Set(_syncQueue.filter(a=>a.entity==='lotes').map(a=>a.id));
+        const _manLocalPend=(AppState.datos.lotes||[]).filter(l=>l&&l.manual&&_pendLotes.has(l.id));
+        const _manRemotos=d.lotesManuales.filter(l=>l&&!_pendLotes.has(l.id)&&!delIds.has(l.id));
+        const _noManual=(AppState.datos.lotes||[]).filter(l=>l&&!l.manual);
+        AppState.datos.lotes=[..._manRemotos,..._manLocalPend,..._noManual];
+    }
+    /* Seeds del archivado: gana el corte más reciente (encadenable) */
+    if(d._archivoSeeds&&(!AppState.datos._archivoSeeds||String(d._archivoSeeds.corte||'')>String(AppState.datos._archivoSeeds.corte||''))){
+        AppState.datos._archivoSeeds=d._archivoSeeds;
+    }
+    /* Índice del archivo: unión por mes (remoto pisa por mes) */
+    if(d._archivoIndex&&d._archivoIndex.meses){
+        const _mesesLocal=(AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses)||{};
+        AppState.datos._archivoIndex={meses:{..._mesesLocal,...d._archivoIndex.meses},actualizado:d._archivoIndex.actualizado||_mesesLocal.actualizado||''};
+        if(typeof mostrarBotonArchivo==='function'){try{mostrarBotonArchivo()}catch(_){}}
+    }
     /* lastSeenVersion: aceptar el más alto entre local y remoto (multi-device sync) */
     const remoteSeen=d.lastSeenVersion||'';
     const localSeen=AppState.datos.lastSeenVersion||'';
@@ -497,6 +519,12 @@ async function guardarDatos(forzar,opts){
             const sampleFull={...datosLimpios,_version:newVersion,ultimaActualizacion:'<server-ts>'};
             payloadKBPreStrip=Math.round(JSON.stringify(sampleFull).length/1024);
         }catch(e){/* no critical */}
+        /* v4.9.0 FIX — Los lotes MANUALES (incluidos los carryover del archivado)
+           NO son derivables del historial: hay que persistirlos. Antes se borraba
+           `lotes` completo → en un dispositivo nuevo o tras limpiar caché, los
+           lotes manuales desaparecían silenciosamente. Los no-manuales sí se
+           regeneran con recalcularLotesYGanancias(), esos siguen fuera. */
+        datosLimpios.lotesManuales=(AppState.datos.lotes||[]).filter(l=>l&&l.manual).map(l=>{const{_syncState,...r}=l;return r});
         /* Strip de derivables top-level (Fix 2 v4.7.36) */
         delete datosLimpios.lotes;
         delete datosLimpios.saldoUsdt;
@@ -925,7 +953,7 @@ function cargarDatosUsuario(){
                        algo mayor pendiente de llegar. Esperamos un ciclo antes de pushear. */
                     setTimeout(()=>{if(!esDatosVacios(AppState.datos))guardarDatos(true)},2500);
                 }else{
-                    AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:d.lotes||[],tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||'',dismissedVersions:Array.isArray(d.dismissedVersions)?d.dismissedVersions:[]};
+                    AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:Array.isArray(d.lotesManuales)?d.lotesManuales:(d.lotes||[]),tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||'',dismissedVersions:Array.isArray(d.dismissedVersions)?d.dismissedVersions:[],_archivoSeeds:d._archivoSeeds||null,_archivoIndex:d._archivoIndex||null};
                     AppState._localVersion=serverVersion;
                     snapshotAplicoCambios=true;
                 }

@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '4.8.3',
+    APP_VERSION: '4.9.0',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,12 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'4.9.0', date:'2026-07-19', headline:'📦 Archivado histórico: el documento nunca más llega al límite de Firestore.', changes:[
+        {type:'new', title:'Archivar historial a documentos mensuales separados', desc:'Todo vivía en UN documento de Firestore (límite duro: 1 MB). Con tu volumen, ni la compresión wire alcanzaba: el guard bloqueó writes a 851 KB y el recovery no podía ayudar (re-comprimir algo ya comprimido da el mismo tamaño). Ahora los meses viejos se mueven a users/{uid}/archivo/{YYYY-MM}: el doc principal conserva los últimos 3 meses y queda chico para siempre. El botón "📦 Archivar historial (recomendado)" aparece en la pantalla del guard y en la de recovery fallido.'},
+        {type:'new', title:'FIFO exacto con lotes de arrastre + seeds de tasas', desc:'Antes de archivar, se reproduce el período viejo con el motor real: los lotes que quedan abiertos al corte se convierten en lotes de arrastre (manual/carryover) con su precio y fecha originales, y las últimas tasas (UYU/USD, compra/venta) se guardan como seeds. El recálculo verifica equivalencia total ANTES de aplicar: saldo USDT, disponible por moneda, ganancia de cada operación reciente y tasas — si algo difiere medio centésimo, se aborta sin tocar nada. Cada doc mensual se escribe y se relee de Firestore para verificar counts y sumas.'},
+        {type:'new', title:'Visor del archivo + breakdown del payload', desc:'Botón 📦 Archivo en Operaciones: listado de meses archivados con sus stats, detalle read-only y descarga en JSON por mes. Las operaciones archivadas conservan su ganancia congelada. Nuevo calcularBreakdownPayload() muestra qué sección ocupa cuánto. El Resumen mensual no se afecta (usa monthly_summaries, que ya vivían aparte).'},
+        {type:'fix', title:'Los lotes manuales se perdían al sincronizar en otro dispositivo', desc:'guardarDatos eliminaba `lotes` completo del payload — correcto para los derivables, pero los MANUALES no se pueden reconstruir. En un dispositivo nuevo o tras limpiar caché desaparecían en silencio. Ahora persisten en lotesManuales, con merge multi-dispositivo (pendientes locales protegidos) y soporte en recovery. Este fix es además la base que hace posible el carryover del archivado.'}
+    ]},
     {version:'4.8.3', date:'2026-07-14', headline:'⚖️ El pago dividido ahora balancea con ambas cuentas.', changes:[
         {type:'fix', title:'No se podía balancear el pago entre el banco principal y una cuenta extra', desc:'Al comprar con saldo insuficiente, el banco principal quedaba fijo aportando su saldo completo y las cuentas adicionales se sumaban ENCIMA. Si cargabas un monto redondo en la cuenta extra (ej. Itaú 8.000 cuando el faltante real era 2.574,98) el total se pasaba y aparecía "Exceso · ajustá los aportes", sin forma de cuadrar. Ahora el banco principal aporta automáticamente el remanente (total − lo que pusiste en las cuentas extra), capado a su saldo: tipeás el monto de la cuenta extra y el principal se ajusta solo hasta que el total cuadra exacto. El monto del principal se ve actualizarse en vivo mientras editás.'},
         {type:'improve', title:'Mensajes del panel de split más claros', desc:'El título "Saldo insuficiente · faltan $X" ahora muestra siempre cuánto le falta al banco principal para cubrir solo (valor fijo), en vez de un número que cambiaba de forma confusa al ir cargando las cuentas extra. Si las cuentas adicionales llegan a cubrir el total exacto, el principal aporta $0 y se omite del registro.'}
@@ -393,9 +399,6 @@ const CHANGELOG = [
     {version:'4.8.0', date:'2026-05-29', headline:'🎯 Versión consolidada: estructura modular estable + limpieza completa.', changes:[
         {type:'improve', title:'Código del diagnóstico eliminado', desc:'Se eliminaron las 10 funciones internas que quedaron sin uso tras retirar el panel de Diagnóstico de sincronización (visor, auditorías y su cableado de botones). Verificado con parser que ninguna tenía referencias vivas — solo se borró lo que tiene cero llamadas. La maquinaria automática que protege tus datos (recovery-write, payload-guard, inspección remota, logger de sync, anti-wipe, compresión) quedó intacta, igual que exportar/importar.'},
         {type:'improve', title:'Cierre del trabajo de modularización', desc:'Marca el fin del proceso: CSS y JS separados en src/css y src/js, orden de carga verificado, sin cambios de comportamiento, código muerto limpio. Base estable para futuras actualizaciones.'}
-    ]},
-    {version:'4.7.69', date:'2026-05-29', headline:'🧹 Quitado el panel de Diagnóstico de sincronización del menú.', changes:[
-        {type:'improve', title:'Diagnóstico de sincronización retirado de la UI', desc:'Se quitaron del menú las dos entradas de diagnóstico y el panel (modal) de Diagnóstico de sincronización. Las protecciones automáticas de datos (logger interno de sync, compresión wire, recovery-write, anti-wipe) NO se tocaron: corren en segundo plano y son las que mantienen tus datos a salvo. La exportación/importación de datos (respaldo manual) tampoco se tocó. La estructura del proyecto sigue modular (src/css y src/js).'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

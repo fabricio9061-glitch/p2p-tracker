@@ -615,6 +615,10 @@ function _buildRecoveryPayload(){
         comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,
         comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,
         ultimoMesProcesado:d.ultimoMesProcesado||'',
+        /* v4.9.0 — no derivables: lotes manuales/carryover + metadata de archivado */
+        lotesManuales:(d.lotes||[]).filter(l=>l&&l.manual).map(l=>{const{_syncState,...r}=l;return r}),
+        _archivoSeeds:d._archivoSeeds||null,
+        _archivoIndex:d._archivoIndex||null,
         _version:newVersion,
         _wireFormat:WIRE_FORMAT_VERSION,
         ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()
@@ -902,6 +906,15 @@ function _enterSafeMode(reasonText){
         'Recovery falló',
         reasonText,
         [
+            {label:'📦 Archivar historial (recomendado)',color:'#059669',onClick:()=>{
+                /* v4.9.0 — Si recovery falla por tamaño (doc ya comprimido >800 KB),
+                   reintentar recovery es un loop: la salida real es archivar. */
+                if(typeof window.archivarHistorial==='function'){
+                    AppState._recoverySafeMode=false;
+                    _hideRecoveryOverlay();
+                    setTimeout(()=>window.archivarHistorial({trigger:'safemode'}),200);
+                }else alert('Módulo de archivado no cargado (15-archivo.js).');
+            }},
             {label:'🔄 Reintentar recovery',color:'#3b82f6',onClick:()=>{
                 AppState._recoverySafeMode=false;
                 _hideRecoveryOverlay();
@@ -987,6 +1000,14 @@ function _checkPayloadGuard(payloadKB){
                 '⚠️ Payload crítico ('+payloadKB+' KB)',
                 'El tamaño del documento se acercó al límite de Firestore. Writes bloqueados preventivamente.',
                 [
+                    {label:'📦 Archivar historial (recomendado)',color:'#059669',onClick:()=>{
+                        /* v4.9.0 — Solución definitiva: mueve meses viejos a docs
+                           separados. El guard queda liberado por el propio flujo. */
+                        if(typeof window.archivarHistorial==='function'){
+                            _hideRecoveryOverlay();
+                            setTimeout(()=>window.archivarHistorial({trigger:'guard'}),200);
+                        }else alert('Módulo de archivado no cargado (15-archivo.js).');
+                    }},
                     {label:'📤 Exportar backup',color:'#16a34a',onClick:()=>{
                         try{if(typeof exportarDatos==='function')exportarDatos()}catch(_){}
                     }},
@@ -1009,6 +1030,14 @@ function _checkPayloadGuard(payloadKB){
 /* ─── Exposición pública ─────────────────────────────────────────────────────
    Para que el botón de Diagnóstico pueda dispararlo manualmente. */
 window.recoveryWrite=recoveryWrite;
+/* v4.9.0 — hooks de UI del overlay para el módulo de archivado (15) */
+window._recoveryUI={
+    ensure:_ensureRecoveryOverlay,
+    hide:_hideRecoveryOverlay,
+    setPhase:_setRecoveryPhase,
+    setMeta:_setRecoveryMeta,
+    error:_setRecoveryError
+};
 window._inspectRemoteDoc=_inspectRemoteDoc;
 window._checkPayloadGuard=_checkPayloadGuard;
 

@@ -234,8 +234,13 @@ function mostrarSaldoOrigen(){
    ═══════════════════════════════════════ */
 function agregarLote(id,fecha,hora,precio,cant,moneda){
     moneda=moneda||'UYU';cant=truncUsdt(cant);
-    /* Solo mergear con lotes automáticos (no manuales) del mismo precio y moneda */
-    const ex=AppState.datos.lotes.find(l=>!l.manual&&l.precioCompra===precio&&l.disponible>0&&(l.moneda||'UYU')===moneda);
+    /* Mergear con lotes automáticos del mismo precio y moneda. v4.9.0: también
+       con lotes CARRYOVER (sintéticos, creados por el archivado): reproducen el
+       lote automático que reemplazan, y si no mergearan, el snap de polvo de
+       consumirFIFO (disponible<0.005→0) actuaría sobre un agrupamiento distinto
+       al del historial completo → drift de ±0.01. Los manuales del usuario
+       siguen intocables. */
+    const ex=AppState.datos.lotes.find(l=>(!l.manual||l.carryover)&&l.precioCompra===precio&&l.disponible>0&&(l.moneda||'UYU')===moneda);
     if(ex){ex.cantidad=truncUsdt(ex.cantidad+cant);ex.disponible=truncUsdt(ex.disponible+cant)}
     else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant,moneda});
 }
@@ -274,8 +279,13 @@ function recalcularLotesYGanancias(){
     /* Insertar lotes manuales como eventos para que participen en FIFO cronológicamente */
     lotesManual.forEach(l=>{ev.push({tipo:'lm',fecha:l.fecha||'2000-01-01',hora:l.hora||'00:00',data:l})});
     ev.sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')));
-    /* Iniciar TODOS los trackers desde 0 — reconstrucción pura desde historial */
-    let utcL=0,utcUL=0,utvL=0,utvU=0;
+    /* v4.9.0 — Si hay historial archivado, los trackers arrancan desde los
+       seeds capturados al corte (datos._archivoSeeds). Sin archivo: desde 0,
+       idéntico a siempre. Sin esto, archivar rompería la ganancia de compras
+       USD recientes (dependen de la última venta USD, que puede estar en el
+       archivo) y el fallback de tasaRef en ingresos USDT. */
+    const _seeds=AppState.datos._archivoSeeds||{};
+    let utcL=_seeds.utcL||0,utcUL=_seeds.utcUL||0,utvL=_seeds.utvL||0,utvU=_seeds.utvU||0;
     ev.forEach(e=>{
         if(e.tipo==='op'){
             const op=e.data;if(!op.tasa||op.tasa<=0){op.ganancia=0;op.usdt=0;op.comisionPlataforma=0;return}
@@ -310,7 +320,7 @@ function recalcularLotesYGanancias(){
             const l=e.data;
             /* CRÍTICO: disponible se resetea a cantidad original — el replay FIFO 
                consumirá lo que corresponda según las operaciones activas */
-            AppState.datos.lotes.push({id:l.id,fecha:l.fecha,hora:l.hora,precioCompra:l.precioCompra,cantidad:l.cantidad,disponible:l.cantidad,moneda:l.moneda||'UYU',manual:true});
+            AppState.datos.lotes.push({id:l.id,fecha:l.fecha,hora:l.hora,precioCompra:l.precioCompra,cantidad:l.cantidad,disponible:l.cantidad,moneda:l.moneda||'UYU',manual:true,...(l.carryover?{carryover:true}:{})});
         }
     });
     AppState.datos.ultimaTasaCompra=utcL;AppState.datos.ultimaTasaCompraUSD=utcUL;
