@@ -130,7 +130,33 @@ function verificarResetLimites(){
 function getMonedaBanco(){const b=$('banco')?.value;if(!b)return'UYU';return getBancoInfo(b)?.moneda||'UYU'}
 function getComisionActual(){return getMonedaBanco()==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma}
 function getComisionDec(){return(getComisionActual()||0.14)/100}
-function getBancosActivos(){return CONFIG.BANCOS.filter(b=>AppState.datos.bancos[b.nombre]?.activo)}
+/* ═══ v4.9.5 — Orden por saldo: más plata primero, cuentas vacías al final ═══
+   Se agrupa por moneda antes de comparar (UYU y luego USD, según el orden de
+   CONFIG): mezclar $24.000 con US$500 en un mismo ranking no tiene sentido.
+   Empates (típico: varias cuentas en 0) → se conserva el orden de CONFIG para
+   que no bailen entre renders. Como TODOS los selectores salen de esta función,
+   ordenar acá alcanza para tarjetas, "Sale de", "Entra a", ajustes y split. */
+function _saldoDeBanco(nombre){
+    if(!AppState.datos||!AppState.datos.bancos)return 0;
+    const bk=AppState.datos.bancos[nombre];
+    return bk?(bk.saldo||0):0;
+}
+function ordenarBancosPorSaldo(lista){
+    const idx=new Map(),ordenMoneda={};let m=0;
+    CONFIG.BANCOS.forEach((b,i)=>{
+        idx.set(b.nombre,i);
+        const mo=b.moneda||'UYU';
+        if(ordenMoneda[mo]===undefined)ordenMoneda[mo]=m++;
+    });
+    return lista.slice().sort((a,b)=>{
+        const ma=ordenMoneda[a.moneda||'UYU'],mb=ordenMoneda[b.moneda||'UYU'];
+        if(ma!==mb)return ma-mb;
+        const sa=_saldoDeBanco(a.nombre),sb=_saldoDeBanco(b.nombre);
+        if(Math.abs(sa-sb)>0.005)return sb-sa;
+        return (idx.get(a.nombre)||0)-(idx.get(b.nombre)||0);
+    });
+}
+function getBancosActivos(){return ordenarBancosPorSaldo(CONFIG.BANCOS.filter(b=>AppState.datos.bancos[b.nombre]?.activo))}
 
 function actualizarSelectBancos(){
     const s=$('banco'),v=s.value;
@@ -164,8 +190,10 @@ function actualizarBancosGrid(){
 
     /* ═══ Grid de desglose: cada cuenta individual ═══ */
     let h=`<div class="banco-mini-card usdt-card" data-action="inventario"><div class="banco-nombre" style="display:flex;align-items:center;gap:6px"><img src="${LOGO_USDT}" alt="" class="banco-logo-img" style="width:20px;height:20px;object-fit:contain;border-radius:50%;flex:0 0 auto" loading="lazy" onerror="this.style.display='none'"><b style="color:#1e293b">USDT</b></div><div class="banco-saldo">${fmtTrunc(saldoUsdt,2)}</div><div class="banco-moneda">${la} lotes</div></div>`;
-    CONFIG.BANCOS.forEach(b=>{
-        if(!AppState.datos.bancos[b.nombre]?.activo)return;
+    /* v4.9.5 — mismo embudo ordenado que los selectores (saldo desc, vacías al
+       final). Antes recorría CONFIG.BANCOS con filtro propio: orden fijo de
+       declaración, con las cuentas en $0 quedando en el medio de la grilla. */
+    getBancosActivos().forEach(b=>{
         const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
         let tipHtml='',limTxt='',hasGauge=false,cardStyle='';
         if(lim>0){
