@@ -455,7 +455,18 @@ function iniciarRecuperacionFirestore(){
        Cualquier paso puede fallar (terminate timeout, clearPersistence con quota, etc).
        Si algo falla, igual recargamos — la página fresh re-inicializa todo correctamente. */
     setTimeout(()=>{
-        const reload=()=>{try{location.reload()}catch(e){window.location.href=window.location.href}};
+        /* v5.2.6 — El respaldo era window.location.href=window.location.href, que
+           es una autoasignación: los navegadores actuales la ignoran y NO recargan.
+           Como esto corre después de terminar el SDK y borrar su base local, quedarse
+           sin recargar deja la app inutilizable hasta que el usuario la cierre a mano.
+           location.replace(href) sí recarga, y además no ensucia el historial. */
+        const reload=()=>{
+            try{location.reload()}
+            catch(e){
+                try{window.location.replace(window.location.href)}
+                catch(e2){console.error('[P2P] No se pudo recargar automáticamente:',e2)}
+            }
+        };
         const TERMINATE_TIMEOUT=4000;
         const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('terminate-timeout')),ms))]);
         try{
