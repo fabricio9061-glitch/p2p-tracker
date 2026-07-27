@@ -354,7 +354,6 @@ async function archivarHistorial(opts){
             let colaAtascada=false;
             try{await _conTimeout(AppState.db.waitForPendingWrites(),5000,'pendientes')}catch(_){colaAtascada=true}
             AppState._recoveryActive=false;
-            AppState._recoverySafeMode=safeModePrevio;
             _archivoRunning=false;
             const uiE=window._recoveryUI;
             const msg=colaAtascada
@@ -446,9 +445,9 @@ async function archivarHistorial(opts){
             const n=await window._v2sync.borrarEventosArchivados(plan.cutoffMes);
             console.log('[P2P][v2] eventos archivados retirados:',n);
             await window._v2sync.guardar(true);
-        }else if(typeof window.recoveryWrite==='function'){
-            res=await window.recoveryWrite({trigger:'post-archivo'});
         }else{
+            /* v5.2.5 — El modelo v1 y recoveryWrite se retiraron; este camino solo
+               se alcanzaría si el módulo de almacenamiento no cargó. */
             await guardarDatos(true);
         }
         _archivoRunning=false;
@@ -470,7 +469,6 @@ async function archivarHistorial(opts){
     }catch(e){
         console.error('[P2P][ARCHIVO] Error:',e);
         AppState._recoveryActive=false;
-        AppState._recoverySafeMode=safeModePrevio;   /* si venía bloqueado, sigue bloqueado */
         _archivoRunning=false;
         const msg='Archivado interrumpido: '+(e&&e.message||e)+
             '\n\nNo se perdió nada: el doc principal NO se modificó y los docs de archivo ya escritos son inofensivos (se reutilizan al reintentar).';
@@ -709,7 +707,7 @@ function _archivoAutoSugerir(){
     if(_archivoSugerido)return;
     try{
         if(!AppState.currentUser||!AppState.datos)return;
-        if(AppState._recoveryActive||AppState._recoverySafeMode||_archivoRunning)return;
+        if(AppState._recoveryActive||_archivoRunning)return;
         /* Sin al menos un snapshot de servidor en la sesión no sabemos el tamaño real
            (la memoria puede ser de un dispositivo desactualizado). */
         if(!AppState._snapshotServidorOk)return;

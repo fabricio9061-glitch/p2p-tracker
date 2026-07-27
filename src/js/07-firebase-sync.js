@@ -232,7 +232,7 @@ function _syncLog(event,payload){
    - Si _guardando es true → no hacer nada (ya está corriendo)
    - Si hay items en _syncQueue pero nada corriendo → disparar guardarDatos
    No duplica writes, no fuerza estado vacío, no toca _localVersion. */
-function hasPendingLocal(){return _syncQueue.length>0||_localDirty>0||_guardando||_guardarPendiente}
+/* hasPendingLocal() retirada en v5.2.5: quedó sin usos al retirar el modelo v1. */
 /* Debounce: agrupa cambios rápidos (typing, sliders) en una sola escritura a Firebase.
    Window de 400ms — si la última mutación fue hace <400ms, espera.
    Si se superan 2000ms acumulados, flushea igual (safety net contra keyboards lentos). */
