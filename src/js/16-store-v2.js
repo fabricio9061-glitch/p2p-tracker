@@ -110,6 +110,10 @@ function v2ExtraerEstado(datos,version){
     return estado;
 }
 
+/* Clave de orden: fecha + hora + id, todos de ancho fijo o comparables como
+   texto. Se usa en la reconstrucción y en el ensamblado para que ambos den
+   exactamente el mismo orden. */
+function _v2Clave(x){return String(x.fecha||'')+String(x.hora||'00:00')+String(x.id||'')}
 /* ─── Ensamblador: documento de estado + docs de eventos → AppState.datos ─── */
 function v2EnsamblarDatos(estado,eventosDocs){
     const base=(typeof crearDatosVacios==='function')?crearDatosVacios():{operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],tags:[]};
@@ -119,11 +123,10 @@ function v2EnsamblarDatos(estado,eventosDocs){
         const r=v2FromDoc(raw);
         if(r&&Array.isArray(datos[r.entidad]))datos[r.entidad].push(r.item);
     });
-    /* Orden cronológico estable: el motor FIFO reproduce por fecha+hora, pero
-       las listas de la UI y los tests esperan un orden determinístico. */
-    const clave=x=>String(x.fecha||'')+String(x.hora||'00:00')+String(x.id||'');
+    /* Mismo orden que usa la app en pantalla: lo más reciente primero. El motor
+       FIFO reordena por su cuenta al reproducir, así que esto no afecta cálculos. */
     ['operaciones','movimientos','transferencias','conversiones'].forEach(e=>{
-        datos[e].sort((a,b)=>{const ka=clave(a),kb=clave(b);return ka<kb?-1:ka>kb?1:0});
+        datos[e].sort((a,b)=>{const ka=_v2Clave(a),kb=_v2Clave(b);return ka>kb?-1:ka<kb?1:0});
     });
     datos.lotes=Array.isArray(estado&&estado.lotesManuales)?estado.lotesManuales.map(l=>({...l})):[];
     delete datos.lotesManuales;
@@ -563,9 +566,14 @@ function v2AttachEventos(){
                 if(i>=0)nuevos[e][i]=conMarca; else nuevos[e].push(conMarca);
             });
         });
-        const clave=x=>String(x.fecha||'')+String(x.hora||'00:00')+String(x.id||'');
+        /* ═══ v5.2.4 — Más reciente PRIMERO ═══
+           Las listas se dibujan con el array tal cual: no hay ordenamiento por
+           fecha en el renderizado. La app siempre agregó cada alta al principio
+           (unshift), así que la convención de toda la app es "lo más nuevo
+           arriba". En 5.2.1 la reconstrucción ordenaba ascendente y daba vuelta
+           la lista entera: lo más reciente terminaba en la última página. */
         Object.keys(nuevos).forEach(e=>{
-            nuevos[e].sort((a,b)=>{const ka=clave(a),kb=clave(b);return ka<kb?-1:ka>kb?1:0});
+            nuevos[e].sort((a,b)=>{const ka=_v2Clave(a),kb=_v2Clave(b);return ka>kb?-1:ka<kb?1:0});
             AppState.datos[e]=nuevos[e];
         });
         if(!desdeCache)_v2CountSet(total);

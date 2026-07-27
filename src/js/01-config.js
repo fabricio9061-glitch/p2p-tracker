@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.2.3',
+    APP_VERSION: '5.2.4',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,9 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.2.4', date:'2026-07-27', headline:'↕️ Las operaciones vuelven a mostrarse con la más reciente arriba.', changes:[
+        {type:'fix', title:'Lo más nuevo aparecía en la última página', desc:'Las listas se dibujan con el orden del array tal cual: no hay ordenamiento por fecha en el renderizado, y la app siempre agregó cada alta al principio, así que la convención de siempre es "lo más nuevo arriba". En 5.2.1, al pasar a reconstruir la lista completa desde el servidor, el ordenamiento quedó ascendente y dio vuelta todo: lo más reciente terminaba al final, y cada operación nueva parecía irse al fondo. Ahora la reconstrucción ordena por fecha y hora con lo más reciente primero, y el ensamblado que usan la restauración de respaldos y la verificación de integridad usa exactamente el mismo criterio. Los cálculos no se ven afectados: el motor FIFO reordena por su cuenta al reproducir el historial.'}
+    ]},
     {version:'5.2.3', date:'2026-07-27', headline:'🩹 La operación recién cargada ya no desaparece + verificación de integridad.', changes:[
         {type:'fix', title:'Al cargar una operación desaparecía de la lista', desc:'Desde 5.2.1 la lista se reconstruye completa desde el servidor en cada aviso, lo que resolvió el problema de las copias locales parciales pero trajo otro: una operación recién cargada vive solo en memoria durante los milisegundos que tarda en escribirse, así que cualquier aviso que llegara en esa ventana la borraba de la pantalla. Ahora lo que está pendiente de subir siempre manda sobre lo que dice el servidor, y lo mismo al revés: algo borrado en el teléfono no reaparece por un aviso viejo. Aplica igual a operaciones, ajustes, transferencias y conversiones.'},
         {type:'new', title:'Verificación de integridad', desc:'Nuevo verificarIntegridad() desde la consola: compara lo que hay en Firestore contra lo que la app muestra y solo LEE, no modifica nada. Revisa el formato y la versión del documento, cuántos eventos hay de cada lado y cuáles faltan o sobran, ids repetidos, campos residuales del formato anterior, si el saldo USDT y las ganancias recalculadas desde el servidor coinciden con lo que ves, y si los lotes de arrastre siguen cuadrando con los documentos del archivo histórico. Lo que está pendiente de subir no se cuenta como diferencia.'}
@@ -389,10 +392,6 @@ const CHANGELOG = [
         {type:'improve', title:'Retirado el modelo de documento único', desc:'Se eliminaron el camino de escritura y de lectura del formato anterior: el merge de arrays entre dispositivos, las tres ramas del snapshot, la reconciliación por versiones y la lógica anti-resurrección del respaldo. Sumado a lo retirado en 5.1.0, el proyecto bajó de unas 9.100 a unas 7.700 líneas. Toda esa maquinaria existía para sostener un documento que crecía sin techo; con una operación por documento no tiene nada que sostener.'},
         {type:'fix', title:'El camino nuevo ahora completa todo el refresco de pantalla', desc:'El resumen mensual, el badge del centro de novedades, el sincronizado del campo de comisión y el ocultado del cargador se hacían solo en el camino viejo. Al retirarlo se habrían perdido en silencio, así que se movieron al camino nuevo antes de borrar nada. También se volvió defensivo ese bloque, que ahora corre en cada snapshot.'},
         {type:'improve', title:'Aviso claro si el documento quedara en formato anterior', desc:'Si por cualquier motivo el documento remoto no estuviera migrado, la app no lee sus datos ni escribe encima: avisa y se queda quieta, en vez de mezclar formatos. La marcha atrás pasa a ser revertir en git a la versión 5.1.0, que conserva ambos caminos.'}
-    ]},
-    {version:'5.1.0', date:'2026-07-27', headline:'🧹 Fase 4: se retiró la maquinaria del documento único.', changes:[
-        {type:'fix', title:'Restaurar un respaldo ya sube TODO al servidor', desc:'En el modelo nuevo cada operación es un documento propio, y un guardado normal escribe solo lo que cambió apoyándose en la cola de mutaciones. Pero al restaurar un respaldo o importar un archivo, la memoria se reemplaza entera sin pasar por esa cola: el guardado escribía únicamente el documento de estado y las operaciones del respaldo nunca llegaban a Firestore. Ahora la restauración hace una subida total que deja la subcolección idéntica a lo restaurado, incluido el retiro de las operaciones posteriores al respaldo (si el respaldo es más viejo, lo que sobra tiene que desaparecer del servidor, no quedar mezclado).'},
-        {type:'improve', title:'Menos código: 510 líneas retiradas', desc:'Se eliminaron recoveryWrite, el guard de tamaño de payload, el modo seguro y sus auxiliares: existían solo para mantener UN documento gigante por debajo del límite de 1 MB, recomprimiéndolo y bloqueando escrituras preventivamente. Con el documento de estado por debajo de 1 KB, nada de eso puede activarse ni tiene qué reparar. Se conservó el overlay de progreso, que reutilizan el archivado, la migración y la subida total.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
