@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.1.0',
+    APP_VERSION: '5.2.0',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.2.0', date:'2026-07-27', headline:'✅ Fase 4 completa: queda solo el modelo nuevo.', changes:[
+        {type:'improve', title:'Retirado el modelo de documento único', desc:'Se eliminaron el camino de escritura y de lectura del formato anterior: el merge de arrays entre dispositivos, las tres ramas del snapshot, la reconciliación por versiones y la lógica anti-resurrección del respaldo. Sumado a lo retirado en 5.1.0, el proyecto bajó de unas 9.100 a unas 7.700 líneas. Toda esa maquinaria existía para sostener un documento que crecía sin techo; con una operación por documento no tiene nada que sostener.'},
+        {type:'fix', title:'El camino nuevo ahora completa todo el refresco de pantalla', desc:'El resumen mensual, el badge del centro de novedades, el sincronizado del campo de comisión y el ocultado del cargador se hacían solo en el camino viejo. Al retirarlo se habrían perdido en silencio, así que se movieron al camino nuevo antes de borrar nada. También se volvió defensivo ese bloque, que ahora corre en cada snapshot.'},
+        {type:'improve', title:'Aviso claro si el documento quedara en formato anterior', desc:'Si por cualquier motivo el documento remoto no estuviera migrado, la app no lee sus datos ni escribe encima: avisa y se queda quieta, en vez de mezclar formatos. La marcha atrás pasa a ser revertir en git a la versión 5.1.0, que conserva ambos caminos.'}
+    ]},
     {version:'5.1.0', date:'2026-07-27', headline:'🧹 Fase 4: se retiró la maquinaria del documento único.', changes:[
         {type:'fix', title:'Restaurar un respaldo ya sube TODO al servidor', desc:'En el modelo nuevo cada operación es un documento propio, y un guardado normal escribe solo lo que cambió apoyándose en la cola de mutaciones. Pero al restaurar un respaldo o importar un archivo, la memoria se reemplaza entera sin pasar por esa cola: el guardado escribía únicamente el documento de estado y las operaciones del respaldo nunca llegaban a Firestore. Ahora la restauración hace una subida total que deja la subcolección idéntica a lo restaurado, incluido el retiro de las operaciones posteriores al respaldo (si el respaldo es más viejo, lo que sobra tiene que desaparecer del servidor, no quedar mezclado).'},
         {type:'improve', title:'Menos código: 510 líneas retiradas', desc:'Se eliminaron recoveryWrite, el guard de tamaño de payload, el modo seguro y sus auxiliares: existían solo para mantener UN documento gigante por debajo del límite de 1 MB, recomprimiéndolo y bloqueando escrituras preventivamente. Con el documento de estado por debajo de 1 KB, nada de eso puede activarse ni tiene qué reparar. Se conservó el overlay de progreso, que reutilizan el archivado, la migración y la subida total.'}
@@ -388,11 +393,6 @@ const CHANGELOG = [
     ]},
     {version:'4.9.7', date:'2026-07-26', headline:'🏗️ Fase 1 del nuevo modelo de guardado (un documento por operación).', changes:[
         {type:'new', title:'Motor del formato rápido, todavía sin activar', desc:'Hoy cada operación reescribe el archivo completo, así que la sincronización se vuelve más lenta a medida que crece la historia; archivar solo lo posterga. El formato nuevo guarda UN documento por operación más un documento de estado chico: cargar una operación pasa de escribir ~105 KB a ~0,7 KB, y ese costo ya no depende de cuánta historia tengas. Esta versión incluye el motor completo (códec, migración por lotes, verificación de equivalencia y reversión) pero NO lo activa: la app funciona exactamente igual que hasta ahora. La migración está bloqueada por un cerrojo hasta que se conecte la fase 2.'}
-    ]},
-    {version:'4.9.6', date:'2026-07-26', headline:'⚡ Sincronización más rápida: menos peso por operación.', changes:[
-        {type:'fix', title:'La app dejó de avisar que convenía volver a archivar', desc:'Un control agregado en 4.9.4 descartaba la sugerencia de archivado si el usuario YA había archivado alguna vez. Efecto no buscado: después del primer archivado la app no volvía a sugerirlo nunca más, y el documento crecía mes a mes en silencio hasta que la sincronización se ponía lenta otra vez. Ahora la única condición es el tamaño real del documento, así que el aviso vuelve cada vez que hace falta.'},
-        {type:'improve', title:'Aviso por lentitud, no solo por límite', desc:'Antes solo avisaba a 800 KB (cerca del límite de 1 MB). Pero el problema aparece mucho antes: cada operación reescribe el documento completo y el listener lo baja de vuelta, así que con 105 KB son ~210 KB de tráfico por operación sobre un mismo documento — y Firestore penaliza con latencia las escrituras frecuentes al mismo documento. Ahora avisa a partir de 220 KB, explicando que es por velocidad. El archivado por defecto conserva 2 meses en vez de 3.'},
-        {type:'improve', title:'Menos trabajo en cada guardado', desc:'Cada save serializaba el conjunto de datos completo DOS veces de más (220 KB y 300 KB) solo para alimentar métricas del panel de diagnóstico. Ahora esas métricas se calculan únicamente cuando el diagnóstico está activado. Además, el watchdog de conexión ya no reinicia el canal si hay una escritura en vuelo: antes podía abortar un guardado que estaba por completarse en una conexión lenta. Nuevo comando de consola diagnosticoSync() para ver peso del documento, qué sección lo ocupa y tiempo estimado de subida.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

@@ -289,7 +289,6 @@ async function archivarHistorial(opts){
     if(!AppState.currentUser||!AppState.db){alert('Sin sesión activa.');return{ok:false,motivo:'sin-sesion'}}
     if(!navigator.onLine){alert('Necesitás conexión para archivar (se escriben documentos nuevos en Firestore).');return{ok:false,motivo:'offline'}}
     _archivoRunning=true;
-    const safeModePrevio=!!AppState._recoverySafeMode;
     const mesesAMantener=opts.mesesAMantener||ARCHIVO_MESES_MANTENER_DEFAULT;
     try{
         if(ui.ensure)ui.ensure();
@@ -436,10 +435,7 @@ async function archivarHistorial(opts){
         try{if(typeof backupToLocal==='function'){backupToLocal._lastSig=null;backupToLocal()}}catch(_){}
 
         /* 5 ── limpiar guard + persistir doc principal chico (write verificado) */
-        AppState._recoverySafeMode=false;
-        AppState._payloadGuardTriggered=false;
         AppState._recoveryActive=false;
-        if(typeof _archivoMarkerSet==='function')_archivoMarkerSet(plan.cutoffMes);
         setPhase('Guardando documento principal…');
         let res={ok:true};
         if(AppState._schema===2&&window._v2sync){

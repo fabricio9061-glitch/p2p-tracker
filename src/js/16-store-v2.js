@@ -360,27 +360,12 @@ async function migrarAV2(opts){
     }
 }
 
-/* ─── REVERSIÓN v2 → v1 ────────────────────────────────────────────────────
-   Salida de emergencia: reescribe el documento único con los arrays y
-   _schema:1. Los docs de evento quedan (inofensivos) por si se quiere volver.
-   Sirve, por ejemplo, si hubiera que abrir la app desde un dispositivo con
-   una versión vieja del código. */
-async function revertirAV1(){
-    if(!AppState.currentUser||!AppState.db)return{ok:false};
-    if(!confirm('Volver al formato anterior (documento único)\n\nLa app vuelve a escribir todo el estado en cada operación. Se usa solo si necesitás abrirla desde un dispositivo con una versión vieja.\n\n¿Continuar?'))return{ok:false};
-    try{
-        const d=AppState.datos;
-        const payload={...d,_schema:1,_version:(AppState._localVersion||0)+1,
-            lotesManuales:(d.lotes||[]).filter(l=>l&&l.manual).map(l=>{const{_syncState,...r}=l;return r}),
-            ultimaActualizacion:firebase.firestore.FieldValue.serverTimestamp()};
-        delete payload.lotes;delete payload.saldoUsdt;
-        await AppState.db.collection('users').doc(AppState.currentUser.uid).set(payload);
-        AppState._schema=1;
-        try{localStorage.removeItem('p2p_schema_'+AppState.currentUser.uid)}catch(_){}
-        alert('Formato anterior restaurado. Recargá la app.');
-        return{ok:true};
-    }catch(e){alert('No se pudo revertir: '+(e&&e.message||e));return{ok:false,error:e}}
-}
+/* ─── Reversión al documento único: RETIRADA en v5.2.0 ────────────────────
+   revertirAV1() reescribía el documento con los arrays y _schema:1. Sin camino
+   de lectura v1 en la app, ese documento ya no se podría abrir, así que la
+   función pasó a ser una trampa en vez de una salida. La marcha atrás real es
+   revertir en git a la v5.1.0 (que conserva ambos caminos y la función) y
+   ejecutarla desde ahí. */
 
 /* ─── Diagnóstico comparativo ─────────────────────────────────────────────── */
 function v2Diagnostico(){
@@ -430,7 +415,7 @@ function v2Diagnostico(){
    escritura atómica de Firestore.
    ════════════════════════════════════════════════════════════════════════════ */
 
-let _v2EventosUnsub=null,_v2EstadoOk=false,_v2EventosOk=false,_v2RenderTimer=null,_v2Guardando=false;
+let _v2EventosUnsub=null,_v2EstadoOk=false,_v2EventosOk=false,_v2RenderTimer=null,_v2Guardando=false,_v2FromCache=false;
 
 function _v2UserRef(){return AppState.db.collection('users').doc(AppState.currentUser.uid)}
 function _v2EvRef(){return _v2UserRef().collection('eventos')}
@@ -455,7 +440,28 @@ function _v2Programar(){
             if(typeof actualizarVista==='function')actualizarVista();
             if(typeof backupToLocal==='function')backupToLocal();
             if(typeof mostrarBotonArchivo==='function')mostrarBotonArchivo();
-            if(_syncQueue.length===0&&!_guardando)setSyncStatus('online');
+            /* v5.2.0 — Remate de UI que antes hacía el handler de snapshot v1.
+               Sin esto, al retirar ese camino se perdían el resumen mensual, el
+               centro de novedades y el ocultado del cargador. */
+            try{
+                const ci=$('comisionPlataforma');
+                if(ci&&document.activeElement!==ci&&typeof getMonedaBanco==='function'){
+                    const mon=getMonedaBanco();
+                    const cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;
+                    ci.value=fmtNum(cv);setText('comisionPctLabel',fmtNum(cv));
+                }
+            }catch(_){}
+            if(typeof actualizarFormulario==='function')actualizarFormulario();
+            if(typeof actualizarColorSelect==='function')actualizarColorSelect();
+            if(typeof ocultarLoading==='function')ocultarLoading();
+            if(typeof actualizarBadgeNoticias==='function')actualizarBadgeNoticias();
+            if(AppState.ui&&!AppState.ui._noticiasInicializadas){
+                AppState.ui._noticiasInicializadas=true;
+                if(typeof chequearWhatsNewAlInicio==='function')chequearWhatsNewAlInicio();
+            }
+            if(!_v2FromCache&&typeof verificarCambioMes==='function')verificarCambioMes();
+            if(!_v2FromCache&&AppState._uiHydratedFromCache)AppState._uiHydratedFromCache=false;
+            if(_syncQueue.length===0&&!_guardando)setSyncStatus(_v2FromCache?'syncing':'online',_v2FromCache?'Caché local':undefined);
         }catch(e){console.error('[P2P][v2] render:',e)}
     },80);
 }
@@ -465,7 +471,8 @@ function v2OnEstadoSnapshot(doc){
     const d=doc.data()||{};
     AppState._schema=V2_SCHEMA;
     try{localStorage.setItem('p2p_schema_'+AppState.currentUser.uid,String(V2_SCHEMA))}catch(_){}
-    if(!doc.metadata.fromCache)AppState._snapshotServidorOk=true;
+    _v2FromCache=!!doc.metadata.fromCache;
+    if(!_v2FromCache)AppState._snapshotServidorOk=true;
     const serverV=d._version||0;
     /* Protección de cambios locales sin subir: si hay mutaciones de estado en la
        cola (saldos, tags, config), lo local manda hasta que se confirme el push.
@@ -690,7 +697,6 @@ window._v2sync={
 window._v2WiringReady=true;
 
 window.migrarAV2=migrarAV2;
-window.revertirAV1=revertirAV1;
 window.v2Diagnostico=v2Diagnostico;
 window._v2={docId:v2DocId,toDoc:v2ToDoc,fromDoc:v2FromDoc,extraerEstado:v2ExtraerEstado,
             ensamblar:v2EnsamblarDatos,planDelta:v2PlanDelta,verificar:v2VerificarEquivalencia,SCHEMA:V2_SCHEMA};
