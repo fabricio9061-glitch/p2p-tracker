@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='exportar-datos')exportarDatos();
         else if(a==='importar-datos')importarDatos();
         else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);
+        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}try{if(window._v2sync)window._v2sync.detach()}catch(_){}AppState._schema=undefined;AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);
             /* v4.8.2 FIX: vaciar el estado en RAM y la sync queue al cerrar sesión.
                Antes AppState.datos conservaba los datos del usuario saliente: si otra
                persona iniciaba sesión en el mismo dispositivo, el watchdog de 3s podía
