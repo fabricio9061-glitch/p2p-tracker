@@ -37,7 +37,13 @@
    ════════════════════════════════════════════════════════════════════════════ */
 
 const ARCHIVO_FORMAT=1;
-const ARCHIVO_MESES_MANTENER_DEFAULT=3;   /* mes actual + 2 anteriores */
+const ARCHIVO_MESES_MANTENER_DEFAULT=2;   /* mes actual + 1 anterior */
+/* v4.9.6 — Umbral de RENDIMIENTO (no de límite). Cada operación reescribe el
+   documento entero y el listener lo baja de vuelta: a 105 KB son ~210 KB de
+   tráfico por operación sobre un mismo doc, y Firestore penaliza con latencia
+   las escrituras frecuentes al mismo documento. Por encima de esto conviene
+   archivar aunque falte muchísimo para el límite de 1 MB. */
+const ARCHIVO_KB_RENDIMIENTO=220;
 const ARCHIVO_EPSILON=0.005;              /* misma tolerancia que el split */
 
 let _archivoRunning=false;
@@ -426,7 +432,15 @@ async function archivarHistorial(opts){
         if(typeof _archivoMarkerSet==='function')_archivoMarkerSet(plan.cutoffMes);
         setPhase('Guardando documento principal…');
         let res={ok:true};
-        if(typeof window.recoveryWrite==='function'){
+        if(AppState._schema===2&&window._v2sync){
+            /* v5.0 — En el modelo v2 los eventos son documentos: archivar implica
+               BORRAR los de los meses archivados. Sin esto, la escucha de la
+               subcolección los volvería a agregar y el archivado se desharía. */
+            setPhase('Retirando eventos archivados…');
+            const n=await window._v2sync.borrarEventosArchivados(plan.cutoffMes);
+            console.log('[P2P][v2] eventos archivados retirados:',n);
+            await window._v2sync.guardar(true);
+        }else if(typeof window.recoveryWrite==='function'){
             res=await window.recoveryWrite({trigger:'post-archivo'});
         }else{
             await guardarDatos(true);
@@ -593,22 +607,29 @@ function _archivoAutoSugerir(){
     try{
         if(!AppState.currentUser||!AppState.datos)return;
         if(AppState._recoveryActive||AppState._recoverySafeMode||_archivoRunning)return;
-        /* v4.9.4 — No sugerir con información vieja:
-           · si este uid ya archivó (marker o índice en memoria), el doc real es chico
-             — la memoria gorda es solo un dispositivo desactualizado por sincronizar;
-           · sin al menos un snapshot de servidor en la sesión, no sabemos nada. */
-        if(AppState.datos._archivoIndex)return;
-        if(typeof _archivoMarkerGet==='function'&&_archivoMarkerGet())return;
+        /* Sin al menos un snapshot de servidor en la sesión no sabemos el tamaño real
+           (la memoria puede ser de un dispositivo desactualizado). */
         if(!AppState._snapshotServidorOk)return;
+        /* v5.0 — En el modelo v2 el costo de guardar ya no depende de la historia:
+           archivar deja de ser necesario para la velocidad (solo acota la carga
+           inicial). No molestamos con la sugerencia. */
+        if(AppState._schema===2)return;
+        /* v4.9.6 FIX — Antes se descartaba la sugerencia si el uid YA había archivado
+           alguna vez (marker o _archivoIndex presente). Eso la desactivaba PARA SIEMPRE
+           tras el primer archivado: el documento volvía a crecer mes a mes sin que la
+           app avisara nunca más. Ahora la única condición es el tamaño real. */
         const bd=calcularBreakdownPayload();
-        if(bd.totalKB<=800)return;
+        if(bd.totalKB<=ARCHIVO_KB_RENDIMIENTO)return;
         _archivoSugerido=true;
         const ui=window._recoveryUI;if(!ui||!ui.error)return;
+        const critico=bd.totalKB>700;
         ui.ensure&&ui.ensure();
-        ui.error('Documento grande ('+bd.totalKB+' KB)',
-            'El documento principal está cerca del límite de Firestore (1 MB). Conviene archivar los meses viejos ahora, antes de que el guard bloquee los writes.',
+        ui.error(critico?('Documento grande ('+bd.totalKB+' KB)'):('Sincronización lenta ('+bd.totalKB+' KB)'),
+            critico
+                ?'El documento principal se acerca al límite de Firestore (1 MB). Conviene archivar los meses viejos ahora, antes de que se bloqueen los writes.'
+                :'Cada operación que cargás reescribe el documento entero ('+bd.totalKB+' KB) y lo vuelve a bajar por el listener. Archivar los meses viejos deja solo los recientes y la sincronización pasa a ser casi instantánea. El detalle archivado sigue disponible en 📦 Archivo.',
             [
-                {label:'📦 Archivar historial ahora',color:'#059669',onClick:()=>{ui.hide&&ui.hide();setTimeout(()=>archivarHistorial({trigger:'auto-sugerencia'}),200)}},
+                {label:'⚡ Optimizar ahora',color:'#059669',onClick:()=>{ui.hide&&ui.hide();setTimeout(()=>archivarHistorial({trigger:'auto-sugerencia'}),200)}},
                 {label:'Más tarde',color:'#64748b',onClick:()=>{ui.hide&&ui.hide()}}
             ]);
     }catch(_){}
@@ -627,9 +648,16 @@ async function _connWatchdog(){
     const activo=()=>AppState.currentUser&&navigator.onLine&&!AppState._snapshotServidorOk&&!AppState._recoveryActive&&!_archivoRunning;
     await new Promise(r=>setTimeout(r,12000));
     if(!activo())return;
-    console.warn('[P2P][WATCHDOG] Sin snapshot de servidor a los 12s — kick del canal');
-    try{await AppState.db.disableNetwork()}catch(_){}
-    try{await AppState.db.enableNetwork()}catch(_){}
+    /* v4.9.6 — Nunca patear el canal con una escritura EN VUELO: disableNetwork()
+       aborta la conexión del write en curso y lo obliga a reintentar desde cero,
+       empeorando justo el caso que queríamos arreglar (conexión lenta pero viva). */
+    if(typeof _guardando!=='undefined'&&_guardando){
+        console.warn('[P2P][WATCHDOG] Write en vuelo — no se patea el canal');
+    }else{
+        console.warn('[P2P][WATCHDOG] Sin snapshot de servidor a los 12s — kick del canal');
+        try{await AppState.db.disableNetwork()}catch(_){}
+        try{await AppState.db.enableNetwork()}catch(_){}
+    }
     await new Promise(r=>setTimeout(r,13000));
     if(!activo())return;
     console.warn('[P2P][WATCHDOG] Canal muerto a los 25s — mostrando doctor');
@@ -651,6 +679,27 @@ document.addEventListener('DOMContentLoaded',()=>{_connWatchdog()});
 /* Mostrar el botón 📦 cuando el índice esté hidratado */
 document.addEventListener('DOMContentLoaded',()=>{setTimeout(mostrarBotonArchivo,3500);setTimeout(mostrarBotonArchivo,8000)});
 
+/* v4.9.6 — Diagnóstico de velocidad de sincronización, a demanda desde consola:
+   diagnosticoSync() → cuánto pesa el documento, qué lo ocupa y cuánto tarda un save. */
+function diagnosticoSync(){
+    const bd=calcularBreakdownPayload();
+    const meses=(AppState.datos&&AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses)||{};
+    const est=kb=>({'4G lento (0,5 Mb/s)':(kb*8/512).toFixed(1)+'s','4G (1 Mb/s)':(kb*8/1024).toFixed(1)+'s','WiFi (5 Mb/s)':(kb*8/5120).toFixed(1)+'s'});
+    const r={
+        documentoKB:bd.totalKB,
+        traficoPorOperacionKB:bd.totalKB*2,   /* sube el doc + el listener lo baja */
+        subidaEstimada:est(bd.totalKB),
+        porSeccion:bd.secciones,
+        operaciones:(AppState.datos.operaciones||[]).length,
+        mesesArchivados:Object.keys(meses).sort(),
+        recomendacion:bd.totalKB>ARCHIVO_KB_RENDIMIENTO
+            ?'Archivá meses viejos: window.archivarHistorial({mesesAMantener:1})'
+            :'Tamaño saludable — la sincronización debería ser casi instantánea.'
+    };
+    console.table(bd.secciones);console.log(r);
+    return r;
+}
+window.diagnosticoSync=diagnosticoSync;
 window.archivarHistorial=archivarHistorial;
 window.calcularBreakdownPayload=calcularBreakdownPayload;
 window.verArchivo=verArchivo;

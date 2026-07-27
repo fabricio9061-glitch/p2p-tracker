@@ -407,6 +407,12 @@ async function guardarDatos(forzar,opts){
             return;
         }
     }
+    /* ═══ v5.0 — Modelo v2: escritura incremental ═══
+       En vez de reescribir el documento entero, se traduce la cola de mutaciones
+       a un batch con los documentos de los eventos tocados + el de estado. */
+    if(AppState._schema===2&&window._v2sync){
+        return window._v2sync.guardar(forzar);
+    }
     _localDirty++;
     if(AppState._datosStale&&!forzar){
         setSyncStatus('syncing','Sincronizando...');return;
@@ -534,8 +540,14 @@ async function guardarDatos(forzar,opts){
             conversiones:stripRuntime(AppState.datos.conversiones||[])
         };
         /* Medir tamaño ANTES del strip de campos top-level (lotes/saldoUsdt) */
+        /* v4.9.6 — Telemetría solo bajo demanda. Estas métricas serializaban el
+           dataset COMPLETO en cada save (además del payload real) solo para poder
+           mostrar "cuánto ahorramos" en el log de diagnóstico. Con ~950 ops eso son
+           dos serializaciones extra de 220 KB y 300 KB por cada operación que cargás,
+           con su presión de GC. Ahora se calculan solo con window._P2P_VERBOSE. */
+        const _telemetria=!!window._P2P_VERBOSE;
         let payloadKBPreStrip=0;
-        try{
+        if(_telemetria)try{
             const sampleFull={...datosLimpios,_version:newVersion,ultimaActualizacion:'<server-ts>'};
             payloadKBPreStrip=Math.round(JSON.stringify(sampleFull).length/1024);
         }catch(e){/* no critical */}
@@ -620,7 +632,7 @@ async function guardarDatos(forzar,opts){
            Para mostrar el ahorro real total (incluyendo strip per-op de consumedLots
            y ganancia). Calculado solo si el log está habilitado, porque es costoso. */
         let payloadKBBaseline=0;
-        try{
+        if(_telemetria)try{
             /* Baseline = AppState.datos sin tocar (con consumedLots, ganancia, lotes, saldoUsdt) */
             const baselineSample={...AppState.datos,_version:newVersion,ultimaActualizacion:'<server-ts>'};
             payloadKBBaseline=Math.round(JSON.stringify(baselineSample).length/1024);
@@ -890,6 +902,11 @@ function cargarDatosUsuario(){
        Limpieza explícita del listener anterior antes de crear uno nuevo. Si hay un 
        cargarDatosUsuario en flight (raro pero posible en re-login rápido), evitamos
        dos onSnapshot apuntando al mismo doc — otro trigger del bug #6256. */
+    /* v5.0 — Pista de esquema ANTES del primer snapshot: si este dispositivo ya
+       operaba en v2, una escritura temprana debe tomar el camino correcto. El
+       snapshot confirma (o corrige) el valor enseguida. */
+    try{if(localStorage.getItem('p2p_schema_'+AppState.currentUser.uid)==="2")AppState._schema=2}catch(_){}
+    try{if(window._v2sync)window._v2sync.detach()}catch(_){}
     if(AppState.unsubscribe){
         try{AppState.unsubscribe()}catch(e){console.warn('[P2P] unsubscribe error:',e.message)}
         AppState.unsubscribe=null;
@@ -914,6 +931,21 @@ function cargarDatosUsuario(){
                 hasPending:doc.metadata.hasPendingWrites
             });
             return;
+        }
+        /* ═══ v5.0 — Delegación al modelo v2 (un documento por evento) ═══
+           Si el documento de estado declara _schema:2, TODO el procesamiento pasa
+           al módulo 16: este handler v1 (merge de arrays, versiones, recalc) no
+           corre. Si alguna vez se revierte a v1, soltamos la escucha de eventos y
+           seguimos por el camino de siempre sin tocar nada más. */
+        if(doc.exists&&window._v2sync&&(doc.data()||{})._schema===2){
+            try{return window._v2sync.onEstado(doc)}
+            catch(e){console.error('[P2P][v2] snapshot de estado:',e);return}
+        }
+        if(AppState._schema===2&&doc.exists){
+            console.warn('[P2P][v2] El documento volvió a formato v1 — retomando camino clásico');
+            AppState._schema=1;
+            try{if(window._v2sync)window._v2sync.detach()}catch(_){}
+            try{localStorage.removeItem('p2p_schema_'+AppState.currentUser.uid)}catch(_){}
         }
         const fromCache=doc.metadata.fromCache;
         if(!fromCache)AppState._snapshotServidorOk=true;
