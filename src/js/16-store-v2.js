@@ -539,15 +539,34 @@ function v2AttachEventos(){
             const r=v2FromDoc(d.data());
             if(r&&nuevos[r.entidad])nuevos[r.entidad].push(r.item);
         });
+        /* ═══ v5.2.3 — Lo pendiente de subir manda sobre el snapshot ═══
+           La reconstrucción toma como base lo que hay en Firestore, pero una
+           operación recién cargada vive SOLO en memoria hasta que el guardado la
+           escribe (hay un agrupado de 100 ms de por medio). Sin esta reposición,
+           cualquier snapshot que llegara en esa ventana la borraba de la pantalla:
+           el usuario cargaba una operación y desaparecía. Vale igual para ajustes,
+           transferencias y conversiones, y para el caso inverso: algo borrado en
+           local que el servidor todavía tiene no debe reaparecer. */
+        Object.keys(nuevos).forEach(e=>{
+            const antes=Array.isArray(AppState.datos[e])?AppState.datos[e]:[];
+            _syncQueue.forEach(a=>{
+                if(!a||a.entity!==e)return;
+                const id=String(a.id);
+                const i=nuevos[e].findIndex(x=>String(x.id)===id);
+                if(a.type==='delete'){
+                    if(i>=0)nuevos[e].splice(i,1);
+                    return;
+                }
+                const local=antes.find(x=>String(x.id)===id);
+                if(!local)return;
+                const conMarca={...local,_syncState:'pending'};
+                if(i>=0)nuevos[e][i]=conMarca; else nuevos[e].push(conMarca);
+            });
+        });
         const clave=x=>String(x.fecha||'')+String(x.hora||'00:00')+String(x.id||'');
         Object.keys(nuevos).forEach(e=>{
             nuevos[e].sort((a,b)=>{const ka=clave(a),kb=clave(b);return ka<kb?-1:ka>kb?1:0});
             AppState.datos[e]=nuevos[e];
-        });
-        /* Reponer el indicador de "sin subir" de lo que sigue en la cola */
-        _syncQueue.forEach(a=>{
-            const arr=AppState.datos[a&&a.entity];
-            if(Array.isArray(arr)){const it=arr.find(x=>String(x.id)===String(a.id));if(it)it._syncState='pending'}
         });
         if(!desdeCache)_v2CountSet(total);
         _v2EventosOk=true;
@@ -710,6 +729,123 @@ async function v2SubirTodo(opts){
         AppState._recoveryActive=previo;
     }
 }
+
+/* ─── VERIFICACIÓN DE INTEGRIDAD ───────────────────────────────────────────
+   Compara, sin modificar nada, lo que hay en Firestore contra lo que la app
+   tiene en memoria y muestra. Solo LEE. Está pensada para correrla cuando algo
+   no cuadra, y también como control de rutina después de cambios.
+
+   Revisa: esquema y versión, cantidad de eventos a cada lado, cuáles faltan o
+   sobran, ids repetidos, campos residuales del formato viejo, coherencia del
+   saldo USDT recalculado desde el servidor, y si los lotes de arrastre siguen
+   coincidiendo con lo que dicen los documentos del archivo histórico. */
+async function verificarIntegridad(opts){
+    opts=opts||{};
+    const ui=window._recoveryUI||{};
+    const setPhase=ui.setPhase||function(){};
+    if(!AppState.currentUser||!AppState.db){alert('Sin sesión activa.');return null}
+    if(!navigator.onLine){alert('Necesitás conexión para verificar contra el servidor.');return null}
+    const problemas=[],avisos=[];
+    try{
+        if(ui.ensure)ui.ensure();
+        setPhase('Leyendo documento de estado…');
+        const userRef=_v2UserRef();
+        const estadoSnap=await _v2ConTimeout(userRef.get({source:'server'}),30000,'lectura de estado');
+        if(!estadoSnap.exists)problemas.push('El documento de estado no existe en el servidor.');
+        const est=estadoSnap.data()||{};
+        if(est._schema!==V2_SCHEMA)problemas.push('El documento de estado no está en el formato nuevo (_schema='+est._schema+').');
+        ['operaciones','movimientos','transferencias','conversiones','lotes','saldoUsdt'].forEach(c=>{
+            if(est[c]!==undefined)problemas.push('Quedó un campo residual del formato viejo en el estado: '+c+'.');
+        });
+        const vRemota=est._version||0,vLocal=AppState._localVersion||0;
+        if(vRemota<vLocal)avisos.push('La versión local ('+vLocal+') es mayor que la del servidor ('+vRemota+'): hay cambios sin subir.');
+
+        setPhase('Leyendo eventos…');
+        const evSnap=await _v2ConTimeout(_v2EvRef().get({source:'server'}),60000,'lectura de eventos');
+        const servidor={operaciones:new Map(),movimientos:new Map(),transferencias:new Map(),conversiones:new Map()};
+        let repetidos=0,ilegibles=0;
+        evSnap.forEach(d=>{
+            const r=v2FromDoc(d.data());
+            if(!r){ilegibles++;return}
+            const m=servidor[r.entidad];
+            if(!m)return;
+            if(m.has(String(r.item.id)))repetidos++;
+            m.set(String(r.item.id),r.item);
+        });
+        if(ilegibles)problemas.push(ilegibles+' documento(s) de evento no se pudieron interpretar.');
+        if(repetidos)problemas.push(repetidos+' evento(s) con id repetido en el servidor.');
+
+        setPhase('Comparando con la pantalla…');
+        const pendientes=new Set(_syncQueue.map(a=>String(a&&a.entity)+':'+String(a&&a.id)));
+        const detalle={};
+        Object.keys(servidor).forEach(e=>{
+            const enMem=new Map((AppState.datos[e]||[]).map(x=>[String(x.id),x]));
+            const faltanEnMem=[...servidor[e].keys()].filter(id=>!enMem.has(id));
+            const faltanEnServidor=[...enMem.keys()].filter(id=>!servidor[e].has(id)&&!pendientes.has(e+':'+id));
+            detalle[e]={servidor:servidor[e].size,memoria:enMem.size,faltanEnMemoria:faltanEnMem.length,faltanEnServidor:faltanEnServidor.length};
+            if(faltanEnMem.length)problemas.push(e+': '+faltanEnMem.length+' están en el servidor y no en pantalla (ej. '+faltanEnMem.slice(0,3).join(', ')+').');
+            if(faltanEnServidor.length)problemas.push(e+': '+faltanEnServidor.length+' están en pantalla y no en el servidor, sin quedar pendientes (ej. '+faltanEnServidor.slice(0,3).join(', ')+').');
+        });
+
+        setPhase('Recalculando desde el servidor…');
+        const desdeServidor=v2EnsamblarDatos(est,evSnap.docs?evSnap.docs.map(d=>d.data()):[]);
+        const diffs=v2VerificarEquivalencia(AppState.datos,desdeServidor)
+            .filter(d=>!/^(operaciones|movimientos|transferencias|conversiones):/.test(d));
+        diffs.forEach(d=>problemas.push('Los números no coinciden con el servidor → '+d));
+
+        /* Lotes de arrastre contra el archivo histórico */
+        let arrastre=null;
+        const idx=(AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses)||{};
+        const meses=Object.keys(idx).sort();
+        const carry=AppState.datos._archivoCarryover||[];
+        if(meses.length&&opts.revisarArchivo!==false){
+            setPhase('Revisando el archivo histórico…');
+            const ops=[],movs=[];
+            for(const mes of meses){
+                const d=(await userRef.collection('archivo').doc(mes).get()).data();
+                if(!d){problemas.push('Falta el documento de archivo '+mes+'.');continue}
+                let o=d._wireFormat?_decompressOpsArrayFromWire(d.operaciones):(d.operaciones||[]);
+                if(d.gananciasPorId&&typeof _archivoAplicarGanancias==='function')o=_archivoAplicarGanancias(o,d.gananciasPorId);
+                o.forEach(x=>ops.push(x));(d.movimientos||[]).forEach(m=>movs.push(m));
+            }
+            if(typeof _replayEnSandbox==='function'&&typeof _cloneJson==='function'){
+                const sb=_cloneJson({...AppState.datos,operaciones:ops,movimientos:movs,transferencias:[],conversiones:[],lotes:[],_archivoSeeds:null,_archivoCarryover:null});
+                const corte=_replayEnSandbox(sb);
+                const esperado=corte.lotes.filter(l=>l.disponible>0.005);
+                const sum=a=>a.reduce((s,l)=>Math.round((s+(l.cantidad||0))*100)/100,0);
+                arrastre={enApp:{lotes:carry.length,suma:sum(carry)},segunArchivo:{lotes:esperado.length,suma:sum(esperado)}};
+                if(Math.abs(sum(carry)-sum(esperado))>0.02)
+                    problemas.push('Los lotes de arrastre no coinciden con el archivo histórico ('+sum(carry).toFixed(2)+' vs '+sum(esperado).toFixed(2)+'). Corregilo con repararCarryover().');
+            }
+        }else if(carry.length&&!meses.length){
+            problemas.push('Hay '+carry.length+' lote(s) de arrastre pero no hay historial archivado que los respalde.');
+        }
+
+        const esperadoLocal=_v2CountGet(),totalServidor=evSnap.size;
+        if(esperadoLocal&&Math.abs(esperadoLocal-totalServidor)>0)
+            avisos.push('El contador local de referencia ('+esperadoLocal+') difiere del servidor ('+totalServidor+'); se corrige solo en el próximo snapshot.');
+
+        const informe={ok:problemas.length===0,esquema:est._schema,versionServidor:vRemota,versionLocal:vLocal,
+                       eventosServidor:totalServidor,detalle,arrastre,problemas,avisos};
+        if(ui.hide)ui.hide();
+        console.log('%c[Verificación de integridad]',problemas.length?'color:#b91c1c;font-weight:bold':'color:#15803d;font-weight:bold',informe);
+        console.table(detalle);
+        alert((problemas.length?'⚠️ Se encontraron '+problemas.length+' problema(s):\n\n• '+problemas.join('\n• ')
+                               :'✅ Todo coincide con el servidor.')+
+              '\n\nEventos: '+totalServidor+' en el servidor'+
+              '\nOperaciones: '+detalle.operaciones.memoria+' en pantalla / '+detalle.operaciones.servidor+' en el servidor'+
+              (arrastre?'\nLotes de arrastre: '+arrastre.enApp.suma.toFixed(2)+' USDT (archivo dice '+arrastre.segunArchivo.suma.toFixed(2)+')':'')+
+              (avisos.length?'\n\nAvisos:\n• '+avisos.join('\n• '):'')+
+              '\n\nEl detalle completo quedó en la consola. Esta verificación no modificó nada.');
+        return informe;
+    }catch(e){
+        console.error('[P2P] verificarIntegridad:',e);
+        if(ui.hide)ui.hide();
+        alert('No se pudo completar la verificación: '+(e&&e.message||e)+'\n\nNo se modificó nada.');
+        return null;
+    }
+}
+window.verificarIntegridad=verificarIntegridad;
 
 /* ─── Borrado de eventos archivados (lo usa el archivado en v2) ──────────── */
 async function v2BorrarEventosArchivados(cutoffMes){

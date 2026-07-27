@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.2.2',
+    APP_VERSION: '5.2.3',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.2.3', date:'2026-07-27', headline:'🩹 La operación recién cargada ya no desaparece + verificación de integridad.', changes:[
+        {type:'fix', title:'Al cargar una operación desaparecía de la lista', desc:'Desde 5.2.1 la lista se reconstruye completa desde el servidor en cada aviso, lo que resolvió el problema de las copias locales parciales pero trajo otro: una operación recién cargada vive solo en memoria durante los milisegundos que tarda en escribirse, así que cualquier aviso que llegara en esa ventana la borraba de la pantalla. Ahora lo que está pendiente de subir siempre manda sobre lo que dice el servidor, y lo mismo al revés: algo borrado en el teléfono no reaparece por un aviso viejo. Aplica igual a operaciones, ajustes, transferencias y conversiones.'},
+        {type:'new', title:'Verificación de integridad', desc:'Nuevo verificarIntegridad() desde la consola: compara lo que hay en Firestore contra lo que la app muestra y solo LEE, no modifica nada. Revisa el formato y la versión del documento, cuántos eventos hay de cada lado y cuáles faltan o sobran, ids repetidos, campos residuales del formato anterior, si el saldo USDT y las ganancias recalculadas desde el servidor coinciden con lo que ves, y si los lotes de arrastre siguen cuadrando con los documentos del archivo histórico. Lo que está pendiente de subir no se cuenta como diferencia.'}
+    ]},
     {version:'5.2.2', date:'2026-07-27', headline:'🔧 El reseteo y la importación ahora sí borran todo.', changes:[
         {type:'fix', title:'El saldo USDT sobrevivía al reseteo y a importar datos', desc:'El documento de estado se guardaba en modo "combinar", así que un campo que desaparecía de la memoria nunca se borraba del servidor: volvía intacto en el siguiente snapshot. Por eso, después de resetear o de importar un archivo, los lotes de arrastre del archivado reaparecían y con ellos un saldo USDT de la nada, aunque todo lo demás quedara en cero. Ahora el documento de estado se reemplaza completo, y el estado vacío incluye esos campos en nulo para que se puedan eliminar de verdad.'},
         {type:'fix', title:'El reseteo no borraba las operaciones del servidor', desc:'Con una operación por documento, el reseteo escribía solo el documento de estado y las operaciones quedaban en Firestore, listas para volver con el siguiente snapshot. Ahora el reseteo deja la subcolección igual que la memoria: vacía. También limpia los contadores de referencia locales.'}
@@ -389,11 +393,6 @@ const CHANGELOG = [
     {version:'5.1.0', date:'2026-07-27', headline:'🧹 Fase 4: se retiró la maquinaria del documento único.', changes:[
         {type:'fix', title:'Restaurar un respaldo ya sube TODO al servidor', desc:'En el modelo nuevo cada operación es un documento propio, y un guardado normal escribe solo lo que cambió apoyándose en la cola de mutaciones. Pero al restaurar un respaldo o importar un archivo, la memoria se reemplaza entera sin pasar por esa cola: el guardado escribía únicamente el documento de estado y las operaciones del respaldo nunca llegaban a Firestore. Ahora la restauración hace una subida total que deja la subcolección idéntica a lo restaurado, incluido el retiro de las operaciones posteriores al respaldo (si el respaldo es más viejo, lo que sobra tiene que desaparecer del servidor, no quedar mezclado).'},
         {type:'improve', title:'Menos código: 510 líneas retiradas', desc:'Se eliminaron recoveryWrite, el guard de tamaño de payload, el modo seguro y sus auxiliares: existían solo para mantener UN documento gigante por debajo del límite de 1 MB, recomprimiéndolo y bloqueando escrituras preventivamente. Con el documento de estado por debajo de 1 KB, nada de eso puede activarse ni tiene qué reparar. Se conservó el overlay de progreso, que reutilizan el archivado, la migración y la subida total.'}
-    ]},
-    {version:'5.0.1', date:'2026-07-27', headline:'🛠️ Corregido el inflado del saldo USDT y agregada la reparación.', changes:[
-        {type:'fix', title:'El saldo USDT crecía solo en cada recálculo', desc:'Desde 4.9.0, una compra a la misma tasa que un lote de arrastre (los que crea el archivado) se fusionaba dentro de ese lote. Como los lotes de arrastre se persistían junto a los manuales y se vuelven a sembrar en cada recálculo con disponible=cantidad, la compra quedaba sumada DENTRO del lote y además se reproducía como operación: doble conteo que se acumulaba ciclo tras ciclo (150 → 200 → 250 → …). Causa de fondo: la declaración de un lote y su estado calculado vivían en el mismo lugar, así que una mutación del recálculo terminaba persistida como si fuera la declaración. Ahora los lotes de arrastre tienen su propio campo, escrito una sola vez por el archivado y jamás re-derivado del recálculo.'},
-        {type:'new', title:'Reparar lotes de arrastre', desc:'Para las cuentas que ya quedaron con el saldo inflado: repararCarryover() relee los documentos del archivo histórico (que no fueron afectados), reproduce esas operaciones con el motor real y recalcula los lotes de arrastre correctos. Muestra el saldo actual, el corregido y la diferencia antes de aplicar nada, y no toca los documentos del archivo.'},
-        {type:'improve', title:'El aviso de optimización deja de insistir', desc:'"Más tarde" ahora se recuerda por 24 horas; antes el cartel volvía a aparecer en cada apertura de la app.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
