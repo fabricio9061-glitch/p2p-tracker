@@ -594,6 +594,77 @@ async function v2Guardar(forzar){
     }
 }
 
+/* ─── SUBIDA TOTAL (restauraciones e importaciones) ────────────────────────
+   Un guardado normal en v2 escribe solo lo que cambió, y eso se apoya en la cola
+   de mutaciones. Pero al restaurar un respaldo o importar un archivo, la memoria
+   se reemplaza ENTERA sin pasar por la cola: un guardado normal escribiría solo
+   el documento de estado y los eventos quedarían como estaban en Firestore.
+   Esta función hace que la subcolección coincida exactamente con la memoria:
+   escribe todos los eventos y BORRA los que ya no existen (si el respaldo es
+   anterior, las operaciones posteriores tienen que desaparecer del servidor). */
+async function v2SubirTodo(opts){
+    opts=opts||{};
+    const ui=window._recoveryUI||{};
+    const setPhase=ui.setPhase||function(){};
+    const setMeta=ui.setMeta||function(){};
+    if(!AppState.currentUser||!AppState.db)throw new Error('Sin sesión activa.');
+    if(!navigator.onLine)throw new Error('Sin conexión: la subida quedó pendiente.');
+    const previo=!!AppState._recoveryActive;
+    try{
+        if(ui.ensure)ui.ensure();
+        AppState._recoveryActive=true;
+        const evRef=_v2EvRef();
+        setPhase('Comparando con el servidor…');
+        const snap=await _v2ConTimeout(evRef.get({source:'server'}),45000,'lectura de eventos');
+        const remotos=new Set();snap.forEach(d=>remotos.add(d.id));
+        const enMemoria=[];
+        ['operaciones','movimientos','transferencias','conversiones'].forEach(ent=>{
+            (AppState.datos[ent]||[]).forEach(it=>{
+                const id=v2DocId(ent,it.id),data=v2ToDoc(ent,it);
+                if(id&&data)enMemoria.push({id,data});
+            });
+        });
+        const idsMem=new Set(enMemoria.map(x=>x.id));
+        const aBorrar=[...remotos].filter(id=>!idsMem.has(id));
+        const commitLote=async(fn,etiqueta)=>{
+            let ok=false,ultErr=null;
+            for(let intento=1;intento<=3&&!ok;intento++){
+                setMeta('Intento '+intento+'/3');
+                try{const b=AppState.db.batch();fn(b);await _v2ConTimeout(b.commit(),V2_WRITE_TIMEOUT,etiqueta);ok=true}
+                catch(e){ultErr=e;if(intento<3)await new Promise(r=>setTimeout(r,3000))}
+            }
+            if(!ok)throw new Error(etiqueta+' falló tras 3 intentos: '+(ultErr&&ultErr.message||ultErr));
+        };
+        for(let i=0;i<enMemoria.length;i+=V2_BATCH_MAX){
+            const trozo=enMemoria.slice(i,i+V2_BATCH_MAX);
+            setPhase('Subiendo '+(i+trozo.length)+'/'+enMemoria.length+' eventos…');
+            await commitLote(b=>trozo.forEach(x=>b.set(evRef.doc(x.id),x.data)),'subida de eventos');
+        }
+        for(let i=0;i<aBorrar.length;i+=V2_BATCH_MAX){
+            const trozo=aBorrar.slice(i,i+V2_BATCH_MAX);
+            setPhase('Retirando '+(i+trozo.length)+'/'+aBorrar.length+' eventos que ya no existen…');
+            await commitLote(b=>trozo.forEach(id=>b.delete(evRef.doc(id))),'borrado de eventos');
+        }
+        setPhase('Guardando estado…');
+        const nueva=(AppState._localVersion||0)+1;
+        const estado=v2ExtraerEstado(AppState.datos,nueva);
+        estado.ultimaActualizacion=firebase.firestore.FieldValue.serverTimestamp();
+        await _v2ConTimeout(_v2UserRef().set(estado,{merge:true}),V2_WRITE_TIMEOUT,'documento de estado');
+        AppState._localVersion=nueva;AppState.datos._version=nueva;
+        _syncQueue.length=0;_localDirty=0;_syncErrors=0;
+        setSyncStatus('online');updateSyncBadge();
+        console.log('[P2P][v2] subida total:',enMemoria.length,'eventos ·',aBorrar.length,'retirados');
+        if(ui.hide)ui.hide();
+        return{ok:true,subidos:enMemoria.length,borrados:aBorrar.length};
+    }catch(e){
+        console.error('[P2P][v2] subida total:',e);
+        if(ui.hide)ui.hide();
+        throw e;
+    }finally{
+        AppState._recoveryActive=previo;
+    }
+}
+
 /* ─── Borrado de eventos archivados (lo usa el archivado en v2) ──────────── */
 async function v2BorrarEventosArchivados(cutoffMes){
     const snap=await _v2ConTimeout(_v2EvRef().get({source:'server'}),45000,'lectura de eventos');
@@ -612,6 +683,7 @@ window._v2sync={
     guardar:v2Guardar,
     detach:v2DetachEventos,
     borrarEventosArchivados:v2BorrarEventosArchivados,
+    subirTodo:v2SubirTodo,
     esV2:()=>AppState._schema===V2_SCHEMA
 };
 /* Señal para el cerrojo de la migración: el camino v2 está conectado */

@@ -663,7 +663,8 @@ async function guardarDatos(forzar,opts){
         /* v4.7.64 — Guard permanente: si el payload supera 850 KB, bloquear
            writes y mostrar alerta. Nunca más zona crítica silenciosa. */
         try{
-            if(typeof window._checkPayloadGuard==='function')window._checkPayloadGuard(payloadKB);
+            /* v5.1.0 — el payload guard se retiró junto con la maquinaria del
+               documento único: en v2 el estado pesa menos de 1 KB. */
         }catch(_){}
         /* v4.8.2 FIX: si el guard recién disparó safe mode, abortar TAMBIÉN este write.
            Antes solo se bloqueaban los writes FUTUROS (el chequeo de _recoverySafeMode

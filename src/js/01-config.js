@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.0.1',
+    APP_VERSION: '5.1.0',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.1.0', date:'2026-07-27', headline:'🧹 Fase 4: se retiró la maquinaria del documento único.', changes:[
+        {type:'fix', title:'Restaurar un respaldo ya sube TODO al servidor', desc:'En el modelo nuevo cada operación es un documento propio, y un guardado normal escribe solo lo que cambió apoyándose en la cola de mutaciones. Pero al restaurar un respaldo o importar un archivo, la memoria se reemplaza entera sin pasar por esa cola: el guardado escribía únicamente el documento de estado y las operaciones del respaldo nunca llegaban a Firestore. Ahora la restauración hace una subida total que deja la subcolección idéntica a lo restaurado, incluido el retiro de las operaciones posteriores al respaldo (si el respaldo es más viejo, lo que sobra tiene que desaparecer del servidor, no quedar mezclado).'},
+        {type:'improve', title:'Menos código: 510 líneas retiradas', desc:'Se eliminaron recoveryWrite, el guard de tamaño de payload, el modo seguro y sus auxiliares: existían solo para mantener UN documento gigante por debajo del límite de 1 MB, recomprimiéndolo y bloqueando escrituras preventivamente. Con el documento de estado por debajo de 1 KB, nada de eso puede activarse ni tiene qué reparar. Se conservó el overlay de progreso, que reutilizan el archivado, la migración y la subida total.'}
+    ]},
     {version:'5.0.1', date:'2026-07-27', headline:'🛠️ Corregido el inflado del saldo USDT y agregada la reparación.', changes:[
         {type:'fix', title:'El saldo USDT crecía solo en cada recálculo', desc:'Desde 4.9.0, una compra a la misma tasa que un lote de arrastre (los que crea el archivado) se fusionaba dentro de ese lote. Como los lotes de arrastre se persistían junto a los manuales y se vuelven a sembrar en cada recálculo con disponible=cantidad, la compra quedaba sumada DENTRO del lote y además se reproducía como operación: doble conteo que se acumulaba ciclo tras ciclo (150 → 200 → 250 → …). Causa de fondo: la declaración de un lote y su estado calculado vivían en el mismo lugar, así que una mutación del recálculo terminaba persistida como si fuera la declaración. Ahora los lotes de arrastre tienen su propio campo, escrito una sola vez por el archivado y jamás re-derivado del recálculo.'},
         {type:'new', title:'Reparar lotes de arrastre', desc:'Para las cuentas que ya quedaron con el saldo inflado: repararCarryover() relee los documentos del archivo histórico (que no fueron afectados), reproduce esas operaciones con el motor real y recalcula los lotes de arrastre correctos. Muestra el saldo actual, el corregido y la diferencia antes de aplicar nada, y no toca los documentos del archivo.'},
@@ -389,9 +393,6 @@ const CHANGELOG = [
         {type:'fix', title:'La app dejó de avisar que convenía volver a archivar', desc:'Un control agregado en 4.9.4 descartaba la sugerencia de archivado si el usuario YA había archivado alguna vez. Efecto no buscado: después del primer archivado la app no volvía a sugerirlo nunca más, y el documento crecía mes a mes en silencio hasta que la sincronización se ponía lenta otra vez. Ahora la única condición es el tamaño real del documento, así que el aviso vuelve cada vez que hace falta.'},
         {type:'improve', title:'Aviso por lentitud, no solo por límite', desc:'Antes solo avisaba a 800 KB (cerca del límite de 1 MB). Pero el problema aparece mucho antes: cada operación reescribe el documento completo y el listener lo baja de vuelta, así que con 105 KB son ~210 KB de tráfico por operación sobre un mismo documento — y Firestore penaliza con latencia las escrituras frecuentes al mismo documento. Ahora avisa a partir de 220 KB, explicando que es por velocidad. El archivado por defecto conserva 2 meses en vez de 3.'},
         {type:'improve', title:'Menos trabajo en cada guardado', desc:'Cada save serializaba el conjunto de datos completo DOS veces de más (220 KB y 300 KB) solo para alimentar métricas del panel de diagnóstico. Ahora esas métricas se calculan únicamente cuando el diagnóstico está activado. Además, el watchdog de conexión ya no reinicia el canal si hay una escritura en vuelo: antes podía abortar un guardado que estaba por completarse en una conexión lenta. Nuevo comando de consola diagnosticoSync() para ver peso del documento, qué sección lo ocupa y tiempo estimado de subida.'}
-    ]},
-    {version:'4.9.5', date:'2026-07-26', headline:'💰 Las cuentas se ordenan por saldo: las vacías al final.', changes:[
-        {type:'improve', title:'Cuentas ordenadas por plata disponible, en tarjetas y en todas las listas', desc:'Antes el orden era fijo (el de configuración), así que una cuenta en $0 como OCA quedaba en el medio de la grilla y en el medio de los desplegables. Ahora las cuentas con más saldo van primero y las vacías al final — en las tarjetas de Mis Saldos, en "Sale de" y "Entra a", en los ajustes de saldo, en las transferencias y en las cuentas adicionales del pago dividido. Las cuentas en USD se ordenan en su propio grupo (después de las UYU): comparar $24.000 con US$500 en un mismo ranking no tendría sentido. Si dos cuentas empatan (típico: varias en cero) se mantiene un orden fijo para que no cambien de lugar entre pantallas.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

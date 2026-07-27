@@ -218,7 +218,16 @@ async function _aplicarRespaldo(datos,origen){
         }else{
             setTimeout(runDeferredRecalc,50);
         }
-        await guardarDatos(true);
+        /* v5.1.0 — En el modelo v2 los eventos son documentos propios: un guardado
+           normal escribiría SOLO el documento de estado y los eventos del respaldo
+           nunca llegarían al servidor. La subida total reemplaza la subcolección
+           entera para que coincida con lo restaurado. */
+        if(AppState._schema===2&&window._v2sync&&typeof window._v2sync.subirTodo==='function'){
+            const r=await window._v2sync.subirTodo();
+            console.log('[P2P] respaldo aplicado en v2:',r);
+        }else{
+            await guardarDatos(true);
+        }
         /* Liberar el lock apenas el push confirma exitosamente — ya no hay necesidad de bloquear */
         AppState._postRestoreLockTs=0;
         alert(`✅ Datos restaurados correctamente.\n\n`
