@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.2.0',
+    APP_VERSION: '5.2.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.2.1', date:'2026-07-27', headline:'🚑 Corregidos tres fallos introducidos en 5.2.0.', changes:[
+        {type:'fix', title:'Un dispositivo con caché vieja quedaba en "Formato anterior" y sin datos', desc:'Al abrir la app en un dispositivo que no se usaba desde antes de la migración, la copia local guardada todavía tenía el documento en el formato anterior. La versión 5.2.0 tomaba esa copia como verdad: mostraba "Formato anterior", cero operaciones y un saldo USDT que salía solo de los lotes de arrastre, aunque en el servidor estuviera todo bien. Ahora una copia local nunca concluye el formato por sí sola: la app espera la confirmación del servidor, y si el documento realmente no estuviera migrado lo explica y ofrece limpiar la copia local.'},
+        {type:'fix', title:'El cartel "Sin conexión con Firestore" aparecía con la conexión sana', desc:'El chequeo de formato retornaba antes de marcar que ya había llegado un snapshot del servidor, así que el vigilante de conexión concluía que el canal estaba muerto y culpaba a la red. Ahora se marca antes de cualquier salida, y el vigilante no pisa el diagnóstico de formato con una causa equivocada.'},
+        {type:'fix', title:'Protección contra vaciado por copia local incompleta', desc:'La lista de operaciones se armaba aplicando cambios incrementales, lo que obliga a que todos los avisos se apliquen en orden y en el orden correcto. Ahora se reconstruye completa desde cada aviso, y se guarda cuántas operaciones confirmó el servidor: si llega una copia local con muchas menos, no se aplica ni se dibuja, se avisa que está cargando y no se escribe nada hasta tener la foto confirmada. Antes esa situación se veía como una app vacía.'}
+    ]},
     {version:'5.2.0', date:'2026-07-27', headline:'✅ Fase 4 completa: queda solo el modelo nuevo.', changes:[
         {type:'improve', title:'Retirado el modelo de documento único', desc:'Se eliminaron el camino de escritura y de lectura del formato anterior: el merge de arrays entre dispositivos, las tres ramas del snapshot, la reconciliación por versiones y la lógica anti-resurrección del respaldo. Sumado a lo retirado en 5.1.0, el proyecto bajó de unas 9.100 a unas 7.700 líneas. Toda esa maquinaria existía para sostener un documento que crecía sin techo; con una operación por documento no tiene nada que sostener.'},
         {type:'fix', title:'El camino nuevo ahora completa todo el refresco de pantalla', desc:'El resumen mensual, el badge del centro de novedades, el sincronizado del campo de comisión y el ocultado del cargador se hacían solo en el camino viejo. Al retirarlo se habrían perdido en silencio, así que se movieron al camino nuevo antes de borrar nada. También se volvió defensivo ese bloque, que ahora corre en cada snapshot.'},
@@ -390,9 +395,6 @@ const CHANGELOG = [
         {type:'new', title:'Guardado incremental (fase 2 completa)', desc:'Hasta ahora, cargar una operación reescribía el archivo completo: ~105 KB de subida más otros ~105 KB que el listener bajaba de vuelta, siempre sobre el mismo documento. Con el modelo nuevo cada operación, ajuste y transferencia es su propio documento, y queda un documento de estado chico con bancos, tags y configuración: cargar una operación escribe ~0,4 KB en una sola escritura atómica, y ese costo ya NO depende de cuánta historia tengas. Traer un cambio de otro dispositivo también cuesta un documento en vez del archivo entero.'},
         {type:'improve', title:'Menos maquinaria frágil', desc:'La reconciliación entre dispositivos pasa a resolverse documento por documento, con Firestore entregando solo lo que cambió. Eso vuelve innecesarios el ping-pong de versiones, el estado "reconciliando" y el guard de tamaño de payload, que fueron el origen de la mayoría de los incidentes recientes. El archivado deja de ser necesario para la velocidad: solo sirve para acotar la carga inicial.'},
         {type:'fix', title:'La cola de pendientes ya no puede quedar pegada', desc:'Si una operación se creaba y se borraba antes de alcanzar a subirse, su entrada quedaba en la cola de sincronización sin nada que escribir: el badge podía quedar mostrando pendientes y los puntos amarillos sin apagarse. Ahora esas entradas se drenan solas.'}
-    ]},
-    {version:'4.9.7', date:'2026-07-26', headline:'🏗️ Fase 1 del nuevo modelo de guardado (un documento por operación).', changes:[
-        {type:'new', title:'Motor del formato rápido, todavía sin activar', desc:'Hoy cada operación reescribe el archivo completo, así que la sincronización se vuelve más lenta a medida que crece la historia; archivar solo lo posterga. El formato nuevo guarda UN documento por operación más un documento de estado chico: cargar una operación pasa de escribir ~105 KB a ~0,7 KB, y ese costo ya no depende de cuánta historia tengas. Esta versión incluye el motor completo (códec, migración por lotes, verificación de equivalencia y reversión) pero NO lo activa: la app funciona exactamente igual que hasta ahora. La migración está bloqueada por un cerrojo hasta que se conecte la fase 2.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

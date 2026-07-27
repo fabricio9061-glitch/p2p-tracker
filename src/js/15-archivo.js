@@ -777,6 +777,11 @@ async function _connWatchdog(){
     try{await new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error('t')),5000);AppState.db.waitForPendingWrites().then(()=>{clearTimeout(t);res()},()=>{clearTimeout(t);res()})})}catch(_){colaAtascada=true}
     const ui=window._recoveryUI;if(!ui||!ui.error)return;
     ui.ensure&&ui.ensure();
+    /* v5.2.1 — Si el documento remoto está en formato anterior, el canal puede
+       estar sano: ese caso lo diagnostica y lo explica el handler de estado, y
+       este cartel solo agregaba ruido y una causa equivocada. */
+    const _t=document.getElementById('syncText');
+    if(_t&&String(_t.textContent||'').indexOf('Formato anterior')>=0)return;
     ui.error('Sin conexión con Firestore',
         colaAtascada
             ?'La app no logra hablar con Firestore y hay escrituras internas atascadas de una sesión anterior (la cola persistida bloquea todo lo nuevo). "Reiniciar conexión" limpia SOLO esa cola interna y recarga. Tus operaciones no se tocan: viven en el respaldo local.'

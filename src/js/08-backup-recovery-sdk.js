@@ -224,13 +224,38 @@ function cargarDatosUsuario(){
             return;
         }
         const _d=doc.data()||{};
+        const _desdeCache=doc.metadata.fromCache;
+        /* v5.2.1 — Marcar el snapshot de servidor ANTES de cualquier salida: si no,
+           el watchdog concluía "Sin conexión con Firestore" con la conexión sana,
+           solo porque este camino retornaba antes de marcarlo. */
+        if(!_desdeCache)AppState._snapshotServidorOk=true;
         if(_d._schema!==2){
-            /* Documento en el formato anterior. No tocamos nada: ni leemos sus
-               arrays ni escribimos encima. Marcha atrás: revertir en git a la
-               v5.1.0 y ejecutar revertirAV1() desde esa versión. */
+            if(_desdeCache){
+                /* ═══ v5.2.1 — Una caché vieja NO concluye nada ═══
+                   Un dispositivo que no se abría desde antes de la migración tiene
+                   guardado el documento en el formato anterior. Tomarlo como
+                   verdad dejaba la app en "Formato anterior" con cero operaciones,
+                   aunque en el servidor estuviera todo bien. Esperamos al servidor. */
+                setSyncStatus('syncing','Conectando…');
+                return;
+            }
+            /* Confirmado por el servidor: el documento realmente no está migrado. */
             console.error('[P2P] El documento remoto está en el formato anterior (sin _schema:2).');
             setSyncStatus('offline','Formato anterior');
             ocultarLoading();
+            if(!cargarDatosUsuario._avisoFormato){
+                cargarDatosUsuario._avisoFormato=true;
+                const ui=window._recoveryUI;
+                if(ui&&ui.error){
+                    ui.ensure&&ui.ensure();
+                    ui.error('Documento en formato anterior',
+                        'Este documento no está en el formato nuevo. La app no lo lee ni escribe encima para no mezclar formatos.\n\nSi ya migraste desde otro dispositivo, lo más probable es que acá haya quedado una copia local vieja: "Reiniciar conexión" la borra y vuelve a bajar todo del servidor.',
+                        [
+                            {label:'🧹 Reiniciar conexión y recargar',color:'#d97706',onClick:()=>{if(typeof _archivoResetConexion==='function')_archivoResetConexion();else location.reload()}},
+                            {label:'Cerrar',color:'#64748b',onClick:()=>{ui.hide&&ui.hide()}}
+                        ]);
+                }
+            }
             return;
         }
         try{window._v2sync.onEstado(doc)}

@@ -330,6 +330,7 @@ async function migrarAV2(opts){
         AppState._localVersion=nuevaVersion;
         AppState.datos._version=nuevaVersion;
         try{localStorage.setItem('p2p_schema_'+AppState.currentUser.uid,String(V2_SCHEMA))}catch(_){}
+        try{localStorage.setItem('p2p_v2count_'+AppState.currentUser.uid,String(pendientes.length))}catch(_){}
         AppState._recoveryActive=false;
         _v2Migrando=false;
 
@@ -415,7 +416,7 @@ function v2Diagnostico(){
    escritura atómica de Firestore.
    ════════════════════════════════════════════════════════════════════════════ */
 
-let _v2EventosUnsub=null,_v2EstadoOk=false,_v2EventosOk=false,_v2RenderTimer=null,_v2Guardando=false,_v2FromCache=false;
+let _v2EventosUnsub=null,_v2EstadoOk=false,_v2EventosOk=false,_v2RenderTimer=null,_v2Guardando=false,_v2FromCache=false,_v2EsperandoServidor=false;
 
 function _v2UserRef(){return AppState.db.collection('users').doc(AppState.currentUser.uid)}
 function _v2EvRef(){return _v2UserRef().collection('eventos')}
@@ -500,50 +501,80 @@ function v2OnEstadoSnapshot(doc){
 }
 
 /* ─── Escucha de la subcolección de EVENTOS ──────────────────────────────── */
+/* Cantidad de eventos confirmada por el SERVIDOR. Es la referencia del
+   anti-borrado: una caché parcial no puede hacernos creer que se borró todo. */
+function _v2CountGet(){try{return parseInt(localStorage.getItem('p2p_v2count_'+AppState.currentUser.uid)||'0',10)||0}catch(_){return 0}}
+function _v2CountSet(n){try{localStorage.setItem('p2p_v2count_'+AppState.currentUser.uid,String(n))}catch(_){}}
+
 function v2AttachEventos(){
     if(_v2EventosUnsub)return;
-    _v2EventosUnsub=_v2EvRef().onSnapshot(snap=>{
-        let cambios=0;
-        snap.docChanges().forEach(ch=>{
-            const r=v2FromDoc(ch.doc.data());
-            if(!r)return;
-            const arr=AppState.datos[r.entidad];
-            if(!Array.isArray(arr))return;
-            const i=arr.findIndex(x=>String(x.id)===String(r.item.id));
-            if(ch.type==='removed'){
-                if(i>=0){arr.splice(i,1);cambios++}
-            }else{
-                /* No pisar un item con edición local sin confirmar */
-                if(i>=0&&arr[i]._syncState==='pending'&&ch.doc.metadata.hasPendingWrites===false&&
-                   _syncQueue.some(a=>a&&a.entity===r.entidad&&String(a.id)===String(r.item.id)))return;
-                if(i>=0)arr[i]={...arr[i],...r.item};
-                else arr.push(r.item);
-                cambios++;
-            }
-        });
-        if(cambios){
-            const clave=x=>String(x.fecha||'')+String(x.hora||'00:00')+String(x.id||'');
-            ['operaciones','movimientos','transferencias','conversiones'].forEach(e=>{
-                if(Array.isArray(AppState.datos[e]))
-                    AppState.datos[e].sort((a,b)=>{const ka=clave(a),kb=clave(b);return ka<kb?-1:ka>kb?1:0});
-            });
+    /* includeMetadataChanges: necesario para enterarnos cuando la MISMA data pasa
+       de caché a servidor. Sin esto, si el contenido no cambia, nunca sabríamos
+       que ya estamos sincronizados de verdad. */
+    _v2EventosUnsub=_v2EvRef().onSnapshot({includeMetadataChanges:true},snap=>{
+        /* ═══ v5.2.1 — Reconstrucción completa en vez de diffs ═══
+           Antes se aplicaban los docChanges() incrementalmente, lo que obliga a
+           que TODOS los snapshots se apliquen en orden: si uno se descartaba (por
+           ejemplo, por sospechoso), los siguientes diffs quedaban desfasados y la
+           lista incompleta. Reconstruir desde el snapshot completo elimina esa
+           clase entera de errores y cuesta un par de milisegundos. */
+        const desdeCache=snap.metadata.fromCache;
+        const total=snap.size;
+        const esperado=_v2CountGet();
+        /* ═══ ANTI-BORRADO ═══
+           Una caché local parcial (dispositivo que no se abría hace días, o
+           IndexedDB a medio poblar) puede entregar 0 eventos. Sin esta guarda, la
+           app mostraba 0 operaciones y un saldo USDT que salía solo de los lotes
+           de arrastre. No se aplica ni se dibuja hasta que hable el servidor. */
+        const sospechoso=desdeCache&&esperado>0&&total<Math.max(1,Math.floor(esperado*0.9));
+        if(sospechoso){
+            console.warn('[P2P][v2] Caché parcial ('+total+' de ~'+esperado+' eventos) — esperando al servidor');
+            setSyncStatus('syncing','Cargando desde el servidor…');
+            _v2EsperandoServidor=true;
+            return;
         }
+        _v2EsperandoServidor=false;
+        const nuevos={operaciones:[],movimientos:[],transferencias:[],conversiones:[]};
+        snap.forEach(d=>{
+            const r=v2FromDoc(d.data());
+            if(r&&nuevos[r.entidad])nuevos[r.entidad].push(r.item);
+        });
+        const clave=x=>String(x.fecha||'')+String(x.hora||'00:00')+String(x.id||'');
+        Object.keys(nuevos).forEach(e=>{
+            nuevos[e].sort((a,b)=>{const ka=clave(a),kb=clave(b);return ka<kb?-1:ka>kb?1:0});
+            AppState.datos[e]=nuevos[e];
+        });
+        /* Reponer el indicador de "sin subir" de lo que sigue en la cola */
+        _syncQueue.forEach(a=>{
+            const arr=AppState.datos[a&&a.entity];
+            if(Array.isArray(arr)){const it=arr.find(x=>String(x.id)===String(a.id));if(it)it._syncState='pending'}
+        });
+        if(!desdeCache)_v2CountSet(total);
         _v2EventosOk=true;
         _v2Programar();
     },err=>{
         console.error('[P2P][v2] listener eventos:',err);
-        setSyncStatus('offline','Error de conexión');
+        const permiso=/permission|insufficient/i.test(String(err&&err.message||err));
+        setSyncStatus('offline',permiso?'Sin permiso sobre eventos':'Error de conexión');
+        if(permiso)console.error('[P2P][v2] Las reglas de Firestore no permiten leer users/{uid}/eventos.');
     });
 }
 function v2DetachEventos(){
     if(_v2EventosUnsub){try{_v2EventosUnsub()}catch(_){}_v2EventosUnsub=null}
-    _v2EstadoOk=false;_v2EventosOk=false;
+    _v2EstadoOk=false;_v2EventosOk=false;_v2EsperandoServidor=false;
 }
 
 /* ─── ESCRITURA incremental ──────────────────────────────────────────────── */
 async function v2Guardar(forzar){
     if(!AppState.currentUser||!AppState.db)return;
     if(_v2Guardando){_guardarPendiente=true;return}
+    /* v5.2.1 — Con los eventos a medio cargar, la pantalla muestra un estado
+       incompleto: no escribimos nada hasta tener la foto confirmada. */
+    if(!_v2EventosOk||_v2EsperandoServidor){
+        _guardarPendiente=true;
+        setSyncStatus('syncing','Esperando datos del servidor…');
+        return;
+    }
     const plan=v2PlanDelta(_syncQueue,AppState.datos);
     if(!plan.sets.length&&!plan.deletes.length&&!plan.tocaEstado&&!forzar){
         /* Nada que escribir. Si quedaron entradas en la cola, son de ítems que ya
@@ -660,6 +691,7 @@ async function v2SubirTodo(opts){
         AppState._localVersion=nueva;AppState.datos._version=nueva;
         _syncQueue.length=0;_localDirty=0;_syncErrors=0;
         setSyncStatus('online');updateSyncBadge();
+        _v2CountSet(enMemoria.length);
         console.log('[P2P][v2] subida total:',enMemoria.length,'eventos ·',aBorrar.length,'retirados');
         if(ui.hide)ui.hide();
         return{ok:true,subidos:enMemoria.length,borrados:aBorrar.length};
