@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.2.1',
+    APP_VERSION: '5.2.2',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.2.2', date:'2026-07-27', headline:'🔧 El reseteo y la importación ahora sí borran todo.', changes:[
+        {type:'fix', title:'El saldo USDT sobrevivía al reseteo y a importar datos', desc:'El documento de estado se guardaba en modo "combinar", así que un campo que desaparecía de la memoria nunca se borraba del servidor: volvía intacto en el siguiente snapshot. Por eso, después de resetear o de importar un archivo, los lotes de arrastre del archivado reaparecían y con ellos un saldo USDT de la nada, aunque todo lo demás quedara en cero. Ahora el documento de estado se reemplaza completo, y el estado vacío incluye esos campos en nulo para que se puedan eliminar de verdad.'},
+        {type:'fix', title:'El reseteo no borraba las operaciones del servidor', desc:'Con una operación por documento, el reseteo escribía solo el documento de estado y las operaciones quedaban en Firestore, listas para volver con el siguiente snapshot. Ahora el reseteo deja la subcolección igual que la memoria: vacía. También limpia los contadores de referencia locales.'}
+    ]},
     {version:'5.2.1', date:'2026-07-27', headline:'🚑 Corregidos tres fallos introducidos en 5.2.0.', changes:[
         {type:'fix', title:'Un dispositivo con caché vieja quedaba en "Formato anterior" y sin datos', desc:'Al abrir la app en un dispositivo que no se usaba desde antes de la migración, la copia local guardada todavía tenía el documento en el formato anterior. La versión 5.2.0 tomaba esa copia como verdad: mostraba "Formato anterior", cero operaciones y un saldo USDT que salía solo de los lotes de arrastre, aunque en el servidor estuviera todo bien. Ahora una copia local nunca concluye el formato por sí sola: la app espera la confirmación del servidor, y si el documento realmente no estuviera migrado lo explica y ofrece limpiar la copia local.'},
         {type:'fix', title:'El cartel "Sin conexión con Firestore" aparecía con la conexión sana', desc:'El chequeo de formato retornaba antes de marcar que ya había llegado un snapshot del servidor, así que el vigilante de conexión concluía que el canal estaba muerto y culpaba a la red. Ahora se marca antes de cualquier salida, y el vigilante no pisa el diagnóstico de formato con una causa equivocada.'},
@@ -390,11 +394,6 @@ const CHANGELOG = [
         {type:'fix', title:'El saldo USDT crecía solo en cada recálculo', desc:'Desde 4.9.0, una compra a la misma tasa que un lote de arrastre (los que crea el archivado) se fusionaba dentro de ese lote. Como los lotes de arrastre se persistían junto a los manuales y se vuelven a sembrar en cada recálculo con disponible=cantidad, la compra quedaba sumada DENTRO del lote y además se reproducía como operación: doble conteo que se acumulaba ciclo tras ciclo (150 → 200 → 250 → …). Causa de fondo: la declaración de un lote y su estado calculado vivían en el mismo lugar, así que una mutación del recálculo terminaba persistida como si fuera la declaración. Ahora los lotes de arrastre tienen su propio campo, escrito una sola vez por el archivado y jamás re-derivado del recálculo.'},
         {type:'new', title:'Reparar lotes de arrastre', desc:'Para las cuentas que ya quedaron con el saldo inflado: repararCarryover() relee los documentos del archivo histórico (que no fueron afectados), reproduce esas operaciones con el motor real y recalcula los lotes de arrastre correctos. Muestra el saldo actual, el corregido y la diferencia antes de aplicar nada, y no toca los documentos del archivo.'},
         {type:'improve', title:'El aviso de optimización deja de insistir', desc:'"Más tarde" ahora se recuerda por 24 horas; antes el cartel volvía a aparecer en cada apertura de la app.'}
-    ]},
-    {version:'5.0.0', date:'2026-07-26', headline:'🚀 Nuevo modelo de guardado listo: un documento por operación.', changes:[
-        {type:'new', title:'Guardado incremental (fase 2 completa)', desc:'Hasta ahora, cargar una operación reescribía el archivo completo: ~105 KB de subida más otros ~105 KB que el listener bajaba de vuelta, siempre sobre el mismo documento. Con el modelo nuevo cada operación, ajuste y transferencia es su propio documento, y queda un documento de estado chico con bancos, tags y configuración: cargar una operación escribe ~0,4 KB en una sola escritura atómica, y ese costo ya NO depende de cuánta historia tengas. Traer un cambio de otro dispositivo también cuesta un documento en vez del archivo entero.'},
-        {type:'improve', title:'Menos maquinaria frágil', desc:'La reconciliación entre dispositivos pasa a resolverse documento por documento, con Firestore entregando solo lo que cambió. Eso vuelve innecesarios el ping-pong de versiones, el estado "reconciliando" y el guard de tamaño de payload, que fueron el origen de la mayoría de los incidentes recientes. El archivado deja de ser necesario para la velocidad: solo sirve para acotar la carga inicial.'},
-        {type:'fix', title:'La cola de pendientes ya no puede quedar pegada', desc:'Si una operación se creaba y se borraba antes de alcanzar a subirse, su entrada quedaba en la cola de sincronización sin nada que escribir: el badge podía quedar mostrando pendientes y los puntos amarillos sin apagarse. Ahora esas entradas se drenan solas.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

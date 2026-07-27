@@ -599,7 +599,14 @@ async function v2Guardar(forzar){
         plan.deletes.forEach(id=>batch.delete(evRef.doc(id)));
         const estado=v2ExtraerEstado(AppState.datos,nueva);
         estado.ultimaActualizacion=firebase.firestore.FieldValue.serverTimestamp();
-        batch.set(_v2UserRef(),estado,{merge:true});
+        /* ═══ v5.2.2 — SIN merge ═══
+           Con {merge:true}, un campo que desaparece de la memoria NUNCA se borra
+           del documento remoto: sobrevive y vuelve en el siguiente snapshot. Eso
+           hacía que un reseteo o una importación no pudieran eliminar los lotes de
+           arrastre ni las semillas del archivado (el saldo USDT "revivía" solo).
+           El documento de estado está descripto por completo por v2ExtraerEstado,
+           así que reemplazarlo entero es lo correcto y además lo hace borrable. */
+        batch.set(_v2UserRef(),estado);
         _syncLog&&_syncLog('v2:write-start',{docs:plan.sets.length,del:plan.deletes.length,v:nueva});
         const t0=performance.now();
         await _v2ConTimeout(batch.commit(),30000,'escritura');
@@ -687,7 +694,7 @@ async function v2SubirTodo(opts){
         const nueva=(AppState._localVersion||0)+1;
         const estado=v2ExtraerEstado(AppState.datos,nueva);
         estado.ultimaActualizacion=firebase.firestore.FieldValue.serverTimestamp();
-        await _v2ConTimeout(_v2UserRef().set(estado,{merge:true}),V2_WRITE_TIMEOUT,'documento de estado');
+        await _v2ConTimeout(_v2UserRef().set(estado),V2_WRITE_TIMEOUT,'documento de estado');
         AppState._localVersion=nueva;AppState.datos._version=nueva;
         _syncQueue.length=0;_localDirty=0;_syncErrors=0;
         setSyncStatus('online');updateSyncBadge();

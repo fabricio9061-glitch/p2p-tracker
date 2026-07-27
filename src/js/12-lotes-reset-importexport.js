@@ -82,8 +82,23 @@ async function borrarTodo(){
                 }
             }catch(_){}
             if(typeof backupToLocal==='function')backupToLocal._lastSig=null;
-            /* forzar=true → saltea el guard anti-wipe SOLO en esta acción explícita y doble-confirmada */
-            await guardarDatos(true);actualizarVista();
+            /* v5.2.2 — En el modelo v2 cada operación es un documento propio: un
+               guardado normal escribe solo el estado y los eventos quedarían en
+               Firestore, volviendo con el siguiente snapshot. La subida total deja
+               la subcolección igual a la memoria (vacía), o sea que los borra. */
+            try{
+                if(AppState.currentUser){
+                    localStorage.removeItem('p2p_v2count_'+AppState.currentUser.uid);
+                    localStorage.removeItem('p2p_archivo_snooze_'+AppState.currentUser.uid);
+                }
+            }catch(_){}
+            if(AppState._schema===2&&window._v2sync&&typeof window._v2sync.subirTodo==='function'){
+                await window._v2sync.subirTodo();
+            }else{
+                /* forzar=true → saltea el guard anti-wipe SOLO en esta acción explícita y doble-confirmada */
+                await guardarDatos(true);
+            }
+            actualizarVista();
         }catch(e){console.error('[P2P] Error reiniciando datos:',e)}
     }
 }

@@ -43,7 +43,10 @@ function crearDatosVacios() {
     return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],tags:[],tasasRecientes:[],
             saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,
             ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14,ultimoMesProcesado:'',_version:0,
-            lastSeenVersion:'',dismissedVersions:[]};
+            lastSeenVersion:'',dismissedVersions:[],
+            /* v5.2.2 — Explícitos en null: si no figuran, el reseteo no puede
+               limpiarlos y los lotes de arrastre reaparecen con su saldo USDT. */
+            _archivoCarryover:null,_archivoSeeds:null,_archivoIndex:null};
 }
 AppState.datos = crearDatosVacios();
 
