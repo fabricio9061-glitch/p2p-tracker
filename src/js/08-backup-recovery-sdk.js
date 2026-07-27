@@ -148,6 +148,11 @@ function mergeRemoteState(d){
     if(d._archivoSeeds&&(!AppState.datos._archivoSeeds||String(d._archivoSeeds.corte||'')>String(AppState.datos._archivoSeeds.corte||''))){
         AppState.datos._archivoSeeds=d._archivoSeeds;
     }
+    /* v5.0.1 — La declaración del arrastre acompaña a las semillas: bloque completo,
+       sin reconciliación por ítem (solo lo escriben el archivado y la reparación). */
+    if(Array.isArray(d._archivoCarryover)&&!_syncQueue.some(a=>a&&a.entity==='lotes')){
+        AppState.datos._archivoCarryover=d._archivoCarryover;
+    }
     /* Índice del archivo: unión por mes (remoto pisa por mes) */
     if(d._archivoSeeds&&d._archivoSeeds.corte)_archivoMarkerSet(String(d._archivoSeeds.corte).slice(0,7));
     if(d._archivoIndex&&d._archivoIndex.meses){
@@ -556,7 +561,10 @@ async function guardarDatos(forzar,opts){
            `lotes` completo → en un dispositivo nuevo o tras limpiar caché, los
            lotes manuales desaparecían silenciosamente. Los no-manuales sí se
            regeneran con recalcularLotesYGanancias(), esos siguen fuera. */
-        datosLimpios.lotesManuales=(AppState.datos.lotes||[]).filter(l=>l&&l.manual).map(l=>{const{_syncState,...r}=l;return r});
+        /* v5.0.1 — Los de ARRASTRE ya no viajan acá: su declaración vive en
+           datos._archivoCarryover. Persistirlos desde el array los exponía a las
+           mutaciones del replay, origen del inflado acumulativo del saldo USDT. */
+        datosLimpios.lotesManuales=(AppState.datos.lotes||[]).filter(l=>l&&l.manual&&!l.carryover).map(l=>{const{_syncState,...r}=l;return r});
         /* Strip de derivables top-level (Fix 2 v4.7.36) */
         delete datosLimpios.lotes;
         delete datosLimpios.saldoUsdt;
@@ -1013,7 +1021,7 @@ function cargarDatosUsuario(){
                     if(_bkPreArchivo){console.warn('[P2P] Backup pre-archivado restaurado SOLO en memoria (push manual requerido)');setSyncStatus('offline','Revisión requerida')}
                     else setTimeout(()=>{if(!esDatosVacios(AppState.datos))guardarDatos(true)},2500);
                 }else{
-                    AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:Array.isArray(d.lotesManuales)?d.lotesManuales:(d.lotes||[]),tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||'',dismissedVersions:Array.isArray(d.dismissedVersions)?d.dismissedVersions:[],_archivoSeeds:d._archivoSeeds||null,_archivoIndex:d._archivoIndex||null};
+                    AppState.datos={operaciones:d.operaciones||[],movimientos:d.movimientos||[],transferencias:d.transferencias||[],conversiones:d.conversiones||[],bancos:d.bancos||{},lotes:Array.isArray(d.lotesManuales)?d.lotesManuales:(d.lotes||[]),tags:d.tags||[],tasasRecientes:d.tasasRecientes||[],saldoUsdt:d.saldoUsdt||0,ultimaTasaCompra:d.ultimaTasaCompra||0,ultimaTasaVenta:d.ultimaTasaVenta||0,comisionPlataforma:d.comisionPlataforma!==undefined?d.comisionPlataforma:0.14,ultimaTasaCompraUSD:d.ultimaTasaCompraUSD||0,ultimaTasaVentaUSD:d.ultimaTasaVentaUSD||0,comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,ultimoMesProcesado:d.ultimoMesProcesado||'',_version:serverVersion,lastSeenVersion:d.lastSeenVersion||'',dismissedVersions:Array.isArray(d.dismissedVersions)?d.dismissedVersions:[],_archivoSeeds:d._archivoSeeds||null,_archivoIndex:d._archivoIndex||null,_archivoCarryover:Array.isArray(d._archivoCarryover)?d._archivoCarryover:null};
                     if(d._archivoSeeds&&d._archivoSeeds.corte)_archivoMarkerSet(String(d._archivoSeeds.corte).slice(0,7));
                     AppState._localVersion=serverVersion;
                     snapshotAplicoCambios=true;

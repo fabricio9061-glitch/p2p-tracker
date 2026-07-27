@@ -101,7 +101,9 @@ function v2ExtraerEstado(datos,version){
     const d=datos||{};
     const{operaciones,movimientos,transferencias,conversiones,lotes,saldoUsdt,...resto}=d;
     const estado={...resto};
-    estado.lotesManuales=(d.lotes||[]).filter(l=>l&&l.manual).map(l=>{const{_syncState,...r}=l;return r});
+    /* v5.0.1 — sin los de arrastre: su declaración va en _archivoCarryover, que
+       viaja intacta dentro de `resto` */
+    estado.lotesManuales=(d.lotes||[]).filter(l=>l&&l.manual&&!l.carryover).map(l=>{const{_syncState,...r}=l;return r});
     estado._schema=V2_SCHEMA;
     if(version!==undefined)estado._version=version;
     delete estado._syncState;

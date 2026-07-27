@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.0.0',
+    APP_VERSION: '5.0.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.0.1', date:'2026-07-27', headline:'🛠️ Corregido el inflado del saldo USDT y agregada la reparación.', changes:[
+        {type:'fix', title:'El saldo USDT crecía solo en cada recálculo', desc:'Desde 4.9.0, una compra a la misma tasa que un lote de arrastre (los que crea el archivado) se fusionaba dentro de ese lote. Como los lotes de arrastre se persistían junto a los manuales y se vuelven a sembrar en cada recálculo con disponible=cantidad, la compra quedaba sumada DENTRO del lote y además se reproducía como operación: doble conteo que se acumulaba ciclo tras ciclo (150 → 200 → 250 → …). Causa de fondo: la declaración de un lote y su estado calculado vivían en el mismo lugar, así que una mutación del recálculo terminaba persistida como si fuera la declaración. Ahora los lotes de arrastre tienen su propio campo, escrito una sola vez por el archivado y jamás re-derivado del recálculo.'},
+        {type:'new', title:'Reparar lotes de arrastre', desc:'Para las cuentas que ya quedaron con el saldo inflado: repararCarryover() relee los documentos del archivo histórico (que no fueron afectados), reproduce esas operaciones con el motor real y recalcula los lotes de arrastre correctos. Muestra el saldo actual, el corregido y la diferencia antes de aplicar nada, y no toca los documentos del archivo.'},
+        {type:'improve', title:'El aviso de optimización deja de insistir', desc:'"Más tarde" ahora se recuerda por 24 horas; antes el cartel volvía a aparecer en cada apertura de la app.'}
+    ]},
     {version:'5.0.0', date:'2026-07-26', headline:'🚀 Nuevo modelo de guardado listo: un documento por operación.', changes:[
         {type:'new', title:'Guardado incremental (fase 2 completa)', desc:'Hasta ahora, cargar una operación reescribía el archivo completo: ~105 KB de subida más otros ~105 KB que el listener bajaba de vuelta, siempre sobre el mismo documento. Con el modelo nuevo cada operación, ajuste y transferencia es su propio documento, y queda un documento de estado chico con bancos, tags y configuración: cargar una operación escribe ~0,4 KB en una sola escritura atómica, y ese costo ya NO depende de cuánta historia tengas. Traer un cambio de otro dispositivo también cuesta un documento en vez del archivo entero.'},
         {type:'improve', title:'Menos maquinaria frágil', desc:'La reconciliación entre dispositivos pasa a resolverse documento por documento, con Firestore entregando solo lo que cambió. Eso vuelve innecesarios el ping-pong de versiones, el estado "reconciliando" y el guard de tamaño de payload, que fueron el origen de la mayoría de los incidentes recientes. El archivado deja de ser necesario para la velocidad: solo sirve para acotar la carga inicial.'},
@@ -387,10 +392,6 @@ const CHANGELOG = [
     ]},
     {version:'4.9.5', date:'2026-07-26', headline:'💰 Las cuentas se ordenan por saldo: las vacías al final.', changes:[
         {type:'improve', title:'Cuentas ordenadas por plata disponible, en tarjetas y en todas las listas', desc:'Antes el orden era fijo (el de configuración), así que una cuenta en $0 como OCA quedaba en el medio de la grilla y en el medio de los desplegables. Ahora las cuentas con más saldo van primero y las vacías al final — en las tarjetas de Mis Saldos, en "Sale de" y "Entra a", en los ajustes de saldo, en las transferencias y en las cuentas adicionales del pago dividido. Las cuentas en USD se ordenan en su propio grupo (después de las UYU): comparar $24.000 con US$500 en un mismo ranking no tendría sentido. Si dos cuentas empatan (típico: varias en cero) se mantiene un orden fijo para que no cambien de lugar entre pantallas.'}
-    ]},
-    {version:'4.9.4', date:'2026-07-19', headline:'🛡️ Auditoría de sincronización: convergencia segura post-archivado y app siempre en línea.', changes:[
-        {type:'fix', title:'Un dispositivo desactualizado ya no puede deshacer el archivado', desc:'Tras archivar en un dispositivo, los demás quedan con un respaldo local "gordo" (todas las ops viejas). Dos rutas podían resucitarlo: la restauración automática cuando el remoto lee vacío (con re-push a los 2,5s que hubiera sobrescrito el doc chico con 5.000+ ops), y clearLocalBackup, que por puntaje bruto nunca soltaba el backup viejo. Ahora existe un marker local de archivado: el puntaje se compara solo sobre la ventana post-corte, el re-push automático de backups pre-archivado se bloquea (restauran solo a memoria, con revisión manual), y el botón "Restaurar desde backup local" advierte explícitamente si el backup es anterior al archivado.'},
-        {type:'new', title:'Watchdog de conexión al arrancar', desc:'Si a los 12 segundos de abrir la app no llegó ningún snapshot del servidor teniendo internet, se reinicia el canal automáticamente; si a los 25 sigue muda, aparece el doctor de conexión con el botón de limpieza de cola — sin esperar a que intentes guardar o archivar. La sugerencia de archivado ahora solo aparece con información fresca del servidor (nunca por tener memoria vieja sin sincronizar), y el reinicio de conexión detecta el caso "otra pestaña abierta" (failed-precondition) con instrucciones exactas.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

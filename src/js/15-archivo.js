@@ -45,6 +45,13 @@ const ARCHIVO_MESES_MANTENER_DEFAULT=2;   /* mes actual + 1 anterior */
    archivar aunque falte muchísimo para el límite de 1 MB. */
 const ARCHIVO_KB_RENDIMIENTO=220;
 const ARCHIVO_EPSILON=0.005;              /* misma tolerancia que el split */
+/* v5.0.1 — Las sumas sobre lotes (saldo USDT y disponible por moneda) pueden
+   diferir en polvo de redondeo cuando el agrupamiento de lotes cambia: el
+   historial completo fusiona compras del mismo precio, y post-archivo un lote
+   de arrastre ya no puede recibir fusiones (hacerlo corrompía el saldo). Ese
+   desvío es de centésimos y es inherente. La ganancia por operación y las
+   tasas siguen con tolerancia estricta. */
+const ARCHIVO_EPSILON_LOTES=0.02;
 
 let _archivoRunning=false;
 
@@ -130,7 +137,9 @@ function _calcularPlanArchivo(datos,mesesAMantener){
     /* Lotes manuales existentes: los anteriores al corte entran al replay
        archivado (pueden quedar total/parcialmente consumidos → su remanente
        pasa al carryover). Los del período reciente se mantienen tal cual. */
-    const lotesManTodos=(datos.lotes||[]).filter(l=>l.manual);
+    /* v5.0.1 — Los de arrastre NO se toman del array: su declaración vive en
+       datos._archivoCarryover y el replay del sandbox la lee de ahí. */
+    const lotesManTodos=(datos.lotes||[]).filter(l=>l&&l.manual&&!l.carryover);
     const lotesManViejos=lotesManTodos.filter(l=>{const mm=_archivoMesDeFecha(l.fecha);return mm&&mm<cutoffMes});
     const lotesManRecientes=lotesManTodos.filter(l=>!(lotesManViejos.includes(l)));
 
@@ -198,7 +207,8 @@ function _calcularPlanArchivo(datos,mesesAMantener){
         movimientos:movs.reciente,
         transferencias:transfs.reciente,
         conversiones:convs.reciente,
-        lotes:[...carryover,...lotesManRecientes.map(l=>({...l}))],
+        lotes:lotesManRecientes.map(l=>({...l})),
+        _archivoCarryover:carryover,
         _archivoSeeds:seedsNuevos,
         _archivoIndex:{meses:indexMeses,actualizado:getUDateStr()}
     });
@@ -206,12 +216,12 @@ function _calcularPlanArchivo(datos,mesesAMantener){
     /* ── VERIFICACIÓN DE EQUIVALENCIA ── */
     const post=_replayEnSandbox(_cloneJson(datosNuevo));
     const diffs=[];
-    if(Math.abs(post.saldoUsdt-refFull.saldoUsdt)>ARCHIVO_EPSILON)
+    if(Math.abs(post.saldoUsdt-refFull.saldoUsdt)>ARCHIVO_EPSILON_LOTES)
         diffs.push('saldoUsdt: '+refFull.saldoUsdt+' → '+post.saldoUsdt);
     const dispPorMon=lotes=>{const r={};lotes.forEach(l=>{if(l.disponible>ARCHIVO_EPSILON){const m=l.moneda||'UYU';r[m]=roundMoney((r[m]||0)+l.disponible)}});return r};
     const dA=dispPorMon(refFull.lotes),dB=dispPorMon(post.lotes);
     Object.keys({...dA,...dB}).forEach(m=>{
-        if(Math.abs((dA[m]||0)-(dB[m]||0))>ARCHIVO_EPSILON)diffs.push('disponible '+m+': '+(dA[m]||0)+' → '+(dB[m]||0));
+        if(Math.abs((dA[m]||0)-(dB[m]||0))>ARCHIVO_EPSILON_LOTES)diffs.push('disponible '+m+': '+(dA[m]||0)+' → '+(dB[m]||0));
     });
     ['utcL','utcUL','utvL','utvU'].forEach(k=>{
         if(Math.abs((refFull[k]||0)-(post[k]||0))>0.0005)diffs.push('tasa '+k+': '+refFull[k]+' → '+post[k]);
@@ -479,6 +489,103 @@ async function archivarHistorial(opts){
     }
 }
 
+/* ─── REPARACIÓN DE LOTES DE ARRASTRE (v5.0.1) ─────────────────────────────
+   Entre 4.9.0 y 5.0.0, agregarLote permitía fusionar una compra nueva dentro de
+   un lote de arrastre. Como los lotes de arrastre llevan manual:true, se
+   PERSISTEN y se vuelven a sembrar en cada recálculo con disponible=cantidad:
+   la compra quedaba sumada dentro de `cantidad` y además se replayaba como
+   operación, así que el saldo USDT crecía en cada ciclo, de forma acumulativa.
+
+   Esta función recalcula los lotes de arrastre correctos releyendo los
+   documentos de archivo (que NO fueron afectados) y reproduciéndolos con el
+   motor real. No aplica nada sin mostrarte antes el saldo actual, el corregido
+   y la diferencia. */
+async function repararCarryover(){
+    if(!AppState.currentUser||!AppState.db){alert('Sin sesión activa.');return{ok:false}}
+    if(!navigator.onLine){alert('Necesitás conexión para leer el archivo histórico.');return{ok:false}}
+    const ui=window._recoveryUI||{};
+    const setPhase=ui.setPhase||function(){};
+    try{
+        if(ui.ensure)ui.ensure();
+        setPhase('Leyendo historial archivado…');
+        const idx=(AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses)||{};
+        const meses=Object.keys(idx).sort();
+        const carryActuales=(AppState.datos.lotes||[]).filter(l=>l&&l.manual&&l.carryover);
+        if(!meses.length){
+            if(ui.hide)ui.hide();
+            alert(carryActuales.length
+                ? 'Hay lotes de arrastre pero no se encontró historial archivado, así que no se pueden recalcular automáticamente. Escribime antes de tocar nada.'
+                : 'No hay historial archivado ni lotes de arrastre: no hay nada que reparar.');
+            return{ok:false,motivo:'sin-archivo'};
+        }
+        /* 1 ── Juntar todo lo archivado */
+        const userRef=AppState.db.collection('users').doc(AppState.currentUser.uid);
+        const ops=[],movs=[];
+        for(let i=0;i<meses.length;i++){
+            setPhase('Leyendo '+meses[i]+' ('+(i+1)+'/'+meses.length+')…');
+            const snap=await userRef.collection('archivo').doc(meses[i]).get();
+            if(!snap.exists)throw new Error('Falta el documento de archivo '+meses[i]+'.');
+            const d=snap.data();
+            let o=d._wireFormat?_decompressOpsArrayFromWire(d.operaciones):(d.operaciones||[]);
+            if(d.gananciasPorId&&typeof _archivoAplicarGanancias==='function')o=_archivoAplicarGanancias(o,d.gananciasPorId);
+            o.forEach(x=>ops.push(x));
+            (d.movimientos||[]).forEach(m=>movs.push(m));
+        }
+        /* 2 ── Reproducir TODO lo archivado desde cero: el resultado son los
+               lotes abiertos al corte, es decir el arrastre correcto. */
+        setPhase('Recalculando lotes de arrastre…');
+        await new Promise(r=>setTimeout(r,50));
+        const manualesGenuinos=(AppState.datos.lotes||[]).filter(l=>l&&l.manual&&!l.carryover);
+        const corte=(AppState.datos._archivoSeeds&&AppState.datos._archivoSeeds.corte)||'';
+        const manualesViejos=manualesGenuinos.filter(l=>corte&&String(l.fecha||'')<corte);
+        const sandbox=_cloneJson({...AppState.datos,operaciones:ops,movimientos:movs,
+            transferencias:[],conversiones:[],lotes:manualesViejos.map(l=>({...l})),
+            _archivoSeeds:null,_archivoCarryover:null});
+        const corteCalc=_replayEnSandbox(sandbox);
+        const carryCorrecto=corteCalc.lotes.filter(l=>l.disponible>ARCHIVO_EPSILON).map(l=>({
+            id:l.id,fecha:l.fecha,hora:l.hora||'00:00',precioCompra:l.precioCompra,
+            cantidad:l.disponible,disponible:l.disponible,moneda:l.moneda||'UYU',
+            manual:true,carryover:true
+        }));
+        /* 3 ── Estado corregido, sin aplicar todavía */
+        const saldoAntes=AppState.datos.saldoUsdt;
+        const propuesta=_cloneJson({...AppState.datos,
+            _archivoCarryover:carryCorrecto,
+            lotes:manualesGenuinos.filter(l=>!manualesViejos.includes(l)).map(l=>({...l}))});
+        const post=_replayEnSandbox(propuesta);
+        const saldoDespues=post.saldoUsdt;
+        const sumar=arr=>arr.reduce((a,l)=>roundMoney(a+(l.cantidad||0)),0);
+        if(ui.hide)ui.hide();
+        const detalle=
+            'Saldo USDT actual (inflado): '+fmtNum(saldoAntes,2)+'\n'+
+            'Saldo USDT corregido:        '+fmtNum(saldoDespues,2)+'\n'+
+            'Diferencia a descontar:      '+fmtNum(roundMoney(saldoAntes-saldoDespues),2)+'\n\n'+
+            'Lotes de arrastre: '+carryActuales.length+' (suma '+fmtNum(sumar(carryActuales),2)+')'+
+            '  →  '+carryCorrecto.length+' (suma '+fmtNum(sumar(carryCorrecto),2)+')\n'+
+            'Recalculados reproduciendo '+ops.length+' operaciones archivadas de '+meses.length+' meses.\n\n'+
+            '¿Aplicar la corrección?';
+        if(!confirm('Reparar lotes de arrastre\n\n'+detalle))return{ok:false,motivo:'cancelado'};
+        /* 4 ── Aplicar y persistir */
+        AppState.datos._archivoCarryover=carryCorrecto;
+        AppState.datos.lotes=manualesGenuinos.filter(l=>!manualesViejos.includes(l)).map(l=>({...l}));
+        recalcularLotesYGanancias();
+        try{if(typeof backupToLocal==='function'){backupToLocal._lastSig=null;backupToLocal()}}catch(_){}
+        if(typeof guardaOptimista==='function')guardaOptimista('update','lotes','carryover-fix');
+        else if(typeof guardarDatos==='function')await guardarDatos(true);
+        if(typeof actualizarVista==='function')actualizarVista();
+        console.log('[P2P][reparación] saldoUsdt',saldoAntes,'→',AppState.datos.saldoUsdt);
+        alert('✅ Lotes de arrastre corregidos.\n\nSaldo USDT: '+fmtNum(AppState.datos.saldoUsdt,2)+
+              '\n\nVerificá que coincida con tu saldo real en Binance. Si no coincide, avisame antes de seguir operando.');
+        return{ok:true,saldoAntes,saldoDespues:AppState.datos.saldoUsdt};
+    }catch(e){
+        console.error('[P2P][reparación]',e);
+        if(ui.hide)ui.hide();
+        alert('No se pudo reparar: '+(e&&e.message||e)+'\n\nNo se modificó nada.');
+        return{ok:false,error:e};
+    }
+}
+window.repararCarryover=repararCarryover;
+
 /* ─── Reset de conexión: limpia la cola interna persistida del SDK ─────────
    Seguro para los datos del usuario: las operaciones pendientes de la app NO
    están en esta cola (el modo seguro las frena ANTES de llegar al SDK); viven
@@ -610,6 +717,12 @@ function _archivoAutoSugerir(){
         /* Sin al menos un snapshot de servidor en la sesión no sabemos el tamaño real
            (la memoria puede ser de un dispositivo desactualizado). */
         if(!AppState._snapshotServidorOk)return;
+        /* v5.0.1 — "Más tarde" ahora se respeta por 24 h. Antes reaparecía en cada
+           apertura de la app, que con una PWA es a cada rato. */
+        try{
+            const sn=parseInt(localStorage.getItem('p2p_archivo_snooze_'+AppState.currentUser.uid)||'0',10);
+            if(sn&&Date.now()-sn<86400000)return;
+        }catch(_){}
         /* v5.0 — En el modelo v2 el costo de guardar ya no depende de la historia:
            archivar deja de ser necesario para la velocidad (solo acota la carga
            inicial). No molestamos con la sugerencia. */
@@ -630,7 +743,10 @@ function _archivoAutoSugerir(){
                 :'Cada operación que cargás reescribe el documento entero ('+bd.totalKB+' KB) y lo vuelve a bajar por el listener. Archivar los meses viejos deja solo los recientes y la sincronización pasa a ser casi instantánea. El detalle archivado sigue disponible en 📦 Archivo.',
             [
                 {label:'⚡ Optimizar ahora',color:'#059669',onClick:()=>{ui.hide&&ui.hide();setTimeout(()=>archivarHistorial({trigger:'auto-sugerencia'}),200)}},
-                {label:'Más tarde',color:'#64748b',onClick:()=>{ui.hide&&ui.hide()}}
+                {label:'Más tarde',color:'#64748b',onClick:()=>{
+                    try{localStorage.setItem('p2p_archivo_snooze_'+AppState.currentUser.uid,String(Date.now()))}catch(_){}
+                    ui.hide&&ui.hide();
+                }}
             ]);
     }catch(_){}
 }

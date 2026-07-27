@@ -619,7 +619,8 @@ function _buildRecoveryPayload(){
         comisionUSD:d.comisionUSD!==undefined?d.comisionUSD:0.14,
         ultimoMesProcesado:d.ultimoMesProcesado||'',
         /* v4.9.0 — no derivables: lotes manuales/carryover + metadata de archivado */
-        lotesManuales:(d.lotes||[]).filter(l=>l&&l.manual).map(l=>{const{_syncState,...r}=l;return r}),
+        lotesManuales:(d.lotes||[]).filter(l=>l&&l.manual&&!l.carryover).map(l=>{const{_syncState,...r}=l;return r}),
+        _archivoCarryover:Array.isArray(d._archivoCarryover)?d._archivoCarryover:null,
         _archivoSeeds:d._archivoSeeds||null,
         _archivoIndex:d._archivoIndex||null,
         _version:newVersion,

@@ -262,12 +262,14 @@ function mostrarSaldoOrigen(){
    ═══════════════════════════════════════ */
 function agregarLote(id,fecha,hora,precio,cant,moneda){
     moneda=moneda||'UYU';cant=truncUsdt(cant);
-    /* Mergear con lotes automáticos del mismo precio y moneda. v4.9.0: también
-       con lotes CARRYOVER (sintéticos, creados por el archivado): reproducen el
-       lote automático que reemplazan, y si no mergearan, el snap de polvo de
-       consumirFIFO (disponible<0.005→0) actuaría sobre un agrupamiento distinto
-       al del historial completo → drift de ±0.01. Los manuales del usuario
-       siguen intocables. */
+    /* Mergear con lotes automáticos del mismo precio y moneda, y también con los
+       de ARRASTRE: son sintéticos, reemplazan al lote automático que existía al
+       corte, y si no se fusionaran, la compra nueva quedaría en un lote con fecha
+       posterior → cambiaría el orden FIFO y con él la ganancia atribuida.
+       v5.0.1: esto es seguro AHORA porque la DECLARACIÓN de los lotes de arrastre
+       vive aparte, en datos._archivoCarryover, y es inmutable: lo que el replay
+       muta acá no se persiste nunca como declaración. Entre 4.9.0 y 5.0.0 sí se
+       persistía, y el saldo USDT se inflaba de forma acumulativa en cada ciclo. */
     const ex=AppState.datos.lotes.find(l=>(!l.manual||l.carryover)&&l.precioCompra===precio&&l.disponible>0&&(l.moneda||'UYU')===moneda);
     if(ex){ex.cantidad=truncUsdt(ex.cantidad+cant);ex.disponible=truncUsdt(ex.disponible+cant)}
     else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant,moneda});
@@ -298,8 +300,18 @@ function previewFIFO(cant,moneda){
 }
 
 function recalcularLotesYGanancias(){
-    /* Preservar lotes manuales — nunca se eliminan por recálculo */
-    const lotesManual=AppState.datos.lotes.filter(l=>l.manual).map(l=>({...l}));
+    /* ═══ Semillas del replay: DECLARACIONES, no estado calculado (v5.0.1) ═══
+       Los lotes de arrastre se leen de datos._archivoCarryover, que escriben una
+       sola vez el archivado o la reparación, y que nadie vuelve a derivar del
+       array de lotes. Los manuales del usuario sí salen del array: su `cantidad`
+       no se muta nunca. Compatibilidad: si un documento viejo todavía trae los de
+       arrastre dentro de los manuales, se adoptan al campo nuevo la primera vez. */
+    if(!Array.isArray(AppState.datos._archivoCarryover)){
+        const heredados=AppState.datos.lotes.filter(l=>l&&l.manual&&l.carryover);
+        if(heredados.length)AppState.datos._archivoCarryover=heredados.map(l=>({...l}));
+    }
+    const lotesCarry=(AppState.datos._archivoCarryover||[]).map(l=>({...l,manual:true,carryover:true}));
+    const lotesManual=[...lotesCarry,...AppState.datos.lotes.filter(l=>l&&l.manual&&!l.carryover).map(l=>({...l}))];
     AppState.datos.lotes=[];const ev=[];
     AppState.datos.operaciones.forEach(op=>{ev.push({tipo:'op',fecha:op.fecha,hora:op.hora||'00:00',data:op})});
     AppState.datos.movimientos.filter(m=>m.tipoCuenta==='usdt').forEach(m=>{
