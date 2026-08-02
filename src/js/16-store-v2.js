@@ -244,10 +244,10 @@ async function migrarAV2(opts){
     if(!opts.sinConfirmar){
         const n=(AppState.datos.operaciones||[]).length+(AppState.datos.movimientos||[]).length+
                 (AppState.datos.transferencias||[]).length+(AppState.datos.conversiones||[]).length;
-        if(!confirm('Migrar al formato rápido\n\n'+
-            'Se van a crear '+n+' documentos individuales (uno por operación, ajuste y transferencia).\n\n'+
-            'A partir de ahí, cargar una operación escribe solo su documento en vez del archivo completo.\n\n'+
-            'IMPORTANTE: todos tus dispositivos tienen que estar en esta versión ANTES de migrar.\n\n'+
+        if(!confirm('Actualizar el formato de guardado\n\n'+
+            'Tenés '+n+' registros. La actualización los reorganiza para que la app guarde más rápido.\n\n'+
+            'Puede tardar un momento: no cierres la app hasta que termine.\n\n'+
+            'Tus datos no se modifican y se verifican antes de aplicar el cambio.\n\n'+
             '¿Continuar?'))return{ok:false,motivo:'cancelado'};
     }
     _v2Migrando=true;
@@ -262,6 +262,12 @@ async function migrarAV2(opts){
         const datosV1=JSON.parse(JSON.stringify(AppState.datos));
         const userRef=AppState.db.collection('users').doc(AppState.currentUser.uid);
         const evRef=userRef.collection('eventos');
+        /* Timeout compartido: se declara ANTES de cualquier uso, incluido el
+           camino de cuenta vacía (v5.2.7). */
+        const conTimeout=(p,ms,tag)=>new Promise((res,rej)=>{
+            let fin=false;const h=setTimeout(()=>{if(!fin){fin=true;rej(new Error(tag+' superó '+Math.round(ms/1000)+'s'))}},ms);
+            p.then(v=>{if(!fin){fin=true;clearTimeout(h);res(v)}},e=>{if(!fin){fin=true;clearTimeout(h);rej(e)}});
+        });
 
         /* ── 1. Armar todos los documentos ── */
         setPhase('Preparando documentos…');
@@ -274,17 +280,26 @@ async function migrarAV2(opts){
             });
         });
         if(!pendientes.length){
+            /* v5.2.7 — Cuenta vacía: no hay eventos que mover, pero SÍ hay que
+               dejar el documento de estado en el formato nuevo. Antes se abortaba
+               acá y la persona quedaba atascada en "Formato anterior" para siempre. */
+            const estadoVacio=v2ExtraerEstado(datosV1,(AppState._localVersion||datosV1._version||0)+1);
+            estadoVacio.ultimaActualizacion=firebase.firestore.FieldValue.serverTimestamp();
+            ['operaciones','movimientos','transferencias','conversiones','lotes','saldoUsdt'].forEach(c=>{
+                estadoVacio[c]=firebase.firestore.FieldValue.delete();
+            });
+            await conTimeout(userRef.set(estadoVacio,{merge:true}),V2_WRITE_TIMEOUT,'documento de estado');
+            AppState._schema=V2_SCHEMA;
+            AppState._localVersion=estadoVacio._version;
+            try{localStorage.setItem('p2p_schema_'+AppState.currentUser.uid,String(V2_SCHEMA))}catch(_){}
+            try{localStorage.setItem('p2p_v2count_'+AppState.currentUser.uid,'0')}catch(_){}
             AppState._recoveryActive=false;_v2Migrando=false;
             if(ui.hide)ui.hide();
-            alert('No hay eventos para migrar.');
-            return{ok:false,motivo:'sin-eventos'};
+            console.log('[P2P][v2] Cuenta sin eventos: documento de estado actualizado al formato nuevo.');
+            if(typeof actualizarVista==='function')actualizarVista();
+            return{ok:true,eventos:0,vacia:true};
         }
 
-        /* ── 2. Escribir en lotes, con timeout y reintentos ── */
-        const conTimeout=(p,ms,tag)=>new Promise((res,rej)=>{
-            let fin=false;const h=setTimeout(()=>{if(!fin){fin=true;rej(new Error(tag+' superó '+Math.round(ms/1000)+'s'))}},ms);
-            p.then(v=>{if(!fin){fin=true;clearTimeout(h);res(v)}},e=>{if(!fin){fin=true;clearTimeout(h);rej(e)}});
-        });
         const totalLotes=Math.ceil(pendientes.length/V2_BATCH_MAX);
         for(let i=0;i<totalLotes;i++){
             const trozo=pendientes.slice(i*V2_BATCH_MAX,(i+1)*V2_BATCH_MAX);
@@ -339,6 +354,11 @@ async function migrarAV2(opts){
 
         const kb=Math.round(JSON.stringify(v2ExtraerEstado(AppState.datos,nuevaVersion)).length/1024);
         console.log('[P2P][v2] Migración OK —',pendientes.length,'eventos · estado ~'+kb+' KB');
+        if(opts.auto){
+            console.log('[P2P][v2] Migración automática completada:',pendientes.length,'eventos.');
+            if(typeof actualizarVista==='function')actualizarVista();
+            return{ok:true,eventos:pendientes.length,estadoKB:kb};
+        }
         setTimeout(()=>{
             alert('✅ Formato rápido activado.\n\n'+
                   'Eventos migrados: '+pendientes.length+'\n'+
@@ -737,6 +757,45 @@ async function v2SubirTodo(opts){
         AppState._recoveryActive=previo;
     }
 }
+
+/* ─── MIGRACIÓN AUTOMÁTICA (v5.2.7) ────────────────────────────────────────
+   Hasta ahora migrarAV2() se ejecutaba a mano desde la consola. Eso funcionó
+   para la cuenta del autor, pero dejó fuera a TODA otra persona: su documento
+   sigue en el formato anterior, nunca lo migró nadie, y desde 5.2.0 la app se
+   niega a leerlo — quedaban con "Formato anterior" y sin poder usar nada.
+
+   Ahora, cuando el servidor confirma un documento sin migrar, la app migra
+   sola. El proceso es el mismo de siempre (backup, escritura por lotes,
+   relectura del servidor, verificación de equivalencia y recién ahí la
+   conmutación), así que conserva todas sus garantías: si algo falla, el
+   documento queda intacto en el formato anterior.
+
+   Sin diálogo de confirmación cuando la cuenta es chica o está vacía: no hay
+   nada que decidir y una pregunta técnica solo confundiría. Con historial
+   grande sí se avisa, porque conviene que la persona no cierre la app.       */
+let _v2AutoMigrando=false;
+async function migracionAutomatica(){
+    if(_v2AutoMigrando||_v2Migrando)return;
+    if(!AppState.currentUser||!AppState.db||!navigator.onLine)return;
+    if(AppState._schema===V2_SCHEMA)return;
+    _v2AutoMigrando=true;
+    try{
+        const d=AppState.datos||{};
+        const n=(d.operaciones||[]).length+(d.movimientos||[]).length+
+                (d.transferencias||[]).length+(d.conversiones||[]).length;
+        console.log('[P2P][v2] Documento en formato anterior con '+n+' registro(s): migrando automáticamente…');
+        const r=await migrarAV2({sinConfirmar:n<200,auto:true});
+        if(!r||r.ok!==true){
+            console.error('[P2P][v2] La migración automática no se completó:',r&&(r.motivo||r.error));
+            setSyncStatus('offline','No se pudo actualizar');
+        }
+    }catch(e){
+        console.error('[P2P][v2] migracionAutomatica:',e);
+    }finally{
+        _v2AutoMigrando=false;
+    }
+}
+window.migracionAutomatica=migracionAutomatica;
 
 /* ─── VERIFICACIÓN DE INTEGRIDAD ───────────────────────────────────────────
    Compara, sin modificar nada, lo que hay en Firestore contra lo que la app

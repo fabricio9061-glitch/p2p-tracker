@@ -239,23 +239,25 @@ function cargarDatosUsuario(){
                 setSyncStatus('syncing','Conectando…');
                 return;
             }
-            /* Confirmado por el servidor: el documento realmente no está migrado. */
-            console.error('[P2P] El documento remoto está en el formato anterior (sin _schema:2).');
-            setSyncStatus('offline','Formato anterior');
-            ocultarLoading();
-            if(!cargarDatosUsuario._avisoFormato){
-                cargarDatosUsuario._avisoFormato=true;
-                const ui=window._recoveryUI;
-                if(ui&&ui.error){
-                    ui.ensure&&ui.ensure();
-                    ui.error('Documento en formato anterior',
-                        'Este documento no está en el formato nuevo. La app no lo lee ni escribe encima para no mezclar formatos.\n\nSi ya migraste desde otro dispositivo, lo más probable es que acá haya quedado una copia local vieja: "Reiniciar conexión" la borra y vuelve a bajar todo del servidor.',
-                        [
-                            {label:'🧹 Reiniciar conexión y recargar',color:'#d97706',onClick:()=>{if(typeof _archivoResetConexion==='function')_archivoResetConexion();else location.reload()}},
-                            {label:'Cerrar',color:'#64748b',onClick:()=>{ui.hide&&ui.hide()}}
-                        ]);
-                }
+            /* ═══ v5.2.7 — Documento sin migrar: se migra solo ═══
+               Confirmado por el servidor. Antes acá se bloqueaba la app con
+               "Formato anterior", lo que dejaba fuera a cualquier persona cuya
+               cuenta no hubiera sido migrada a mano — es decir, a todas menos una.
+               Cargamos el estado v1 en memoria (para no perder nada si la
+               migración se interrumpe) y lanzamos la migración automática, que
+               conserva todas sus verificaciones. */
+            console.warn('[P2P] Documento en formato anterior: migrando automáticamente.');
+            setSyncStatus('syncing','Actualizando formato…');
+            if(!cargarDatosUsuario._autoMigrando&&window.migracionAutomatica){
+                cargarDatosUsuario._autoMigrando=true;
+                AppState.datos={...crearDatosVacios(),...(_d||{})};
+                if(Array.isArray(_d.lotesManuales))AppState.datos.lotes=_d.lotesManuales.map(l=>({...l}));
+                delete AppState.datos.lotesManuales;
+                AppState._localVersion=_d._version||0;
+                try{recalcularLotesYGanancias()}catch(_){}
+                setTimeout(()=>window.migracionAutomatica(),300);
             }
+            ocultarLoading();
             return;
         }
         try{window._v2sync.onEstado(doc)}

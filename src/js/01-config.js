@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.2.6',
+    APP_VERSION: '5.2.7',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.2.7', date:'2026-07-27', headline:'👥 La app vuelve a funcionar para todas las cuentas.', changes:[
+        {type:'fix', title:'Otras personas quedaban bloqueadas en "Formato anterior"', desc:'El cambio de formato de guardado se aplicó a mano en una sola cuenta. Desde la versión 5.2.0 la app se niega a leer documentos en el formato anterior —una protección correcta para no mezclar formatos— pero eso dejó fuera a cualquier otra persona: su cuenta nunca fue actualizada, así que quedaba con el aviso "Formato anterior" y sin poder usar nada. Ahora, cuando el servidor confirma un documento sin actualizar, la app lo actualiza sola. El proceso es el mismo de siempre y conserva todas sus verificaciones: respaldo, escritura por lotes, relectura desde el servidor y comprobación de que los números coinciden antes de aplicar el cambio. Si algo falla, el documento queda intacto y se reintenta al volver a abrir.'},
+        {type:'fix', title:'Las cuentas sin datos no podían actualizarse', desc:'Si una cuenta no tenía ninguna operación, la actualización se interrumpía al no encontrar nada que mover y el documento se quedaba en el formato viejo para siempre. Ahora esas cuentas también quedan actualizadas, que es justamente el caso de quien recién empieza.'},
+        {type:'improve', title:'Aviso más claro durante la actualización', desc:'El mensaje dejó de hablar de detalles internos. En cuentas chicas no aparece ningún diálogo: se actualiza en silencio, porque no hay nada que decidir.'}
+    ]},
     {version:'5.2.6', date:'2026-07-27', headline:'🧪 Revisión automática del código y un fallo más corregido.', changes:[
         {type:'fix', title:'La recarga de emergencia no recargaba', desc:'La recuperación de emergencia de la base local cierra el motor de Firestore, borra su almacenamiento y recarga la app. Si la recarga normal fallaba, el respaldo era asignarle a la dirección de la página su propio valor, cosa que los navegadores actuales ignoran: no recarga nada. Como para entonces el motor ya está cerrado y su almacenamiento borrado, la app quedaba inservible hasta cerrarla a mano. Ahora usa un método que sí recarga y, si tampoco pudiera, lo deja anotado en la consola en vez de fallar en silencio.'},
         {type:'new', title:'Revisión de código con un solo comando', desc:'Se agregó revisar-codigo.mjs, que arma el mismo conjunto de archivos que carga el navegador —leyendo el orden desde el propio index.html, así nunca queda desfasado—, lo analiza con un verificador que entiende JavaScript de verdad, y traduce cada hallazgo a su archivo y línea reales. Detecta la clase de fallo que aparece al BORRAR código y que no es error de sintaxis, por lo que ninguna revisión rápida lo ve: nombres usados que ya no existen, código inalcanzable, claves repetidas, asignaciones sin efecto y comparaciones que siempre dan lo mismo. Conviene correrlo antes de cada publicación.'}
@@ -386,10 +391,6 @@ const CHANGELOG = [
     {version:'5.2.3', date:'2026-07-27', headline:'🩹 La operación recién cargada ya no desaparece + verificación de integridad.', changes:[
         {type:'fix', title:'Al cargar una operación desaparecía de la lista', desc:'Desde 5.2.1 la lista se reconstruye completa desde el servidor en cada aviso, lo que resolvió el problema de las copias locales parciales pero trajo otro: una operación recién cargada vive solo en memoria durante los milisegundos que tarda en escribirse, así que cualquier aviso que llegara en esa ventana la borraba de la pantalla. Ahora lo que está pendiente de subir siempre manda sobre lo que dice el servidor, y lo mismo al revés: algo borrado en el teléfono no reaparece por un aviso viejo. Aplica igual a operaciones, ajustes, transferencias y conversiones.'},
         {type:'new', title:'Verificación de integridad', desc:'Nuevo verificarIntegridad() desde la consola: compara lo que hay en Firestore contra lo que la app muestra y solo LEE, no modifica nada. Revisa el formato y la versión del documento, cuántos eventos hay de cada lado y cuáles faltan o sobran, ids repetidos, campos residuales del formato anterior, si el saldo USDT y las ganancias recalculadas desde el servidor coinciden con lo que ves, y si los lotes de arrastre siguen cuadrando con los documentos del archivo histórico. Lo que está pendiente de subir no se cuenta como diferencia.'}
-    ]},
-    {version:'5.2.2', date:'2026-07-27', headline:'🔧 El reseteo y la importación ahora sí borran todo.', changes:[
-        {type:'fix', title:'El saldo USDT sobrevivía al reseteo y a importar datos', desc:'El documento de estado se guardaba en modo "combinar", así que un campo que desaparecía de la memoria nunca se borraba del servidor: volvía intacto en el siguiente snapshot. Por eso, después de resetear o de importar un archivo, los lotes de arrastre del archivado reaparecían y con ellos un saldo USDT de la nada, aunque todo lo demás quedara en cero. Ahora el documento de estado se reemplaza completo, y el estado vacío incluye esos campos en nulo para que se puedan eliminar de verdad.'},
-        {type:'fix', title:'El reseteo no borraba las operaciones del servidor', desc:'Con una operación por documento, el reseteo escribía solo el documento de estado y las operaciones quedaban en Firestore, listas para volver con el siguiente snapshot. Ahora el reseteo deja la subcolección igual que la memoria: vacía. También limpia los contadores de referencia locales.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
