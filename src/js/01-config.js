@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.3.0',
+    APP_VERSION: '5.3.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.3.1', date:'2026-07-30', headline:'🎯 Un solo lugar decide cómo se escribe cada importe.', changes:[
+        {type:'improve', title:'Formato unificado en toda la app', desc:'Cada pantalla resolvía por su cuenta el símbolo de la moneda, cuántos decimales lleva una tasa y cómo se escribe una ganancia: había ocho copias de la primera decisión, cinco de la segunda y siete de la tercera. Con el tiempo se separaron, y de ahí salió el problema del historial archivado, que mostraba los importes sin decimales mientras la lista los mostraba con dos. Ahora esas decisiones viven en un único lugar y todas las pantallas lo usan, así que no pueden volver a divergir. Se verificó con ciento trece combinaciones de valor y moneda que el texto en pantalla queda idéntico al anterior: es una unificación, no un cambio de aspecto.'},
+        {type:'fix', title:'Dos funciones distintas se llamaban igual', desc:'El panel de pago dividido tenía una función con el mismo nombre que la nueva función central. Como todos los archivos comparten el mismo espacio de nombres y ese carga después, la suya tapaba a la otra sin ningún aviso: los importes habrían quedado sin el símbolo de la moneda. Se renombró la del panel, que era de uso exclusivo suyo, y se agregó esta comprobación al revisor automático de código para que no pueda repetirse.'},
+        {type:'fix', title:'Un valor nulo podía romper el formateo', desc:'La función que da formato a los números validaba si el valor era finito antes de convertirlo, y un nulo pasaba esa validación (en JavaScript equivale a cero) para después fallar con un error al formatearlo. Ahora cualquier valor inesperado se muestra como cero, que era la intención original.'}
+    ]},
     {version:'5.3.0', date:'2026-07-30', headline:'📦 Historial archivado rehecho: mismos montos, mismo estilo.', changes:[
         {type:'fix', title:'Los montos del archivo no coincidían con los de la lista', desc:'El visor del historial mostraba los importes sin decimales y la tasa siempre con dos, así que una misma operación se veía con cifras distintas según dónde la miraras: en la lista $1.500,00 a $42,55 y en el archivo 1.500 a 42,55. Ahora usa exactamente el mismo formato que la lista principal — dos decimales, tres para las tasas en dólares, el símbolo correcto según la moneda y los mismos colores para ganancia y pérdida.'},
         {type:'fix', title:'La ventana quedaba tapada por la barra del teléfono', desc:'El visor se dibujaba con estilos propios en vez de usar el sistema de ventanas de la app, así que ignoraba el área reservada de la pantalla y el título quedaba debajo del reloj y la señal. Ahora usa el mismo sistema que el resto: pantalla completa en el teléfono, flecha para volver y encabezado siempre visible al desplazar.'},
@@ -390,9 +395,6 @@ const CHANGELOG = [
     {version:'5.2.5', date:'2026-07-27', headline:'🔍 Auditoría completa del código: un error real corregido.', changes:[
         {type:'fix', title:'Si el archivado fallaba, quedaba bloqueado en silencio', desc:'Al retirar el modo seguro en la limpieza de 5.2.0 quedaron dos usos de una variable que ya no existía, justo dentro de los manejadores de error del archivado. No es un error de sintaxis, así que no lo detectaba ninguna revisión automática: fallaba recién al ejecutarse. El efecto era que, si el archivado se interrumpía, la línea siguiente (la que libera el candado) nunca corría y tampoco aparecía el mensaje de error: el archivado quedaba trabado hasta recargar la app, sin explicación.'},
         {type:'improve', title:'Restos del modelo anterior retirados', desc:'Se eliminaron una rama que llamaba a una función ya inexistente, una condición que nunca podía cumplirse y una función sin usos, todas sobrantes del retiro del modelo de documento único. La revisión cubrió los dieciséis archivos y el HTML: sintaxis por archivo y del conjunto, declaraciones globales duplicadas, funciones llamadas sin definir, identificadores sin declarar, los doscientos cuarenta y nueve identificadores de elementos que el código consulta, las acciones de botones sin manejador, los estilos referenciados y el sello de versión de cada recurso. Todo lo demás dio limpio.'}
-    ]},
-    {version:'5.2.4', date:'2026-07-27', headline:'↕️ Las operaciones vuelven a mostrarse con la más reciente arriba.', changes:[
-        {type:'fix', title:'Lo más nuevo aparecía en la última página', desc:'Las listas se dibujan con el orden del array tal cual: no hay ordenamiento por fecha en el renderizado, y la app siempre agregó cada alta al principio, así que la convención de siempre es "lo más nuevo arriba". En 5.2.1, al pasar a reconstruir la lista completa desde el servidor, el ordenamiento quedó ascendente y dio vuelta todo: lo más reciente terminaba al final, y cada operación nueva parecía irse al fondo. Ahora la reconstrucción ordena por fecha y hora con lo más reciente primero, y el ensamblado que usan la restauración de respaldos y la verificación de integridad usa exactamente el mismo criterio. Los cálculos no se ven afectados: el motor FIFO reordena por su cuenta al reproducir el historial.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

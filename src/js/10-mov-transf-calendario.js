@@ -58,7 +58,7 @@ async function guardarEditarOperacion(){
         recalcularLotesYGanancias();
         actualizarVista();cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null;
         guardaOptimista('update','operaciones',op.id);
-        showSuccess({amount:(op.moneda==='USD'?'US$':'$')+fmtNum(newM),message:'Operación actualizada con éxito',sub:op.tipo==='compra'?'Compra editada':'Venta editada'});
+        showSuccess({amount:fmtMonto(newM,op.moneda),message:'Operación actualizada con éxito',sub:op.tipo==='compra'?'Compra editada':'Venta editada'});
     }catch(e){console.error('[P2P] Error editando operación:',e)}finally{btn.disabled=false;btn.textContent='Guardar'}
 }
 
@@ -135,7 +135,7 @@ function actualizarMovResumen(){
     const prep=isIngreso?'a':'de';
     let target='',monto='';
     if(tc==='usdt'){target='Inventario USDT';monto=fmtTrunc(m,2)+' USDT'}
-    else{const bi=getBancoInfo(b);const sym=bi?.moneda==='USD'?'US$':'$';target=b;monto=sym+fmtNum(m)}
+    else{const bi=getBancoInfo(b);target=b;monto=fmtMonto(m,bi?.moneda)}
     r.className='mov-resumen'+(isIngreso?'':' egreso');
     r.style.display='flex';
     r.innerHTML=`<span class="mov-resumen-icon">${isIngreso?'📥':'📤'}</span><span class="mov-resumen-text">${verbo} <b>${monto}</b> ${prep} <b>${escHtml(target)}</b></span>`;

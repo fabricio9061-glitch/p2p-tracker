@@ -2,7 +2,7 @@ function renderizarInventario(){
     const la=getLotesActivosFIFO();
     if(!la.length){setHtml('inventarioContent','<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px">📭</div><div>Sin USDT en inventario</div></div>');return}
     let tot=0,h='';
-    la.forEach((l,i)=>{tot=truncar(tot+l.disponible,2);const mon=l.moneda||'UYU',sy=mon==='USD'?'US$':'$',v=roundMoney(l.disponible*l.precioCompra,2);
+    la.forEach((l,i)=>{tot=truncar(tot+l.disponible,2);const mon=l.moneda||'UYU',sy=getSym(mon),v=roundMoney(l.disponible*l.precioCompra,2);
         const tag=l.manual?'<span style="display:inline-block;font-size:0.6em;background:#e0e7ff;color:#4338ca;padding:1px 5px;border-radius:4px;font-weight:600;vertical-align:middle;margin-left:4px;letter-spacing:0.3px">manual</span>':'';
         h+=`<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:13px 0;${i>0?'border-top:1px solid #f1f5f9':''}">
             <div style="min-width:0">
@@ -11,7 +11,7 @@ function renderizarInventario(){
                     <span style="font-size:0.7em;color:#94a3b8;font-weight:500">#${i+1}${tag}</span>
                 </div>
                 <div style="display:flex;gap:10px;margin-top:3px;font-size:0.72em;color:#64748b">
-                    <span>Precio: <b style="color:#475569">${sy}${fmtNum(l.precioCompra,mon==='USD'?3:2)}</b></span>
+                    <span>Precio: <b style="color:#475569">${fmtTasaMon(l.precioCompra,mon)}</b></span>
                     <span>Valor: <b style="color:#475569">${sy}${fmtNum(v,2)}</b></span>
                 </div>
             </div>

@@ -212,7 +212,13 @@ function _computeSplitState(){
 /* Formato monetario inteligente: si el monto tiene centésimos significativos,
    muestra 2 decimales; si es entero, muestra 0 decimales. Evita "Faltan $0"
    cuando en realidad faltan $0,47. */
-function fmtMonto(n){
+/* v5.3.1 — Antes se llamaba fmtMonto, el mismo nombre que la función central de
+   §04. Como todos los archivos comparten el ámbito global y éste carga después,
+   la de acá tapaba a la otra: cualquier importe formateado con la central habría
+   perdido su símbolo de moneda. Renombrada porque es exclusiva de este panel:
+   redondea a entero cuando no hay centésimos significativos, para que el usuario
+   vea "$8.000" en vez de "$8.000,00" mientras reparte el pago. */
+function _splitMonto(n){
     const abs=Math.abs(n);
     if(abs<SPLIT_EPSILON)return fmtNum(0,0);
     /* Si el redondeo a entero coincide exactamente con el valor → mostrar entero */
@@ -245,11 +251,11 @@ function renderSplitPanel(){
        fix del remanente se vuelve dinámico y mostraba "faltan $X" = lo ya aportado
        por extras — confuso. */
     const faltanteInicial=deficitPrincipal;
-    let h=`<div class="split-panel-title">⚠️ Saldo insuficiente · faltan ${sy}${fmtMonto(faltanteInicial)}</div>
+    let h=`<div class="split-panel-title">⚠️ Saldo insuficiente · faltan ${sy}${_splitMonto(faltanteInicial)}</div>
         <div style="font-size:0.7em;color:#78350f;margin-bottom:10px;line-height:1.4">Completá el pago con una o más cuentas adicionales hasta cubrir el total.</div>
         <div class="split-row aporte">
             <div class="split-row-label"><span style="color:${getBancoColor(bancoPrinc)}">●</span> <b>${escHtml(bancoPrinc)}</b> aporta</div>
-            <div class="split-row-monto">${sy}${fmtMonto(aporte1)}</div>
+            <div class="split-row-monto">${sy}${_splitMonto(aporte1)}</div>
         </div>`;
     /* Render cuentas adicionales */
     AppState.ui.splitExtras.forEach((ex,idx)=>{
@@ -262,18 +268,18 @@ function renderSplitPanel(){
         const rowCls=filaInvalida?'split-extra-row split-extra-row-invalid':'split-extra-row';
         h+=`<div class="${rowCls}">
             <select data-action="split-set-banco" data-idx="${idx}" aria-invalid="${filaInvalida?'true':'false'}">${selOpts}</select>
-            <input type="text" inputmode="decimal" data-action="split-set-monto" data-idx="${idx}" value="${ex.monto?fmtMonto(ex.monto):''}" placeholder="${sy}0" />
+            <input type="text" inputmode="decimal" data-action="split-set-monto" data-idx="${idx}" value="${ex.monto?_splitMonto(ex.monto):''}" placeholder="${sy}0" />
             <button type="button" class="split-remove" data-action="split-remove" data-idx="${idx}" aria-label="Quitar">✕</button>
         </div>`;
         if(filaInvalida){
             h+=`<div class="split-row-hint-err">⚠ Falta seleccionar un banco para esta fila</div>`;
         }else if(ex.banco&&disp<(ex.monto||0)-SPLIT_EPSILON){
-            h+=`<div style="font-size:0.68em;color:#b91c1c;margin:-2px 4px 6px">⚠ ${escHtml(ex.banco)} solo tiene ${sy}${fmtMonto(disp)}</div>`;
+            h+=`<div style="font-size:0.68em;color:#b91c1c;margin:-2px 4px 6px">⚠ ${escHtml(ex.banco)} solo tiene ${sy}${_splitMonto(disp)}</div>`;
         }
     });
     /* Botón agregar cuenta — solo si hay faltante real (>= EPSILON) */
     if(faltante>=SPLIT_EPSILON&&disponibles.length>0){
-        h+=`<button type="button" class="split-add-btn" data-action="split-add">＋ Agregar cuenta para cubrir ${sy}${fmtMonto(faltante)}</button>`;
+        h+=`<button type="button" class="split-add-btn" data-action="split-add">＋ Agregar cuenta para cubrir ${sy}${_splitMonto(faltante)}</button>`;
     }
     /* v4.7.59 — antes de pintar status verde, verificar que no haya filas con
        banco vacío. Si las hay, el split NO está realmente cubierto aunque la
@@ -281,13 +287,13 @@ function renderSplitPanel(){
     const hayBancoVacio=AppState.ui.splitExtras.some(ex=>!ex.banco);
     /* Status — usa estado normalizado, sin re-comparar con 0 */
     if(cubierto&&!hayBancoVacio){
-        h+=`<div class="split-status ok">✓ Total cubierto · ${sy}${fmtMonto(totalAportado)}</div>`;
+        h+=`<div class="split-status ok">✓ Total cubierto · ${sy}${_splitMonto(totalAportado)}</div>`;
     }else if(exceso){
-        h+=`<div class="split-status error">Exceso de ${sy}${fmtMonto(Math.abs(faltante))} · ajustá los aportes</div>`;
+        h+=`<div class="split-status error">Exceso de ${sy}${_splitMonto(Math.abs(faltante))} · ajustá los aportes</div>`;
     }else if(hayBancoVacio){
         h+=`<div class="split-status error">Seleccioná un banco en cada fila de pago</div>`;
     }else{
-        h+=`<div class="split-status error">Falta ${sy}${fmtMonto(faltante)} · aportado ${sy}${fmtMonto(totalAportado)} de ${sy}${fmtMonto(totalNecesario)}</div>`;
+        h+=`<div class="split-status error">Falta ${sy}${_splitMonto(faltante)} · aportado ${sy}${_splitMonto(totalAportado)} de ${sy}${_splitMonto(totalNecesario)}</div>`;
     }
     panel.innerHTML=h;panel.style.display='block';
     /* v4.7.59 — refrescar estado del botón principal en cada render */
@@ -381,16 +387,16 @@ function _updateSplitStatus(){
     const hayBancoVacio=(AppState.ui.splitExtras||[]).some(ex=>!ex.banco);
     if(cubierto&&!hayBancoVacio){
         statusEl.className='split-status ok';
-        statusEl.textContent=`✓ Total cubierto · ${sy}${fmtMonto(totalAportado)}`;
+        statusEl.textContent=`✓ Total cubierto · ${sy}${_splitMonto(totalAportado)}`;
     }else if(exceso){
         statusEl.className='split-status error';
-        statusEl.textContent=`Exceso de ${sy}${fmtMonto(Math.abs(faltante))} · ajustá los aportes`;
+        statusEl.textContent=`Exceso de ${sy}${_splitMonto(Math.abs(faltante))} · ajustá los aportes`;
     }else if(hayBancoVacio){
         statusEl.className='split-status error';
         statusEl.textContent='Seleccioná un banco en cada fila de pago';
     }else{
         statusEl.className='split-status error';
-        statusEl.textContent=`Falta ${sy}${fmtMonto(faltante)} · aportado ${sy}${fmtMonto(totalAportado)} de ${sy}${fmtMonto(totalNecesario)}`;
+        statusEl.textContent=`Falta ${sy}${_splitMonto(faltante)} · aportado ${sy}${_splitMonto(totalAportado)} de ${sy}${_splitMonto(totalNecesario)}`;
     }
     /* v4.7.59 — refrescar estado del botón principal en cada cambio del split */
     if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();
@@ -398,7 +404,7 @@ function _updateSplitStatus(){
     const addBtn=panel.querySelector('[data-action="split-add"]');
     if(addBtn){
         if(faltante>=SPLIT_EPSILON){
-            addBtn.textContent=`＋ Agregar cuenta para cubrir ${sy}${fmtMonto(faltante)}`;
+            addBtn.textContent=`＋ Agregar cuenta para cubrir ${sy}${_splitMonto(faltante)}`;
             addBtn.style.display='';
         }else{
             addBtn.style.display='none';
@@ -421,15 +427,15 @@ function validarAportes(){
     /* Usar el faltante normalizado del estado — misma fuente de verdad que la UI */
     if(!state.cubierto){
         if(state.exceso){
-            return{ok:false,msg:`Los aportes exceden el total por ${sy}${fmtMonto(Math.abs(state.faltante))}. Ajustá los montos.`};
+            return{ok:false,msg:`Los aportes exceden el total por ${sy}${_splitMonto(Math.abs(state.faltante))}. Ajustá los montos.`};
         }
-        return{ok:false,msg:`Faltan ${sy}${fmtMonto(state.faltante)} para cubrir el total. Agregá una cuenta o ajustá los montos.`};
+        return{ok:false,msg:`Faltan ${sy}${_splitMonto(state.faltante)} para cubrir el total. Agregá una cuenta o ajustá los montos.`};
     }
     /* Validar saldos individuales con tolerancia consistente */
     for(const a of aportes){
         const bk=AppState.datos.bancos[a.banco];
         if(!bk)return{ok:false,msg:`El banco ${a.banco} no existe`};
-        if(bk.saldo<a.monto-SPLIT_EPSILON)return{ok:false,msg:`${a.banco} solo tiene ${sy}${fmtMonto(bk.saldo)}`};
+        if(bk.saldo<a.monto-SPLIT_EPSILON)return{ok:false,msg:`${a.banco} solo tiene ${sy}${_splitMonto(bk.saldo)}`};
     }
     return{ok:true,aportes};
 }
@@ -501,8 +507,8 @@ async function agregarOperacion(){
         actualizarColorBancoSelect();
         actualizarVista();actualizarColorSelect();activarCooldown();
         guardaOptimista('create','operaciones',opId);
-        const sy2=mon==='USD'?'US$':'$';
-        const subMsg=isSplit?`Pago dividido entre ${aportes.length} cuentas`:'Tasa: '+sy2+fmtNum(ta,mon==='USD'?3:2)+' · '+b;
+        const sy2=getSym(mon);
+        const subMsg=isSplit?`Pago dividido entre ${aportes.length} cuentas`:'Tasa: '+fmtTasaMon(ta,mon)+' · '+b;
         showSuccess({amount:sy2+fmtNum(m),message:(t==='compra'?'Comprados ':'Vendidos ')+fmtTrunc(u,2)+' USDT con éxito',sub:subMsg});
     }catch(e){console.error('[P2P] Error guardando operación:',e)}finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect();/* v4.7.59: re-evaluar split por si el usuario agregó fila inválida durante el guardado */ if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();}
 }
@@ -560,7 +566,7 @@ function abrirEditarOperacion(id){
         return;
     }
     AppState.ui.opEditandoId=id;
-    const sy=op.moneda==='USD'?'US$':'$',td=op.moneda==='USD'?3:2;
+    const sy=getSym(op.moneda),td=op.moneda==='USD'?3:2;
     const badge=op.tipo==='compra'?'📥 Compra':'📤 Venta';
     setText('editarOpHeader','✏️ Editar '+badge);
     setText('editOpMontoLabel',op.tipo==='compra'?`Monto pagado (${op.moneda||'UYU'})`:`Monto recibido (${op.moneda||'UYU'})`);

@@ -16,9 +16,11 @@
 
    Detecta, entre otras cosas: identificadores usados sin declarar (la clase de
    error que aparece al BORRAR código y que no es error de sintaxis, así que no
-   lo ve `node --check`), código inalcanzable, claves repetidas en un objeto,
-   asignaciones de una variable a sí misma, comparaciones que siempre dan lo
-   mismo, y typeof mal escritos.
+   lo ve `node --check`), DOS FUNCIONES CON EL MISMO NOMBRE en archivos distintos
+   (como todos comparten el ámbito global, la última en cargarse tapa a la otra
+   sin aviso), código inalcanzable, claves repetidas en un objeto, asignaciones
+   de una variable a sí misma, comparaciones que siempre dan lo mismo, y typeof
+   mal escritos.
    ════════════════════════════════════════════════════════════════════════════ */
 import {readFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
@@ -68,6 +70,8 @@ const config = {
     },
     rules: {
         'no-undef': 'error',                       /* lo que se usa sin declarar */
+        'no-redeclare': 'error',                   /* dos funciones con el mismo nombre */
+        'no-import-assign': 'error',
         'no-self-assign': 'error',                 /* x = x, que no hace nada */
         'no-unreachable': 'error',                 /* código después de un return */
         'no-dupe-keys': 'error', 'no-dupe-args': 'error', 'no-duplicate-case': 'error',

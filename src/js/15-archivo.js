@@ -631,15 +631,10 @@ function _archivoEnsureModal(){
     return m;
 }
 
-/* Formato idéntico al de la lista principal de operaciones (§11): mismo símbolo
-   por moneda, mismos decimales y mismos colores. Antes el archivo mostraba los
-   montos sin decimales y la tasa siempre con dos, así que una misma operación
-   se veía con cifras distintas según dónde la miraras. */
-function _archSym(o){return (o&&o.moneda==='USD')?'US$':'$'}
-function _archMonto(o){return _archSym(o)+fmtNum(o.monto||0)}
-function _archTasa(o){return _archSym(o)+fmtNum(o.tasa||0,(o&&o.moneda==='USD')?3:2)}
-function _archGan(g){g=g||0;return (g>=0?'+$':'-$')+fmtNum(Math.abs(g))}
-function _archGanColor(g){return (g||0)>=0?'#16a34a':'#dc2626'}
+/* v5.3.1 — Usa las funciones centrales de formato (§04), las mismas que la
+   lista principal: así el archivo no puede volver a mostrar cifras distintas. */
+function _archMonto(o){return fmtMonto(o.monto||0,o&&o.moneda)}
+function _archTasa(o){return fmtTasaMon(o.tasa||0,o&&o.moneda)}
 
 function verArchivo(){
     const m=_archivoEnsureModal();
@@ -661,7 +656,7 @@ function verArchivo(){
             return '<button data-action="archivo-mes" data-mes="'+escHtml(k)+'" class="archivo-mes-row">'+
                 '<div class="archivo-mes-top">'+
                     '<span class="archivo-mes-nombre">'+escHtml(nombre)+' '+escHtml(a)+'</span>'+
-                    '<span class="archivo-mes-gan" style="color:'+_archGanColor(s.ganancia)+'">'+_archGan(s.ganancia)+'</span>'+
+                    '<span class="archivo-mes-gan" style="color:'+colorGan(s.ganancia)+'">'+fmtGan(s.ganancia)+'</span>'+
                 '</div>'+
                 '<div class="archivo-mes-bot">'+
                     '<span>'+(s.ops||0)+' ops · '+(s.movs||0)+' aj.'+((s.transfs||0)?' · '+s.transfs+' transf.':'')+'</span>'+
@@ -671,7 +666,7 @@ function verArchivo(){
         body.innerHTML=
             '<div class="archivo-total">'+
                 '<div class="archivo-total-row"><span>'+meses.length+' meses archivados</span>'+
-                '<b style="color:'+_archGanColor(tGan)+'">'+_archGan(tGan)+'</b></div>'+
+                '<b style="color:'+colorGan(tGan)+'">'+fmtGan(tGan)+'</b></div>'+
                 '<div class="archivo-total-sub">'+tOps+' operaciones · '+tMovs+' ajustes · compras $'+fmtNum(tC,0)+' · ventas $'+fmtNum(tV,0)+'</div>'+
             '</div>'+
             '<div class="archivo-lista">'+meses.map(filaMes).join('')+'</div>'+
@@ -722,7 +717,7 @@ async function _archivoVerMes(mes){
                         (o.banco?' · <span class="archivo-op-banco">'+escHtml(o.banco)+'</span>':'')+'</div>'+
                 '</div>'+
                 '<div class="archivo-op-r">'+
-                    '<div class="archivo-op-gan" style="color:'+_archGanColor(o.ganancia)+'">'+_archGan(o.ganancia)+'</div>'+
+                    '<div class="archivo-op-gan" style="color:'+colorGan(o.ganancia)+'">'+fmtGan(o.ganancia)+'</div>'+
                     '<div class="archivo-op-fecha">'+escHtml(String(o.fecha||'').slice(8)+'/'+String(o.fecha||'').slice(5,7))+(o.hora?' · '+escHtml(o.hora):'')+'</div>'+
                 '</div></div>';
         }).join('');
@@ -736,7 +731,7 @@ async function _archivoVerMes(mes){
             '<div class="archivo-stats">'+
                 '<div><span>Compras</span><b>'+nC+'</b><i>$'+fmtNum(rC,0)+'</i></div>'+
                 '<div><span>Ventas</span><b>'+nV+'</b><i>$'+fmtNum(rV,0)+'</i></div>'+
-                '<div><span>Ganancia</span><b style="color:'+_archGanColor(rG)+'">'+_archGan(rG)+'</b><i>'+ops.length+' ops</i></div>'+
+                '<div><span>Ganancia</span><b style="color:'+colorGan(rG)+'">'+fmtGan(rG)+'</b><i>'+ops.length+' ops</i></div>'+
             '</div>'+
             (cuadra?'':'<div class="archivo-error">⚠ Los totales guardados al archivar no coinciden con el detalle '+
                 '(guardado: ganancia $'+fmtNum(s.ganancia||0,2)+' · '+(s.ops||0)+' ops). '+

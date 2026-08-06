@@ -30,10 +30,14 @@ function truncUsdt(n){return truncar(n,2)}
 /* Binance-matching: compra=round, venta=truncar para la base USDT (monto/tasa) */
 function usdtBase(n,tipo){return tipo==='compra'?roundMoney(n,2):truncar(n,2)}
 function usdtNeto(base,com,tipo){return tipo==='compra'?roundMoney(base-com,2):truncar(base+com,2)}
-function fmtNum(n,d=2){if(!isFinite(n))n=0;return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
+/* v5.3.1 — Se convierte a número ANTES de validar. isFinite(null) devuelve
+   verdadero en JavaScript (porque null equivale a 0), así que un null se colaba
+   por el guardián y hacía fallar el formateo con una excepción; una cadena vacía
+   devolvía vacío en vez de cero. Ahora cualquier valor raro se muestra como 0. */
+function fmtNum(n,d=2){n=Number(n);if(!isFinite(n))n=0;return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
 /* Formatear con truncado (conservador) — para mostrar USDT de inventario/lotes */
-function fmtTrunc(n,d=2){if(!isFinite(n))n=0;const t=truncar(n,d);return t.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
-function fmtTasa(n,mon){if(!isFinite(n))return'0';if(mon==='USD'){const s=n.toString(),dec=s.includes('.')?s.split('.')[1].length:0;const d=dec>2?3:2;return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}return n.toLocaleString('es-UY',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtTrunc(n,d=2){n=Number(n);if(!isFinite(n))n=0;const t=truncar(n,d);return t.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function fmtTasa(n,mon){n=Number(n);if(!isFinite(n))return'0';if(mon==='USD'){const s=n.toString(),dec=s.includes('.')?s.split('.')[1].length:0;const d=dec>2?3:2;return n.toLocaleString('es-UY',{minimumFractionDigits:d,maximumFractionDigits:d})}return n.toLocaleString('es-UY',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function parsearTasa(v){if(!v)return null;const l=v.toString().replace(',','.').trim();if(!/^\d+(\.\d{1,3})?$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<=0?null:n}
 function parsearComisionPct(v){if(!v&&v!==0)return null;const l=v.toString().replace(',','.').trim();if(!l||l==='.')return null;if(!/^\d*\.?\d*$/.test(l))return null;const n=parseFloat(l);return isNaN(n)||n<0||n>10?null:n}
 /* Leer valor numérico de cualquier input (formato es-UY).
@@ -471,3 +475,31 @@ const _ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
 function escHtml(s){return String(s??'').replace(/[&<>"']/g,c=>_ESC_MAP[c])}
 function colorBanco(n){return`<span style="color:${getBancoColor(n)};font-weight:600">${n}</span>`}
 function getSym(mon){return mon==='USD'?'US$':'$'}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FORMATO DE IMPORTES — punto único de verdad (v5.3.1)
+   ═══════════════════════════════════════════════════════════════════════════
+   Antes cada pantalla resolvía por su cuenta el símbolo de la moneda (8 lugares
+   distintos), cuántos decimales lleva una tasa (5 lugares) y cómo se escribe una
+   ganancia (7 lugares). Con el tiempo esas copias se separaron: el historial
+   archivado terminó mostrando importes sin decimales mientras la lista principal
+   los mostraba con dos, y la misma operación se veía distinta según dónde se
+   mirara. Estas funciones son ahora el único lugar donde se decide, así que no
+   pueden volver a divergir.
+
+   Producen exactamente el mismo texto que producían los cálculos que reemplazan:
+   son una unificación, no un cambio de aspecto.                              */
+
+/* Importe con su símbolo: $1.500,00 · US$800,00 */
+function fmtMonto(n,moneda){return getSym(moneda)+fmtNum(n)}
+
+/* Tasa PARA MOSTRAR: dos decimales en pesos, tres en dólares.
+   Distinta a fmtTasa(), que es para los campos EDITABLES: ahí los decimales se
+   adaptan al valor para no escribir "40,500" cuando el usuario tipeó 40,5.     */
+function fmtTasaMon(n,moneda){return getSym(moneda)+fmtNum(n,moneda==='USD'?3:2)}
+
+/* Ganancia con signo explícito: +$98,92 · -$45,30 (siempre en pesos) */
+function fmtGan(g){g=g||0;return(g>=0?'+$':'-$')+fmtNum(Math.abs(g))}
+
+/* Color de ganancia: verde si suma, rojo si resta */
+function colorGan(g){return(g||0)>=0?'#16a34a':'#dc2626'}
