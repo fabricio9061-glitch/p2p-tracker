@@ -878,8 +878,17 @@ async function verificarIntegridad(opts){
             if(typeof _replayEnSandbox==='function'&&typeof _cloneJson==='function'){
                 const sb=_cloneJson({...AppState.datos,operaciones:ops,movimientos:movs,transferencias:[],conversiones:[],lotes:[],_archivoSeeds:null,_archivoCarryover:null});
                 const corte=_replayEnSandbox(sb);
-                const esperado=corte.lotes.filter(l=>l.disponible>0.005);
-                const sum=a=>a.reduce((s,l)=>Math.round((s+(l.cantidad||0))*100)/100,0);
+                /* v5.3.2 — Se construye el arrastre esperado con la MISMA función que
+                   usa el archivado, en vez de sumar los lotes crudos del replay. Antes
+                   se sumaba `cantidad` de esos lotes, que es el tamaño original de cada
+                   compra y no lo que quedaba sin vender al corte: daba un número mucho
+                   mayor y reportaba un descuadre inexistente. */
+                const esperado=(typeof _archivoCarryDesdeLotes==='function')
+                    ? _archivoCarryDesdeLotes(corte.lotes)
+                    : corte.lotes.filter(l=>l&&l.disponible>0.005).map(l=>({...l,cantidad:l.disponible}));
+                const sum=(typeof _archivoCarrySuma==='function')
+                    ? _archivoCarrySuma
+                    : a=>a.reduce((s,l)=>Math.round((s+(l.cantidad||0))*100)/100,0);
                 arrastre={enApp:{lotes:carry.length,suma:sum(carry)},segunArchivo:{lotes:esperado.length,suma:sum(esperado)}};
                 if(Math.abs(sum(carry)-sum(esperado))>0.02)
                     problemas.push('Los lotes de arrastre no coinciden con el archivo histórico ('+sum(carry).toFixed(2)+' vs '+sum(esperado).toFixed(2)+'). Corregilo con repararCarryover().');

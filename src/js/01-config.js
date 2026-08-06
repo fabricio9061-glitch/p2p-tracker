@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.3.1',
+    APP_VERSION: '5.3.2',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.3.2', date:'2026-07-30', headline:'✅ La verificación de integridad ya no avisa de un descuadre inexistente.', changes:[
+        {type:'fix', title:'Falsa alarma sobre los lotes de arrastre', desc:'La verificación comparaba dos cosas distintas creyendo que eran la misma. Al reconstruir los lotes que quedaban abiertos al momento de archivar, sumaba el tamaño ORIGINAL de cada compra en vez de lo que quedaba sin vender, así que informaba un descuadre enorme aunque los datos estuvieran perfectos. Ahora usa la misma función que el archivado para armar esos lotes, así que ambos hablan del mismo número por construcción.'},
+        {type:'improve', title:'Una sola función arma los lotes de arrastre', desc:'Esa misma lógica estaba escrita tres veces: en el archivado, en la reparación y en la verificación. Es la tercera vez que una copia se separa de las otras y produce un problema, así que ahora existe en un único lugar y los tres la usan.'}
+    ]},
     {version:'5.3.1', date:'2026-07-30', headline:'🎯 Un solo lugar decide cómo se escribe cada importe.', changes:[
         {type:'improve', title:'Formato unificado en toda la app', desc:'Cada pantalla resolvía por su cuenta el símbolo de la moneda, cuántos decimales lleva una tasa y cómo se escribe una ganancia: había ocho copias de la primera decisión, cinco de la segunda y siete de la tercera. Con el tiempo se separaron, y de ahí salió el problema del historial archivado, que mostraba los importes sin decimales mientras la lista los mostraba con dos. Ahora esas decisiones viven en un único lugar y todas las pantallas lo usan, así que no pueden volver a divergir. Se verificó con ciento trece combinaciones de valor y moneda que el texto en pantalla queda idéntico al anterior: es una unificación, no un cambio de aspecto.'},
         {type:'fix', title:'Dos funciones distintas se llamaban igual', desc:'El panel de pago dividido tenía una función con el mismo nombre que la nueva función central. Como todos los archivos comparten el mismo espacio de nombres y ese carga después, la suya tapaba a la otra sin ningún aviso: los importes habrían quedado sin el símbolo de la moneda. Se renombró la del panel, que era de uso exclusivo suyo, y se agregó esta comprobación al revisor automático de código para que no pueda repetirse.'},
@@ -391,10 +395,6 @@ const CHANGELOG = [
     {version:'5.2.6', date:'2026-07-27', headline:'🧪 Revisión automática del código y un fallo más corregido.', changes:[
         {type:'fix', title:'La recarga de emergencia no recargaba', desc:'La recuperación de emergencia de la base local cierra el motor de Firestore, borra su almacenamiento y recarga la app. Si la recarga normal fallaba, el respaldo era asignarle a la dirección de la página su propio valor, cosa que los navegadores actuales ignoran: no recarga nada. Como para entonces el motor ya está cerrado y su almacenamiento borrado, la app quedaba inservible hasta cerrarla a mano. Ahora usa un método que sí recarga y, si tampoco pudiera, lo deja anotado en la consola en vez de fallar en silencio.'},
         {type:'new', title:'Revisión de código con un solo comando', desc:'Se agregó revisar-codigo.mjs, que arma el mismo conjunto de archivos que carga el navegador —leyendo el orden desde el propio index.html, así nunca queda desfasado—, lo analiza con un verificador que entiende JavaScript de verdad, y traduce cada hallazgo a su archivo y línea reales. Detecta la clase de fallo que aparece al BORRAR código y que no es error de sintaxis, por lo que ninguna revisión rápida lo ve: nombres usados que ya no existen, código inalcanzable, claves repetidas, asignaciones sin efecto y comparaciones que siempre dan lo mismo. Conviene correrlo antes de cada publicación.'}
-    ]},
-    {version:'5.2.5', date:'2026-07-27', headline:'🔍 Auditoría completa del código: un error real corregido.', changes:[
-        {type:'fix', title:'Si el archivado fallaba, quedaba bloqueado en silencio', desc:'Al retirar el modo seguro en la limpieza de 5.2.0 quedaron dos usos de una variable que ya no existía, justo dentro de los manejadores de error del archivado. No es un error de sintaxis, así que no lo detectaba ninguna revisión automática: fallaba recién al ejecutarse. El efecto era que, si el archivado se interrumpía, la línea siguiente (la que libera el candado) nunca corría y tampoco aparecía el mensaje de error: el archivado quedaba trabado hasta recargar la app, sin explicación.'},
-        {type:'improve', title:'Restos del modelo anterior retirados', desc:'Se eliminaron una rama que llamaba a una función ya inexistente, una condición que nunca podía cumplirse y una función sin usos, todas sobrantes del retiro del modelo de documento único. La revisión cubrió los dieciséis archivos y el HTML: sintaxis por archivo y del conjunto, declaraciones globales duplicadas, funciones llamadas sin definir, identificadores sin declarar, los doscientos cuarenta y nueve identificadores de elementos que el código consulta, las acciones de botones sin manejador, los estilos referenciados y el sello de versión de cada recurso. Todo lo demás dio limpio.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

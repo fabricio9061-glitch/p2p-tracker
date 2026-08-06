@@ -117,6 +117,30 @@ function _replayEnSandbox(sandboxDatos){
 }
 function _cloneJson(x){return JSON.parse(JSON.stringify(x))}
 
+/* ─── Lotes de arrastre a partir de un replay ──────────────────────────────
+   Toma los lotes que quedaron ABIERTOS al corte y los convierte en la
+   declaración que se guarda. El punto fino, que ya causó un falso positivo:
+   `cantidad` se toma de `disponible`, NO de `cantidad`. En un lote normal,
+   `cantidad` es lo que se compró originalmente y `disponible` lo que queda sin
+   vender; para el arrastre solo interesa lo que queda, y al re-sembrarlo el
+   replay hace disponible=cantidad. Sumar el campo equivocado da un número mucho
+   mayor (el tamaño original de las compras) y parece un descuadre enorme.
+
+   Esta función es el ÚNICO lugar donde se construye el arrastre: la usan el
+   archivado, la reparación y la verificación de integridad. */
+function _archivoCarryDesdeLotes(lotes){
+    return (lotes||[]).filter(l=>l&&l.disponible>ARCHIVO_EPSILON).map(l=>({
+        id:l.id,fecha:l.fecha,hora:l.hora||'00:00',
+        precioCompra:l.precioCompra,
+        cantidad:l.disponible,
+        disponible:l.disponible,
+        moneda:l.moneda||'UYU',
+        manual:true,carryover:true
+    }));
+}
+/* Suma de un conjunto de lotes de arrastre, para comparaciones */
+function _archivoCarrySuma(arr){return (arr||[]).reduce((s,l)=>roundMoney(s+(l.cantidad||0)),0)}
+
 /* ─── PLAN DE ARCHIVADO (función pura sobre `datos`) ───────────────────────
    No toca AppState ni Firestore. Devuelve todo lo necesario para ejecutar,
    o {ok:false,motivo|diffs} si no hay nada que archivar o la equivalencia
@@ -157,14 +181,7 @@ function _calcularPlanArchivo(datos,mesesAMantener){
            → el replay del tramo viejo arranca desde ellos: encadenable. */
     });
     const corte=_replayEnSandbox(sandboxViejo);
-    const carryover=corte.lotes.filter(l=>l.disponible>ARCHIVO_EPSILON).map(l=>({
-        id:l.id,fecha:l.fecha,hora:l.hora||'00:00',
-        precioCompra:l.precioCompra,
-        cantidad:l.disponible,          /* el replay 'lm' resetea disponible=cantidad */
-        disponible:l.disponible,
-        moneda:l.moneda||'UYU',
-        manual:true,carryover:true
-    }));
+    const carryover=_archivoCarryDesdeLotes(corte.lotes);
     const seedsNuevos={
         utcL:corte.utcL||0,utcUL:corte.utcUL||0,
         utvL:corte.utvL||0,utvU:corte.utvU||0,
@@ -536,11 +553,7 @@ async function repararCarryover(){
             transferencias:[],conversiones:[],lotes:manualesViejos.map(l=>({...l})),
             _archivoSeeds:null,_archivoCarryover:null});
         const corteCalc=_replayEnSandbox(sandbox);
-        const carryCorrecto=corteCalc.lotes.filter(l=>l.disponible>ARCHIVO_EPSILON).map(l=>({
-            id:l.id,fecha:l.fecha,hora:l.hora||'00:00',precioCompra:l.precioCompra,
-            cantidad:l.disponible,disponible:l.disponible,moneda:l.moneda||'UYU',
-            manual:true,carryover:true
-        }));
+        const carryCorrecto=_archivoCarryDesdeLotes(corteCalc.lotes);
         /* 3 ── Estado corregido, sin aplicar todavía */
         const saldoAntes=AppState.datos.saldoUsdt;
         const propuesta=_cloneJson({...AppState.datos,
@@ -548,7 +561,7 @@ async function repararCarryover(){
             lotes:manualesGenuinos.filter(l=>!manualesViejos.includes(l)).map(l=>({...l}))});
         const post=_replayEnSandbox(propuesta);
         const saldoDespues=post.saldoUsdt;
-        const sumar=arr=>arr.reduce((a,l)=>roundMoney(a+(l.cantidad||0)),0);
+        const sumar=_archivoCarrySuma;
         if(ui.hide)ui.hide();
         const detalle=
             'Saldo USDT actual (inflado): '+fmtNum(saldoAntes,2)+'\n'+
@@ -579,6 +592,8 @@ async function repararCarryover(){
     }
 }
 window.repararCarryover=repararCarryover;
+window._archivoCarryDesdeLotes=_archivoCarryDesdeLotes;
+window._archivoCarrySuma=_archivoCarrySuma;
 
 /* ─── Reset de conexión: limpia la cola interna persistida del SDK ─────────
    Seguro para los datos del usuario: las operaciones pendientes de la app NO
