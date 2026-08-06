@@ -345,3 +345,62 @@
         .merge-confirm-warning{margin-top:6px;font-size:0.7em;color:#92400e;display:flex;align-items:center;gap:5px}
 
         /* ════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
+   ARCHIVO HISTÓRICO — visor de meses archivados (v5.3.0)
+   Antes el visor traía sus estilos incrustados en el JavaScript, así
+   que no seguía los colores del tema ni el espaciado del resto de la
+   app. Acá quedan junto a las demás vistas.
+   ═══════════════════════════════════════════════════════════════════ */
+.archivo-total{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.archivo-total-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.archivo-total-row span{color:#475569;font-size:.9em}
+.archivo-total-row b{font-size:1.15em;font-variant-numeric:tabular-nums}
+.archivo-total-sub{color:#94a3b8;font-size:.8em;margin-top:4px}
+
+.archivo-lista{display:flex;flex-direction:column;gap:8px}
+.archivo-mes-row{display:block;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:12px;
+    background:#fff;padding:12px 14px;cursor:pointer;font:inherit;transition:background .12s,border-color .12s}
+.archivo-mes-row:active{background:#f1f5f9;border-color:#cbd5e1}
+.archivo-mes-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.archivo-mes-nombre{font-weight:700;color:#1e293b;text-transform:capitalize}
+.archivo-mes-gan{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.archivo-mes-bot{display:flex;justify-content:space-between;gap:10px;margin-top:5px;color:#64748b;font-size:.8em}
+.archivo-mes-bot span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+
+.archivo-detalle-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.archivo-btn{border:1px solid #e2e8f0;background:#f8fafc;color:#334155;border-radius:9px;
+    padding:7px 12px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.archivo-btn:active{background:#e2e8f0}
+.archivo-btn.verde{background:#16a34a;border-color:#16a34a;color:#fff}
+
+.archivo-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.archivo-stats>div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px 10px;text-align:center}
+.archivo-stats span{display:block;color:#94a3b8;font-size:.72em;text-transform:uppercase;letter-spacing:.03em}
+.archivo-stats b{display:block;font-size:1.02em;margin-top:2px;font-variant-numeric:tabular-nums}
+.archivo-stats i{display:block;color:#64748b;font-size:.75em;font-style:normal;margin-top:1px;font-variant-numeric:tabular-nums}
+
+.archivo-ops{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow-y:auto;
+    border:1px solid #e2e8f0;border-radius:12px;padding:8px;background:#fff}
+.archivo-op{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:9px 11px;border-radius:9px;background:#f8fafc;border-left:3px solid #cbd5e1}
+.archivo-op.compra{border-left-color:#16a34a}
+.archivo-op.venta{border-left-color:#dc2626}
+.archivo-op-l{min-width:0;flex:1}
+.archivo-op-monto{font-weight:700;color:#1e293b;font-variant-numeric:tabular-nums}
+.archivo-op-meta{color:#64748b;font-size:.76em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.archivo-op-banco{color:#0284c7}
+.archivo-op-r{text-align:right;white-space:nowrap}
+.archivo-op-gan{font-weight:700;font-variant-numeric:tabular-nums}
+.archivo-op-fecha{color:#94a3b8;font-size:.74em;margin-top:2px;font-variant-numeric:tabular-nums}
+
+.archivo-nota{color:#94a3b8;font-size:.78em;margin-top:10px;line-height:1.45}
+.archivo-error{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;
+    border-radius:10px;padding:10px 12px;font-size:.84em;margin-bottom:10px;line-height:1.45}
+
+@media (max-width:480px){
+    .archivo-stats{grid-template-columns:1fr 1fr}
+    .archivo-stats>div:last-child{grid-column:1/-1}
+    .archivo-ops{max-height:none}
+    .archivo-mes-bot{flex-direction:column;gap:2px}
+    .archivo-mes-bot span:last-child{text-align:left}
+}

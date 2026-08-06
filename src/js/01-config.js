@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.2.7',
+    APP_VERSION: '5.3.0',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,12 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.3.0', date:'2026-07-30', headline:'📦 Historial archivado rehecho: mismos montos, mismo estilo.', changes:[
+        {type:'fix', title:'Los montos del archivo no coincidían con los de la lista', desc:'El visor del historial mostraba los importes sin decimales y la tasa siempre con dos, así que una misma operación se veía con cifras distintas según dónde la miraras: en la lista $1.500,00 a $42,55 y en el archivo 1.500 a 42,55. Ahora usa exactamente el mismo formato que la lista principal — dos decimales, tres para las tasas en dólares, el símbolo correcto según la moneda y los mismos colores para ganancia y pérdida.'},
+        {type:'fix', title:'La ventana quedaba tapada por la barra del teléfono', desc:'El visor se dibujaba con estilos propios en vez de usar el sistema de ventanas de la app, así que ignoraba el área reservada de la pantalla y el título quedaba debajo del reloj y la señal. Ahora usa el mismo sistema que el resto: pantalla completa en el teléfono, flecha para volver y encabezado siempre visible al desplazar.'},
+        {type:'new', title:'Totales verificados en pantalla', desc:'Al abrir un mes, los totales se recalculan sumando el detalle que se está mostrando y se comparan con lo que se guardó al archivar. Si algo no cuadra, aparece un aviso con ambas cifras en vez de mostrar un número sin explicación. La lista de meses ahora encabeza con el total de todo lo archivado, y cada mes muestra su nombre, cuántas operaciones y ajustes tiene, y los montos de compras y ventas alineados en columna.'},
+        {type:'improve', title:'Operaciones alineadas', desc:'El detalle dejó de ser una tabla apretada: cada operación se ve como en la lista principal, con el monto y sus datos a la izquierda, la ganancia y la fecha a la derecha, y una franja de color según sea compra o venta. Los números se alinean por columnas para poder compararlos de un vistazo, y el mes más reciente aparece primero.'}
+    ]},
     {version:'5.2.7', date:'2026-07-27', headline:'👥 La app vuelve a funcionar para todas las cuentas.', changes:[
         {type:'fix', title:'Otras personas quedaban bloqueadas en "Formato anterior"', desc:'El cambio de formato de guardado se aplicó a mano en una sola cuenta. Desde la versión 5.2.0 la app se niega a leer documentos en el formato anterior —una protección correcta para no mezclar formatos— pero eso dejó fuera a cualquier otra persona: su cuenta nunca fue actualizada, así que quedaba con el aviso "Formato anterior" y sin poder usar nada. Ahora, cuando el servidor confirma un documento sin actualizar, la app lo actualiza sola. El proceso es el mismo de siempre y conserva todas sus verificaciones: respaldo, escritura por lotes, relectura desde el servidor y comprobación de que los números coinciden antes de aplicar el cambio. Si algo falla, el documento queda intacto y se reintenta al volver a abrir.'},
         {type:'fix', title:'Las cuentas sin datos no podían actualizarse', desc:'Si una cuenta no tenía ninguna operación, la actualización se interrumpía al no encontrar nada que mover y el documento se quedaba en el formato viejo para siempre. Ahora esas cuentas también quedan actualizadas, que es justamente el caso de quien recién empieza.'},
@@ -387,10 +393,6 @@ const CHANGELOG = [
     ]},
     {version:'5.2.4', date:'2026-07-27', headline:'↕️ Las operaciones vuelven a mostrarse con la más reciente arriba.', changes:[
         {type:'fix', title:'Lo más nuevo aparecía en la última página', desc:'Las listas se dibujan con el orden del array tal cual: no hay ordenamiento por fecha en el renderizado, y la app siempre agregó cada alta al principio, así que la convención de siempre es "lo más nuevo arriba". En 5.2.1, al pasar a reconstruir la lista completa desde el servidor, el ordenamiento quedó ascendente y dio vuelta todo: lo más reciente terminaba al final, y cada operación nueva parecía irse al fondo. Ahora la reconstrucción ordena por fecha y hora con lo más reciente primero, y el ensamblado que usan la restauración de respaldos y la verificación de integridad usa exactamente el mismo criterio. Los cálculos no se ven afectados: el motor FIFO reordena por su cuenta al reproducir el historial.'}
-    ]},
-    {version:'5.2.3', date:'2026-07-27', headline:'🩹 La operación recién cargada ya no desaparece + verificación de integridad.', changes:[
-        {type:'fix', title:'Al cargar una operación desaparecía de la lista', desc:'Desde 5.2.1 la lista se reconstruye completa desde el servidor en cada aviso, lo que resolvió el problema de las copias locales parciales pero trajo otro: una operación recién cargada vive solo en memoria durante los milisegundos que tarda en escribirse, así que cualquier aviso que llegara en esa ventana la borraba de la pantalla. Ahora lo que está pendiente de subir siempre manda sobre lo que dice el servidor, y lo mismo al revés: algo borrado en el teléfono no reaparece por un aviso viejo. Aplica igual a operaciones, ajustes, transferencias y conversiones.'},
-        {type:'new', title:'Verificación de integridad', desc:'Nuevo verificarIntegridad() desde la consola: compara lo que hay en Firestore contra lo que la app muestra y solo LEE, no modifica nada. Revisa el formato y la versión del documento, cuántos eventos hay de cada lado y cuáles faltan o sobran, ids repetidos, campos residuales del formato anterior, si el saldo USDT y las ganancias recalculadas desde el servidor coinciden con lo que ves, y si los lotes de arrastre siguen cuadrando con los documentos del archivo histórico. Lo que está pendiente de subir no se cuenta como diferencia.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

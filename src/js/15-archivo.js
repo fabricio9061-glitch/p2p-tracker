@@ -616,65 +616,138 @@ function mostrarBotonArchivo(){
 function _archivoEnsureModal(){
     let m=$('archivoModal');
     if(m)return m;
+    /* v5.3.0 — Usa el sistema de modales de la app (.modal/.modal-content/
+       .modal-header) en vez de estilos propios. Con eso hereda el respeto por el
+       área segura del teléfono (antes el título quedaba tapado por la barra de
+       estado en iPhone), el comportamiento a pantalla completa en móvil, la
+       flecha de volver y el mismo aspecto que el resto de las ventanas. */
     m=document.createElement('div');
     m.id='archivoModal';
-    m.style.cssText='display:none;position:fixed;inset:0;z-index:9500;background:rgba(15,23,42,.72);backdrop-filter:blur(3px);overflow:auto;padding:20px 12px';
-    m.innerHTML='<div style="max-width:560px;margin:0 auto;background:var(--bg-card,#fff);border-radius:14px;padding:16px 14px;box-shadow:0 20px 60px rgba(0,0,0,.35)">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
-        '<b style="font-size:1.05em">📦 Historial archivado</b>'+
-        '<button data-action="archivo-cerrar" style="border:none;background:#e2e8f0;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer">✕</button></div>'+
-        '<div id="archivoBody" style="font-size:.9em"></div></div>';
+    m.className='modal';
+    m.innerHTML='<div class="modal-content" style="max-width:620px">'+
+        '<div class="modal-header" data-action="archivo-cerrar">📦 Historial archivado</div>'+
+        '<div id="archivoBody"></div></div>';
     document.body.appendChild(m);
     return m;
 }
+
+/* Formato idéntico al de la lista principal de operaciones (§11): mismo símbolo
+   por moneda, mismos decimales y mismos colores. Antes el archivo mostraba los
+   montos sin decimales y la tasa siempre con dos, así que una misma operación
+   se veía con cifras distintas según dónde la miraras. */
+function _archSym(o){return (o&&o.moneda==='USD')?'US$':'$'}
+function _archMonto(o){return _archSym(o)+fmtNum(o.monto||0)}
+function _archTasa(o){return _archSym(o)+fmtNum(o.tasa||0,(o&&o.moneda==='USD')?3:2)}
+function _archGan(g){g=g||0;return (g>=0?'+$':'-$')+fmtNum(Math.abs(g))}
+function _archGanColor(g){return (g||0)>=0?'#16a34a':'#dc2626'}
+
 function verArchivo(){
     const m=_archivoEnsureModal();
     const idx=(AppState.datos&&AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses)||{};
     const meses=Object.keys(idx).sort().reverse();
     const body=$('archivoBody');
-    if(!meses.length){body.innerHTML='<div style="color:#64748b;padding:14px 4px">Todavía no hay meses archivados.</div>'}
-    else{
-        body.innerHTML=meses.map(mes=>{
-            const s=idx[mes]||{};
-            return '<button data-action="archivo-mes" data-mes="'+escHtml(mes)+'" style="display:flex;width:100%;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;padding:11px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;cursor:pointer;text-align:left">'+
-                '<span style="font-weight:700">'+escHtml(mes)+'</span>'+
-                '<span style="color:#475569;font-size:.85em">'+(s.ops||0)+' ops · '+(s.movs||0)+' aj. · gan. $'+fmtNum(s.ganancia||0,0)+'</span></button>';
-        }).join('')+'<div style="color:#94a3b8;font-size:.78em;margin-top:6px">Solo lectura. Tocá un mes para ver el detalle o descargarlo en JSON.</div>';
+    if(!meses.length){
+        body.innerHTML='<div class="empty-state"><div class="empty-state-icon">📦</div><div>Todavía no hay meses archivados.</div></div>';
+    }else{
+        /* Totales de todo lo archivado: permiten cruzar de un vistazo que la suma
+           de los meses coincide con lo que muestra cada uno al abrirlo. */
+        let tOps=0,tMovs=0,tGan=0,tC=0,tV=0;
+        meses.forEach(k=>{const s=idx[k]||{};tOps+=s.ops||0;tMovs+=s.movs||0;
+            tGan=roundMoney(tGan+(s.ganancia||0));tC=roundMoney(tC+(s.montoCompras||0));tV=roundMoney(tV+(s.montoVentas||0))});
+        const filaMes=k=>{
+            const s=idx[k]||{};
+            const [a,mm]=k.split('-');
+            const nombre=['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][parseInt(mm,10)]||k;
+            return '<button data-action="archivo-mes" data-mes="'+escHtml(k)+'" class="archivo-mes-row">'+
+                '<div class="archivo-mes-top">'+
+                    '<span class="archivo-mes-nombre">'+escHtml(nombre)+' '+escHtml(a)+'</span>'+
+                    '<span class="archivo-mes-gan" style="color:'+_archGanColor(s.ganancia)+'">'+_archGan(s.ganancia)+'</span>'+
+                '</div>'+
+                '<div class="archivo-mes-bot">'+
+                    '<span>'+(s.ops||0)+' ops · '+(s.movs||0)+' aj.'+((s.transfs||0)?' · '+s.transfs+' transf.':'')+'</span>'+
+                    '<span>compras $'+fmtNum(s.montoCompras||0,0)+' · ventas $'+fmtNum(s.montoVentas||0,0)+'</span>'+
+                '</div></button>';
+        };
+        body.innerHTML=
+            '<div class="archivo-total">'+
+                '<div class="archivo-total-row"><span>'+meses.length+' meses archivados</span>'+
+                '<b style="color:'+_archGanColor(tGan)+'">'+_archGan(tGan)+'</b></div>'+
+                '<div class="archivo-total-sub">'+tOps+' operaciones · '+tMovs+' ajustes · compras $'+fmtNum(tC,0)+' · ventas $'+fmtNum(tV,0)+'</div>'+
+            '</div>'+
+            '<div class="archivo-lista">'+meses.map(filaMes).join('')+'</div>'+
+            '<div class="archivo-nota">Solo lectura. Tocá un mes para ver el detalle o descargarlo en JSON.</div>';
     }
-    m.style.display='block';document.body.style.overflow='hidden';
+    abrirModal('archivoModal');
 }
+
 async function _archivoVerMes(mes){
     const body=$('archivoBody');
-    body.innerHTML='<div style="padding:14px 4px;color:#64748b">Cargando '+escHtml(mes)+'…</div>';
+    body.innerHTML='<div class="archivo-nota" style="padding:18px 4px">Cargando '+escHtml(mes)+'…</div>';
     try{
         const snap=await AppState.db.collection('users').doc(AppState.currentUser.uid)
             .collection('archivo').doc(mes).get();
-        if(!snap.exists){body.innerHTML='<div style="color:#b91c1c;padding:12px 4px">No se encontró el documento de '+escHtml(mes)+'.</div>';return}
+        if(!snap.exists){body.innerHTML='<div class="archivo-error">No se encontró el documento de '+escHtml(mes)+'.</div>';return}
         const d=snap.data();
         let ops=d._wireFormat?_decompressOpsArrayFromWire(d.operaciones):(d.operaciones||[]);
         if(d.gananciasPorId)ops=_archivoAplicarGanancias(ops,d.gananciasPorId);
         window._archivoMesCache={mes,data:{...d,operaciones:ops}};
         const s=d.stats||{};
-        const filas=ops.slice(0,400).map(o=>
-            '<tr><td style="padding:4px 6px;color:#64748b;white-space:nowrap">'+escHtml(o.fecha||'')+'</td>'+
-            '<td style="padding:4px 6px">'+(o.tipo==='compra'?'🟢 C':'🔴 V')+'</td>'+
-            '<td style="padding:4px 6px;text-align:right">'+fmtNum(o.monto||0,0)+'</td>'+
-            '<td style="padding:4px 6px;text-align:right">'+fmtNum(o.tasa||0,2)+'</td>'+
-            '<td style="padding:4px 6px;text-align:right;color:'+((o.ganancia||0)>=0?'#15803d':'#b91c1c')+'">'+fmtNum(o.ganancia||0,0)+'</td></tr>'
-        ).join('');
+
+        /* ═══ Los montos tienen que cuadrar ═══
+           Se recalculan los totales sumando el detalle que se está mostrando y se
+           comparan contra las cifras guardadas al archivar. Si no coinciden, se
+           avisa en pantalla en vez de mostrar dos números distintos sin explicar. */
+        let rC=0,rV=0,rG=0,nC=0,nV=0;
+        ops.forEach(o=>{
+            if(o.tipo==='compra'){nC++;rC=roundMoney(rC+(o.monto||0))}
+            else{nV++;rV=roundMoney(rV+(o.monto||0))}
+            rG=roundMoney(rG+(o.ganancia||0));
+        });
+        const difG=Math.abs(rG-(s.ganancia||0)),difC=Math.abs(rC-(s.montoCompras||0)),difV=Math.abs(rV-(s.montoVentas||0));
+        const cuadra=difG<=0.02&&difC<=0.02&&difV<=0.02&&(!s.ops||s.ops===ops.length);
+
+        /* Orden: más reciente primero, igual que la lista principal */
+        const clave=x=>String(x.fecha||'')+String(x.hora||'00:00')+String(x.id||'');
+        const vista=ops.slice().sort((a,b)=>{const ka=clave(a),kb=clave(b);return ka>kb?-1:ka<kb?1:0});
+        const TOPE=300;
+        const filas=vista.slice(0,TOPE).map(o=>{
+            const isC=o.tipo==='compra';
+            const un=(typeof usdtNeto==='function'&&o.usdt!==undefined)
+                ? usdtNeto(o.usdt,o.comisionPlataforma,o.tipo) : (o.usdt||0);
+            const cPct=o.comisionPct!==undefined?o.comisionPct:0.14;
+            return '<div class="archivo-op '+(isC?'compra':'venta')+'">'+
+                '<div class="archivo-op-l">'+
+                    '<div class="archivo-op-monto">'+_archMonto(o)+'</div>'+
+                    '<div class="archivo-op-meta">'+_archTasa(o)+' · '+fmtTrunc(un,2)+' USDT · '+fmtNum(cPct,2)+'%'+
+                        (o.banco?' · <span class="archivo-op-banco">'+escHtml(o.banco)+'</span>':'')+'</div>'+
+                '</div>'+
+                '<div class="archivo-op-r">'+
+                    '<div class="archivo-op-gan" style="color:'+_archGanColor(o.ganancia)+'">'+_archGan(o.ganancia)+'</div>'+
+                    '<div class="archivo-op-fecha">'+escHtml(String(o.fecha||'').slice(8)+'/'+String(o.fecha||'').slice(5,7))+(o.hora?' · '+escHtml(o.hora):'')+'</div>'+
+                '</div></div>';
+        }).join('');
+
         body.innerHTML=
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">'+
-            '<button data-action="archivo-volver" style="border:none;background:#e2e8f0;border-radius:8px;padding:6px 10px;cursor:pointer">← Meses</button>'+
-            '<b>'+escHtml(mes)+'</b>'+
-            '<button data-action="archivo-descargar" style="border:none;background:#16a34a;color:#fff;border-radius:8px;padding:6px 10px;font-weight:600;cursor:pointer">⬇ JSON</button></div>'+
-            '<div style="color:#475569;font-size:.85em;margin-bottom:8px">'+(s.ops||ops.length)+' operaciones · compras $'+fmtNum(s.montoCompras||0,0)+' · ventas $'+fmtNum(s.montoVentas||0,0)+' · ganancia $'+fmtNum(s.ganancia||0,0)+'</div>'+
-            '<div style="max-height:52vh;overflow:auto;border:1px solid #e2e8f0;border-radius:10px">'+
-            '<table style="width:100%;border-collapse:collapse;font-size:.82em">'+
-            '<thead><tr style="background:#f1f5f9;position:sticky;top:0"><th style="padding:5px 6px;text-align:left">Fecha</th><th></th><th style="padding:5px 6px;text-align:right">Monto</th><th style="padding:5px 6px;text-align:right">Tasa</th><th style="padding:5px 6px;text-align:right">Gan.</th></tr></thead>'+
-            '<tbody>'+filas+'</tbody></table></div>'+
-            (ops.length>400?'<div style="color:#94a3b8;font-size:.78em;margin-top:6px">Mostrando 400 de '+ops.length+' — descargá el JSON para el detalle completo.</div>':'');
+            '<div class="archivo-detalle-top">'+
+                '<button data-action="archivo-volver" class="archivo-btn">← Meses</button>'+
+                '<b>'+escHtml(mes)+'</b>'+
+                '<button data-action="archivo-descargar" class="archivo-btn verde">⬇ JSON</button>'+
+            '</div>'+
+            '<div class="archivo-stats">'+
+                '<div><span>Compras</span><b>'+nC+'</b><i>$'+fmtNum(rC,0)+'</i></div>'+
+                '<div><span>Ventas</span><b>'+nV+'</b><i>$'+fmtNum(rV,0)+'</i></div>'+
+                '<div><span>Ganancia</span><b style="color:'+_archGanColor(rG)+'">'+_archGan(rG)+'</b><i>'+ops.length+' ops</i></div>'+
+            '</div>'+
+            (cuadra?'':'<div class="archivo-error">⚠ Los totales guardados al archivar no coinciden con el detalle '+
+                '(guardado: ganancia $'+fmtNum(s.ganancia||0,2)+' · '+(s.ops||0)+' ops). '+
+                'Se muestran los recalculados. Revisalo con verificarIntegridad().</div>')+
+            '<div class="archivo-ops">'+filas+'</div>'+
+            (vista.length>TOPE?'<div class="archivo-nota">Mostrando '+TOPE+' de '+vista.length+' — descargá el JSON para el detalle completo.</div>':'')+
+            ((d.movimientos||[]).length||(d.transferencias||[]).length
+                ? '<div class="archivo-nota">También archivados: '+(d.movimientos||[]).length+' ajustes y '+(d.transferencias||[]).length+' transferencias (incluidos en el JSON).</div>'
+                : '');
     }catch(e){
-        body.innerHTML='<div style="color:#b91c1c;padding:12px 4px">Error cargando: '+escHtml(e&&e.message||String(e))+'</div>';
+        body.innerHTML='<div class="archivo-error">Error cargando: '+escHtml(e&&e.message||String(e))+'</div>';
     }
 }
 function _archivoDescargarMes(){
@@ -694,7 +767,7 @@ document.addEventListener('click',e=>{
     if(!t)return;
     const a=t.dataset.action;
     if(a==='ver-archivo')verArchivo();
-    else if(a==='archivo-cerrar'){const m=$('archivoModal');if(m)m.style.display='none';if(!document.querySelector('.modal.active'))document.body.style.overflow=''}
+    else if(a==='archivo-cerrar')cerrarModal('archivoModal');
     else if(a==='archivo-mes')_archivoVerMes(t.dataset.mes);
     else if(a==='archivo-volver')verArchivo();
     else if(a==='archivo-descargar')_archivoDescargarMes();
