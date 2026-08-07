@@ -461,7 +461,9 @@ function fmtFechaHora(fecha,hora,timestamp){
             }
         }catch(_){}
     }
-    return h?`${fc} · ${h}`:fc;
+    /* v5.4.0 — Sin el punto del medio: "06/08 22:31" se lee igual, ocupa menos
+       y quita un separador más de una fila que ya tiene varios. */
+    return h?`${fc} ${h}`:fc;
 }
 function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
 function getBancoColor(n){const b=getBancoInfo(n);return b?.color||'#1e293b'}

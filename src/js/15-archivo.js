@@ -36,6 +36,7 @@
    viven en users/{uid}/monthly_summaries (v4.7.x) — el Resumen no se afecta.
    ════════════════════════════════════════════════════════════════════════════ */
 
+const ICONO_ARCHIVO='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/></svg>';
 const ARCHIVO_FORMAT=1;
 const ARCHIVO_MESES_MANTENER_DEFAULT=2;   /* mes actual + 1 anterior */
 /* v4.9.6 — Umbral de RENDIMIENTO (no de límite). Cada operación reescribe el
@@ -640,7 +641,7 @@ function _archivoEnsureModal(){
     m.id='archivoModal';
     m.className='modal';
     m.innerHTML='<div class="modal-content" style="max-width:620px">'+
-        '<div class="modal-header" data-action="archivo-cerrar">📦 Historial archivado</div>'+
+        '<div class="modal-header" data-action="archivo-cerrar">'+ICONO_ARCHIVO+' Historial archivado</div>'+
         '<div id="archivoBody"></div></div>';
     document.body.appendChild(m);
     return m;

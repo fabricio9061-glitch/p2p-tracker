@@ -1,14 +1,14 @@
         /* ═══ Cards ═══ */
         .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
         .card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px}
-        .card.main-card{grid-column:span 2;background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%);border:2px solid #16a34a}
-        .card.main-card.negative{background:linear-gradient(135deg,#fef2f2 0%,#fee2e2 100%);border-color:#dc2626}
+        .card.main-card{grid-column:span 2;background:linear-gradient(135deg,var(--c-brand-softer) 0%,var(--c-brand-soft) 100%);border:2px solid var(--c-brand)}
+        .card.main-card.negative{background:linear-gradient(135deg,#fef2f2 0%,var(--c-danger-bg) 100%);border-color:var(--c-danger)}
         .card-title{color:#64748b;font-size:0.7em;font-weight:600;text-transform:uppercase;margin-bottom:4px}
         .card-value{font-size:1.4em;font-weight:bold}
-        .card-subtitle{color:#94a3b8;font-size:0.65em;margin-top:2px}
-        .positive{color:#16a34a}.negative{color:#dc2626}
-        .card-compra{border-left:3px solid #16a34a}
-        .card-venta{border-left:3px solid #dc2626}
+        .card-subtitle{color:var(--c-text-mute);font-size:0.65em;margin-top:2px}
+        .positive{color:var(--c-brand)}.negative{color:var(--c-danger)}
+        .card-compra{border-left:3px solid var(--c-brand)}
+        .card-venta{border-left:3px solid var(--c-danger)}
 
         /* ═══ Spread trend indicator ═══
            Pill discreto al lado del spread con flecha + % de variación respecto a ref reciente.
@@ -21,9 +21,9 @@
             border-radius:5px;
             letter-spacing:-0.2px;
         }
-        .spread-trend.up{background:#dcfce7;color:#15803d}
-        .spread-trend.down{background:#fee2e2;color:#b91c1c}
-        .spread-trend.flat{background:#f1f5f9;color:#64748b}
+        .spread-trend.up{background:var(--c-brand-soft);color:var(--c-brand-strong)}
+        .spread-trend.down{background:var(--c-danger-bg);color:#b91c1c}
+        .spread-trend.flat{background:var(--c-border-soft);color:#64748b}
         .spread-trend .arr{font-size:0.85em;line-height:1}
 
         /* ═══ Desktop Columns ═══ */
@@ -31,7 +31,7 @@
         .col-left,.col-right{}
 
         /* ═══ Section ═══ */
-        .section-title{color:#1e293b;font-size:1em;font-weight:600;margin-bottom:12px}
+        .section-title{color:var(--c-text);font-size:1em;font-weight:600;margin-bottom:12px}
 
         /* ═══ Bancos Grid ═══ */
         .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
@@ -42,9 +42,9 @@
         .saldos-hero-value{font-size:1.1em;font-weight:800;line-height:1.2}
         /* Grid de actividad operativa (compras/ventas) */
         .cards-actividad{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
-        .banco-nombre{font-weight:600;color:#1e293b;font-size:0.8em;margin-bottom:2px}
-        .banco-saldo{font-size:1.1em;font-weight:bold;color:#16a34a}
-        .banco-moneda{font-size:0.65em;color:#94a3b8}
+        .banco-nombre{font-weight:600;color:var(--c-text);font-size:0.8em;margin-bottom:2px}
+        .banco-saldo{font-size:1.1em;font-weight:bold;color:var(--c-brand)}
+        .banco-moneda{font-size:0.65em;color:var(--c-text-mute)}
         .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
         /* ═══ Línea lateral derecha — pegada al borde derecho del card ═══
            
@@ -110,16 +110,16 @@
         @media(hover:hover){
             .banco-mini-card.has-gauge:hover .banco-gauge-tip{opacity:1}
         }
-        .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#93c5fd}
+        .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,var(--c-accent-soft) 100%);border-color:#93c5fd}
         .usdt-card .banco-saldo{color:#2563eb}
 
         /* ═══ Filtros — trigger en header + franja inline ═══ */
-        .ops-filtros-trigger{display:inline-flex;align-items:center;gap:5px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:4px 9px;font-size:0.72em;font-weight:600;color:#64748b;cursor:pointer;transition:all 0.15s;user-select:none;line-height:1}
-        .ops-filtros-trigger:active{transform:scale(0.96);background:#f1f5f9}
+        .ops-filtros-trigger{display:inline-flex;align-items:center;gap:5px;background:var(--c-surface-2);border:1px solid #e2e8f0;border-radius:7px;padding:4px 9px;font-size:0.72em;font-weight:600;color:#64748b;cursor:pointer;transition:all 0.15s;user-select:none;line-height:1}
+        .ops-filtros-trigger:active{transform:scale(0.96);background:var(--c-border-soft)}
         .ops-filtros-trigger .filter-icon{font-size:0.95em;line-height:1}
-        .ops-filtros-trigger.open{background:#1e293b;color:white;border-color:#1e293b}
+        .ops-filtros-trigger.open{background:var(--c-text);color:white;border-color:var(--c-text)}
         .ops-filtros-trigger.has-active{border-color:#2563eb;color:#2563eb}
-        .ops-filtros-trigger.open.has-active{border-color:#1e293b;color:white}
+        .ops-filtros-trigger.open.has-active{border-color:var(--c-text);color:white}
         .ops-filtros-trigger-label{font-weight:600}
         @media(max-width:400px){
             /* En pantallas muy chicas, ocultar el texto dejando solo el ícono + badge */
@@ -127,10 +127,10 @@
         }
         .ops-filtros-badge{min-width:16px;height:16px;border-radius:8px;background:#2563eb;color:white;font-size:0.65em;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;line-height:1}
         .ops-filtros-badge.hidden{display:none}
-        .ops-filtros-trigger.open .ops-filtros-badge{background:white;color:#1e293b}
+        .ops-filtros-trigger.open .ops-filtros-badge{background:white;color:var(--c-text)}
         /* Franja inline de chips — extensión del header */
         .ops-filtros-strip{overflow:hidden;max-height:0;opacity:0;transition:max-height 0.28s ease,opacity 0.2s ease,margin 0.2s ease,padding 0.2s ease;margin:0 -15px 0;padding:0 15px;border-bottom:0 solid transparent}
-        .ops-filtros-strip.open{max-height:60px;opacity:1;margin-bottom:12px;padding-top:10px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;background:#fafbfc}
+        .ops-filtros-strip.open{max-height:60px;opacity:1;margin-bottom:12px;padding-top:10px;padding-bottom:10px;border-bottom:1px solid var(--c-border-soft);background:#fafbfc}
         @media(min-width:768px){
             .ops-filtros-strip{margin:0 -10px}
             .ops-filtros-strip.open{padding:10px}
@@ -140,27 +140,27 @@
         .ops-filtros-sep{width:1px;height:14px;background:#e2e8f0;flex-shrink:0;margin:0 3px}
         .ops-fchip{flex-shrink:0;background:white;border:1.5px solid #e2e8f0;border-radius:999px;padding:5px 11px;font-size:0.7em;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;user-select:none;transition:all 0.15s;line-height:1}
         .ops-fchip:active{transform:scale(0.96)}
-        .ops-fchip.active{background:#1e293b;border-color:#1e293b;color:white}
-        .ops-fchip.active.compra{background:#16a34a;border-color:#16a34a}
-        .ops-fchip.active.venta{background:#dc2626;border-color:#dc2626}
-        .ops-fchip.active.ganancia{background:#16a34a;border-color:#16a34a}
-        .ops-fchip.active.perdida{background:#dc2626;border-color:#dc2626}
+        .ops-fchip.active{background:var(--c-text);border-color:var(--c-text);color:white}
+        .ops-fchip.active.compra{background:var(--c-brand);border-color:var(--c-brand)}
+        .ops-fchip.active.venta{background:var(--c-danger);border-color:var(--c-danger)}
+        .ops-fchip.active.ganancia{background:var(--c-brand);border-color:var(--c-brand)}
+        .ops-fchip.active.perdida{background:var(--c-danger);border-color:var(--c-danger)}
         .ops-fchip.active.neutro{background:#64748b;border-color:#64748b}
-        .ops-fchip-clear{flex-shrink:0;background:transparent;border:1.5px solid #e2e8f0;border-radius:999px;padding:5px 11px;font-size:0.7em;font-weight:600;color:#94a3b8;cursor:pointer;white-space:nowrap;line-height:1;transition:all 0.15s}
-        .ops-fchip-clear:active{background:#fee2e2;color:#dc2626;border-color:#fecaca}
+        .ops-fchip-clear{flex-shrink:0;background:transparent;border:1.5px solid #e2e8f0;border-radius:999px;padding:5px 11px;font-size:0.7em;font-weight:600;color:var(--c-text-mute);cursor:pointer;white-space:nowrap;line-height:1;transition:all 0.15s}
+        .ops-fchip-clear:active{background:var(--c-danger-bg);color:var(--c-danger);border-color:#fecaca}
         /* Drawer reusable para movs/trans — más compacto que el strip de ops, vive dentro del toggle-content */
-        .ops-filtros-drawer{padding:10px 15px;background:#fafbfc;border-bottom:1px solid #f1f5f9}
+        .ops-filtros-drawer{padding:10px 15px;background:#fafbfc;border-bottom:1px solid var(--c-border-soft)}
         .ops-filtros-drawer .ops-filtros-chips{flex-wrap:wrap;gap:5px}
-        .ops-fgroup-label{font-size:0.62em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;align-self:center;flex-shrink:0;padding:0 4px}
+        .ops-fgroup-label{font-size:0.62em;font-weight:700;color:var(--c-text-mute);text-transform:uppercase;letter-spacing:0.5px;align-self:center;flex-shrink:0;padding:0 4px}
 
         /* ═══ Toggle Sections ═══ */
         .toggle-section{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:15px;overflow:hidden}
         .toggle-header{display:flex;justify-content:space-between;align-items:center;padding:14px 15px;cursor:pointer;user-select:none}
-        .toggle-header:active{background:#f8fafc}
-        .toggle-title{font-size:0.95em;font-weight:600;color:#1e293b;display:flex;align-items:center;gap:8px}
+        .toggle-header:active{background:var(--c-surface-2)}
+        .toggle-title{font-size:0.95em;font-weight:600;color:var(--c-text);display:flex;align-items:center;gap:8px}
         .toggle-right{display:flex;align-items:center;gap:10px}
         .toggle-badge{background:#e2e8f0;color:#64748b;font-size:0.75em;padding:2px 8px;border-radius:10px;font-weight:500}
-        .toggle-arrow{font-size:0.8em;color:#94a3b8;transition:transform 0.2s}
+        .toggle-arrow{font-size:0.8em;color:var(--c-text-mute);transition:transform 0.2s}
         .toggle-section.open .toggle-arrow{transform:rotate(180deg)}
         .toggle-content{display:none;border-top:1px solid #e2e8f0}
         .toggle-section.open .toggle-content{display:block}
@@ -169,111 +169,111 @@
         .form-content{padding:10px 12px}
         .form-group{margin-bottom:8px}
         .form-group label{display:block;color:#64748b;font-size:0.7em;margin-bottom:3px;font-weight:500}
-        .form-group input,.form-group select,.form-group textarea{width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;color:#1e293b;font-size:16px;font-family:inherit;max-width:100%;box-sizing:border-box}
+        .form-group input,.form-group select,.form-group textarea{width:100%;background:var(--c-surface-2);border:1px solid #e2e8f0;border-radius:8px;padding:10px;color:var(--c-text);font-size:16px;font-family:inherit;max-width:100%;box-sizing:border-box}
         .form-group input[type="date"]{-webkit-appearance:none;-moz-appearance:none;appearance:none;min-height:42px;line-height:normal}
         .form-group input:focus,.form-group select:focus{outline:none;border-color:#2563eb}
-        .form-group input.error,.form-group select.error{border-color:#dc2626;background:#fef2f2}
-        .form-group small{display:block;color:#94a3b8;font-size:0.7em;margin-top:2px}
-        .form-group small.error-text{color:#dc2626}
+        .form-group input.error,.form-group select.error{border-color:var(--c-danger);background:#fef2f2}
+        .form-group small{display:block;color:var(--c-text-mute);font-size:0.7em;margin-top:2px}
+        .form-group small.error-text{color:var(--c-danger)}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
         #tipo{position:absolute;opacity:0;pointer-events:none;height:0}
         #banco{font-weight:600}
         /* Op Toggle — compact switch */
         .op-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:8px;overflow:hidden;border:2px solid #e2e8f0;margin-bottom:10px}
-        .op-toggle-btn{padding:9px 4px;text-align:center;font-weight:700;font-size:0.82em;cursor:pointer;transition:all 0.15s;color:#94a3b8;background:white;user-select:none}
+        .op-toggle-btn{padding:9px 4px;text-align:center;font-weight:700;font-size:0.82em;cursor:pointer;transition:all 0.15s;color:var(--c-text-mute);background:white;user-select:none}
         .op-toggle-btn:active{opacity:0.8}
-        .op-toggle-btn.active-compra{background:#16a34a;color:white}
-        .op-toggle-btn.active-venta{background:#dc2626;color:white}
+        .op-toggle-btn.active-compra{background:var(--c-brand);color:white}
+        .op-toggle-btn.active-venta{background:var(--c-danger);color:white}
         /* Tasa block */
-        .tasa-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-bottom:8px;text-align:center}
-        .tasa-block label{display:block;font-size:0.65em;color:#94a3b8;font-weight:500;margin-bottom:2px}
-        .tasa-block input{border:none;background:transparent;font-size:22px;font-weight:700;text-align:center;color:#1e293b;width:100%;padding:2px 0;outline:none;letter-spacing:0.5px;min-width:0}
+        .tasa-block{background:var(--c-surface-2);border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-bottom:8px;text-align:center}
+        .tasa-block label{display:block;font-size:0.65em;color:var(--c-text-mute);font-weight:500;margin-bottom:2px}
+        .tasa-block input{border:none;background:transparent;font-size:22px;font-weight:700;text-align:center;color:var(--c-text);width:100%;padding:2px 0;outline:none;letter-spacing:0.5px;min-width:0}
         .tasa-block .tasa-input-row{display:flex;align-items:center;gap:8px}
-        .tasa-block .tasa-step-btn{flex-shrink:0;width:36px;height:36px;border-radius:8px;border:1px solid #e2e8f0;background:white;color:#475569;font-size:1.25em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;transition:all 0.12s;-webkit-tap-highlight-color:transparent;user-select:none}
-        .tasa-block .tasa-step-btn:active{background:#f1f5f9;transform:scale(0.94);border-color:#cbd5e1}
+        .tasa-block .tasa-step-btn{flex-shrink:0;width:36px;height:36px;border-radius:8px;border:1px solid #e2e8f0;background:white;color:var(--c-text-soft);font-size:1.25em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;transition:all 0.12s;-webkit-tap-highlight-color:transparent;user-select:none}
+        .tasa-block .tasa-step-btn:active{background:var(--c-border-soft);transform:scale(0.94);border-color:var(--c-text-faint)}
         .tasa-block .tasa-tags{display:flex;gap:5px;justify-content:center;margin-top:6px;flex-wrap:wrap;row-gap:5px}
         /* Summary card — compact */
         .op-summary{border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-top:8px;transition:all 0.2s}
-        .op-summary.modo-compra{background:linear-gradient(135deg,#f7fdf7,#f0fdf4);border-color:#bbf7d0}
+        .op-summary.modo-compra{background:linear-gradient(135deg,#f7fdf7,var(--c-brand-softer));border-color:#bbf7d0}
         .op-summary.modo-venta{background:linear-gradient(135deg,#fdf7f7,#fef2f2);border-color:#fecaca}
         .op-summary-row{display:flex;justify-content:space-between;align-items:center;padding:2px 0;font-size:0.75em}
         .op-summary-row.main{font-size:0.95em;font-weight:700;padding:3px 0}
         .op-summary-label{color:#64748b}
-        .op-summary-value{color:#1e293b;font-weight:600}
+        .op-summary-value{color:var(--c-text);font-weight:600}
         .op-summary-divider{border-top:1px solid rgba(0,0,0,0.06);margin:3px 0}
         /* Button — sticky on mobile */
         .op-btn-wrap{margin-top:10px;position:sticky;bottom:0;z-index:5;padding:6px 0 2px;background:white}
-        .op-btn-compra{background:#16a34a}
-        .op-btn-compra:active{background:#15803d}
-        .op-btn-venta{background:#dc2626}
+        .op-btn-compra{background:var(--c-brand)}
+        .op-btn-compra:active{background:var(--c-brand-strong)}
+        .op-btn-venta{background:var(--c-danger)}
         .op-btn-venta:active{background:#b91c1c}
         .op-btn-wrap .btn{padding:12px 20px}
-        .op-meta{text-align:center;font-size:0.64em;color:#94a3b8;margin-top:4px}
+        .op-meta{text-align:center;font-size:0.64em;color:var(--c-text-mute);margin-top:4px}
         /* Commission row */
-        .com-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:6px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px}
-        .com-label{font-size:0.65em;color:#94a3b8;font-weight:500;display:flex;align-items:center;gap:4px}
+        .com-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:6px 10px;background:var(--c-surface-2);border:1px solid #e2e8f0;border-radius:8px}
+        .com-label{font-size:0.65em;color:var(--c-text-mute);font-weight:500;display:flex;align-items:center;gap:4px}
         /* Wrapper pill-shaped para el input de comisión — visualmente claramente editable.
            Border completo + fondo blanco para que se lea como campo de texto, no como etiqueta. */
         .com-edit{
             display:inline-flex;align-items:center;gap:3px;
             background:white;
-            border:1.5px solid #cbd5e1;
+            border:1.5px solid var(--c-text-faint);
             border-radius:7px;
             padding:3px 8px 3px 7px;
             transition:border-color 0.15s,box-shadow 0.15s,background 0.15s;
             cursor:text;
         }
-        .com-edit:hover{border-color:#94a3b8;background:#fafbfc}
+        .com-edit:hover{border-color:var(--c-text-mute);background:#fafbfc}
         .com-edit:focus-within{
             border-color:#2563eb;
             background:white;
             box-shadow:0 0 0 3px rgba(37,99,235,0.1);
         }
-        .com-edit:has(input.error){border-color:#dc2626;background:#fef2f2}
-        .com-edit:has(input.error)::before{color:#dc2626}
+        .com-edit:has(input.error){border-color:var(--c-danger);background:#fef2f2}
+        .com-edit:has(input.error)::before{color:var(--c-danger)}
         .com-edit input{
             width:36px;border:none;background:transparent;
             text-align:right;
-            font-size:0.82em;font-weight:700;color:#1e293b;
+            font-size:0.82em;font-weight:700;color:var(--c-text);
             padding:0;outline:none;
             font-variant-numeric:tabular-nums;
         }
-        .com-edit input::placeholder{color:#cbd5e1;font-weight:500}
+        .com-edit input::placeholder{color:var(--c-text-faint);font-weight:500}
         .com-edit span{font-size:0.72em;color:#64748b;font-weight:600}
         /* Ícono sutil a la izquierda del input para reforzar editabilidad */
         .com-edit::before{
             content:'✎';
             font-size:0.7em;
-            color:#94a3b8;
+            color:var(--c-text-mute);
             margin-right:2px;
             transition:color 0.15s;
         }
         .com-edit:focus-within::before{color:#2563eb}
-        .com-info{display:flex;align-items:center;gap:6px;font-size:0.65em;color:#94a3b8}
+        .com-info{display:flex;align-items:center;gap:6px;font-size:0.65em;color:var(--c-text-mute)}
 
         /* ═══ Buttons ═══ */
         .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
-        .btn:active{background:#1d4ed8}
-        .btn:disabled{background:#94a3b8;cursor:not-allowed}
-        .btn-delete{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;cursor:pointer;font-size:0.7em;padding:6px 10px;border-radius:6px;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
-        .btn-delete:active{background:#fee2e2}
+        .btn:active{background:var(--c-accent-strong)}
+        .btn:disabled{background:var(--c-text-mute);cursor:not-allowed}
+        .btn-delete{background:#fef2f2;color:var(--c-danger);border:1px solid #fecaca;cursor:pointer;font-size:0.7em;padding:6px 10px;border-radius:6px;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
+        .btn-delete:active{background:var(--c-danger-bg)}
         .btn-cancel{background:#e5e7eb;color:#4b5563}
-        .btn-edit-small{padding:6px 10px;font-size:0.7em;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
+        .btn-edit-small{padding:6px 10px;font-size:0.7em;background:var(--c-border-soft);color:var(--c-text-soft);border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
         .btn-edit-small:active{background:#e2e8f0}
 
         /* ═══ Operation Cards ═══ */
         .op-cards{display:flex;flex-direction:column;gap:0;padding:0;max-width:540px;margin:0 auto;width:100%}
         .op-card{border-radius:0;border:none;border-bottom:1px solid #eef0f3;overflow:hidden;box-shadow:none}
-        .op-card.compra{border-left:2px solid #16a34a;background:transparent}
-        .op-card.venta{border-left:2px solid #dc2626;background:transparent}
-        .op-card.transfer{border-left:2px solid #3b82f6;background:transparent}
+        .op-card.compra{border-left:2px solid var(--c-brand);background:transparent}
+        .op-card.venta{border-left:2px solid var(--c-danger);background:transparent}
+        .op-card.transfer{border-left:2px solid var(--c-accent);background:transparent}
         .op-card.conversion{border-left:2px solid #7c3aed;background:transparent}
         .op-card-body{padding:0;line-height:1}
         /* ═══ Universal 2-row table: all sections ═══ */
         .r1,.r2{display:grid;align-items:center;padding:0 10px;white-space:nowrap;overflow:hidden}
         /* Row 1: monto + G/P — fixed 20px */
         .r1{grid-template-columns:1fr auto;height:20px;line-height:20px;padding-top:3px;column-gap:8px}
-        .r1-monto{font-size:0.88em;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis}
+        .r1-monto{font-size:0.88em;font-weight:700;color:var(--c-text);overflow:hidden;text-overflow:ellipsis}
         .r1-gp{font-size:0.88em;font-weight:800;text-align:right;white-space:nowrap}
         /* Row 2: flex con · separadores — tasa · USDT · 0,14% · banco · fecha.
            Reglas shrink: tasa/USDT/% nunca se truncan. Banco es el único con ellipsis.
@@ -288,11 +288,20 @@
             white-space:nowrap;
             overflow:hidden;
         }
-        .r2 span{font-size:0.65em;white-space:nowrap}
+        /* v5.4.0 — La línea de detalle era lo más leído de la app y lo más chico:
+           0.65em son unos 10px. Sube a 0.73em, que sigue siendo secundaria pero
+           se lee sin esfuerzo. Cabe porque de la fila salieron la comisión y los
+           puntos separadores. */
+        .r2 span{font-size:0.73em;white-space:nowrap}
         /* Separador dot entre peers — margen a cada lado asegura spacing parejo */
-        .r2 .r2-sep{color:#cbd5e1;margin:0 6px;flex-shrink:0;font-weight:400}
-        .r2-c1{color:#94a3b8;flex-shrink:0}
-        .r2-c2{color:#475569;flex-shrink:0}
+        /* v5.4.0 — Los puntos separadores se ocultan: el espacio ya separa y
+           quitarlos baja el ruido visual de una lista de cientos de filas. El
+           elemento se conserva para no tocar el HTML generado. */
+        .r2 .r2-sep{display:inline-block;width:9px;overflow:hidden;color:transparent;flex-shrink:0}
+        /* Contraste: var(--c-text-mute) sobre blanco queda por debajo del mínimo legible
+           para texto chico. #64748b lo cumple sin dejar de ser secundario. */
+        .r2-c1{color:#64748b;flex-shrink:0}
+        .r2-c2{color:var(--c-text-soft);flex-shrink:0;font-weight:600}
         /* ═══ Indicador per-record de sync pendiente ═══
            Dot pequeño que aparece a la izquierda del monto cuando la operación
            todavía no se confirmó en Firebase. Desaparece automáticamente al syncear.
@@ -314,7 +323,7 @@
         }
         /* Comisión como peer inline — más discreta (color tenue, tamaño levemente menor) */
         .r2-com{
-            color:#94a3b8;
+            color:var(--c-text-mute);
             font-size:0.92em;      /* 0.92 × 0.65em ≈ 0.6em efectivo */
             font-weight:500;
             letter-spacing:-0.2px;
@@ -340,17 +349,17 @@
         .r2-fecha{color:#b0b8c4;text-align:right;min-width:64px;flex-shrink:0}
         /* Movimientos (ajustes): mantienen el layout grid original — no tienen comisión */
         [data-mov-id] .r2{display:grid;grid-template-columns:minmax(72px,auto) minmax(0,1fr) minmax(60px,auto) auto;column-gap:8px;overflow:visible}
-        [data-mov-id] .r2-c1{color:#475569;font-weight:600}
+        [data-mov-id] .r2-c1{color:var(--c-text-soft);font-weight:600}
         /* Transfer/Conversion: flexible columns for bank names */
         .op-card.transfer .r2,.op-card.conversion .r2{grid-template-columns:auto 16px 1fr auto;column-gap:6px}
-        .op-card.transfer .r2-c2,.op-card.conversion .r2-c2{text-align:center;color:#94a3b8}
+        .op-card.transfer .r2-c2,.op-card.conversion .r2-c2{text-align:center;color:var(--c-text-mute)}
         /* Zebra */
         .op-swipe-wrap:nth-child(even) .op-card{background:#fafbfc}
         /* Swipe infrastructure */
         .op-swipe-wrap{position:relative;overflow:hidden;border-radius:0}
         .op-swipe-bg{position:absolute;top:0;bottom:0;width:56px;display:flex;align-items:center;justify-content:center;font-size:0.65em;font-weight:600;color:white;opacity:0;transition:opacity 0.15s}
-        .op-swipe-bg.edit{left:0;background:#3b82f6}
-        .op-swipe-bg.delete{right:0;background:#dc2626}
+        .op-swipe-bg.edit{left:0;background:var(--c-accent)}
+        .op-swipe-bg.delete{right:0;background:var(--c-danger)}
         .op-swipe-wrap.swiping .op-swipe-bg{opacity:1}
         .op-swipe-content{position:relative;z-index:1;background:white;will-change:transform}
         .op-swipe-wrap:nth-child(even) .op-swipe-content{background:#fafbfc}
@@ -358,21 +367,42 @@
         /* Desktop-only actions (hidden on mobile, swipe handles it) */
         .dk-actions{display:none}
         /* Summary strip */
-        .ops-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;padding:4px 6px;background:#f8fafc;border-bottom:1px solid #e8eaed;font-size:0.62em;max-width:540px;margin:0 auto;width:100%}
+        .ops-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;padding:4px 6px;background:var(--c-surface-2);border-bottom:1px solid #e8eaed;font-size:0.62em;max-width:540px;margin:0 auto;width:100%}
         .ops-summary-item{text-align:center}
-        .ops-summary-item .val{font-weight:700;font-size:1em;color:#1e293b}
-        .ops-summary-item .lbl{color:#94a3b8;margin-top:0}
+        .ops-summary-item .val{font-weight:700;font-size:1em;color:var(--c-text)}
+        .ops-summary-item .lbl{color:var(--c-text-mute);margin-top:0}
 
         /* ═══ Tables (inventory) ═══ */
         table{width:100%;border-collapse:collapse}
-        th{background:#f8fafc;color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase;border-bottom:2px solid #e2e8f0}
-        td{padding:10px 8px;color:#1e293b;border-top:1px solid #e2e8f0;font-size:0.8em}
-        tr:hover td{background:#f8fafc}
+        th{background:var(--c-surface-2);color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase;border-bottom:2px solid #e2e8f0}
+        td{padding:10px 8px;color:var(--c-text);border-top:1px solid #e2e8f0;font-size:0.8em}
+        tr:hover td{background:var(--c-surface-2)}
 
         /* ═══ Empty & Pagination ═══ */
-        .empty-state{text-align:center;padding:30px;color:#94a3b8}
+        .empty-state{text-align:center;padding:30px;color:var(--c-text-mute)}
         .empty-state-icon{font-size:2em;margin-bottom:8px}
         .pagination{display:flex;justify-content:center;align-items:center;gap:8px;padding:12px;border-top:1px solid #e2e8f0}
-        .pagination button{background:#f1f5f9;border:none;padding:8px 14px;border-radius:6px;font-size:0.85em;cursor:pointer;color:#475569}
+        .pagination button{background:var(--c-border-soft);border:none;padding:8px 14px;border-radius:6px;font-size:0.85em;cursor:pointer;color:var(--c-text-soft)}
         .pagination button:disabled{opacity:0.4;cursor:not-allowed}
         .pagination-info{font-size:0.8em;color:#64748b}
+
+
+        /* ═══════════════════════════════════════════════════════════════
+           ÍCONOS (v5.4.0)
+           Reemplazan a los emojis de los rótulos. Un emoji lo dibuja cada
+           sistema a su manera —se veían distintos en iPhone, Android y
+           Windows— y trae su propio color, que chocaba con la paleta.
+           Estos son trazos que heredan el color del texto y miden siempre
+           lo mismo. Se ocultan a los lectores de pantalla porque el rótulo
+           de al lado ya dice lo que significan.
+           ═══════════════════════════════════════════════════════════════ */
+        .ico{
+            width:1.05em;height:1.05em;
+            vertical-align:-0.16em;
+            flex-shrink:0;
+            opacity:0.62;
+        }
+        .toggle-title .ico,.section-title .ico{opacity:0.5}
+        .filter-icon .ico{width:0.95em;height:0.95em;opacity:0.7}
+        .menu-row-icon .ico{width:1.15em;height:1.15em;opacity:0.55}
+        .modal-header .ico{opacity:0.55}

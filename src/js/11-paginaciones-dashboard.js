@@ -171,13 +171,17 @@ const pagOp=crearPaginacion({
                    Puede dar positivo o negativo.
                Mostrar USDT ahí tapaba ambos, y encima era información repetida:
                la cantidad ya figura en la línea de detalle. */
-            const gn=op.ganancia||0,gc=colorGan(gn);
+            const gn=op.ganancia||0;
+            /* v5.4.0 — Un resultado exactamente en cero se muestra en gris. El verde
+               queda reservado para ganancia real: en una lista donde la mitad de las
+               filas son compras sin comisión, pintarlas de verde diluye la señal. */
+            const gc=Math.abs(gn)<0.005?'#94a3b8':colorGan(gn);
             const gt=fmtGan(gn);
             const cl=op.consumedLots?.length?op.consumedLots.map(x=>fmtTrunc(x.amount,2)+'@$'+fmtNum(x.precio)).join(', '):'';
-            const fifoTip=cl?` title="FIFO: ${cl}"`:'';
             /* Comisión Binance: mostrar el % persistido (o fallback 0.14 para datos legacy) */
+            /* v5.4.0 — La comisión salió de la fila (es casi siempre la misma) pero
+               sigue disponible al tocar la operación y en el detalle FIFO. */
             const cPct=op.comisionPct!==undefined?op.comisionPct:0.14;
-            const cPctTxt=fmtNum(cPct,2)+'%';
 
             h+=`<div class="op-swipe-wrap">
                 <div class="op-swipe-bg edit">✏️</div>
@@ -186,7 +190,7 @@ const pagOp=crearPaginacion({
                     <div class="op-card ${op.tipo}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${op._syncState==='pending'?'<span class="sync-dot" title="Pendiente de sincronizar"></span>':''}${fmtMonto(op.monto,op.moneda)}</span><span class="r1-gp" style="color:${gc}">${gt}</span></div>
-                            <div class="r2"><span class="r2-c1">${fmtTasaMon(op.tasa,op.moneda)}</span><span class="r2-sep">·</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT</span><span class="r2-sep">·</span><span class="r2-com" title="Comisión Binance aplicada">${cPctTxt}</span><span class="r2-sep">·</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}" title="${Array.isArray(op.aportes)&&op.aportes.length>1?'Pago dividido: '+op.aportes.map(a=>a.banco+' $'+fmtNum(a.monto,0)).join(' · '):''}">${op.banco||'-'}${Array.isArray(op.aportes)&&op.aportes.length>1?' <span style="font-size:0.85em;color:#f59e0b;font-weight:700">+'+(op.aportes.length-1)+'</span>':''}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
+                            <div class="r2"><span class="r2-c1">${fmtTasaMon(op.tasa,op.moneda)}</span><span class="r2-sep">·</span><span class="r2-c2" title="Comisión Binance ${fmtNum(cPct,2)}%${cl?' · FIFO: '+cl:''}">${fmtTrunc(un,2)} USDT</span><span class="r2-sep">·</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}" title="${Array.isArray(op.aportes)&&op.aportes.length>1?'Pago dividido: '+op.aportes.map(a=>a.banco+' $'+fmtNum(a.monto,0)).join(' · '):''}">${op.banco||'-'}${Array.isArray(op.aportes)&&op.aportes.length>1?' <span style="font-size:0.85em;color:#f59e0b;font-weight:700">+'+(op.aportes.length-1)+'</span>':''}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button></span>
                         </div>
                     </div>
