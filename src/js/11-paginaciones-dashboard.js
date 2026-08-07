@@ -159,17 +159,20 @@ const pagOp=crearPaginacion({
         ops.forEach(op=>{
             const isC=op.tipo==='compra',un=usdtNeto(op.usdt,op.comisionPlataforma,op.tipo);
 
-            /* ═══ v5.3.3 — Qué produjo cada operación ═══
-               Una COMPRA no genera ganancia: con contabilidad FIFO la ganancia se
-               realiza recién al vender, así que ahí siempre decía "+$0,00" y ese
-               espacio, el más visible de la fila, no informaba nada. Lo que una
-               compra sí produce es USDT, así que muestra cuánto entró. La VENTA
-               sigue mostrando la ganancia en pesos. En azul, el color que la app
-               ya usa para el saldo USDT, para que no se confunda con la ganancia
-               ni parezca que suma al total de arriba (que es ganancia realizada). */
-            const gn=op.ganancia||0;
-            const gc=isC?'#2563eb':colorGan(gn);
-            const gt=isC?('+'+fmtTrunc(un,2)+' USDT'):fmtGan(gn);
+            /* ═══ v5.3.4 — Las compras SÍ muestran su resultado ═══
+               En 5.3.3 se reemplazó este número por la cantidad de USDT, con el
+               argumento de que una compra nunca genera ganancia. Era falso: el
+               motor le asigna un resultado en dos casos reales.
+                 · Compra en pesos: ganancia = −comisión del banco. Una
+                   transferencia grande con costo bancario aparece en negativo,
+                   que es exactamente lo que el usuario necesita ver.
+                 · Compra en dólares (Zelle, Zinli): ganancia = cantidad ×
+                   (última tasa de venta en dólares − tasa pagada) − comisión.
+                   Puede dar positivo o negativo.
+               Mostrar USDT ahí tapaba ambos, y encima era información repetida:
+               la cantidad ya figura en la línea de detalle. */
+            const gn=op.ganancia||0,gc=colorGan(gn);
+            const gt=fmtGan(gn);
             const cl=op.consumedLots?.length?op.consumedLots.map(x=>fmtTrunc(x.amount,2)+'@$'+fmtNum(x.precio)).join(', '):'';
             const fifoTip=cl?` title="FIFO: ${cl}"`:'';
             /* Comisión Binance: mostrar el % persistido (o fallback 0.14 para datos legacy) */
@@ -183,7 +186,7 @@ const pagOp=crearPaginacion({
                     <div class="op-card ${op.tipo}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${op._syncState==='pending'?'<span class="sync-dot" title="Pendiente de sincronizar"></span>':''}${fmtMonto(op.monto,op.moneda)}</span><span class="r1-gp" style="color:${gc}">${gt}</span></div>
-                            <div class="r2"><span class="r2-c1">${fmtTasaMon(op.tasa,op.moneda)}</span><span class="r2-sep">·</span>${isC?'':`<span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT</span><span class="r2-sep">·</span>`}<span class="r2-com" title="Comisión Binance aplicada">${cPctTxt}</span><span class="r2-sep">·</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}" title="${Array.isArray(op.aportes)&&op.aportes.length>1?'Pago dividido: '+op.aportes.map(a=>a.banco+' $'+fmtNum(a.monto,0)).join(' · '):''}">${op.banco||'-'}${Array.isArray(op.aportes)&&op.aportes.length>1?' <span style="font-size:0.85em;color:#f59e0b;font-weight:700">+'+(op.aportes.length-1)+'</span>':''}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
+                            <div class="r2"><span class="r2-c1">${fmtTasaMon(op.tasa,op.moneda)}</span><span class="r2-sep">·</span><span class="r2-c2"${fifoTip}>${fmtTrunc(un,2)} USDT</span><span class="r2-sep">·</span><span class="r2-com" title="Comisión Binance aplicada">${cPctTxt}</span><span class="r2-sep">·</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}" title="${Array.isArray(op.aportes)&&op.aportes.length>1?'Pago dividido: '+op.aportes.map(a=>a.banco+' $'+fmtNum(a.monto,0)).join(' · '):''}">${op.banco||'-'}${Array.isArray(op.aportes)&&op.aportes.length>1?' <span style="font-size:0.85em;color:#f59e0b;font-weight:700">+'+(op.aportes.length-1)+'</span>':''}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
                             <span class="dk-actions"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button></span>
                         </div>
                     </div>

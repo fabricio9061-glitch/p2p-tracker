@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.3.3',
+    APP_VERSION: '5.3.4',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,9 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.3.4', date:'2026-08-06', headline:'↩️ Las compras vuelven a mostrar su resultado.', changes:[
+        {type:'fix', title:'Revertido el cambio de la versión anterior', desc:'En 5.3.3 se reemplazó el resultado de las compras por la cantidad de USDT, con el argumento de que una compra nunca genera ganancia. Era incorrecto. El motor le asigna un resultado a la compra en dos situaciones reales: cuando el banco cobra comisión, la compra aparece en negativo por ese costo, que es justo lo que hay que ver en una transferencia grande; y en las compras con dólares el resultado es la diferencia entre la última tasa de venta en dólares y la tasa pagada, que puede ser positiva o negativa. Mostrar la cantidad de USDT tapaba esos dos casos, y encima repetía un dato que ya estaba en la línea de detalle. Todo vuelve a como estaba, y quedó una prueba automática que documenta estos casos para que no se repita el error.'}
+    ]},
     {version:'5.3.3', date:'2026-08-06', headline:'🪙 Las compras muestran cuánto USDT entró.', changes:[
         {type:'improve', title:'Se acabó el "+$0,00" en cada compra', desc:'Una compra no genera ganancia: con el método de costeo que usa la app, la ganancia se realiza recién al vender. Por eso todas las compras mostraban "+$0,00" en el lugar más visible de la fila, que es justamente donde debería estar el dato más útil. Ahora cada compra muestra cuánto USDT entró a tu cuenta, ya descontada la comisión de Binance, y las ventas siguen mostrando la ganancia en pesos. Así cada operación informa lo que realmente produjo: la compra te da USDT, la venta te da ganancia. El número va en el azul que la app ya usa para el saldo USDT, para que se distinga de la ganancia y quede claro que no suma al total de arriba.'},
         {type:'improve', title:'Sin datos repetidos en la fila', desc:'Como el USDT pasó a ocupar el lugar destacado, se quitó de la línea de detalle en las compras, donde quedaba escrito dos veces. En las ventas se mantiene igual que siempre.'}
@@ -390,11 +393,6 @@ const CHANGELOG = [
         {type:'fix', title:'La ventana quedaba tapada por la barra del teléfono', desc:'El visor se dibujaba con estilos propios en vez de usar el sistema de ventanas de la app, así que ignoraba el área reservada de la pantalla y el título quedaba debajo del reloj y la señal. Ahora usa el mismo sistema que el resto: pantalla completa en el teléfono, flecha para volver y encabezado siempre visible al desplazar.'},
         {type:'new', title:'Totales verificados en pantalla', desc:'Al abrir un mes, los totales se recalculan sumando el detalle que se está mostrando y se comparan con lo que se guardó al archivar. Si algo no cuadra, aparece un aviso con ambas cifras en vez de mostrar un número sin explicación. La lista de meses ahora encabeza con el total de todo lo archivado, y cada mes muestra su nombre, cuántas operaciones y ajustes tiene, y los montos de compras y ventas alineados en columna.'},
         {type:'improve', title:'Operaciones alineadas', desc:'El detalle dejó de ser una tabla apretada: cada operación se ve como en la lista principal, con el monto y sus datos a la izquierda, la ganancia y la fecha a la derecha, y una franja de color según sea compra o venta. Los números se alinean por columnas para poder compararlos de un vistazo, y el mes más reciente aparece primero.'}
-    ]},
-    {version:'5.2.7', date:'2026-07-27', headline:'👥 La app vuelve a funcionar para todas las cuentas.', changes:[
-        {type:'fix', title:'Otras personas quedaban bloqueadas en "Formato anterior"', desc:'El cambio de formato de guardado se aplicó a mano en una sola cuenta. Desde la versión 5.2.0 la app se niega a leer documentos en el formato anterior —una protección correcta para no mezclar formatos— pero eso dejó fuera a cualquier otra persona: su cuenta nunca fue actualizada, así que quedaba con el aviso "Formato anterior" y sin poder usar nada. Ahora, cuando el servidor confirma un documento sin actualizar, la app lo actualiza sola. El proceso es el mismo de siempre y conserva todas sus verificaciones: respaldo, escritura por lotes, relectura desde el servidor y comprobación de que los números coinciden antes de aplicar el cambio. Si algo falla, el documento queda intacto y se reintenta al volver a abrir.'},
-        {type:'fix', title:'Las cuentas sin datos no podían actualizarse', desc:'Si una cuenta no tenía ninguna operación, la actualización se interrumpía al no encontrar nada que mover y el documento se quedaba en el formato viejo para siempre. Ahora esas cuentas también quedan actualizadas, que es justamente el caso de quien recién empieza.'},
-        {type:'improve', title:'Aviso más claro durante la actualización', desc:'El mensaje dejó de hablar de detalles internos. En cuentas chicas no aparece ningún diálogo: se actualiza en silencio, porque no hay nada que decidir.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
