@@ -1,7 +1,11 @@
         /* ═══ Cards ═══ */
         .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
         .card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px}
-        .card.main-card{grid-column:span 2;background:linear-gradient(135deg,var(--c-brand-softer) 0%,var(--c-brand-soft) 100%);border:2px solid var(--c-brand)}
+        /* v5.4.1 — El fondo era verde parejo de punta a punta y competía con la cifra,
+   que es lo único que importa en esta tarjeta. Ahora el color arranca arriba a la
+   izquierda —donde está el rótulo— y se apaga hacia el blanco: la ganancia queda
+   sobre fondo claro y resalta sola. El borde baja de 2px a 1px por el mismo motivo. */
+.card.main-card{grid-column:span 2;background:linear-gradient(158deg,var(--c-brand-soft) 0%,var(--c-brand-softer) 46%,#ffffff 100%);border:1px solid var(--c-brand-soft)}
         .card.main-card.negative{background:linear-gradient(135deg,#fef2f2 0%,var(--c-danger-bg) 100%);border-color:var(--c-danger)}
         .card-title{color:#64748b;font-size:0.7em;font-weight:600;text-transform:uppercase;margin-bottom:4px}
         .card-value{font-size:1.4em;font-weight:bold}
@@ -155,10 +159,13 @@
 
         /* ═══ Toggle Sections ═══ */
         .toggle-section{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:15px;overflow:hidden}
-        .toggle-header{display:flex;justify-content:space-between;align-items:center;padding:14px 15px;cursor:pointer;user-select:none}
+        /* v5.4.1 — Faltaba separación: en Operaciones, que tiene tres controles a la
+   derecha, el título quedaba pegado al botón de Filtros. El título puede encogerse
+   y recortarse; los controles nunca, porque son objetivos táctiles. */
+.toggle-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 15px;cursor:pointer;user-select:none}
         .toggle-header:active{background:var(--c-surface-2)}
-        .toggle-title{font-size:0.95em;font-weight:600;color:var(--c-text);display:flex;align-items:center;gap:8px}
-        .toggle-right{display:flex;align-items:center;gap:10px}
+        .toggle-title{font-size:0.95em;font-weight:600;color:var(--c-text);display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .toggle-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
         .toggle-badge{background:#e2e8f0;color:#64748b;font-size:0.75em;padding:2px 8px;border-radius:10px;font-weight:500}
         .toggle-arrow{font-size:0.8em;color:var(--c-text-mute);transition:transform 0.2s}
         .toggle-section.open .toggle-arrow{transform:rotate(180deg)}

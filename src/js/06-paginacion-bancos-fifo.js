@@ -184,7 +184,7 @@ function actualizarBancosGrid(){
     });
 
     /* ═══ Barra compacta: Total Bancos — una línea, sin ruido ═══ */
-    let heroH=`<span class="saldos-hero-label">🏦 Total Bancos (UYU)</span><span class="saldos-hero-value" style="color:${totalUYU>=0?'#16a34a':'#dc2626'}">$${fmtNum(totalUYU,2)}</span>`;
+    let heroH=`<span class="saldos-hero-label"><svg class=\"ico\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18\"/></svg> Total Bancos (UYU)</span><span class="saldos-hero-value" style="color:${totalUYU>=0?'#16a34a':'#dc2626'}">$${fmtNum(totalUYU,2)}</span>`;
     if(totalUSD!==0||hayBancosUSD())heroH+=`<span class="saldos-hero-label" style="margin-left:auto">💵 USD</span><span class="saldos-hero-value" style="color:#3b82f6">US$${fmtNum(totalUSD,2)}</span>`;
     setHtml('saldosTotales',heroH);
 

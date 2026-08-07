@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.4.0',
+    APP_VERSION: '5.4.1',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.4.1', date:'2026-08-07', headline:'🎨 Se completó lo que faltaba de la renovación visual.', changes:[
+        {type:'improve', title:'Íconos también en los botones de acción', desc:'En la versión anterior se cambiaron los rótulos de sección pero quedaron emojis en los botones de comprar y vender, en las pestañas de ingreso y egreso, en la barra de Total Bancos y en los totales en dólares. Ahora todos usan los mismos íconos dibujados. Quedan emojis solo donde el navegador no permite otra cosa: las listas desplegables, el logo y la campana de novedades.'},
+        {type:'improve', title:'La tarjeta de Ganancia Hoy destaca la cifra', desc:'El fondo era verde parejo de punta a punta y competía con el número, que es lo único que importa en esa tarjeta. Ahora el color arranca arriba, donde está el rótulo, y se apaga hacia el blanco: la ganancia queda sobre fondo claro y se lee de inmediato. Además los tres indicadores cambiaron de orden: primero las comparaciones con ayer y con la semana, que responden "¿cómo vengo?", y al final el spread promedio, que es contexto y no resultado.'},
+        {type:'fix', title:'El título de Operaciones quedaba pegado al botón de Filtros', desc:'Esa sección tiene tres controles a la derecha y no había separación mínima definida, así que al agregarse el ícono el título terminaba tocando el primer botón. Ahora hay una separación fija: el título puede encogerse si hace falta, pero los controles mantienen su tamaño porque son objetivos táctiles.'}
+    ]},
     {version:'5.4.0', date:'2026-08-06', headline:'✨ Interfaz más legible: números alineados, íconos propios y colores centralizados.', changes:[
         {type:'improve', title:'Los importes ahora se alinean en columna', desc:'Las tipografías usan por defecto cifras de ancho variable: el uno es más angosto que el ocho, así que en una lista de cientos de importes las columnas se desalineaban y no se podían comparar dos filas sin leerlas. Ahora todas las cifras miden lo mismo y los decimales quedan alineados, en la lista, los saldos, el resumen y el historial. No cambia ningún valor: solo cómo se dibujan los dígitos.'},
         {type:'improve', title:'La fila de cada operación se lee sin esfuerzo', desc:'La segunda línea estaba en unos diez píxeles y en gris muy claro, siendo lo que más se lee de la app. Creció un doce por ciento y ganó contraste. Además salieron de la fila los puntos separadores y el porcentaje de comisión, que es casi siempre el mismo y ahora aparece al mantener presionada la cantidad de USDT junto con el detalle de qué lotes se consumieron. La fecha perdió el punto del medio. Y un resultado exactamente en cero se muestra en gris en vez de verde: el verde queda para la ganancia real, que era la señal que se estaba diluyendo.'},
@@ -389,11 +394,6 @@ const CHANGELOG = [
     {version:'5.3.2', date:'2026-07-30', headline:'✅ La verificación de integridad ya no avisa de un descuadre inexistente.', changes:[
         {type:'fix', title:'Falsa alarma sobre los lotes de arrastre', desc:'La verificación comparaba dos cosas distintas creyendo que eran la misma. Al reconstruir los lotes que quedaban abiertos al momento de archivar, sumaba el tamaño ORIGINAL de cada compra en vez de lo que quedaba sin vender, así que informaba un descuadre enorme aunque los datos estuvieran perfectos. Ahora usa la misma función que el archivado para armar esos lotes, así que ambos hablan del mismo número por construcción.'},
         {type:'improve', title:'Una sola función arma los lotes de arrastre', desc:'Esa misma lógica estaba escrita tres veces: en el archivado, en la reparación y en la verificación. Es la tercera vez que una copia se separa de las otras y produce un problema, así que ahora existe en un único lugar y los tres la usan.'}
-    ]},
-    {version:'5.3.1', date:'2026-07-30', headline:'🎯 Un solo lugar decide cómo se escribe cada importe.', changes:[
-        {type:'improve', title:'Formato unificado en toda la app', desc:'Cada pantalla resolvía por su cuenta el símbolo de la moneda, cuántos decimales lleva una tasa y cómo se escribe una ganancia: había ocho copias de la primera decisión, cinco de la segunda y siete de la tercera. Con el tiempo se separaron, y de ahí salió el problema del historial archivado, que mostraba los importes sin decimales mientras la lista los mostraba con dos. Ahora esas decisiones viven en un único lugar y todas las pantallas lo usan, así que no pueden volver a divergir. Se verificó con ciento trece combinaciones de valor y moneda que el texto en pantalla queda idéntico al anterior: es una unificación, no un cambio de aspecto.'},
-        {type:'fix', title:'Dos funciones distintas se llamaban igual', desc:'El panel de pago dividido tenía una función con el mismo nombre que la nueva función central. Como todos los archivos comparten el mismo espacio de nombres y ese carga después, la suya tapaba a la otra sin ningún aviso: los importes habrían quedado sin el símbolo de la moneda. Se renombró la del panel, que era de uso exclusivo suyo, y se agregó esta comprobación al revisor automático de código para que no pueda repetirse.'},
-        {type:'fix', title:'Un valor nulo podía romper el formateo', desc:'La función que da formato a los números validaba si el valor era finito antes de convertirlo, y un nulo pasaba esa validación (en JavaScript equivale a cero) para después fallar con un error al formatearlo. Ahora cualquier valor inesperado se muestra como cero, que era la intención original.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
