@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.3.2',
+    APP_VERSION: '5.3.3',
     POR_PAGINA: 10,
     EMAIL_DOMAIN: '@p2p-tracker.app',
     COOLDOWN_MS: 300,
@@ -372,6 +372,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.3.3', date:'2026-08-06', headline:'🪙 Las compras muestran cuánto USDT entró.', changes:[
+        {type:'improve', title:'Se acabó el "+$0,00" en cada compra', desc:'Una compra no genera ganancia: con el método de costeo que usa la app, la ganancia se realiza recién al vender. Por eso todas las compras mostraban "+$0,00" en el lugar más visible de la fila, que es justamente donde debería estar el dato más útil. Ahora cada compra muestra cuánto USDT entró a tu cuenta, ya descontada la comisión de Binance, y las ventas siguen mostrando la ganancia en pesos. Así cada operación informa lo que realmente produjo: la compra te da USDT, la venta te da ganancia. El número va en el azul que la app ya usa para el saldo USDT, para que se distinga de la ganancia y quede claro que no suma al total de arriba.'},
+        {type:'improve', title:'Sin datos repetidos en la fila', desc:'Como el USDT pasó a ocupar el lugar destacado, se quitó de la línea de detalle en las compras, donde quedaba escrito dos veces. En las ventas se mantiene igual que siempre.'}
+    ]},
     {version:'5.3.2', date:'2026-07-30', headline:'✅ La verificación de integridad ya no avisa de un descuadre inexistente.', changes:[
         {type:'fix', title:'Falsa alarma sobre los lotes de arrastre', desc:'La verificación comparaba dos cosas distintas creyendo que eran la misma. Al reconstruir los lotes que quedaban abiertos al momento de archivar, sumaba el tamaño ORIGINAL de cada compra en vez de lo que quedaba sin vender, así que informaba un descuadre enorme aunque los datos estuvieran perfectos. Ahora usa la misma función que el archivado para armar esos lotes, así que ambos hablan del mismo número por construcción.'},
         {type:'improve', title:'Una sola función arma los lotes de arrastre', desc:'Esa misma lógica estaba escrita tres veces: en el archivado, en la reparación y en la verificación. Es la tercera vez que una copia se separa de las otras y produce un problema, así que ahora existe en un único lugar y los tres la usan.'}
@@ -391,10 +395,6 @@ const CHANGELOG = [
         {type:'fix', title:'Otras personas quedaban bloqueadas en "Formato anterior"', desc:'El cambio de formato de guardado se aplicó a mano en una sola cuenta. Desde la versión 5.2.0 la app se niega a leer documentos en el formato anterior —una protección correcta para no mezclar formatos— pero eso dejó fuera a cualquier otra persona: su cuenta nunca fue actualizada, así que quedaba con el aviso "Formato anterior" y sin poder usar nada. Ahora, cuando el servidor confirma un documento sin actualizar, la app lo actualiza sola. El proceso es el mismo de siempre y conserva todas sus verificaciones: respaldo, escritura por lotes, relectura desde el servidor y comprobación de que los números coinciden antes de aplicar el cambio. Si algo falla, el documento queda intacto y se reintenta al volver a abrir.'},
         {type:'fix', title:'Las cuentas sin datos no podían actualizarse', desc:'Si una cuenta no tenía ninguna operación, la actualización se interrumpía al no encontrar nada que mover y el documento se quedaba en el formato viejo para siempre. Ahora esas cuentas también quedan actualizadas, que es justamente el caso de quien recién empieza.'},
         {type:'improve', title:'Aviso más claro durante la actualización', desc:'El mensaje dejó de hablar de detalles internos. En cuentas chicas no aparece ningún diálogo: se actualiza en silencio, porque no hay nada que decidir.'}
-    ]},
-    {version:'5.2.6', date:'2026-07-27', headline:'🧪 Revisión automática del código y un fallo más corregido.', changes:[
-        {type:'fix', title:'La recarga de emergencia no recargaba', desc:'La recuperación de emergencia de la base local cierra el motor de Firestore, borra su almacenamiento y recarga la app. Si la recarga normal fallaba, el respaldo era asignarle a la dirección de la página su propio valor, cosa que los navegadores actuales ignoran: no recarga nada. Como para entonces el motor ya está cerrado y su almacenamiento borrado, la app quedaba inservible hasta cerrarla a mano. Ahora usa un método que sí recarga y, si tampoco pudiera, lo deja anotado en la consola en vez de fallar en silencio.'},
-        {type:'new', title:'Revisión de código con un solo comando', desc:'Se agregó revisar-codigo.mjs, que arma el mismo conjunto de archivos que carga el navegador —leyendo el orden desde el propio index.html, así nunca queda desfasado—, lo analiza con un verificador que entiende JavaScript de verdad, y traduce cada hallazgo a su archivo y línea reales. Detecta la clase de fallo que aparece al BORRAR código y que no es error de sintaxis, por lo que ninguna revisión rápida lo ve: nombres usados que ya no existen, código inalcanzable, claves repetidas, asignaciones sin efecto y comparaciones que siempre dan lo mismo. Conviene correrlo antes de cada publicación.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
