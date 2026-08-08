@@ -520,3 +520,32 @@
         /* Botón principal bloqueado por dato faltante (v5.5.0) */
         .btn-split-invalid{background:var(--c-border)!important;color:var(--c-text-mute)!important;
             cursor:not-allowed;box-shadow:none!important}
+
+
+        /* ═══ Tasa más reciente (v5.6.0) ═══
+           Las cinco son las últimas usadas, pero no había forma de distinguir
+           cuál fue la última. Un punto arriba a la derecha alcanza: no ocupa
+           lugar ni compite con el número. */
+        .tag-pill-ultima{position:relative}
+        .tag-pill-ultima::after{
+            content:'';position:absolute;top:-2px;right:-2px;
+            width:6px;height:6px;border-radius:50%;
+            background:var(--c-accent);border:1.5px solid var(--c-surface);
+        }
+
+        /* ═══ Resultado en vivo bajo el monto (v5.6.0) ═══
+           Los USDT que recibís son la razón de la operación, pero aparecían al
+           final, después de la tasa, la cuenta y las comisiones. Ahora se ven
+           mientras escribís, como en una calculadora. */
+        .eco-resultado{
+            display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+            background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;
+            padding:9px 12px;margin-top:7px;
+        }
+        .eco-resultado.venta{background:#eff6ff;border-color:#bfdbfe}
+        .eco-resultado .eco-t{font-size:0.78em;color:var(--c-text-soft);line-height:1.3}
+        .eco-resultado .eco-t small{display:block;font-size:0.86em;color:var(--c-text-mute);margin-top:1px}
+        .eco-resultado .eco-n{font-size:1.08em;font-weight:750;color:var(--c-brand-strong);
+            white-space:nowrap;font-variant-numeric:tabular-nums}
+        .eco-resultado.venta .eco-n{color:var(--c-accent-strong)}
+        .eco-resultado.oculto{display:none}

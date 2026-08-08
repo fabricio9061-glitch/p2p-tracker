@@ -174,7 +174,17 @@ function getBancosActivos(){return ordenarBancosPorSaldo(CONFIG.BANCOS.filter(b=
 function actualizarSelectBancos(){
     const s=$('banco'),v=s.value;
     s.innerHTML='<option value="">-- Seleccionar --</option>';
-    getBancosActivos().forEach(b=>{s.innerHTML+=`<option value="${b.nombre}" style="color:${b.color||'#1e293b'};font-weight:600">${b.nombre}</option>`});
+    /* v5.6.0 — El saldo va dentro de cada opción. Antes había que elegir la
+       cuenta para recién entonces ver si alcanzaba; ahora se compara de un
+       vistazo antes de decidir. Se omite en las cuentas vacías, donde el saldo
+       no aporta y solo hace más largo el texto. */
+    getBancosActivos().forEach(b=>{
+        const saldo=(AppState.datos.bancos[b.nombre]||{}).saldo||0;
+        const etiq=saldo>0.005
+            ? `${b.nombre} — ${getSym(b.moneda)}${fmtNum(saldo,0)}`
+            : `${b.nombre} — sin saldo`;
+        s.innerHTML+=`<option value="${escHtml(b.nombre)}" style="color:${b.color||'#1e293b'};font-weight:600">${escHtml(etiq)}</option>`;
+    });
     s.value=v;actualizarColorBancoSelect();
 }
 

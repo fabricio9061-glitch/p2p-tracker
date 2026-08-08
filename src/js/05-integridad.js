@@ -585,12 +585,15 @@ function renderizarTasasRecientes(){
        pill activa es la que refleja el valor real del input. */
     const tasaActualNum=parsearTasa($('tasa').value);
     const epsilon=mon==='USD'?0.0005:0.005;
-    cont.innerHTML=recientes.map(t=>{
+    /* v5.6.0 — Son las cinco tasas más recientes, pero no había forma de saber
+       cuál usaste último: se marca la primera, que es la más nueva. */
+    cont.innerHTML=recientes.map((t,idx)=>{
         /* v4.8.2: parsearTasa devuelve null para input vacío/inválido, e isFinite(null)
            es true (coerciona a 0) — comparaba contra 0 en vez de "sin tasa". */
         const isActive=tasaActualNum!==null&&Math.abs(t.valor-tasaActualNum)<epsilon;
-        const cls='tag-pill'+(isActive?' tag-pill-active':'');
-        return `<span class="${cls}" data-action="usar-tasa" data-valor="${t.valor}" style="font-size:0.72em;padding:3px 9px;flex-shrink:0">${fmtTasa(t.valor,mon)}</span>`;
+        const cls='tag-pill'+(isActive?' tag-pill-active':'')+(idx===0?' tag-pill-ultima':'');
+        const tit=idx===0?' title="La última tasa que usaste"':'';
+        return `<span class="${cls}"${tit} data-action="usar-tasa" data-valor="${t.valor}" style="font-size:0.72em;padding:3px 9px;flex-shrink:0">${fmtTasa(t.valor,mon)}</span>`;
     }).join('');
 }
 

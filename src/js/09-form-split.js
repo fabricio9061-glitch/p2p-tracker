@@ -114,6 +114,9 @@ function calcularPreview(){
             $('opSumBancoValue').innerHTML=`${bsy}${fmtNum(sActual)} → <b style="color:${sDesp>=sActual?'#16a34a':'#dc2626'}">${bsy}${fmtNum(sDesp)}</b>`;
         }else{setText('opSumBancoLabel','Saldo');setText('opSumBancoValue','--')}
 
+        /* v5.6.0 — Eco del resultado, debajo del monto */
+        _pintarEco(isC,neto,c);
+
         /* Dynamic button */
         btn.innerHTML=_btnOpHtml(isC,(isC?'Comprar ':'Vender ')+fmtTrunc(neto,2)+' USDT');
 
@@ -122,7 +125,24 @@ function calcularPreview(){
         sum.style.display='none';$('previewBox').style.display='none';
         setText('comisionPlataformaInfo','0 USDT');
         btn.innerHTML=_btnOpHtml(isC,isC?'Comprar USDT':'Vender USDT');
+        _pintarEco(isC,0,0);
     }
+}
+
+/* ═══ v5.6.0 — Resultado en vivo bajo el monto ═══
+   En una compra lo que importa es cuántos USDT entran; en una venta, cuántos
+   salen. Antes ese dato estaba al final del formulario, después de la tasa, la
+   cuenta y las comisiones, así que había que terminar de cargar todo para
+   verlo. Acá se actualiza con cada tecla. */
+function _pintarEco(esCompra,neto,comision){
+    const caja=$('ecoResultado');if(!caja)return;
+    if(!(neto>0)){caja.classList.add('oculto');return}
+    caja.classList.remove('oculto');
+    caja.classList.toggle('venta',!esCompra);
+    const lbl=$('ecoLabel');
+    if(lbl)lbl.firstChild.nodeValue=esCompra?'Recibís':'Entregás';
+    setText('ecoSub',comision>0?('comisión '+fmtTrunc(comision,2)+' USDT incluida'):'sin comisión');
+    setText('ecoValor',fmtTrunc(neto,2)+' USDT');
 }
 
 function guardarComisionYCalcular(){

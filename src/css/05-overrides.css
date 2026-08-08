@@ -606,3 +606,9 @@
         @media (max-width: 1023px) {
             #cardGananciaHoy .spark-wrap{top:38%!important}
         }
+
+        /* Leyenda del mini-gráfico (v5.6.0) */
+        #cardGananciaHoy .spark-leyenda{
+            font-size:0.7em;color:var(--c-text-soft);margin-top:3px;
+            position:relative;z-index:2;max-width:58%;line-height:1.35}
+        @media(min-width:640px){#cardGananciaHoy .spark-leyenda{max-width:52%}}

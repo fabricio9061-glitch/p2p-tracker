@@ -481,15 +481,32 @@ function _pintarComparacion(arrEl,pctEl,actual,base){
     }
     const pct=((actual-base)/Math.abs(base))*100;
     const abs=Math.abs(pct);
+    const dif=roundMoney(actual-base);
+    /* ═══ v5.6.0 — Cuándo el porcentaje deja de significar algo ═══
+       La fórmula es (hoy − base) ÷ base. Mientras los dos días tengan el mismo
+       signo el resultado se entiende: pasar de −$1.621 a −$454 es 72% mejor.
+       Pero si el signo se da vuelta, el número pierde sentido: con la semana en
+       +$534 y hoy en −$454 salía "185% menos", que no dice que pasaste de ganar
+       a perder ni cuánto. En esos casos, y también cuando el porcentaje se
+       dispara por encima de 400% (donde ya no es intuitivo), se muestra la
+       diferencia en pesos, que siempre se entiende. */
+    const cruzaCero=(actual>0&&base<0)||(actual<0&&base>0);
+    const enPesos=cruzaCero||abs>=400;
     let cls,arr;
-    if(abs<2){cls='hc-flat';arr='→';}
-    else if(pct>0){cls='hc-up';arr='↑';}
-    else{cls='hc-down';arr='↓';}
+    if(!enPesos&&abs<2){cls='hc-flat';arr='→';}
+    else if(dif>0){cls='hc-up';arr='↑';}
+    else if(dif<0){cls='hc-down';arr='↓';}
+    else{cls='hc-flat';arr='→';}
     arrEl.classList.add(cls);
     arrEl.textContent=arr;
     pctEl.classList.remove('hc-up','hc-down','hc-flat');
     pctEl.classList.add(cls);
-    pctEl.textContent=(abs>=10?fmtNum(abs,0):fmtNum(abs,1))+'%';
+    pctEl.textContent=enPesos
+        ? (dif>=0?'+$':'-$')+fmtNum(Math.abs(dif),0)
+        : (abs>=10?fmtNum(abs,0):fmtNum(abs,1))+'%';
+    /* El detalle completo queda al mantener presionado */
+    const caja=pctEl.closest('.hoy-cell');
+    if(caja)caja.title=`Base: ${(base>=0?'+$':'-$')+fmtNum(Math.abs(base),2)} · Hoy: ${(actual>=0?'+$':'-$')+fmtNum(Math.abs(actual),2)}`;
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -571,6 +588,31 @@ function _renderGananciaSparkline(){
         cont.innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" `+
             `xmlns="http://www.w3.org/2000/svg" role="img" `+
             `aria-label="Ganancia de los últimos 14 días">${lineaCero}${barras}</svg>`;
+
+        /* ═══ v5.6.0 — La forma en palabras ═══
+           Las barras transmiten una sensación ("vengo irregular") pero ninguna
+           cifra. Esta línea la convierte en dato: cuántos días cerraron en verde
+           y cuál fue el mejor, que es lo que hoy hay que deducir mirando.
+           Va en su propio try: si algo fallara acá, el gráfico —que ya está
+           dibujado— no tiene por qué desaparecer con ella. */
+        try{
+        const leyEl=$('sparkLeyenda');
+        if(leyEl){
+            const verdes=dias.filter(v=>v>0.005).length;
+            let iMejor=-1,mejor=0;
+            dias.forEach((v,i)=>{if(v>mejor){mejor=v;iMejor=i}});
+            if(verdes===0&&maxNeg<=0.005){
+                leyEl.textContent='Sin movimientos en los últimos 14 días';
+            }else{
+                let txt=`${verdes} de ${n} días en verde`;
+                if(iMejor>=0){
+                    const d=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()-(n-1-iMejor));
+                    txt+=` · mejor: $${fmtNum(mejor,0)} el ${d.getDate()}/${d.getMonth()+1}`;
+                }
+                leyEl.textContent=txt;
+            }
+        }
+        }catch(e2){console.warn('[P2P] leyenda del gráfico (no crítico):',e2&&e2.message)}
     }catch(e){
         /* Nunca romper el panel por la gráfica */
         cont.innerHTML='';
@@ -578,17 +620,40 @@ function _renderGananciaSparkline(){
     }
 }
 
+/* Arma la línea que va bajo la ganancia del día. Si hubo una sola clase de
+   operación no repite la palabra "operaciones": queda "4 compras · $18.400". */
+function _lineaDelDia(total,compras,ventas,volumen){
+    if(!total)return 'Sin operaciones hoy';
+    let partes;
+    if(compras&&ventas)partes=[compras+(compras===1?' compra':' compras'),ventas+(ventas===1?' venta':' ventas')];
+    else if(compras)partes=[compras+(compras===1?' compra':' compras')];
+    else partes=[ventas+(ventas===1?' venta':' ventas')];
+    if(volumen>0)partes.push('$'+fmtNum(volumen,0)+' operado');
+    return partes.join(' · ');
+}
+
 function actualizarVista(){
     const hoy=getUDate(),mesA=getMesActivo(),ops=opsMes();
     let tp=0,tr=0,stc=0,stv=0,cc=0,cv=0;
     ops.forEach(op=>{if(op.tipo==='compra'){tp=roundMoney(tp+op.monto+(op.comisionBanco||0));stc=roundMoney(stc+op.tasa);cc++}else{tr=roundMoney(tr+op.monto);stv=roundMoney(stv+op.tasa);cv++}});
     const tpc=cc?roundMoney(stc/cc):0,tpv=cv?roundMoney(stv/cv):0,sp=(cc&&cv)?roundMoney(tpv-tpc):0;
-    const hoyStr=getUDateStr(),opsH=ops.filter(o=>o.fecha===hoyStr).length;
+    /* ═══ v5.6.0 — Qué pasó hoy, no solo cuántas ═══
+       La línea bajo el número decía "4 ops hoy" y nada más. Con el mismo espacio
+       puede decir la composición del día y cuánto moviste, que es lo que explica
+       de dónde sale el resultado. Todo sale de datos que ya se recorren acá. */
+    const hoyStr=getUDateStr();
+    const opsDeHoy=ops.filter(o=>o.fecha===hoyStr);
+    const opsH=opsDeHoy.length;
+    let hoyC=0,hoyV=0,hoyVol=0;
+    opsDeHoy.forEach(o=>{
+        if(o.tipo==='compra')hoyC++;else hoyV++;
+        hoyVol=roundMoney(hoyVol+(o.monto||0));
+    });
     const gH=calcularGananciaDiaria()[hoyStr]||0,ghE=$('gananciaHoy'),cH=$('cardGananciaHoy');
     if(gH>=0){ghE.textContent='+$'+fmtNum(gH);ghE.className='card-value positive';cH.className='card main-card'}
     else{ghE.textContent='-$'+fmtNum(Math.abs(gH));ghE.className='card-value negative';cH.className='card main-card negative'}
     const ds=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-    setText('fechaHoy',ds[hoy.getDay()]+' '+hoy.getDate()+'/'+(hoy.getMonth()+1));setText('opsHoy',opsH+' ops hoy');
+    setText('fechaHoy',ds[hoy.getDay()]+' '+hoy.getDate()+'/'+(hoy.getMonth()+1));setText('opsHoy',_lineaDelDia(opsH,hoyC,hoyV,hoyVol));
 
     /* ═══ Spread del día + tendencia vs referencia reciente ═══
        Referencia: spread promedio del último día anterior que tenga tanto compras como ventas.
