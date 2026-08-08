@@ -1,3 +1,18 @@
+/* ═══ Estados vacíos (v5.5.0) ═══
+   Antes decían solo "Sin operaciones". A quien recién empieza eso no le indica
+   nada: un espacio vacío es una invitación a actuar, no un cartel. Ahora cada
+   uno explica qué falta y ofrece la acción que corresponde. Cuando el vacío se
+   debe a los filtros el mensaje es otro, porque ahí la salida es quitarlos. */
+function _estadoVacio(titulo,detalle,accion){
+    return `<div class="empty-state">
+        <div class="empty-state-icon">${ICO_LISTA_VACIA}</div>
+        <div class="empty-state-title">${titulo}</div>
+        ${detalle?`<div class="empty-state-sub">${detalle}</div>`:''}
+        ${accion?`<button class="empty-state-btn" data-action="${accion.accion}">${accion.texto}</button>`:''}
+    </div>`;
+}
+const _VACIO_FILTROS={accion:'ops-filter-clear',texto:'Quitar filtros'};
+
 /* ═══ Íconos de las listas (v5.4.4) ═══
    Editar y borrar eran emojis. Además de verse distinto en cada sistema, un
    emoji no tiene ancho fijo: los dos botones sumaban unos 54px y la columna de
@@ -161,8 +176,10 @@ const pagOp=crearPaginacion({
         $('opsSummary').style.display=total?'grid':'none';
 
         if(!total){
-            const emptyMsg=_opsFiltersActive()?'Sin operaciones que coincidan con los filtros':'Sin operaciones';
-            c.innerHTML=`<div class="empty-state"><div class="empty-state-icon">${ICO_LISTA_VACIA}</div><div>${emptyMsg}</div></div>`;return
+            c.innerHTML=_opsFiltersActive()
+                ? _estadoVacio('Ningún resultado','No hay operaciones que coincidan con los filtros aplicados.',_VACIO_FILTROS)
+                : _estadoVacio('Todavía no cargaste operaciones','Registrá tu primera compra o venta y va a aparecer acá, con su ganancia calculada.',{accion:'ir-nueva-operacion',texto:'Nueva operación'});
+            return
         }
         const ops=allOps.slice(ini,fin);
         let h='<div class="op-cards">';
@@ -225,7 +242,9 @@ const pagMov=crearPaginacion({
             if(!hasAny&&!filtersOn){sec.style.display='none';return}
             sec.style.display='block';
             $('movSummary').style.display='none';
-            $('movimientosContent').innerHTML=`<div class="empty-state"><div class="empty-state-icon">${ICO_LISTA_VACIA}</div><div>${filtersOn?'Sin movimientos que coincidan con los filtros':'Sin movimientos'}</div></div>`;
+            $('movimientosContent').innerHTML=filtersOn
+                ? _estadoVacio('Ningún resultado','No hay ajustes que coincidan con los filtros aplicados.',{accion:'movs-filter-clear',texto:'Quitar filtros'})
+                : _estadoVacio('Sin ajustes de saldo','Usá los ajustes para registrar gastos, ingresos o correcciones que no son compras ni ventas.',{accion:'movimiento',texto:'Nuevo ajuste'});
             return;
         }
         sec.style.display='block';
@@ -279,7 +298,9 @@ const pagTrans=crearPaginacion({
             if(!hasAny&&!filtersOn){sec.style.display='none';return}
             sec.style.display='block';
             $('transSummary').style.display='none';
-            $('transferenciasContent').innerHTML=`<div class="empty-state"><div class="empty-state-icon">${ICO_LISTA_VACIA}</div><div>${filtersOn?'Sin transferencias que coincidan con los filtros':'Sin transferencias'}</div></div>`;
+            $('transferenciasContent').innerHTML=filtersOn
+                ? _estadoVacio('Ningún resultado','No hay transferencias que coincidan con los filtros aplicados.',{accion:'trans-filter-clear',texto:'Quitar filtros'})
+                : _estadoVacio('Sin transferencias','Registrá acá los movimientos de dinero entre tus propias cuentas.',{accion:'transferencia',texto:'Nueva transferencia'});
             return;
         }
         sec.style.display='block';

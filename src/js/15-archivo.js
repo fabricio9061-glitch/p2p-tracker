@@ -658,7 +658,10 @@ function verArchivo(){
     const meses=Object.keys(idx).sort().reverse();
     const body=$('archivoBody');
     if(!meses.length){
-        body.innerHTML='<div class="empty-state"><div class="empty-state-icon">📦</div><div>Todavía no hay meses archivados.</div></div>';
+        body.innerHTML='<div class="empty-state">'+
+            '<div class="empty-state-icon">'+ICONO_ARCHIVO+'</div>'+
+            '<div class="empty-state-title">Todavía no archivaste nada</div>'+
+            '<div class="empty-state-sub">Cuando muevas meses viejos al archivo, vas a poder consultarlos y descargarlos desde acá.</div></div>';
     }else{
         /* Totales de todo lo archivado: permiten cruzar de un vistazo que la suma
            de los meses coincide con lo que muestra cada uno al abrirlo. */

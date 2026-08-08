@@ -102,7 +102,11 @@ document.addEventListener('DOMContentLoaded',()=>{
         });
     })();
     $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview();/* v4.7.59: cambio de tasa puede activar/desactivar split */ renderSplitPanel();/* v4.7.62: re-evaluar pill activa */ renderizarTasasRecientes()});
-    $('banco').addEventListener('change',()=>{AppState.ui.splitExtras=[];mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect();renderSplitPanel()});
+    $('banco').addEventListener('change',()=>{AppState.ui.splitExtras=[];mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect();renderSplitPanel();
+        /* v5.5.0 — Al elegir la cuenta hay que reevaluar el botón y sacar el
+           estado pendiente del campo, si no el aviso se queda pegado. */
+        if(typeof _marcarBancoPendiente==='function')_marcarBancoPendiente();
+        if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();});
     $('comisionBanco').addEventListener('input',()=>{calcularPreview();renderSplitPanel()});
     /* Split pago: listeners delegados para select/input internos */
     $('splitPanel').addEventListener('change',e=>{
@@ -306,6 +310,14 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
         else if(a==='ops-filter-clear'){
             clearOpsFilters();
+        }
+        else if(a==='ir-nueva-operacion'){
+            /* v5.5.0 — Desde el estado vacío de Operaciones: abre el formulario
+               si está plegado y lleva el foco al monto, que es el primer dato. */
+            const sec=$('seccionNuevaOp');
+            if(sec&&!sec.classList.contains('open'))sec.classList.add('open');
+            const m=$('monto');
+            if(m){m.scrollIntoView({block:'center',behavior:'smooth'});setTimeout(()=>m.focus(),300)}
         }
         else if(a==='toggle-mov-filters'){toggleMovsFilters()}
         else if(a==='movs-filter'){

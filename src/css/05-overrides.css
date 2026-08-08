@@ -234,9 +234,14 @@
             font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-tight)}
 
         /* ── Section titles premium ── */
+        /* v5.4.6 — El ícono se alineaba con la línea base del texto, que en un
+           título grande lo dejaba visiblemente bajo. Con caja flexible queda
+           centrado con la altura real de la palabra, sin importar el tamaño. */
         .section-title{font-size:var(--fs-md);font-weight:var(--fw-bold);
             color:var(--c-text);letter-spacing:var(--tracking-tight);
-            margin:var(--sp-6) 0 var(--sp-3)}
+            margin:var(--sp-6) 0 var(--sp-3);
+            display:flex;align-items:center;gap:8px}
+        .section-title .ico{vertical-align:0;width:1.05em;height:1.05em;flex-shrink:0}
 
         /* ── Mis Saldos premium ── */
         #saldosTotales{background:var(--c-surface);border:1px solid var(--c-border);

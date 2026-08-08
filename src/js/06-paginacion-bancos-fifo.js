@@ -82,7 +82,10 @@ function crearPaginacion(cfg) {
         /* Pasamos data (si la tenemos) como 4to arg — renderFn puede hacer slice sin re-filtrar */
         renderFn(ini,fin,total,data);
         $(ids.pagination).style.display=tp>1?'flex':'none';
-        setText(ids.info,`${pag} / ${tp}`);
+        /* v5.4.6 — Antes decía "1 / 29", que informa en qué página estás pero no
+           cuáles estás viendo ni cuántas hay en total. Ahora dice "1–25 de 286". */
+        const desde=ini+1, hasta=Math.min(fin,total);
+        setText(ids.info,`${desde}–${hasta} de ${total}`);
         $(ids.prev).disabled=pag===1;
         $(ids.next).disabled=pag===tp;
     }
@@ -92,7 +95,17 @@ function crearPaginacion(cfg) {
         else total=getTotal();
         const tp=Math.max(1,Math.ceil(total/porPag));
         let pag=getPag()+dir;
-        if(pag<1)pag=1;if(pag>tp)pag=tp;setPag(pag);render();
+        if(pag<1)pag=1;if(pag>tp)pag=tp;setPag(pag);
+        /* ═══ v5.4.6 — La pantalla se corría al pasar de página ═══
+           Cambiar de página reemplaza todas las filas de la lista. Como las filas
+           no miden exactamente lo mismo (un nombre de banco más largo, un importe
+           que ocupa otra línea), el alto total cambia unos píxeles y el navegador
+           reacomoda el scroll. Tocando varias veces seguidas ese corrimiento se
+           acumula y la pantalla termina bajando sola. Se guarda la posición antes
+           de redibujar y se restaura después, así el usuario queda donde estaba. */
+        const y=window.scrollY;
+        render();
+        if(Math.abs(window.scrollY-y)>1)window.scrollTo(0,y);
     }
     return{render,cambiar};
 }

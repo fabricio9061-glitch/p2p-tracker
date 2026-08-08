@@ -392,10 +392,20 @@
         /* ═══ Empty & Pagination ═══ */
         .empty-state{text-align:center;padding:30px;color:var(--c-text-mute)}
         .empty-state-icon{font-size:2em;margin-bottom:8px}
-        .pagination{display:flex;justify-content:center;align-items:center;gap:8px;padding:12px;border-top:1px solid #e2e8f0}
-        .pagination button{background:var(--c-border-soft);border:none;padding:8px 14px;border-radius:6px;font-size:0.85em;cursor:pointer;color:var(--c-text-soft)}
-        .pagination button:disabled{opacity:0.4;cursor:not-allowed}
-        .pagination-info{font-size:0.8em;color:#64748b}
+        /* v5.4.6 — El rango completo ("1–25 de 286") necesita más lugar que el
+           "1 / 29" anterior, así que los botones se van a los extremos y el texto
+           queda centrado. Los botones suben a 44px de alto, la medida mínima
+           recomendada para tocar con el dedo: antes medían 33. */
+        .pagination{display:flex;justify-content:space-between;align-items:center;
+            gap:10px;padding:12px 14px;border-top:1px solid var(--c-border)}
+        .pagination button{background:var(--c-surface);border:1px solid var(--c-border);
+            padding:0 16px;min-height:44px;border-radius:10px;font-size:0.85em;
+            font-weight:600;cursor:pointer;color:var(--c-text-soft);white-space:nowrap}
+        .pagination button:not(:disabled):active{background:var(--c-border-soft)}
+        .pagination button:disabled{opacity:0.35;cursor:not-allowed}
+        .pagination-info{font-size:0.82em;color:var(--c-text-mute);
+            font-variant-numeric:tabular-nums;text-align:center;
+            flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 
         /* ═══════════════════════════════════════════════════════════════
@@ -459,3 +469,54 @@
            arranca en 0,00 en vez de un ejemplo que parecía un valor ya cargado. */
         #monto{font-size:1.25rem;font-weight:650;letter-spacing:-0.01em}
         #monto::placeholder{font-weight:500;color:var(--c-text-mute);opacity:1}
+
+
+        /* ═══════════════════════════════════════════════════════════════
+           TOQUES SIN RETARDO (v5.4.6)
+           Al tocar dos veces seguidas un botón, el navegador del teléfono
+           espera unos milisegundos para decidir si fue un doble toque para
+           ampliar. Durante esa espera puede interpretar el movimiento del
+           dedo como un desplazamiento, y por eso al apretar varias veces
+           seguidas los botones de subir y bajar la tasa, o el de página
+           siguiente, la pantalla se iba bajando sola. Declarar que estos
+           elementos solo aceptan toques simples elimina esa espera.
+           ═══════════════════════════════════════════════════════════════ */
+        button,[data-action],.op-toggle-btn,.tasa-step-btn,.tasa-pill,
+        .pagination button,.menu-row,.toggle-header,.banco-mini-card{
+            touch-action:manipulation;
+        }
+
+
+        /* ═══ Esqueleto de carga (v5.5.0) ═══ */
+        .esqueleto{width:100%;max-width:520px;padding:0 16px}
+        .esq-hero{background:var(--c-surface);border:1px solid var(--c-border);
+            border-radius:16px;padding:16px;margin-bottom:14px}
+        .esq-fila{background:var(--c-surface);border:1px solid var(--c-border);
+            border-radius:12px;padding:12px 14px;margin-bottom:8px}
+        .esq-l{border-radius:6px;
+            background:linear-gradient(90deg,var(--c-surface-2) 25%,var(--c-border) 37%,var(--c-surface-2) 63%);
+            background-size:400% 100%;animation:esqBrillo 1.4s ease infinite}
+        @keyframes esqBrillo{0%{background-position:100% 50%}100%{background-position:0 50%}}
+        @media(prefers-reduced-motion:reduce){.esq-l{animation:none}}
+
+        /* ═══ Estados vacíos con acción (v5.5.0) ═══ */
+        .empty-state-title{font-weight:700;font-size:0.98em;color:var(--c-text);margin-bottom:4px}
+        .empty-state-sub{font-size:0.85em;color:var(--c-text-soft);line-height:1.45;
+            max-width:38ch;margin:0 auto 14px}
+        .empty-state-btn{background:var(--c-brand);color:#fff;border:none;border-radius:10px;
+            padding:0 20px;min-height:44px;font:inherit;font-weight:650;font-size:0.88em;
+            cursor:pointer;touch-action:manipulation}
+        .empty-state-btn:active{filter:brightness(0.93)}
+
+        /* ═══ Objetivos táctiles (v5.5.0) ═══
+           Editar y borrar de cada fila medían 32px de alto y están pegados uno al
+           otro: 12px menos que el mínimo recomendado, en dos botones vecinos donde
+           uno corrige y el otro destruye. Sube el área que responde al toque; el
+           dibujo queda igual. */
+        .btn-delete,.btn-edit-small{min-height:44px;min-width:44px;
+            justify-content:center;touch-action:manipulation}
+
+
+        /* Botón principal bloqueado por dato faltante (v5.5.0) */
+        .btn-split-invalid{background:var(--c-border)!important;color:var(--c-text-mute)!important;
+            cursor:not-allowed;box-shadow:none!important}

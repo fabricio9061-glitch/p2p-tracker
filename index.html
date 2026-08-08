@@ -17,16 +17,27 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.4.5">
-    <link rel="stylesheet" href="src/css/01-base.css?v=5.4.5">
-    <link rel="stylesheet" href="src/css/02-components.css?v=5.4.5">
-    <link rel="stylesheet" href="src/css/03-modals.css?v=5.4.5">
-    <link rel="stylesheet" href="src/css/04-views.css?v=5.4.5">
-    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.4.5">
+    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.5.0">
+    <link rel="stylesheet" href="src/css/01-base.css?v=5.5.0">
+    <link rel="stylesheet" href="src/css/02-components.css?v=5.5.0">
+    <link rel="stylesheet" href="src/css/03-modals.css?v=5.5.0">
+    <link rel="stylesheet" href="src/css/04-views.css?v=5.5.0">
+    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.5.0">
 </head>
 <body>
     <!-- ═══ OVERLAYS ═══ -->
-    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div style="color:#64748b;font-size:0.9em">Cargando...</div></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <!-- v5.5.0 — Antes había un círculo girando sobre pantalla en blanco. Un
+             esqueleto con la forma de lo que está por aparecer hace que la espera
+             se sienta más corta, porque la pantalla ya se parece al resultado. -->
+        <div class="esqueleto" aria-label="Cargando" role="status">
+            <div class="esq-hero"><div class="esq-l" style="width:34%;height:13px"></div><div class="esq-l" style="width:56%;height:30px;margin-top:9px"></div><div class="esq-l" style="width:22%;height:11px;margin-top:8px"></div></div>
+            <div class="esq-fila"><div class="esq-l" style="width:44%;height:15px"></div><div class="esq-l" style="width:64%;height:11px;margin-top:6px"></div></div>
+            <div class="esq-fila"><div class="esq-l" style="width:37%;height:15px"></div><div class="esq-l" style="width:58%;height:11px;margin-top:6px"></div></div>
+            <div class="esq-fila"><div class="esq-l" style="width:49%;height:15px"></div><div class="esq-l" style="width:52%;height:11px;margin-top:6px"></div></div>
+            <div class="esq-fila"><div class="esq-l" style="width:31%;height:15px"></div><div class="esq-l" style="width:61%;height:11px;margin-top:6px"></div></div>
+        </div>
+    </div>
     <div class="cooldown-overlay hidden" id="cooldownOverlay"><div class="spinner"></div><div class="cooldown-text">Guardado ✓</div></div>
 
     <!-- ═══ AUTH ═══ -->
@@ -372,21 +383,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <script src="src/js/01-config.js?v=5.4.5"></script>
-    <script src="src/js/02-state.js?v=5.4.5"></script>
-    <script src="src/js/03-news-changelog.js?v=5.4.5"></script>
-    <script src="src/js/04-utils-filtros.js?v=5.4.5"></script>
-    <script src="src/js/05-integridad.js?v=5.4.5"></script>
-    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.4.5"></script>
-    <script src="src/js/07-firebase-sync.js?v=5.4.5"></script>
-    <script src="src/js/08-backup-recovery-sdk.js?v=5.4.5"></script>
-    <script src="src/js/09-form-split.js?v=5.4.5"></script>
-    <script src="src/js/10-mov-transf-calendario.js?v=5.4.5"></script>
-    <script src="src/js/11-paginaciones-dashboard.js?v=5.4.5"></script>
-    <script src="src/js/12-lotes-reset-importexport.js?v=5.4.5"></script>
-    <script src="src/js/13-eventos.js?v=5.4.5"></script>
-    <script src="src/js/14-recovery-write.js?v=5.4.5"></script>
-    <script src="src/js/15-archivo.js?v=5.4.5"></script>
-    <script src="src/js/16-store-v2.js?v=5.4.5"></script>
+    <script src="src/js/01-config.js?v=5.5.0"></script>
+    <script src="src/js/02-state.js?v=5.5.0"></script>
+    <script src="src/js/03-news-changelog.js?v=5.5.0"></script>
+    <script src="src/js/04-utils-filtros.js?v=5.5.0"></script>
+    <script src="src/js/05-integridad.js?v=5.5.0"></script>
+    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.5.0"></script>
+    <script src="src/js/07-firebase-sync.js?v=5.5.0"></script>
+    <script src="src/js/08-backup-recovery-sdk.js?v=5.5.0"></script>
+    <script src="src/js/09-form-split.js?v=5.5.0"></script>
+    <script src="src/js/10-mov-transf-calendario.js?v=5.5.0"></script>
+    <script src="src/js/11-paginaciones-dashboard.js?v=5.5.0"></script>
+    <script src="src/js/12-lotes-reset-importexport.js?v=5.5.0"></script>
+    <script src="src/js/13-eventos.js?v=5.5.0"></script>
+    <script src="src/js/14-recovery-write.js?v=5.5.0"></script>
+    <script src="src/js/15-archivo.js?v=5.5.0"></script>
+    <script src="src/js/16-store-v2.js?v=5.5.0"></script>
 </body>
 </html>

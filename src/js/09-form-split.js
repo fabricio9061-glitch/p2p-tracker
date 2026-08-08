@@ -339,12 +339,22 @@ function _updateBtnGuardarState(){
             const hayVacio=(AppState.ui.splitExtras||[]).some(ex=>!ex.banco);
             if(hayVacio){blockNow=true;reason='Seleccioná un banco en cada fila'}
         }
+        /* v5.5.0 — La cuenta es obligatoria pero el botón se veía listo igual, y
+           el aviso llegaba recién al tocarlo. Ahora el botón dice qué falta antes
+           de que lo intentes. Se usa el mismo marcador que el pago dividido, así
+           que no pisa los bloqueos por guardado en curso ni por espera. */
+        if(!blockNow && !$('banco').value){
+            blockNow=true;
+            reason=$('tipo').value==='compra'?'Elegí de qué cuenta sale':'Elegí a qué cuenta entra';
+        }
     }catch(e){/* defensivo */}
     if(blockNow){
         btn.disabled=true;
         btn.dataset.splitInvalid='1';
         btn.classList.add('btn-split-invalid');
         btn.setAttribute('title',reason);
+        /* El motivo va en el propio botón: es donde está mirando el usuario */
+        btn.textContent=reason;
     }else if(wasOurs){
         /* Solo restauro si el disabled fue puesto por NOSOTROS — no toco si
            es por cooldown/guardando que tienen su propio ciclo de vida */
@@ -352,6 +362,8 @@ function _updateBtnGuardarState(){
         delete btn.dataset.splitInvalid;
         btn.classList.remove('btn-split-invalid');
         btn.removeAttribute('title');
+        /* Devolver la etiqueta real (con el ícono y la cantidad calculada) */
+        if(typeof calcularPreview==='function')calcularPreview();
     }
 }
 
