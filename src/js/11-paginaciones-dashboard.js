@@ -501,8 +501,10 @@ function _pintarComparacion(arrEl,pctEl,actual,base){
     arrEl.textContent=arr;
     pctEl.classList.remove('hc-up','hc-down','hc-flat');
     pctEl.classList.add(cls);
+    /* v5.6.1 — La flecha ya indica la dirección, así que el signo delante del
+       importe lo repetía: se veía "↓ -$5.888". Va solo el monto. */
     pctEl.textContent=enPesos
-        ? (dif>=0?'+$':'-$')+fmtNum(Math.abs(dif),0)
+        ? '$'+fmtNum(Math.abs(dif),0)
         : (abs>=10?fmtNum(abs,0):fmtNum(abs,1))+'%';
     /* El detalle completo queda al mantener presionado */
     const caja=pctEl.closest('.hoy-cell');
@@ -596,20 +598,23 @@ function _renderGananciaSparkline(){
            Va en su propio try: si algo fallara acá, el gráfico —que ya está
            dibujado— no tiene por qué desaparecer con ella. */
         try{
-        const leyEl=$('sparkLeyenda');
+        /* v5.6.1 — Este resumen ocupaba dos renglones propios dentro de la
+           tarjeta. Ahora acompaña al gráfico: se ve al mantenerlo presionado en
+           el teléfono o al pasar el mouse en la computadora, sin robar espacio. */
+        const leyEl=cont;
         if(leyEl){
             const verdes=dias.filter(v=>v>0.005).length;
             let iMejor=-1,mejor=0;
             dias.forEach((v,i)=>{if(v>mejor){mejor=v;iMejor=i}});
             if(verdes===0&&maxNeg<=0.005){
-                leyEl.textContent='Sin movimientos en los últimos 14 días';
+                leyEl.title='Sin movimientos en los últimos 14 días';
             }else{
                 let txt=`${verdes} de ${n} días en verde`;
                 if(iMejor>=0){
                     const d=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()-(n-1-iMejor));
                     txt+=` · mejor: $${fmtNum(mejor,0)} el ${d.getDate()}/${d.getMonth()+1}`;
                 }
-                leyEl.textContent=txt;
+                leyEl.title=txt;
             }
         }
         }catch(e2){console.warn('[P2P] leyenda del gráfico (no crítico):',e2&&e2.message)}
@@ -620,16 +625,24 @@ function _renderGananciaSparkline(){
     }
 }
 
-/* Arma la línea que va bajo la ganancia del día. Si hubo una sola clase de
-   operación no repite la palabra "operaciones": queda "4 compras · $18.400". */
+/* Línea que va bajo la ganancia del día.
+   v5.6.1 — Antes desglosaba compras y ventas, pero con muchas operaciones el
+   texto no entraba y se partía en dos renglones, empujando la tarjeta hacia
+   abajo y restándole protagonismo al número. Ahora es una sola línea corta; el
+   desglose queda al mantenerla presionada. */
 function _lineaDelDia(total,compras,ventas,volumen){
     if(!total)return 'Sin operaciones hoy';
-    let partes;
-    if(compras&&ventas)partes=[compras+(compras===1?' compra':' compras'),ventas+(ventas===1?' venta':' ventas')];
-    else if(compras)partes=[compras+(compras===1?' compra':' compras')];
-    else partes=[ventas+(ventas===1?' venta':' ventas')];
-    if(volumen>0)partes.push('$'+fmtNum(volumen,0)+' operado');
-    return partes.join(' · ');
+    let t=total+(total===1?' op':' ops');
+    if(volumen>0)t+=' · $'+fmtNum(volumen,0)+' operado';
+    return t;
+}
+function _detalleDelDia(total,compras,ventas,volumen){
+    if(!total)return '';
+    const p=[];
+    if(compras)p.push(compras+(compras===1?' compra':' compras'));
+    if(ventas)p.push(ventas+(ventas===1?' venta':' ventas'));
+    if(volumen>0)p.push('$'+fmtNum(volumen,2)+' operado');
+    return p.join(' · ');
 }
 
 function actualizarVista(){
@@ -654,6 +667,7 @@ function actualizarVista(){
     else{ghE.textContent='-$'+fmtNum(Math.abs(gH));ghE.className='card-value negative';cH.className='card main-card negative'}
     const ds=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     setText('fechaHoy',ds[hoy.getDay()]+' '+hoy.getDate()+'/'+(hoy.getMonth()+1));setText('opsHoy',_lineaDelDia(opsH,hoyC,hoyV,hoyVol));
+    {const oe=$('opsHoy');if(oe)oe.title=_detalleDelDia(opsH,hoyC,hoyV,hoyVol);}
 
     /* ═══ Spread del día + tendencia vs referencia reciente ═══
        Referencia: spread promedio del último día anterior que tenga tanto compras como ventas.

@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.6.0',
+    APP_VERSION: '5.6.1',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.6.1', date:'2026-08-08', headline:'✂️ Menos texto en Ganancia Hoy: el número vuelve a ser lo primero.', changes:[
+        {type:'improve', title:'La tarjeta del día quedó cargada de texto', desc:'La versión anterior sumó dos líneas de contexto, pero con muchas operaciones ninguna entraba en el ancho disponible y cada una se partía en dos renglones: la tarjeta creció hasta cuatro líneas de texto y el número grande, que es lo que se mira primero, quedó apretado entre medio. Ahora hay una sola línea corta con la cantidad de operaciones y el volumen. El desglose de compras y ventas se ve al mantenerla presionada, y el resumen de los catorce días pasó a acompañar al propio gráfico, también al mantenerlo presionado. La información sigue estando, pero deja de competir con la cifra.'},
+        {type:'fix', title:'La comparación mostraba el signo dos veces', desc:'Cuando la diferencia se expresa en pesos aparecía como "flecha hacia abajo, menos cinco mil ochocientos ochenta y ocho": la flecha ya indica la dirección, así que el signo delante del importe lo repetía. Ahora va solo el monto.'}
+    ]},
     {version:'5.6.0', date:'2026-08-08', headline:'📐 La comparación del día dejó de mentir y el resultado se ve mientras escribís.', changes:[
         {type:'fix', title:'El porcentaje del día no significaba nada cuando el signo cambiaba', desc:'La comparación se calcula como la diferencia dividida por el día de referencia. Mientras los dos días tengan el mismo signo el resultado se entiende: pasar de menos mil seiscientos a menos cuatrocientos es una mejora del setenta y dos por ciento. Pero si un día fue de ganancia y el otro de pérdida, el número deja de decir algo: con la semana en más quinientos treinta y cuatro y el día en menos cuatrocientos cincuenta y cuatro aparecía "ciento ochenta y cinco por ciento menos", que no informa que pasaste de ganar a perder ni cuánto. Ahora, cuando el signo se da vuelta, se muestra la diferencia en pesos, que siempre se entiende. Lo mismo cuando el porcentaje supera el cuatrocientos por ciento, donde ya deja de ser intuitivo. Manteniendo presionado se ve el detalle de ambos valores.'},
         {type:'improve', title:'El gráfico ahora dice el número, no solo la forma', desc:'Las catorce barras transmitían una sensación pero ninguna cifra. Debajo aparece una línea que la convierte en dato: cuántos de esos días cerraron en verde y cuál fue el mejor, con su fecha. Es lo que hasta ahora había que deducir mirando.'},
@@ -395,11 +399,6 @@ const CHANGELOG = [
     {version:'5.4.5', date:'2026-08-07', headline:'💸 El campo de monto arranca en 0,00 y los indicadores quedaron parejos.', changes:[
         {type:'improve', title:'El monto ya no muestra un ejemplo que parecía un valor cargado', desc:'El campo mostraba 3.900 en gris como sugerencia, pero a simple vista se leía como si ya hubiera un importe puesto. Ahora arranca en 0,00, igual que en la aplicación del banco: queda claro que está vacío y esperando. Además la cifra se agrandó, porque es el primer dato de cada operación y el que más se escribe, y hasta ahora se veía igual que cualquier otro campo.'},
         {type:'improve', title:'El porcentaje del spread pasó al costado', desc:'La insignia de tendencia estaba fuera de la línea de la cifra, así que caía a un tercer renglón y ese indicador quedaba más alto que los otros dos: la fila de tres se veía despareja. Ahora va a la derecha del importe, en la misma línea, y los tres miden igual. También se retiró una cuarta columna que había quedado vacía y los tres indicadores ganaron algo de aire.'}
-    ]},
-    {version:'5.4.4', date:'2026-08-07', headline:'🧹 Editar y borrar ya no se pisan, y la gráfica aprovecha el espacio.', changes:[
-        {type:'fix', title:'Los botones de editar y borrar se salían de su columna', desc:'Eran emojis, y un emoji no tiene ancho previsible: entre los dos sumaban unos cincuenta y cuatro píxeles mientras la columna reservada mide cincuenta y dos en ajustes y transferencias, así que se desbordaban y se superponían con la fecha. Ahora son íconos dibujados con medida exacta de veintiséis por veintiséis, y la columna se llevó a sesenta píxeles en todas las listas para que quede aire de sobra.'},
-        {type:'improve', title:'Todo lo que se ve en pantalla usa íconos', desc:'Quedaban emojis dentro del programa, no en la página: los de editar y borrar de cada fila, los que aparecen al deslizar en el teléfono, la etiqueta de categoría en los ajustes, el encabezado del modal de ajuste externo, las flechas de ingreso y egreso y los avisos de lista vacía. Todos pasaron a íconos. Los únicos que siguen son los de las opciones de listas desplegables y los campos de búsqueda, donde el navegador no permite otra cosa.'},
-        {type:'improve', title:'La gráfica reparte el espacio según lo que pasó', desc:'El cero quedaba siempre en el medio apenas hubiera una pérdida, así que si trece días cerraron en verde y uno en rojo, la mitad de abajo quedaba vacía y las barras verdes se aplastaban arriba. Ahora el espacio se reparte en proporción: si las pérdidas son chicas ocupan poco y las ganancias usan el alto disponible. Las barras además son un poco más anchas y la línea de cero aparece solo cuando hay valores de los dos lados.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
