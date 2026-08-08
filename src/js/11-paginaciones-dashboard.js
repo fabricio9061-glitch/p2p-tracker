@@ -472,7 +472,7 @@ function _renderGananciaSparkline(){
     if(!cont)return;
     try{
         const diaria=calcularGananciaDiaria();
-        /* Construir serie de los últimos 14 días calendario hasta hoy */
+        /* Serie de los últimos 14 días calendario hasta hoy */
         const hoy=getUDate();
         const dias=[];
         for(let i=13;i>=0;i--){
@@ -482,45 +482,59 @@ function _renderGananciaSparkline(){
         }
         const n=dias.length;
         if(n<2){cont.innerHTML='';return}
-        const min=Math.min(...dias),max=Math.max(...dias);
-        const range=(max-min)||1;
-        /* v4.7.60 — Lote A: padding real para que la curva nunca toque los
-           bordes del card. Antes era pad=4 (apenas) → ahora padY=8, padX=6.
-           El SVG sigue siendo del mismo W×H, no cambia tamaño, solo respira. */
-        const W=140,H=62,padX=6,padY=8;
-        const xStep=(W-padX*2)/(n-1);
-        const pts=dias.map((v,i)=>{
-            const x=padX+i*xStep;
-            const y=H-padY-((v-min)/range)*(H-padY*2);
-            return[x,y];
+
+        /* ═══ v5.4.3 — Barras en vez de línea ═══
+           La ganancia diaria son valores sueltos, uno por día: una línea sugiere
+           que entre el lunes y el martes hubo una transición gradual, y eso no
+           existe. Con una barra por día se lee de un vistazo cuántos días
+           cerraron en verde y cuántos en rojo, que es la pregunta real.
+           Antes el dibujo era de 140×62 fijo aunque el espacio reservado llega a
+           240×90 en pantalla grande: por eso se veía chico y perdido. Ahora se
+           mide el contenedor y se dibuja a su tamaño. */
+        const caja=cont.getBoundingClientRect();
+        const W=Math.max(120,Math.round(caja.width)||150);
+        const H=Math.max(56,Math.round(caja.height)||70);
+        const padX=4,padY=7;
+        const util=W-padX*2, alto=H-padY*2;
+
+        /* Escala simétrica alrededor del cero: una pérdida de mil y una ganancia
+           de mil se dibujan del mismo alto, hacia lados opuestos. */
+        const tope=Math.max(...dias.map(v=>Math.abs(v)))||1;
+        const hayNeg=dias.some(v=>v<-0.005);
+        /* Sin días negativos el cero va abajo y las barras usan todo el alto */
+        const yCero=hayNeg?padY+alto/2:H-padY;
+        const altoMax=hayNeg?alto/2:alto;
+
+        const paso=util/n;
+        const ancho=Math.max(3,Math.min(9,paso*0.62));
+        const radio=Math.min(2,ancho/2);
+
+        let barras='';
+        dias.forEach((v,i)=>{
+            const cx=padX+paso*i+paso/2;
+            const h=Math.max(1.5,(Math.abs(v)/tope)*altoMax);
+            const neg=v<-0.005;
+            const y=neg?yCero:yCero-h;
+            const esHoy=i===n-1;
+            const col=neg?'#dc2626':(Math.abs(v)<0.005?'#cbd5e1':'#16a34a');
+            barras+=`<rect x="${(cx-ancho/2).toFixed(1)}" y="${y.toFixed(1)}" `+
+                    `width="${ancho.toFixed(1)}" height="${h.toFixed(1)}" rx="${radio}" `+
+                    `fill="${col}" opacity="${esHoy?1:0.38}"/>`;
         });
-        const pathD=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
-        const areaD=pathD+` L${pts[n-1][0].toFixed(1)} ${H-padY} L${pts[0][0].toFixed(1)} ${H-padY} Z`;
-        /* v4.7.60 — color según ganancia de HOY (último día). Coherente con
-           el monto principal: si hoy es rojo, la línea es roja. Antes
-           comparaba último vs promedio (técnicamente correcto pero confuso). */
-        const ult=dias[n-1];
-        const neg=ult<0;
-        const stroke=neg?'#dc2626':'#16a34a';
-        const gradColor=neg?'#ef4444':'#22c55e';
-        const gradId=neg?'spkGradNeg':'spkGradPos';
-        /* v4.7.60 — gradiente sutil debajo del área + último punto destacado
-           con halo blanco (anillo) para que respire del fondo de la card. */
-        cont.innerHTML=
-            `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg">`+
-            `<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">`+
-                `<stop offset="0%" stop-color="${gradColor}" stop-opacity="0.28"/>`+
-                `<stop offset="100%" stop-color="${gradColor}" stop-opacity="0"/>`+
-            `</linearGradient></defs>`+
-            `<path d="${areaD}" fill="url(#${gradId})"/>`+
-            `<path d="${pathD}" stroke="${stroke}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`+
-            `<circle cx="${pts[n-1][0].toFixed(1)}" cy="${pts[n-1][1].toFixed(1)}" r="4" fill="#fff" stroke="${stroke}" stroke-width="1.5"/>`+
-            `<circle cx="${pts[n-1][0].toFixed(1)}" cy="${pts[n-1][1].toFixed(1)}" r="2" fill="${stroke}"/>`+
-            `</svg>`;
+
+        /* Línea de cero: sin ella no se sabe dónde empieza una pérdida */
+        const lineaCero=hayNeg
+            ? `<line x1="${padX}" y1="${yCero.toFixed(1)}" x2="${(W-padX).toFixed(1)}" y2="${yCero.toFixed(1)}" `+
+              `stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 3" opacity="0.55"/>`
+            : '';
+
+        cont.innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" `+
+            `xmlns="http://www.w3.org/2000/svg" role="img" `+
+            `aria-label="Ganancia de los últimos 14 días">${lineaCero}${barras}</svg>`;
     }catch(e){
-        /* Nunca romper el dashboard por el sparkline */
+        /* Nunca romper el panel por la gráfica */
         cont.innerHTML='';
-        console.warn('[P2P] sparkline falló (no crítico):',e&&e.message);
+        console.warn('[P2P] gráfica de ganancia falló (no crítico):',e&&e.message);
     }
 }
 

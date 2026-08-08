@@ -17,12 +17,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.4.1">
-    <link rel="stylesheet" href="src/css/01-base.css?v=5.4.1">
-    <link rel="stylesheet" href="src/css/02-components.css?v=5.4.1">
-    <link rel="stylesheet" href="src/css/03-modals.css?v=5.4.1">
-    <link rel="stylesheet" href="src/css/04-views.css?v=5.4.1">
-    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.4.1">
+    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.4.3">
+    <link rel="stylesheet" href="src/css/01-base.css?v=5.4.3">
+    <link rel="stylesheet" href="src/css/02-components.css?v=5.4.3">
+    <link rel="stylesheet" href="src/css/03-modals.css?v=5.4.3">
+    <link rel="stylesheet" href="src/css/04-views.css?v=5.4.3">
+    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.4.3">
 </head>
 <body>
     <!-- ═══ OVERLAYS ═══ -->
@@ -32,7 +32,7 @@
     <!-- ═══ AUTH ═══ -->
     <div class="auth-container" id="authContainer">
         <div class="auth-box">
-            <div class="auth-logo">💱</div>
+            <div class="auth-logo"><svg class="logo-svg logo-svg-auth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/><path d="M12 2v3M12 19v3"/></svg></div>
             <h1 class="auth-title">Registro P2P</h1>
             <p class="auth-subtitle">Control de operaciones y saldos</p>
             <div class="auth-tabs">
@@ -59,12 +59,12 @@
         <div class="container">
             <div class="header">
                 <div class="header-left">
-                    <h1>💱 Registro P2P</h1>
+                    <h1><svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/><path d="M12 2v3M12 19v3"/></svg> Registro P2P</h1>
                     <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
                 </div>
                 <div class="menu-container">
                     <button class="news-bell" id="newsBellBtn" aria-label="Centro de novedades">
-                        <span class="news-bell-icon">🔔</span>
+                        <span class="news-bell-icon"><svg class="news-bell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg></span>
                         <span class="news-bell-badge hidden" id="newsBellBadge">0</span>
                     </button>
                     <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
@@ -232,7 +232,7 @@
                         <div class="ops-summary-item"><div class="val" id="opsSumGanancia" style="color:#16a34a">$0</div><div class="lbl">Ganancia</div></div>
                         <div class="ops-summary-item"><div class="val" id="opsSumTotal">0</div><div class="lbl">Total</div></div>
                     </div>
-                    <div id="tablaContent"><div class="empty-state"><div class="empty-state-icon">📝</div><div>Sin operaciones</div></div></div>
+                    <div id="tablaContent"><div class="empty-state"><div class="empty-state-icon"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></div><div>Sin operaciones</div></div></div>
                     <div class="pagination" id="paginationOp" style="display:none"><button id="btnPrevOp">← Ant</button><span class="pagination-info" id="paginaInfoOp">1 / 1</span><button id="btnNextOp">Sig →</button></div>
                 </div>
             </div>
@@ -308,7 +308,7 @@
         <div id="mergeSourceCard" class="merge-source"></div>
         <div class="merge-help">Elegí una categoría destino. Todos los movimientos se moverán y la categoría origen se eliminará.</div>
         <div class="merge-tabs">
-            <button class="merge-tab active" data-mergetab="existing" id="mergeTabExisting">📂 Usar existente</button>
+            <button class="merge-tab active" data-mergetab="existing" id="mergeTabExisting"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg> Usar existente</button>
             <button class="merge-tab" data-mergetab="new" id="mergeTabNew">✨ Crear nueva</button>
         </div>
         <div id="mergePanelExisting">
@@ -372,21 +372,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <script src="src/js/01-config.js?v=5.4.1"></script>
-    <script src="src/js/02-state.js?v=5.4.1"></script>
-    <script src="src/js/03-news-changelog.js?v=5.4.1"></script>
-    <script src="src/js/04-utils-filtros.js?v=5.4.1"></script>
-    <script src="src/js/05-integridad.js?v=5.4.1"></script>
-    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.4.1"></script>
-    <script src="src/js/07-firebase-sync.js?v=5.4.1"></script>
-    <script src="src/js/08-backup-recovery-sdk.js?v=5.4.1"></script>
-    <script src="src/js/09-form-split.js?v=5.4.1"></script>
-    <script src="src/js/10-mov-transf-calendario.js?v=5.4.1"></script>
-    <script src="src/js/11-paginaciones-dashboard.js?v=5.4.1"></script>
-    <script src="src/js/12-lotes-reset-importexport.js?v=5.4.1"></script>
-    <script src="src/js/13-eventos.js?v=5.4.1"></script>
-    <script src="src/js/14-recovery-write.js?v=5.4.1"></script>
-    <script src="src/js/15-archivo.js?v=5.4.1"></script>
-    <script src="src/js/16-store-v2.js?v=5.4.1"></script>
+    <script src="src/js/01-config.js?v=5.4.3"></script>
+    <script src="src/js/02-state.js?v=5.4.3"></script>
+    <script src="src/js/03-news-changelog.js?v=5.4.3"></script>
+    <script src="src/js/04-utils-filtros.js?v=5.4.3"></script>
+    <script src="src/js/05-integridad.js?v=5.4.3"></script>
+    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.4.3"></script>
+    <script src="src/js/07-firebase-sync.js?v=5.4.3"></script>
+    <script src="src/js/08-backup-recovery-sdk.js?v=5.4.3"></script>
+    <script src="src/js/09-form-split.js?v=5.4.3"></script>
+    <script src="src/js/10-mov-transf-calendario.js?v=5.4.3"></script>
+    <script src="src/js/11-paginaciones-dashboard.js?v=5.4.3"></script>
+    <script src="src/js/12-lotes-reset-importexport.js?v=5.4.3"></script>
+    <script src="src/js/13-eventos.js?v=5.4.3"></script>
+    <script src="src/js/14-recovery-write.js?v=5.4.3"></script>
+    <script src="src/js/15-archivo.js?v=5.4.3"></script>
+    <script src="src/js/16-store-v2.js?v=5.4.3"></script>
 </body>
 </html>

@@ -288,7 +288,7 @@
         .r2{
             display:flex;
             align-items:center;
-            gap:0;
+            gap:9px;
             height:17px;
             line-height:17px;
             padding:0 10px 3px 10px;
@@ -301,10 +301,14 @@
            puntos separadores. */
         .r2 span{font-size:0.73em;white-space:nowrap}
         /* Separador dot entre peers — margen a cada lado asegura spacing parejo */
-        /* v5.4.0 — Los puntos separadores se ocultan: el espacio ya separa y
-           quitarlos baja el ruido visual de una lista de cientos de filas. El
-           elemento se conserva para no tocar el HTML generado. */
-        .r2 .r2-sep{display:inline-block;width:9px;overflow:hidden;color:transparent;flex-shrink:0}
+        /* v5.4.3 — Los puntos separadores se ocultan por completo y la separación
+           la da el `gap` de la fila. En 5.4.0 se los había dejado visibles pero
+           transparentes, con una regla de especificidad 0,2,0 que le ganaba a la
+           de escritorio (0,1,0) incluso dentro de su media query: allá seguían
+           contando como elementos de la cuadrícula, y con dos de más la fecha y
+           los botones caían a una segunda fila que quedaba recortada. Ocultarlos
+           de verdad elimina el conflicto en las dos pantallas. */
+        .r2 .r2-sep{display:none}
         /* Contraste: var(--c-text-mute) sobre blanco queda por debajo del mínimo legible
            para texto chico. #64748b lo cumple sin dejar de ser secundario. */
         .r2-c1{color:#64748b;flex-shrink:0}
@@ -413,3 +417,32 @@
         .filter-icon .ico{width:0.95em;height:0.95em;opacity:0.7}
         .menu-row-icon .ico{width:1.15em;height:1.15em;opacity:0.55}
         .modal-header .ico{opacity:0.55}
+
+
+        /* Marca, campana y estado vacío (v5.4.2) */
+        .logo-svg{width:1em;height:1em;vertical-align:-0.1em;color:var(--c-accent);stroke-width:2.2}
+        .logo-svg-auth{width:2.2em;height:2.2em;color:var(--c-accent)}
+        .news-bell-svg{width:1.25em;height:1.25em;vertical-align:-0.2em;color:var(--c-text-soft)}
+        .empty-svg{width:2em;height:2em;color:var(--c-border);stroke-width:1.5}
+
+
+        /* ═══ Campo obligatorio (v5.4.3) ═══
+           La cuenta de origen es obligatoria pero se veía igual que un campo
+           opcional: el aviso llegaba recién al tocar el botón. Ahora el rótulo
+           lleva una marca y el campo queda en ámbar mientras esté sin elegir.
+           Ámbar y no rojo a propósito: todavía no es un error, es algo que falta. */
+        label .oblig{color:var(--c-danger);font-weight:700;margin-left:1px}
+        select.pendiente{border-color:#fcd34d;background:#fffbeb}
+        select.pendiente:focus-visible{border-color:#f59e0b}
+
+        /* ═══ Foco visible para teclado (v5.4.3) ═══
+           No existía ninguna regla de foco en toda la app: al recorrer el
+           formulario con el tabulador no había forma de saber dónde estabas.
+           Se usa :focus-visible, así que el aro sale con teclado y no al tocar
+           con el dedo, que es cuando molesta. */
+        input:focus-visible,select:focus-visible,textarea:focus-visible,
+        button:focus-visible,[data-action]:focus-visible,[tabindex]:focus-visible{
+            outline:2px solid var(--c-accent);
+            outline-offset:2px;
+            border-radius:6px;
+        }

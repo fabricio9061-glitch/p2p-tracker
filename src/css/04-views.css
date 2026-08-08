@@ -96,20 +96,24 @@
             .banco-saldo{font-size:0.95em}
             .section-title{font-size:0.88em;margin-bottom:8px}
             /* 2-column layout */
-            .desktop-columns{display:grid;grid-template-columns:320px 1fr;gap:14px;align-items:start}
+            /* v5.4.2 — La columna pasa de 320 a 372px. Con 320 el formulario entraba
+               pero a costa de encoger todo: rótulos de 9px, campos de 14px y botones
+               de 32. Es la acción principal de la app y quedaba como un panel
+               secundario. Los 52px extra salen de la lista, que sigue teniendo aire. */
+            .desktop-columns{display:grid;grid-template-columns:372px 1fr;gap:16px;align-items:start}
             .col-left{position:sticky;top:14px}
             /* Compact form panel */
-            .col-left .form-content{padding:8px 10px}
-            .col-left .form-group{margin-bottom:5px}
-            .col-left .form-group input,.col-left .form-group select{padding:7px 9px;font-size:14px}
-            .col-left .form-group label{font-size:0.65em;margin-bottom:2px}
-            .col-left .op-toggle{margin-bottom:8px}
-            .col-left .op-toggle-btn{padding:6px 4px;font-size:0.76em}
-            .col-left .tasa-block{padding:5px 8px;margin-bottom:6px}
+            .col-left .form-content{padding:12px 14px}
+            .col-left .form-group{margin-bottom:9px}
+            .col-left .form-group input,.col-left .form-group select{padding:10px 11px;font-size:15px}
+            .col-left .form-group label{font-size:0.76em;margin-bottom:4px}
+            .col-left .op-toggle{margin-bottom:11px}
+            .col-left .op-toggle-btn{padding:9px 6px;font-size:0.84em}
+            .col-left .tasa-block{padding:9px 11px;margin-bottom:10px}
             .col-left .tasa-block input{font-size:19px}
-            .col-left .tasa-block label{font-size:0.6em}
-            .col-left .tasa-block .tasa-step-btn{width:32px;height:32px;font-size:1.15em}
-            .col-left .op-summary{padding:5px 8px;margin-top:6px}
+            .col-left .tasa-block label{font-size:0.72em}
+            .col-left .tasa-block .tasa-step-btn{width:40px;height:40px;font-size:1.15em}
+            .col-left .op-summary{padding:9px 11px;margin-top:10px}
             .col-left .op-summary-row{font-size:0.7em;padding:1px 0}
             .col-left .op-summary-row.main{font-size:0.88em;padding:2px 0}
             .col-left .op-btn-wrap{margin-top:6px;padding:4px 0 0}
@@ -147,9 +151,15 @@
                transfer/conversion) o por data-attribute del wrapper. */
             .op-card-body{display:grid;column-gap:10px;height:32px;line-height:32px;align-items:center;padding:0 12px}
             
-            /* Operaciones (compra/venta): monto | G/P | tasa | USDT | % | banco | fecha | actions */
+            /* Operaciones: monto | G/P | tasa | USDT | banco | fecha | acciones
+               v5.4.2 — Eran OCHO columnas porque la fila incluía la comisión. Al
+               sacarla en 5.4.0 quedaron siete elementos para ocho columnas: todo se
+               corrió un lugar, la fecha cayó en la columna de acciones (52px) y se
+               mostraba recortada como "07/08 0", mientras los botones de editar y
+               borrar aparecían flotando en el medio de la fila.
+               La fecha ahora tiene ancho propio para que nunca pueda recortarse. */
             .op-card.compra .op-card-body,
-            .op-card.venta .op-card-body{grid-template-columns:1fr auto auto auto auto 1fr auto 52px}
+            .op-card.venta .op-card-body{grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr) 80px 56px}
             
             /* Movimientos (ajustes): monto | tipo | conv-USDT | tag | banco | fecha | actions */
             [data-mov-id] .op-card-body{grid-template-columns:130px 80px 90px 1fr 130px 100px 52px}
@@ -172,9 +182,11 @@
             .r2-fecha{font-size:0.68em;color:#b0b8c4;text-align:right;white-space:nowrap}
             .r2 span{font-size:inherit}
             /* Actions: dedicated column, visible on hover only */
-            .dk-actions{display:flex;gap:3px;justify-content:flex-end;align-items:center;visibility:hidden}
+            .dk-actions{display:flex;gap:4px;justify-content:flex-end;align-items:center;visibility:hidden}
             .op-card:hover .dk-actions{visibility:visible}
-            .dk-actions button{padding:2px 6px;min-height:20px;font-size:0.68em}
+            /* v5.4.2 — 20px de alto era muy poco incluso con mouse, y editar y
+               borrar están pegados. Suben a 26px sin agrandar el dibujo. */
+            .dk-actions button{padding:4px 7px;min-height:26px;font-size:0.68em}
             /* Desktop summary */
             .ops-summary{max-width:none;width:auto;margin:0;border-radius:0;padding:4px 14px;border:none;border-bottom:1px solid #e2e8f0;background:#fafbfc}
             .ops-summary-item .val{font-size:0.9em}

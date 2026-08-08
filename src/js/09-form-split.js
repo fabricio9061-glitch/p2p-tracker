@@ -43,7 +43,7 @@ function actualizarColorSelect(){
     $('opToggleCompra').className='op-toggle-btn'+(isC?' active-compra':'');
     $('opToggleVenta').className='op-toggle-btn'+(isC?'':' active-venta');
     const btn=$('btnAgregarOp');
-    btn.textContent=isC?'📥 Comprar USDT':'📤 Vender USDT';
+    btn.innerHTML=_btnOpHtml(isC,isC?'Comprar USDT':'Vender USDT');
     btn.className='btn '+(isC?'op-btn-compra':'op-btn-venta');
 }
 function actualizarColorBancoSelect(){const s=$('banco'),v=s.value;s.style.color=v?getBancoColor(v):'#1e293b';s.style.fontWeight=v?'600':'400'}
@@ -55,7 +55,12 @@ function actualizarFormulario(){
     AppState.ui.ultimoMonedaBanco=mon;
     const sy=isU?'USD':'UYU';
     setText('montoLabel',t==='compra'?`Comprás por (${sy})`:`Vendés por (${sy})`);
-    setText('bancoLabel',t==='compra'?'Sale de':'Entra a');
+    /* v5.4.3 — La cuenta es obligatoria pero se veía igual que un campo opcional,
+       y recién al tocar el botón aparecía el aviso. Ahora el rótulo lo marca y el
+       campo queda en estado "pendiente" mientras esté sin elegir. */
+    const _lbl=$('bancoLabel');
+    if(_lbl)_lbl.innerHTML=(t==='compra'?'Sale de':'Entra a')+' <span class="oblig" title="Campo obligatorio">*</span>';
+    _marcarBancoPendiente();
     $('comisionBancoGroup').style.display=t==='compra'?'block':'none';
     $('comisionBancoGroup').parentElement.style.gridTemplateColumns=t==='compra'?'1fr 1fr':'1fr';
     if(t==='venta')$('comisionBanco').value='0';
@@ -110,13 +115,13 @@ function calcularPreview(){
         }else{setText('opSumBancoLabel','Saldo');setText('opSumBancoValue','--')}
 
         /* Dynamic button */
-        btn.textContent=isC?`📥 Comprar ${fmtTrunc(neto,2)} USDT`:`📤 Vender ${fmtTrunc(neto,2)} USDT`;
+        btn.innerHTML=_btnOpHtml(isC,(isC?'Comprar ':'Vender ')+fmtTrunc(neto,2)+' USDT');
 
         $('previewBox').style.display='none';
     }else{
         sum.style.display='none';$('previewBox').style.display='none';
         setText('comisionPlataformaInfo','0 USDT');
-        btn.textContent=isC?'📥 Comprar USDT':'📤 Vender USDT';
+        btn.innerHTML=_btnOpHtml(isC,isC?'Comprar USDT':'Vender USDT');
     }
 }
 
@@ -310,6 +315,20 @@ function renderSplitPanel(){
    Idempotente: si no aplica split o todo está OK, restaura el estado
    normal del botón. No interfiere con otros estados (cooldown, etc).
    ════════════════════════════════════════════════════════════════ */
+/* v5.4.3 — El texto del botón principal se escribía con textContent, así que
+   pisaba el ícono puesto en el HTML y el emoji volvía a aparecer. Ahora el ícono
+   viaja acá. El contenido es fijo salvo una cifra ya formateada, así que armarlo
+   como HTML es seguro. */
+const _ICO_COMPRA='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg>';
+const _ICO_VENTA ='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v13M7 8l5-5 5 5"/></svg>';
+function _btnOpHtml(isC,texto){return (isC?_ICO_COMPRA:_ICO_VENTA)+' '+texto}
+
+/* Estado visual del campo de cuenta: pendiente mientras no se eligió */
+function _marcarBancoPendiente(){
+    const sel=$('banco');if(!sel)return;
+    sel.classList.toggle('pendiente',!sel.value);
+}
+
 function _updateBtnGuardarState(){
     const btn=$('btnAgregarOp');if(!btn)return;
     /* Marker propio para no pisar otros disabled (cooldown, guardando) */
