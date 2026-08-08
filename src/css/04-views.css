@@ -159,16 +159,16 @@
                borrar aparecían flotando en el medio de la fila.
                La fecha ahora tiene ancho propio para que nunca pueda recortarse. */
             .op-card.compra .op-card-body,
-            .op-card.venta .op-card-body{grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr) 80px 56px}
+            .op-card.venta .op-card-body{grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr) 84px 60px}
             
             /* Movimientos (ajustes): monto | tipo | conv-USDT | tag | banco | fecha | actions */
-            [data-mov-id] .op-card-body{grid-template-columns:130px 80px 90px 1fr 130px 100px 52px}
+            [data-mov-id] .op-card-body{grid-template-columns:130px 80px 90px minmax(0,1fr) 130px 100px 60px}
             
             /* Transferencias: monto | comisión | origen | flecha | destino | fecha | actions */
-            [data-trans-id] .op-card-body{grid-template-columns:130px 110px minmax(110px,1fr) 20px minmax(110px,1fr) 100px 52px}
+            [data-trans-id] .op-card-body{grid-template-columns:130px 110px minmax(110px,1fr) 20px minmax(110px,1fr) 100px 60px}
             
             /* Conversiones: monto-doble | tasa | origen | flecha | destino | fecha | actions */
-            [data-conv-id] .op-card-body{grid-template-columns:1fr auto minmax(110px,auto) 20px minmax(110px,auto) 100px 52px}
+            [data-conv-id] .op-card-body{grid-template-columns:minmax(0,1fr) auto minmax(110px,auto) 20px minmax(110px,auto) 100px 60px}
             
             .r1-monto{font-size:0.82em;font-weight:600;color:var(--c-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
             .r1-gp{font-size:0.88em;font-weight:800;text-align:left;letter-spacing:-0.3px;white-space:nowrap}
@@ -184,9 +184,13 @@
             /* Actions: dedicated column, visible on hover only */
             .dk-actions{display:flex;gap:4px;justify-content:flex-end;align-items:center;visibility:hidden}
             .op-card:hover .dk-actions{visibility:visible}
-            /* v5.4.2 — 20px de alto era muy poco incluso con mouse, y editar y
-               borrar están pegados. Suben a 26px sin agrandar el dibujo. */
-            .dk-actions button{padding:4px 7px;min-height:26px;font-size:0.68em}
+            /* v5.4.4 — Medida exacta. Con emojis los botones no tenían ancho
+               previsible: sumaban unos 54px y se salían de la columna de 52,
+               pisando la fecha. Un ícono mide lo que se le indique. */
+            .dk-actions button{width:26px;height:26px;min-height:26px;padding:0;
+                display:inline-flex;align-items:center;justify-content:center}
+            .dk-actions .ico-accion{width:14px;height:14px;opacity:0.75}
+            .dk-actions button:hover .ico-accion{opacity:1}
             /* Desktop summary */
             .ops-summary{max-width:none;width:auto;margin:0;border-radius:0;padding:4px 14px;border:none;border-bottom:1px solid #e2e8f0;background:#fafbfc}
             .ops-summary-item .val{font-size:0.9em}

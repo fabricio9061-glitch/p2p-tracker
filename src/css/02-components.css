@@ -446,3 +446,16 @@
             outline-offset:2px;
             border-radius:6px;
         }
+
+
+        /* Etiqueta de categoría e íconos de deslizar (v5.4.4) */
+        .ico-tag{width:0.92em;height:0.92em;vertical-align:-0.13em;opacity:0.75;margin-right:1px}
+        .op-swipe-bg .ico-accion{width:20px;height:20px;color:#fff;opacity:1}
+
+
+        /* ═══ Campo de monto (v5.4.5) ═══
+           Es el primer dato de cada operación y el que más se escribe, pero se
+           veía igual que cualquier otro campo. Ahora la cifra es más grande y
+           arranca en 0,00 en vez de un ejemplo que parecía un valor ya cargado. */
+        #monto{font-size:1.25rem;font-weight:650;letter-spacing:-0.01em}
+        #monto::placeholder{font-weight:500;color:var(--c-text-mute);opacity:1}

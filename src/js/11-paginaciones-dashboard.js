@@ -1,3 +1,13 @@
+/* ═══ Íconos de las listas (v5.4.4) ═══
+   Editar y borrar eran emojis. Además de verse distinto en cada sistema, un
+   emoji no tiene ancho fijo: los dos botones sumaban unos 54px y la columna de
+   acciones mide 52 en ajustes y transferencias, así que se salían y se pisaban
+   con la fecha. Un ícono mide exactamente lo que se le indica. */
+const ICO_EDITAR='<svg class="ico ico-accion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+const ICO_BORRAR='<svg class="ico ico-accion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>';
+const ICO_ETIQUETA='<svg class="ico ico-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L12 22l-9-9V3h10l7.6 7.6a2 2 0 010 2.8zM7.5 7.5h.01"/></svg>';
+const ICO_LISTA_VACIA='<svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>';
+
 function renderizarCalendario(){
     const y=AppState.ui.calendarDate.getFullYear(),mo=AppState.ui.calendarDate.getMonth();
     setText('calendarMonth',`${y}-${String(mo+1).padStart(2,'0')}`);
@@ -152,7 +162,7 @@ const pagOp=crearPaginacion({
 
         if(!total){
             const emptyMsg=_opsFiltersActive()?'Sin operaciones que coincidan con los filtros':'Sin operaciones';
-            c.innerHTML=`<div class="empty-state"><div class="empty-state-icon">📝</div><div>${emptyMsg}</div></div>`;return
+            c.innerHTML=`<div class="empty-state"><div class="empty-state-icon">${ICO_LISTA_VACIA}</div><div>${emptyMsg}</div></div>`;return
         }
         const ops=allOps.slice(ini,fin);
         let h='<div class="op-cards">';
@@ -184,14 +194,14 @@ const pagOp=crearPaginacion({
             const cPct=op.comisionPct!==undefined?op.comisionPct:0.14;
 
             h+=`<div class="op-swipe-wrap">
-                <div class="op-swipe-bg edit">✏️</div>
-                <div class="op-swipe-bg delete">🗑️</div>
+                <div class="op-swipe-bg edit">${ICO_EDITAR}</div>
+                <div class="op-swipe-bg delete">${ICO_BORRAR}</div>
                 <div class="op-swipe-content" data-op-id="${op.id}">
                     <div class="op-card ${op.tipo}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${op._syncState==='pending'?'<span class="sync-dot" title="Pendiente de sincronizar"></span>':''}${fmtMonto(op.monto,op.moneda)}</span><span class="r1-gp" style="color:${gc}">${gt}</span></div>
                             <div class="r2"><span class="r2-c1">${fmtTasaMon(op.tasa,op.moneda)}</span><span class="r2-sep">·</span><span class="r2-c2" title="Comisión Binance ${fmtNum(cPct,2)}%${cl?' · FIFO: '+cl:''}">${fmtTrunc(un,2)} USDT</span><span class="r2-sep">·</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(op.banco)}" title="${Array.isArray(op.aportes)&&op.aportes.length>1?'Pago dividido: '+op.aportes.map(a=>a.banco+' $'+fmtNum(a.monto,0)).join(' · '):''}">${op.banco||'-'}${Array.isArray(op.aportes)&&op.aportes.length>1?' <span style="font-size:0.85em;color:#f59e0b;font-weight:700">+'+(op.aportes.length-1)+'</span>':''}</span><span class="r2-fecha">${fmtFechaHora(op.fecha,op.hora,op.timestamp)}</span></span></div>
-                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">✏️</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">🗑️</button></span>
+                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-op" data-id="${op.id}">${ICO_EDITAR}</button><button class="btn-delete" data-action="eliminar-op" data-id="${op.id}">${ICO_BORRAR}</button></span>
                         </div>
                     </div>
                 </div>
@@ -215,7 +225,7 @@ const pagMov=crearPaginacion({
             if(!hasAny&&!filtersOn){sec.style.display='none';return}
             sec.style.display='block';
             $('movSummary').style.display='none';
-            $('movimientosContent').innerHTML=`<div class="empty-state"><div class="empty-state-icon">📭</div><div>${filtersOn?'Sin movimientos que coincidan con los filtros':'Sin movimientos'}</div></div>`;
+            $('movimientosContent').innerHTML=`<div class="empty-state"><div class="empty-state-icon">${ICO_LISTA_VACIA}</div><div>${filtersOn?'Sin movimientos que coincidan con los filtros':'Sin movimientos'}</div></div>`;
             return;
         }
         sec.style.display='block';
@@ -236,17 +246,17 @@ const pagMov=crearPaginacion({
             /* UYU equivalent for USDT adjustments — shows conversion using persisted valorUYU
                (computed in FIFO replay for both ingreso/egreso) with fallback to live calc */
             const uyuEq=isUsdt?movimientoValorUYU(m):0;
-            const c1Txt=isUsdt?(uyuEq>0?'≈ $'+fmtNum(uyuEq,0):'🪙 USDT'):'';
+            const c1Txt=isUsdt?(uyuEq>0?'≈ $'+fmtNum(uyuEq,0):'USDT'):'';
 
             h+=`<div class="op-swipe-wrap">
-                <div class="op-swipe-bg edit">✏️</div>
-                <div class="op-swipe-bg delete">🗑️</div>
+                <div class="op-swipe-bg edit">${ICO_EDITAR}</div>
+                <div class="op-swipe-bg delete">${ICO_BORRAR}</div>
                 <div class="op-swipe-content" data-mov-id="${m.id}">
                     <div class="op-card ${isI?'compra':'venta'}">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${m._syncState==='pending'?'<span class="sync-dot" title="Pendiente de sincronizar"></span>':''}${sy}${fmtNum(m.monto)}${suf}</span><span class="r1-gp" style="color:${isI?'#16a34a':'#dc2626'}">${isI?'Ingreso':'Egreso'}</span></div>
-                            <div class="r2"><span class="r2-c1">${c1Txt}</span><span class="r2-c2">${descTxt?'🏷️ '+descTxt:''}</span><span class="r2-c3"><span class="r2-banco" style="color:${isUsdt?'#64748b':getBancoColor(m.banco)}">${isUsdt?'':m.banco||''}</span><span class="r2-fecha">${fmtFechaHora(m.fecha,m.hora,m.timestamp)}</span></span></div>
-                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-mov" data-id="${m.id}">✏️</button><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">🗑️</button></span>
+                            <div class="r2"><span class="r2-c1">${c1Txt}</span><span class="r2-c2">${descTxt?ICO_ETIQUETA+' '+descTxt:''}</span><span class="r2-c3"><span class="r2-banco" style="color:${isUsdt?'#64748b':getBancoColor(m.banco)}">${isUsdt?'':m.banco||''}</span><span class="r2-fecha">${fmtFechaHora(m.fecha,m.hora,m.timestamp)}</span></span></div>
+                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-mov" data-id="${m.id}">${ICO_EDITAR}</button><button class="btn-delete" data-action="eliminar-mov" data-id="${m.id}">${ICO_BORRAR}</button></span>
                         </div>
                     </div>
                 </div>
@@ -269,7 +279,7 @@ const pagTrans=crearPaginacion({
             if(!hasAny&&!filtersOn){sec.style.display='none';return}
             sec.style.display='block';
             $('transSummary').style.display='none';
-            $('transferenciasContent').innerHTML=`<div class="empty-state"><div class="empty-state-icon">📭</div><div>${filtersOn?'Sin transferencias que coincidan con los filtros':'Sin transferencias'}</div></div>`;
+            $('transferenciasContent').innerHTML=`<div class="empty-state"><div class="empty-state-icon">${ICO_LISTA_VACIA}</div><div>${filtersOn?'Sin transferencias que coincidan con los filtros':'Sin transferencias'}</div></div>`;
             return;
         }
         sec.style.display='block';
@@ -284,14 +294,14 @@ const pagTrans=crearPaginacion({
             const oi=getBancoInfo(tr.origen),sy=getSym(oi?.moneda);
 
             h+=`<div class="op-swipe-wrap">
-                <div class="op-swipe-bg edit">✏️</div>
-                <div class="op-swipe-bg delete">🗑️</div>
+                <div class="op-swipe-bg edit">${ICO_EDITAR}</div>
+                <div class="op-swipe-bg delete">${ICO_BORRAR}</div>
                 <div class="op-swipe-content" data-trans-id="${tr.id}">
                     <div class="op-card transfer">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${tr._syncState==='pending'?'<span class="sync-dot" title="Pendiente de sincronizar"></span>':''}${sy}${fmtNum(tr.monto)}</span><span class="r1-gp" style="color:#475569;font-weight:600;font-size:0.78em">${tr.comision>0?'Com: '+sy+fmtNum(tr.comision):''}</span></div>
                             <div class="r2"><span class="r2-c1" style="color:${getBancoColor(tr.origen)}">${tr.origen}</span><span class="r2-c2">→</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(tr.destino)}">${tr.destino}</span><span class="r2-fecha">${fmtFechaHora(tr.fecha,tr.hora,tr.timestamp)}</span></span></div>
-                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-trans" data-id="${tr.id}">✏️</button><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">🗑️</button></span>
+                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-trans" data-id="${tr.id}">${ICO_EDITAR}</button><button class="btn-delete" data-action="eliminar-trans" data-id="${tr.id}">${ICO_BORRAR}</button></span>
                         </div>
                     </div>
                 </div>
@@ -314,14 +324,14 @@ const pagConv=crearPaginacion({
         cvs.forEach(c=>{
             const syO=getSym(c.monedaOrigen),syD=getSym(c.monedaDestino);
             h+=`<div class="op-swipe-wrap">
-                <div class="op-swipe-bg edit">✏️</div>
-                <div class="op-swipe-bg delete">🗑️</div>
+                <div class="op-swipe-bg edit">${ICO_EDITAR}</div>
+                <div class="op-swipe-bg delete">${ICO_BORRAR}</div>
                 <div class="op-swipe-content" data-conv-id="${c.id}">
                     <div class="op-card conversion">
                         <div class="op-card-body">
                             <div class="r1"><span class="r1-monto">${c._syncState==='pending'?'<span class="sync-dot" title="Pendiente de sincronizar"></span>':''}${syO}${fmtNum(c.montoOrigen)} → ${syD}${fmtNum(c.montoDestino)}</span><span class="r1-gp" style="color:#64748b;font-weight:600;font-size:0.72em">T: ${fmtNum(c.tasa)}</span></div>
                             <div class="r2"><span class="r2-c1" style="color:${getBancoColor(c.origen)}">${c.origen}</span><span class="r2-c2">→</span><span class="r2-c3"><span class="r2-banco" style="color:${getBancoColor(c.destino)}">${c.destino}</span><span class="r2-fecha">${fmtFechaHora(c.fecha,c.hora,c.timestamp)}</span></span></div>
-                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-conv" data-id="${c.id}">✏️</button><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">🗑️</button></span>
+                            <span class="dk-actions"><button class="btn-edit-small" data-action="editar-conv" data-id="${c.id}">${ICO_EDITAR}</button><button class="btn-delete" data-action="eliminar-conv" data-id="${c.id}">${ICO_BORRAR}</button></span>
                         </div>
                     </div>
                 </div>
@@ -499,21 +509,30 @@ function _renderGananciaSparkline(){
 
         /* Escala simétrica alrededor del cero: una pérdida de mil y una ganancia
            de mil se dibujan del mismo alto, hacia lados opuestos. */
-        const tope=Math.max(...dias.map(v=>Math.abs(v)))||1;
-        const hayNeg=dias.some(v=>v<-0.005);
-        /* Sin días negativos el cero va abajo y las barras usan todo el alto */
-        const yCero=hayNeg?padY+alto/2:H-padY;
-        const altoMax=hayNeg?alto/2:alto;
+/* ═══ v5.4.4 — Escala proporcional a lo que realmente pasó ═══
+           Antes el cero iba siempre al medio cuando había alguna pérdida. Si trece
+           días cerraron en verde y uno en rojo, la mitad de abajo quedaba casi
+           vacía y las barras verdes se aplastaban en la mitad de arriba. Ahora el
+           espacio se reparte según cuánto sube y cuánto baja: si las pérdidas son
+           chicas ocupan poco, y las barras aprovechan el alto disponible. */
+        const maxPos=Math.max(0,...dias),maxNeg=Math.max(0,...dias.map(v=>-v));
+        const hayNeg=maxNeg>0.005,hayPos=maxPos>0.005;
+        const total=(maxPos+maxNeg)||1;
+        /* Cada lado recibe al menos un 18% para que una barra mínima se vea */
+        let fracArriba = !hayNeg?1 : !hayPos?0 : Math.min(0.82,Math.max(0.18,maxPos/total));
+        const altoArriba=alto*fracArriba, altoAbajo=alto-altoArriba;
+        const yCero=padY+altoArriba;
 
         const paso=util/n;
-        const ancho=Math.max(3,Math.min(9,paso*0.62));
-        const radio=Math.min(2,ancho/2);
+        const ancho=Math.max(4,Math.min(11,paso*0.68));
+        const radio=Math.min(2.5,ancho/2);
 
         let barras='';
         dias.forEach((v,i)=>{
             const cx=padX+paso*i+paso/2;
-            const h=Math.max(1.5,(Math.abs(v)/tope)*altoMax);
             const neg=v<-0.005;
+            const ref=neg?maxNeg:maxPos, esp=neg?altoAbajo:altoArriba;
+            const h=Math.max(1.5,ref>0?(Math.abs(v)/ref)*esp:1.5);
             const y=neg?yCero:yCero-h;
             const esHoy=i===n-1;
             const col=neg?'#dc2626':(Math.abs(v)<0.005?'#cbd5e1':'#16a34a');
@@ -523,7 +542,7 @@ function _renderGananciaSparkline(){
         });
 
         /* Línea de cero: sin ella no se sabe dónde empieza una pérdida */
-        const lineaCero=hayNeg
+        const lineaCero=(hayNeg&&hayPos)
             ? `<line x1="${padX}" y1="${yCero.toFixed(1)}" x2="${(W-padX).toFixed(1)}" y2="${yCero.toFixed(1)}" `+
               `stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 3" opacity="0.55"/>`
             : '';
