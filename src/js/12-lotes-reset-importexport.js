@@ -15,8 +15,8 @@ function abrirEditarLote(id){
         AppState.ui.loteEditandoId=null;
         return;
     }
-    if(l){setText('editarLoteHeader','✏️ Editar Lote');$('lotePrecio').value=fmtNum(l.precioCompra,l.moneda==='USD'?3:2);$('loteDisponible').value=fmtNum(l.disponible);$('loteFecha').value=l.fecha||'';$('btnEliminarLote').style.display='';$('loteButtons').style.gridTemplateColumns='1fr 1fr 1fr'}
-    else{setText('editarLoteHeader','➕ Agregar Lote');$('lotePrecio').value=AppState.datos.ultimaTasaCompra?fmtNum(AppState.datos.ultimaTasaCompra):'';$('loteDisponible').value='';$('loteFecha').value=getUDateStr();$('btnEliminarLote').style.display='none';$('loteButtons').style.gridTemplateColumns='1fr 1fr'}
+    if(l){{const _h=$('editarLoteHeader');if(_h)_h.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'+' Editar Lote';}$('lotePrecio').value=fmtNum(l.precioCompra,l.moneda==='USD'?3:2);$('loteDisponible').value=fmtNum(l.disponible);$('loteFecha').value=l.fecha||'';$('btnEliminarLote').style.display='';$('loteButtons').style.gridTemplateColumns='1fr 1fr 1fr'}
+    else{{const _h=$('editarLoteHeader');if(_h)_h.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'+' Agregar Lote';}$('lotePrecio').value=AppState.datos.ultimaTasaCompra?fmtNum(AppState.datos.ultimaTasaCompra):'';$('loteDisponible').value='';$('loteFecha').value=getUDateStr();$('btnEliminarLote').style.display='none';$('loteButtons').style.gridTemplateColumns='1fr 1fr'}
     abrirModal('modalEditarLote');
 }
 async function guardarLote(){

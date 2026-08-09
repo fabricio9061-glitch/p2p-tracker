@@ -304,7 +304,7 @@ function updateMergeConfirmBox(){
     const isNew=AppState.ui.mergeMode==='new'&&!tags.some(t=>tagKey(t)===tagKey(dest));
     box.style.display='block';
     box.innerHTML=`<div>Se moverán <b>${stats.count} movimiento${stats.count!==1?'s':''}</b>${stats.totalUYU>0?` (<b>$${fmtNum(stats.totalUYU,0)}</b>)`:''} de <b>${escHtml(src)}</b> hacia <b>${escHtml(dest)}</b>${isNew?' <span style="font-size:0.7em;background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:6px;font-weight:700">NUEVA</span>':''}.</div>
-        <div class="merge-confirm-warning">⚠️ <span><b>${escHtml(src)}</b> se eliminará y el historial quedará unificado bajo <b>${escHtml(dest)}</b>.</span></div>`;
+        <div class="merge-confirm-warning"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> <span><b>${escHtml(src)}</b> se eliminará y el historial quedará unificado bajo <b>${escHtml(dest)}</b>.</span></div>`;
     btn.disabled=false;
 }
 function confirmarFusion(){
@@ -407,7 +407,7 @@ function renderizarGestionTags(){
         pf.innerHTML=periodos.map(([k,l])=>`<button style="padding:4px 10px;font-size:0.7em;border-radius:12px;border:1px solid ${periodo===k?'#2563eb':'#e2e8f0'};background:${periodo===k?'#2563eb':'white'};color:${periodo===k?'white':'#64748b'};cursor:pointer;font-weight:500" data-action="tag-periodo" data-periodo="${k}">${l}</button>`).join('');
     }
     const vt=$('tagViewToggle');
-    if(vt){const views=[['dona','🍩 Dona'],['barras','📊 Barras']];
+    if(vt){const views=[['dona','<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15.5A9 9 0 118.5 3v9h9a9 9 0 013.5 3.5z"/><path d="M20.9 9.5A9 9 0 0014.5 3.1V9.5h6.4z"/></svg> Dona'],['barras','<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg> Barras']];
         vt.innerHTML=views.map(([k,l])=>`<button class="gastos-view-btn ${view===k?'active':''}" data-action="tag-view" data-view="${k}">${l}</button>`).join('');
     }
 
@@ -493,7 +493,7 @@ function renderizarGestionTags(){
             /* Meta chips: impact + sin tag warning + period variation */
             let metaChips='';
             if(impactoPct>0)metaChips+=`<span class="gastos-meta-chip impact"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l6 6 4-4 7 7M14 16h7v-7"/></svg> ${impactoPct}% de la ganancia</span>`;
-            if(sinTagUYU>0&&sinTagPct>=10)metaChips+=`<span class="gastos-meta-chip warning">⚠️ ${sinTagPct}% sin clasificar</span>`;
+            if(sinTagUYU>0&&sinTagPct>=10)metaChips+=`<span class="gastos-meta-chip warning"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> ${sinTagPct}% sin clasificar</span>`;
             if(prevFilter&&prevGrandTotal>0){
                 const diff=roundMoney(grandTotal-prevGrandTotal);
                 const pct=Math.abs(Math.round(diff/prevGrandTotal*100));
@@ -563,7 +563,7 @@ function renderizarGestionTags(){
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="tag-name">${escHtml(t.tag)}</span>${pct>0?`<span style="font-size:0.6em;background:#fef2f2;color:#dc2626;padding:1px 5px;border-radius:8px">${pct}%</span>`:''}${varChip}</div>
                 <div style="font-size:0.65em;color:#94a3b8;margin-top:2px">${metaParts.join(' · ')}</div>
             </div>
-            <div class="tag-actions"><button class="tag-edit-btn" data-action="merge-tag" data-tag="${escHtml(t.tag)}" title="Fusionar">🔗</button><button class="tag-edit-btn" data-action="editar-tag" data-tag="${escHtml(t.tag)}">✏️</button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${escHtml(t.tag)}">🗑️</button></div>
+            <div class="tag-actions"><button class="tag-edit-btn" data-action="merge-tag" data-tag="${escHtml(t.tag)}" title="Fusionar categoría" aria-label="Fusionar"><svg class="ico ico-accion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/></svg></button><button class="tag-edit-btn" data-action="editar-tag" data-tag="${escHtml(t.tag)}" title="Editar nombre" aria-label="Editar"><svg class="ico ico-accion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${escHtml(t.tag)}" title="Eliminar categoría" aria-label="Eliminar"><svg class="ico ico-accion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg></button></div>
         </div>`;
     });
     cont.innerHTML=h;

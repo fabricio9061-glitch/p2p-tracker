@@ -17,12 +17,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.6.2">
-    <link rel="stylesheet" href="src/css/01-base.css?v=5.6.2">
-    <link rel="stylesheet" href="src/css/02-components.css?v=5.6.2">
-    <link rel="stylesheet" href="src/css/03-modals.css?v=5.6.2">
-    <link rel="stylesheet" href="src/css/04-views.css?v=5.6.2">
-    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.6.2">
+    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.6.3">
+    <link rel="stylesheet" href="src/css/01-base.css?v=5.6.3">
+    <link rel="stylesheet" href="src/css/02-components.css?v=5.6.3">
+    <link rel="stylesheet" href="src/css/03-modals.css?v=5.6.3">
+    <link rel="stylesheet" href="src/css/04-views.css?v=5.6.3">
+    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.6.3">
 </head>
 <body>
     <!-- ═══ OVERLAYS ═══ -->
@@ -38,7 +38,7 @@
             <div class="esq-fila"><div class="esq-l" style="width:31%;height:15px"></div><div class="esq-l" style="width:61%;height:11px;margin-top:6px"></div></div>
         </div>
     </div>
-    <div class="cooldown-overlay hidden" id="cooldownOverlay"><div class="spinner"></div><div class="cooldown-text">Guardado ✓</div></div>
+    <div class="cooldown-overlay hidden" id="cooldownOverlay"><div class="spinner"></div><div class="cooldown-text"><svg class="ico ico-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg> Guardado</div></div>
 
     <!-- ═══ AUTH ═══ -->
     <div class="auth-container" id="authContainer">
@@ -292,7 +292,12 @@
 
     <!-- ═══ MODALS ═══ -->
     <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:14px"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6a2 2 0 012-2h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V6zm0 4h18M8 2v4M16 2v4"/></svg> Calendario</div><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div id="calendarDayDetail"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 0V6a2 2 0 012-2h9M17 13h.01"/></svg> Ganancia Acumulada (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 10h.01M18 14h.01"/></svg> Ganancia Acumulada (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div><div class="calendar-metrics" id="calMetrics"></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
-    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Ajuste Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg> Ingreso</button><button class="tab tab-egreso" id="tabEgreso"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v13M7 8l5-5 5 5"/></svg> Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label><select id="movTipoCuenta" class="select-tipo"><option value="banco">Banco</option><option value="usdt">USDT</option></select></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco" class="select-banco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="text" inputmode="decimal" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group mov-monto-group"><label id="movMontoLabel">Monto</label><input type="text" inputmode="decimal" id="movMonto" class="mov-monto-input" placeholder="0"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción</label><textarea id="movDescripcion" rows="1" placeholder="Ej: Almuerzo, Uber, etc."></textarea><div id="tagSugerenciasMov"></div></div><div id="movResumen" class="mov-resumen" style="display:none"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
+    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Ajuste Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg> Ingreso</button><button class="tab tab-egreso" id="tabEgreso"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v13M7 8l5-5 5 5"/></svg> Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label>
+                        <!-- v5.6.3 — Las opciones de una lista desplegable no admiten dibujos,
+                             así que el ícono va sobre el campo y cambia con la selección. Al
+                             desplegarla, el teléfono muestra su propio selector con el texto. -->
+                        <div class="select-con-icono"><span class="select-icono" id="movTipoIcono"></span>
+                        <select id="movTipoCuenta" class="select-tipo"><option value="banco">Banco</option><option value="usdt">USDT</option></select></div></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco" class="select-banco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="text" inputmode="decimal" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group mov-monto-group"><label id="movMontoLabel">Monto</label><input type="text" inputmode="decimal" id="movMonto" class="mov-monto-input" placeholder="0"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción</label><textarea id="movDescripcion" rows="1" placeholder="Ej: Almuerzo, Uber, etc."></textarea><div id="tagSugerenciasMov"></div></div><div id="movResumen" class="mov-resumen" style="display:none"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18"/></svg> Cuentas Bancarias</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
@@ -317,7 +322,7 @@
         <div class="merge-help">Elegí una categoría destino. Todos los movimientos se moverán y la categoría origen se eliminará.</div>
         <div class="merge-tabs">
             <button class="merge-tab active" data-mergetab="existing" id="mergeTabExisting"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg> Usar existente</button>
-            <button class="merge-tab" data-mergetab="new" id="mergeTabNew">✨ Crear nueva</button>
+            <button class="merge-tab" data-mergetab="new" id="mergeTabNew"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></svg> Crear nueva</button>
         </div>
         <div id="mergePanelExisting">
             <input type="text" id="mergeSearch" class="tag-search" placeholder="Buscar destino…" style="margin-bottom:8px">
@@ -352,7 +357,7 @@
         </div>
     </div>
     <div id="modalEditarOp" class="modal"><div class="modal-content">
-        <div class="modal-header" id="editarOpHeader">✏️ Editar Operación</div>
+        <div class="modal-header" id="editarOpHeader"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Editar Operación</div>
         <div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div>
         <div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div>
         <div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div>
@@ -380,21 +385,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <script src="src/js/01-config.js?v=5.6.2"></script>
-    <script src="src/js/02-state.js?v=5.6.2"></script>
-    <script src="src/js/03-news-changelog.js?v=5.6.2"></script>
-    <script src="src/js/04-utils-filtros.js?v=5.6.2"></script>
-    <script src="src/js/05-integridad.js?v=5.6.2"></script>
-    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.6.2"></script>
-    <script src="src/js/07-firebase-sync.js?v=5.6.2"></script>
-    <script src="src/js/08-backup-recovery-sdk.js?v=5.6.2"></script>
-    <script src="src/js/09-form-split.js?v=5.6.2"></script>
-    <script src="src/js/10-mov-transf-calendario.js?v=5.6.2"></script>
-    <script src="src/js/11-paginaciones-dashboard.js?v=5.6.2"></script>
-    <script src="src/js/12-lotes-reset-importexport.js?v=5.6.2"></script>
-    <script src="src/js/13-eventos.js?v=5.6.2"></script>
-    <script src="src/js/14-recovery-write.js?v=5.6.2"></script>
-    <script src="src/js/15-archivo.js?v=5.6.2"></script>
-    <script src="src/js/16-store-v2.js?v=5.6.2"></script>
+    <script src="src/js/01-config.js?v=5.6.3"></script>
+    <script src="src/js/02-state.js?v=5.6.3"></script>
+    <script src="src/js/03-news-changelog.js?v=5.6.3"></script>
+    <script src="src/js/04-utils-filtros.js?v=5.6.3"></script>
+    <script src="src/js/05-integridad.js?v=5.6.3"></script>
+    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.6.3"></script>
+    <script src="src/js/07-firebase-sync.js?v=5.6.3"></script>
+    <script src="src/js/08-backup-recovery-sdk.js?v=5.6.3"></script>
+    <script src="src/js/09-form-split.js?v=5.6.3"></script>
+    <script src="src/js/10-mov-transf-calendario.js?v=5.6.3"></script>
+    <script src="src/js/11-paginaciones-dashboard.js?v=5.6.3"></script>
+    <script src="src/js/12-lotes-reset-importexport.js?v=5.6.3"></script>
+    <script src="src/js/13-eventos.js?v=5.6.3"></script>
+    <script src="src/js/14-recovery-write.js?v=5.6.3"></script>
+    <script src="src/js/15-archivo.js?v=5.6.3"></script>
+    <script src="src/js/16-store-v2.js?v=5.6.3"></script>
 </body>
 </html>

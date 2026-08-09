@@ -549,3 +549,16 @@
             white-space:nowrap;font-variant-numeric:tabular-nums}
         .eco-resultado.venta .eco-n{color:var(--c-accent-strong)}
         .eco-resultado.oculto{display:none}
+
+
+        /* ═══ Selector con ícono (v5.6.3) ═══
+           Las opciones de una lista desplegable solo aceptan texto, así que el
+           dibujo se coloca encima del campo y acompaña a la opción elegida. */
+        .select-con-icono{position:relative}
+        .select-con-icono .select-tipo{padding-left:38px}
+        .select-icono{
+            position:absolute;left:12px;top:50%;transform:translateY(-50%);
+            pointer-events:none;display:flex;align-items:center;
+            color:var(--c-text-soft);z-index:1;
+        }
+        .select-icono .ico{width:1.15em;height:1.15em;opacity:0.75}

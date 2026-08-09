@@ -107,7 +107,17 @@ function abrirModalMovimiento(editId){
     abrirModal('modalMovimiento');
 }
 function setTipoMovimiento(t){AppState.ui.tipoMovimiento=t;AppState.ui._tagShowAll=false;$('tabIngreso').className='tab tab-ingreso'+(t==='ingreso'?' active':'');$('tabEgreso').className='tab tab-egreso'+(t==='egreso'?' active':'');actualizarCuentasMovimiento();renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov');actualizarMovResumen()}
+/* v5.6.3 — El ícono del tipo de cuenta acompaña a la opción elegida. Va fuera
+   de la lista porque sus opciones solo aceptan texto. */
+const _ICO_TIPO_BANCO='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18"/></svg>';
+const _ICO_TIPO_USDT='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v10M9.5 9.5h4a2 2 0 010 4h-4M9.5 13.5h5"/></svg>';
+function _pintarIconoTipoCuenta(){
+    const el=$('movTipoIcono');if(!el)return;
+    el.innerHTML=($('movTipoCuenta')||{}).value==='usdt'?_ICO_TIPO_USDT:_ICO_TIPO_BANCO;
+}
+
 function actualizarCuentasMovimiento(){
+    _pintarIconoTipoCuenta();
     const tc=$('movTipoCuenta').value;$('movBancoGroup').style.display=tc==='usdt'?'none':'block';setText('movMontoLabel',tc==='usdt'?'Monto (USDT)':'Monto');
     const esUsdtIngreso=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso';
     $('movTasaRefGroup').style.display=esUsdtIngreso?'block':'none';
@@ -121,7 +131,7 @@ function actualizarFifoPreview(){
     const tc=$('movTipoCuenta').value,m=pv('movMonto');
     if(tc!=='usdt'||AppState.ui.tipoMovimiento!=='egreso'||m<=0){fp.innerHTML='<div style="color:#94a3b8;font-size:0.8em">Ingresá un monto para ver los lotes que se consumirán</div>';return}
     const lots=previewFIFO(m);
-    if(!lots.length){fp.innerHTML='<div style="color:#dc2626;font-size:0.8em">⚠️ Sin lotes disponibles</div>';return}
+    if(!lots.length){fp.innerHTML='<div style="color:#dc2626;font-size:0.8em"><svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> Sin lotes disponibles</div>';return}
     let tot=0,h='<div style="font-size:0.75em;color:#64748b;margin-bottom:4px"><b>Lotes FIFO a consumir:</b></div>';
     lots.forEach(l=>{tot+=l.subtotal;h+=`<div style="font-size:0.8em;padding:3px 0;display:flex;justify-content:space-between"><span>${fmtTrunc(l.cantidad,2)} USDT × $${fmtNum(l.precio)}</span><span style="color:#64748b">= $${fmtNum(l.subtotal)}</span></div>`});
     h+=`<div style="font-size:0.8em;padding:5px 0 0;border-top:1px solid #e2e8f0;margin-top:4px;display:flex;justify-content:space-between;font-weight:600"><span>Costo real total:</span><span style="color:#2563eb">$${fmtNum(tot)}</span></div>`;

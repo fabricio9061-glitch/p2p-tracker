@@ -445,7 +445,7 @@ function iniciarRecuperacionFirestore(){
     try{
         const banner=document.createElement('div');
         banner.style.cssText='position:fixed;top:0;left:0;right:0;background:#fef3c7;color:#78350f;padding:14px 18px;font-size:0.88em;font-weight:600;text-align:center;z-index:99999;box-shadow:0 2px 8px rgba(0,0,0,0.15);line-height:1.4';
-        banner.innerHTML='⚠️ Detectamos un problema con la base de datos local. Reiniciando en 3 segundos para evitar pérdida de datos…<br><span style="font-weight:400;font-size:0.85em;opacity:0.85">Tus datos están respaldados localmente.</span>';
+        banner.innerHTML='<svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> Detectamos un problema con la base de datos local. Reiniciando en 3 segundos para evitar pérdida de datos…<br><span style="font-weight:400;font-size:0.85em;opacity:0.85">Tus datos están respaldados localmente.</span>';
         document.body.appendChild(banner);
     }catch(e){}
     /* ═══ Limpieza ordenada del SDK Firestore ═══

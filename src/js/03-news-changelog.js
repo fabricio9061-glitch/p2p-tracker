@@ -350,8 +350,8 @@ async function cargarHistorialMensual(){
                       <div class="resumen-chart-title">
                         <span>Visualización</span>
                         <span class="resumen-chart-tabs">
-                          <button class="resumen-chart-tab ${chartType==='barras'?'active':''}" data-action="resumen-chart" data-mes="${d.mes}" data-chart="barras">📊 Barras</button>
-                          <button class="resumen-chart-tab ${chartType==='dona'?'active':''}" data-action="resumen-chart" data-mes="${d.mes}" data-chart="dona">🍩 Gastos</button>
+                          <button class="resumen-chart-tab ${chartType==='barras'?'active':''}" data-action="resumen-chart" data-mes="${d.mes}" data-chart="barras"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg> Barras</button>
+                          <button class="resumen-chart-tab ${chartType==='dona'?'active':''}" data-action="resumen-chart" data-mes="${d.mes}" data-chart="dona"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15.5A9 9 0 118.5 3v9h9a9 9 0 013.5 3.5z"/><path d="M20.9 9.5A9 9 0 0014.5 3.1V9.5h6.4z"/></svg> Gastos</button>
                         </span>
                       </div>
                       ${_resumenChartHtml(d,mesesCortos,chartType)}
@@ -415,7 +415,7 @@ async function cargarHistorialMensual(){
         }
     }catch(e){
         console.error('[P2P] Error cargando historial:',e);
-        cont.innerHTML='<div style="text-align:center;padding:30px;color:#dc2626"><div style="font-size:2em;margin-bottom:8px">⚠️</div><div>Error al cargar historial</div></div>';
+        cont.innerHTML='<div style="text-align:center;padding:30px;color:#dc2626"><div style="margin-bottom:8px"><svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg></div><div>Error al cargar historial</div></div>';
     }
 }
 function ocultarLoading() { $('loadingOverlay')?.classList.add('hidden'); }
@@ -439,7 +439,7 @@ function mostrarBannerClienteTerminado(){
     banner.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#7c2d12;color:#fff;padding:14px 16px;box-shadow:0 -4px 12px rgba(0,0,0,0.3);font-size:0.92em;line-height:1.4;border-top:3px solid #f59e0b';
     banner.innerHTML=
         '<div style="max-width:600px;margin:0 auto">'+
-            '<div style="font-weight:600;margin-bottom:6px">⚠ Sincronización detenida</div>'+
+            '<div style="font-weight:600;margin-bottom:6px"><svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> Sincronización detenida</div>'+
             '<div style="margin-bottom:10px;color:#fed7aa">Firebase quedó en estado interno inválido. Tus datos están guardados localmente. Recargá la app para reactivar la sincronización.</div>'+
             '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
                 '<button id="btnClientTermReload" style="flex:1;min-width:140px;background:#16a34a;color:#fff;border:none;padding:10px 14px;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.95em">🔄 Recargar ahora</button>'+

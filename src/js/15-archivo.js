@@ -752,7 +752,7 @@ async function _archivoVerMes(mes){
                 '<div><span>Ventas</span><b>'+nV+'</b><i>$'+fmtNum(rV,0)+'</i></div>'+
                 '<div><span>Ganancia</span><b style="color:'+colorGan(rG)+'">'+fmtGan(rG)+'</b><i>'+ops.length+' ops</i></div>'+
             '</div>'+
-            (cuadra?'':'<div class="archivo-error">⚠ Los totales guardados al archivar no coinciden con el detalle '+
+            (cuadra?'':'<div class="archivo-error"><svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> Los totales guardados al archivar no coinciden con el detalle '+
                 '(guardado: ganancia $'+fmtNum(s.ganancia||0,2)+' · '+(s.ops||0)+' ops). '+
                 'Se muestran los recalculados. Revisalo con verificarIntegridad().</div>')+
             '<div class="archivo-ops">'+filas+'</div>'+

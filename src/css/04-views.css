@@ -68,10 +68,23 @@
         .tag-sugerencias{margin-top:6px}
         .tag-manage-item{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;background:var(--c-surface-2);gap:8px}
         .tag-name{font-size:0.88em;color:var(--c-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .tag-actions{display:flex;gap:6px;flex-shrink:0}
-        .tag-edit-btn,.tag-delete-btn{padding:4px 8px;font-size:0.8em;background:transparent;border:none;cursor:pointer;border-radius:4px}
-        .tag-edit-btn:hover{background:var(--c-accent-soft)}
-        .tag-delete-btn:hover{background:var(--c-danger-bg)}
+        /* ═══ Acciones de categoría (v5.6.3) ═══
+           Eran tres emojis sin área definida, pegados entre sí, y uno de ellos
+           borra. Ahora son íconos de medida fija en botones de 36 píxeles, con
+           separación real y color propio: gris al reposo, azul los de fusionar y
+           editar al tocarlos, rojo el de eliminar. Cada uno lleva su descripción
+           para lectores de pantalla, que antes no tenían ninguna. */
+        .tag-actions{display:flex;gap:4px;flex-shrink:0;align-items:center}
+        .tag-edit-btn,.tag-delete-btn{
+            width:36px;height:36px;padding:0;background:transparent;border:none;
+            cursor:pointer;border-radius:9px;display:inline-flex;
+            align-items:center;justify-content:center;color:var(--c-text-mute);
+            touch-action:manipulation;transition:background .12s,color .12s;
+        }
+        .tag-edit-btn .ico-accion,.tag-delete-btn .ico-accion{width:16px;height:16px;opacity:1}
+        .tag-edit-btn:hover,.tag-edit-btn:focus-visible{background:var(--c-accent-soft);color:var(--c-accent-strong)}
+        .tag-delete-btn:hover,.tag-delete-btn:focus-visible{background:var(--c-danger-bg);color:var(--c-danger)}
+        .tag-edit-btn:active,.tag-delete-btn:active{transform:scale(0.92)}
         .tag-search{width:100%;background:var(--c-surface-2);border:1px solid #e2e8f0;border-radius:8px;padding:10px;color:var(--c-text);font-size:0.88em;margin-bottom:10px;font-family:inherit}
         .tag-search:focus{outline:none;border-color:#2563eb}
 

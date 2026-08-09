@@ -268,7 +268,7 @@ function renderSplitPanel(){
        fix del remanente se vuelve dinámico y mostraba "faltan $X" = lo ya aportado
        por extras — confuso. */
     const faltanteInicial=deficitPrincipal;
-    let h=`<div class="split-panel-title">⚠️ Saldo insuficiente · faltan ${sy}${_splitMonto(faltanteInicial)}</div>
+    let h=`<div class="split-panel-title"><svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> Saldo insuficiente · faltan ${sy}${_splitMonto(faltanteInicial)}</div>
         <div style="font-size:0.7em;color:#78350f;margin-bottom:10px;line-height:1.4">Completá el pago con una o más cuentas adicionales hasta cubrir el total.</div>
         <div class="split-row aporte">
             <div class="split-row-label"><span style="color:${getBancoColor(bancoPrinc)}">●</span> <b>${escHtml(bancoPrinc)}</b> aporta</div>
@@ -289,7 +289,7 @@ function renderSplitPanel(){
             <button type="button" class="split-remove" data-action="split-remove" data-idx="${idx}" aria-label="Quitar">✕</button>
         </div>`;
         if(filaInvalida){
-            h+=`<div class="split-row-hint-err">⚠ Falta seleccionar un banco para esta fila</div>`;
+            h+=`<div class="split-row-hint-err"><svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> Falta seleccionar un banco para esta fila</div>`;
         }else if(ex.banco&&disp<(ex.monto||0)-SPLIT_EPSILON){
             h+=`<div style="font-size:0.68em;color:#b91c1c;margin:-2px 4px 6px">⚠ ${escHtml(ex.banco)} solo tiene ${sy}${_splitMonto(disp)}</div>`;
         }
@@ -304,7 +304,7 @@ function renderSplitPanel(){
     const hayBancoVacio=AppState.ui.splitExtras.some(ex=>!ex.banco);
     /* Status — usa estado normalizado, sin re-comparar con 0 */
     if(cubierto&&!hayBancoVacio){
-        h+=`<div class="split-status ok">✓ Total cubierto · ${sy}${_splitMonto(totalAportado)}</div>`;
+        h+=`<div class="split-status ok"><svg class="ico ico-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg> Total cubierto · ${sy}${_splitMonto(totalAportado)}</div>`;
     }else if(exceso){
         h+=`<div class="split-status error">Exceso de ${sy}${_splitMonto(Math.abs(faltante))} · ajustá los aportes</div>`;
     }else if(hayBancoVacio){
@@ -430,7 +430,7 @@ function _updateSplitStatus(){
     const hayBancoVacio=(AppState.ui.splitExtras||[]).some(ex=>!ex.banco);
     if(cubierto&&!hayBancoVacio){
         statusEl.className='split-status ok';
-        statusEl.textContent=`✓ Total cubierto · ${sy}${_splitMonto(totalAportado)}`;
+        statusEl.innerHTML=`<svg class="ico ico-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg> Total cubierto · ${sy}${_splitMonto(totalAportado)}`;
     }else if(exceso){
         statusEl.className='split-status error';
         statusEl.textContent=`Exceso de ${sy}${_splitMonto(Math.abs(faltante))} · ajustá los aportes`;
@@ -611,7 +611,7 @@ function abrirEditarOperacion(id){
     AppState.ui.opEditandoId=id;
     const sy=getSym(op.moneda),td=op.moneda==='USD'?3:2;
     const badge=op.tipo==='compra'?'📥 Compra':'📤 Venta';
-    setText('editarOpHeader','✏️ Editar '+badge);
+    {const _h=$('editarOpHeader');if(_h)_h.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'+' Editar '+badge;}
     setText('editOpMontoLabel',op.tipo==='compra'?`Monto pagado (${op.moneda||'UYU'})`:`Monto recibido (${op.moneda||'UYU'})`);
     $('editOpMonto').value=fmtNum(op.monto);
     $('editOpTasa').value=fmtTasa(op.tasa,op.moneda||'UYU');
