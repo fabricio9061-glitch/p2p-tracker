@@ -655,7 +655,12 @@ function actualizarVista(){
        puede decir la composición del día y cuánto moviste, que es lo que explica
        de dónde sale el resultado. Todo sale de datos que ya se recorren acá. */
     const hoyStr=getUDateStr();
-    const opsDeHoy=ops.filter(o=>o.fecha===hoyStr);
+    /* v5.6.2 — Se excluyen las operaciones en dólares. La ganancia de esta
+       tarjeta también las excluye (tienen su propia tarjeta), así que contarlas
+       acá describía un día distinto del que muestra el número. Peor todavía: sus
+       montos están en dólares y se sumaban al volumen en pesos como si fueran lo
+       mismo, con lo que el total quedaba mal. */
+    const opsDeHoy=ops.filter(o=>o.fecha===hoyStr&&o.moneda!=='USD');
     const opsH=opsDeHoy.length;
     let hoyC=0,hoyV=0,hoyVol=0;
     opsDeHoy.forEach(o=>{

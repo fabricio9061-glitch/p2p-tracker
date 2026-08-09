@@ -73,7 +73,9 @@ function abrirModalMovimiento(editId){
     if(editing&&!existing){AppState.ui.movEditandoId=null;return}
     /* Header + button labels */
     const header=document.querySelector('#modalMovimiento .modal-header');
-    if(header)header.textContent=editing?'✏️ Editar ajuste':'📝 Ajuste Externo';
+    /* v5.6.2 — Se escribía con textContent y pisaba el ícono puesto en la página,
+       así que el emoji volvía a aparecer. Mismo caso que el botón de comprar. */
+    if(header)header.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'+(editing?' Editar ajuste':' Ajuste Externo');
     $('btnGuardarMov').textContent=editing?'Guardar cambios':'Guardar';
     $('btnGuardarMov').disabled=false;
     /* Populate fields */
@@ -262,7 +264,7 @@ function esCrossMoneda(){
 function actualizarTransfUI(){
     const cross=esCrossMoneda(),tg=$('transfTasaGroup'),pvEl=$('transfConvPreview'),hd=$('transfHeader');
     tg.style.display=cross?'block':'none';
-    if(cross){hd.textContent='💱 Conversión entre monedas';$('btnTransferir').textContent='Convertir';$('btnTransferir').style.background='#7c3aed'}
+    if(cross){hd.textContent='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg> Conversión entre monedas';$('btnTransferir').textContent='Convertir';$('btnTransferir').style.background='#7c3aed'}
     else{hd.textContent='↔️ Transferencia entre Bancos';$('btnTransferir').textContent='Transferir';$('btnTransferir').style.background='#2563eb';pvEl.style.display='none'}
     actualizarTransfPreview();
 }
@@ -276,7 +278,7 @@ function actualizarTransfPreview(){
     if(oi.moneda==='UYU'&&di.moneda==='USD')recibe='US$'+fmtNum(m/t,2);
     else recibe='$'+fmtNum(m*t,2);
     pvEl.style.display='block';
-    pvEl.innerHTML=`💱 Debita <b>${getSym(oi.moneda)}${fmtNum(m)}</b> de ${colorBanco(o)} → Recibe <b>${recibe}</b> en ${colorBanco(d)}<div style="margin-top:4px;font-size:0.8em;color:#64748b">Solo mueve saldos · No afecta ganancia</div>`;
+    pvEl.innerHTML=`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg> Debita <b>${getSym(oi.moneda)}${fmtNum(m)}</b> de ${colorBanco(o)} → Recibe <b>${recibe}</b> en ${colorBanco(d)}<div style="margin-top:4px;font-size:0.8em;color:#64748b">Solo mueve saldos · No afecta ganancia</div>`;
 }
 
 function abrirModalTransferencia(editId){

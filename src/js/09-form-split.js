@@ -85,25 +85,18 @@ function calcularPreview(){
         /* UYU-centric: monto is fiat, compute USDT */
         const u=usdtBase(m/ta,t),c=truncar(u*cp,2);
         const neto=usdtNeto(u,c,t);
-        setText('comisionPlataformaInfo',fmtTrunc(c,2)+' USDT');
+        /* v5.6.2 — El monto de comisión y el saldo del banco salieron de esta
+           barra: el primero está en el resultado en vivo y el segundo en el
+           resumen de abajo. Acá queda solo el control para editar el porcentaje. */
 
         sum.style.display='block';
         sum.className='op-summary '+(isC?'modo-compra':'modo-venta');
 
         if(isC){
             /* COMPRA: total=base, liberada=neto (lo que recibís) */
-            setText('opSumTotalLabel','Cantidad total');
-            $('opSumTotalValue').innerHTML=`<b style="color:#1e293b">${fmtNum(u,2)} USDT</b>`;
-            setText('opSumLibLabel','Cantidad a recibir');
-            $('opSumLibValue').innerHTML=`<b style="color:#1e293b">${fmtNum(neto,2)} USDT</b>`;
-        }else{
-            /* VENTA: total=neto (lo que sale del wallet), liberada=base */
-            setText('opSumTotalLabel','Entregás');
-            $('opSumTotalValue').innerHTML=`<b style="color:#1e293b">${fmtNum(neto,2)} USDT</b>`;
-            setText('opSumLibLabel','Cantidad liberada');
-            $('opSumLibValue').innerHTML=`<b style="color:#1e293b">${fmtNum(u,2)} USDT</b>`;
+            /* v5.6.2 — Las filas de cantidad y comisión se retiraron del resumen:
+               ya están en el resultado en vivo, arriba del formulario. */
         }
-        setText('opSumComision',fmtTrunc(c,2)+' USDT');
 
         /* Bank saldo impact */
         const b=$('banco').value,cb=roundMoney(pv('comisionBanco'));
@@ -123,7 +116,6 @@ function calcularPreview(){
         $('previewBox').style.display='none';
     }else{
         sum.style.display='none';$('previewBox').style.display='none';
-        setText('comisionPlataformaInfo','0 USDT');
         btn.innerHTML=_btnOpHtml(isC,isC?'Comprar USDT':'Vender USDT');
         _pintarEco(isC,0,0);
     }
@@ -657,7 +649,7 @@ function calcularEditOpPreview(){
         const u=usdtBase(m/ta,op.tipo),c=truncar(u*cpct,2),neto=usdtNeto(u,c,op.tipo);
         setText('editOpComisionInfo',fmtTrunc(c,2)+' USDT');
         pbox.innerHTML=op.tipo==='compra'
-            ?`📥 Recibís <b>${fmtNum(neto,2)} USDT</b> <span style="color:#64748b;font-size:0.85em">(base: ${fmtNum(u,2)})</span>`
+            ?`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg> Recibís <b>${fmtNum(neto,2)} USDT</b> <span style="color:#64748b;font-size:0.85em">(base: ${fmtNum(u,2)})</span>`
             :`📤 Entregás <b>${fmtNum(neto,2)} USDT</b>`;
         pbox.style.display='block';
     }else{

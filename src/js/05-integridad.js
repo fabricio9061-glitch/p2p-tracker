@@ -234,8 +234,8 @@ function abrirModalMergeTag(srcTag){
     card.innerHTML=`<div class="merge-source-label">Categoría a fusionar</div>
         <div class="merge-source-name">${escHtml(srcTag)}</div>
         <div class="merge-source-stats">
-            <span class="merge-source-stat">📋 ${movs.length} movimiento${movs.length!==1?'s':''}</span>
-            ${totalUYU>0?`<span class="merge-source-stat">💸 $${fmtNum(totalUYU,0)}</span>`:''}
+            <span class="merge-source-stat"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg> ${movs.length} movimiento${movs.length!==1?'s':''}</span>
+            ${totalUYU>0?`<span class="merge-source-stat"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 10h.01M18 14h.01"/></svg> $${fmtNum(totalUYU,0)}</span>`:''}
         </div>`;
     /* Reset UI state */
     $('mergeSearch').value='';
@@ -385,14 +385,17 @@ function renderizarTagsSugerencias(inputId,containerId){
     const selected=input.value.trim();
     visible.forEach(t=>{
         const isActive=tagKey(selected)===tagKey(t.tag);
-        h+=`<span class="tag-pill${isActive?' tag-active':''}" data-action="usar-tag" data-tag="${escHtml(t.tag)}" data-target="${inputId}">${escHtml(t.tag)}${t.usos>0?` <span style="opacity:0.5;font-size:0.8em">${t.usos}</span>`:''}</span>`;
+        /* v5.6.2 — El número de usos era texto gris pegado al nombre y podía
+           leerse como parte de la categoría ("Transporte 77"). Ahora es una
+           insignia separada, con su propio fondo, que se lee como lo que es. */
+        h+=`<span class="tag-pill${isActive?' tag-active':''}" data-action="usar-tag" data-tag="${escHtml(t.tag)}" data-target="${inputId}" title="${escHtml(t.tag)}: ${t.usos} ${t.usos===1?'uso':'usos'}">${escHtml(t.tag)}${t.usos>0?`<b class="tag-usos">${t.usos}</b>`:''}</span>`;
     });
-    if(hasMore)h+=`<span class="tag-pill" style="background:#e0e7ff;color:#4338ca;font-size:0.7em" data-action="tag-ver-mas" data-target="${inputId}">+${scored.length-MAX_VISIBLE} más</span>`;
+    if(hasMore)h+=`<span class="tag-pill tag-pill-mas" data-action="tag-ver-mas" data-target="${inputId}">+${scored.length-MAX_VISIBLE} más</span>`;
     /* Alias suggestion: suggest creating the category name */
     if(showCreate&&aliasCat&&!tags.some(t=>tagKey(t)===aliasKey)){
-        h+=`<span class="tag-pill" style="background:#fef3c7;color:#92400e;border-color:#fcd34d" data-action="tag-crear" data-tag="${escHtml(aliasCat)}" data-target="${inputId}">💡 ${escHtml(aliasCat)}</span>`;
+        h+=`<span class="tag-pill tag-pill-idea" data-action="tag-crear" data-tag="${escHtml(aliasCat)}" data-target="${inputId}" title="Sugerencia según lo que escribiste"><svg class="ico ico-tag-idea" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg> ${escHtml(aliasCat)}</span>`;
     }
-    if(showCreate)h+=`<span class="tag-pill" style="background:#dcfce7;color:#16a34a;border-color:#bbf7d0" data-action="tag-crear" data-tag="${escHtml(val)}" data-target="${inputId}">+ ${escHtml(val)}</span>`;
+    if(showCreate)h+=`<span class="tag-pill tag-pill-nueva" data-action="tag-crear" data-tag="${escHtml(val)}" data-target="${inputId}" title="Crear esta categoría">+ ${escHtml(val)}</span>`;
     h+='</div></div>';
     cont.innerHTML=h;
 }
@@ -489,7 +492,7 @@ function renderizarGestionTags(){
 
             /* Meta chips: impact + sin tag warning + period variation */
             let metaChips='';
-            if(impactoPct>0)metaChips+=`<span class="gastos-meta-chip impact">📉 ${impactoPct}% de la ganancia</span>`;
+            if(impactoPct>0)metaChips+=`<span class="gastos-meta-chip impact"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l6 6 4-4 7 7M14 16h7v-7"/></svg> ${impactoPct}% de la ganancia</span>`;
             if(sinTagUYU>0&&sinTagPct>=10)metaChips+=`<span class="gastos-meta-chip warning">⚠️ ${sinTagPct}% sin clasificar</span>`;
             if(prevFilter&&prevGrandTotal>0){
                 const diff=roundMoney(grandTotal-prevGrandTotal);
@@ -513,9 +516,9 @@ function renderizarGestionTags(){
                     }
                 });
             }
-            let insights=`<span>💸 Mayor: <b>${escHtml(topEg.tag)}</b> ($${fmtNum(topEg.egresoTotal,0)})</span>`;
-            if(topOps&&topOps.tag!==topEg.tag)insights+=`<span style="margin-left:10px">🔄 Más frec: <b>${escHtml(topOps.tag)}</b> (${topOps.ops})</span>`;
-            if(topGrowth&&topGrowth.pct>=20)insights+=`<span style="margin-left:10px">📈 Mayor crecimiento: <b>${escHtml(topGrowth.tag)}</b> (+${topGrowth.pct}%)</span>`;
+            let insights=`<span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 10h.01M18 14h.01"/></svg> Mayor: <b>${escHtml(topEg.tag)}</b> ($${fmtNum(topEg.egresoTotal,0)})</span>`;
+            if(topOps&&topOps.tag!==topEg.tag)insights+=`<span style="margin-left:10px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg> Más frec: <b>${escHtml(topOps.tag)}</b> (${topOps.ops})</span>`;
+            if(topGrowth&&topGrowth.pct>=20)insights+=`<span style="margin-left:10px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 7-7M14 8h7v7"/></svg> Mayor crecimiento: <b>${escHtml(topGrowth.tag)}</b> (+${topGrowth.pct}%)</span>`;
             const hayConv=top.some(t=>t.tieneConversion);
 
             ac.innerHTML=chartHtml
@@ -530,7 +533,7 @@ function renderizarGestionTags(){
     const cont=$('tagsList');if(!cont)return;
     const searchKey=stripAccents(search);
     const filtrados=searchKey?tagStats.filter(t=>stripAccents(t.tag.toLowerCase()).includes(searchKey)):tagStats;
-    if(!filtrados.length){cont.innerHTML=`<div style="text-align:center;padding:20px;color:#94a3b8"><div style="font-size:1.8em;margin-bottom:6px">🏷️</div><div>${search?'Sin resultados':'Sin categorías aún'}</div></div>`;return}
+    if(!filtrados.length){cont.innerHTML=`<div style="text-align:center;padding:20px;color:#94a3b8"><div style="font-size:1.8em;margin-bottom:6px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L12 22l-9-9V3h10l7.6 7.6a2 2 0 010 2.8zM7.5 7.5h.01"/></svg></div><div>${search?'Sin resultados':'Sin categorías aún'}</div></div>`;return}
     let h='';
     filtrados.forEach(t=>{
         const pct=grandTotal?Math.round(t.egresoTotal/grandTotal*100):0;

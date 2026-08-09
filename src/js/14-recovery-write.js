@@ -521,7 +521,7 @@ function _hideRecoveryOverlay(){
 function _setRecoveryError(title,desc,actions){
     /* Cambia el overlay a modo error con opciones manuales */
     const el=_ensureRecoveryOverlay();
-    const icon=document.getElementById('recoveryIcon');if(icon)icon.textContent='🛑';
+    const icon=document.getElementById('recoveryIcon');if(icon)icon.innerHTML='<svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 100-18 9 9 0 000 18zM9 9h6v6H9z"/></svg>';
     const spinner=document.getElementById('recoverySpinner');if(spinner)spinner.style.display='none';
     const phase=document.getElementById('recoveryPhase');
     if(phase){

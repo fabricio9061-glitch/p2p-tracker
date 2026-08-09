@@ -420,3 +420,35 @@
     .archivo-mes-bot{flex-direction:column;gap:2px}
     .archivo-mes-bot span:last-child{text-align:left}
 }
+
+
+        /* ═══════════════════════════════════════════════════════════════
+           ETIQUETAS DE CATEGORÍA (v5.6.2)
+           Los colores estaban escritos dentro del programa, mezclados con
+           el texto que se genera. Acá quedan junto al resto de los estilos
+           y usan las variables del sistema, así que acompañan cualquier
+           cambio de paleta. El contador de usos pasó de ser texto gris
+           pegado al nombre —que podía leerse como parte de la categoría—
+           a una insignia con fondo propio.
+           ═══════════════════════════════════════════════════════════════ */
+        .tag-pill{padding-right:6px}
+        .tag-usos{
+            display:inline-flex;align-items:center;justify-content:center;
+            min-width:19px;height:17px;padding:0 5px;margin-left:6px;
+            border-radius:9px;background:rgba(100,116,139,0.14);
+            color:var(--c-text-mute);font-size:0.82em;font-weight:700;
+            font-variant-numeric:tabular-nums;
+        }
+        .tag-pill.tag-active .tag-usos{background:rgba(255,255,255,0.26);color:#fff}
+        .tag-pill:hover .tag-usos{background:rgba(37,99,235,0.14);color:var(--c-accent-strong)}
+
+        .tag-pill-mas{background:var(--c-accent-soft);color:var(--c-accent-strong);
+            border-color:#c7d2fe;font-weight:650}
+        .tag-pill-idea{background:#fef3c7;color:#92400e;border-color:#fcd34d}
+        .tag-pill-idea:hover{background:#fde68a;border-color:#f59e0b;color:#92400e}
+        .ico-tag-idea{width:0.9em;height:0.9em;margin-right:2px;opacity:0.8}
+        .tag-pill-nueva{background:#dcfce7;color:var(--c-brand);border-color:#bbf7d0;font-weight:650}
+        .tag-pill-nueva:hover{background:#bbf7d0;border-color:var(--c-brand);color:var(--c-brand-strong)}
+
+        /* Los chips son objetivos táctiles: alto mínimo cómodo y sin retardo */
+        .tags-container .tag-pill{min-height:34px;touch-action:manipulation}

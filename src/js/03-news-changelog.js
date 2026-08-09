@@ -185,7 +185,7 @@ function abrirWhatsNew(entry){
             <span><b>${escHtml(ch.title||'')}</b>${ch.desc?' — '+escHtml(ch.desc):''}</span>
         </div>`;
     }).join('');
-    cont.innerHTML=`<div class="whatsnew-icon">🎉</div>
+    cont.innerHTML=`<div class="whatsnew-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></div>
         <div class="whatsnew-version">Versión ${escHtml(entry.version)}</div>
         <div class="whatsnew-title">¡Nueva actualización!</div>
         ${entry.headline?`<div class="whatsnew-headline">${escHtml(entry.headline)}</div>`:''}
@@ -223,7 +223,7 @@ async function cargarHistorialMensual(){
         const snap=await AppState.db.collection('users').doc(AppState.currentUser.uid)
             .collection('monthly_summaries').orderBy('mes','desc').limit(12).get();
         if(snap.empty){
-            cont.innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px">📭</div><div>Sin datos históricos</div><div style="font-size:0.8em;margin-top:4px">El primer cierre se genera al cambiar de mes</div></div>';
+            cont.innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8"><div style="font-size:2em;margin-bottom:8px"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></div><div>Sin datos históricos</div><div style="font-size:0.8em;margin-top:4px">El primer cierre se genera al cambiar de mes</div></div>';
             return;
         }
         const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -317,9 +317,9 @@ async function cargarHistorialMensual(){
                 /* Insights */
                 const mejorDia=d.mejorDia,peorDia=d.peorDia,bancoMasUsado=d.bancoMasUsado;
                 const insightsHtml=(mejorDia||peorDia||bancoMasUsado)?`<div class="resumen-insights">
-                    ${mejorDia?`<div class="resumen-insight">📈 Mejor día: <b style="color:#16a34a;margin-left:auto">${fmtFechaCorta(mejorDia.dia)} · ${mejorDia.ganancia>=0?'+':'-'}$${fmtNum(Math.abs(mejorDia.ganancia),0)}</b></div>`:''}
-                    ${peorDia&&peorDia.dia!==mejorDia?.dia?`<div class="resumen-insight">📉 Peor día: <b style="color:#dc2626;margin-left:auto">${fmtFechaCorta(peorDia.dia)} · ${peorDia.ganancia>=0?'+':'-'}$${fmtNum(Math.abs(peorDia.ganancia),0)}</b></div>`:''}
-                    ${bancoMasUsado?`<div class="resumen-insight">🏦 Banco más usado: <b style="color:#475569;margin-left:auto">${escHtml(bancoMasUsado.banco)} (${bancoMasUsado.ops} ops)</b></div>`:''}
+                    ${mejorDia?`<div class="resumen-insight"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 7-7M14 8h7v7"/></svg> Mejor día: <b style="color:#16a34a;margin-left:auto">${fmtFechaCorta(mejorDia.dia)} · ${mejorDia.ganancia>=0?'+':'-'}$${fmtNum(Math.abs(mejorDia.ganancia),0)}</b></div>`:''}
+                    ${peorDia&&peorDia.dia!==mejorDia?.dia?`<div class="resumen-insight"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l6 6 4-4 7 7M14 16h7v-7"/></svg> Peor día: <b style="color:#dc2626;margin-left:auto">${fmtFechaCorta(peorDia.dia)} · ${peorDia.ganancia>=0?'+':'-'}$${fmtNum(Math.abs(peorDia.ganancia),0)}</b></div>`:''}
+                    ${bancoMasUsado?`<div class="resumen-insight"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18"/></svg> Banco más usado: <b style="color:#475569;margin-left:auto">${escHtml(bancoMasUsado.banco)} (${bancoMasUsado.ops} ops)</b></div>`:''}
                 </div>`:'';
 
                 /* Determine initial collapse state: first month open, rest collapsed by default */
