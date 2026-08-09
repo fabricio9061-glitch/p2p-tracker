@@ -454,7 +454,7 @@ function _renderHoyMiniCajas(){
         /* — vs ayer — */
         const ayer=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()-1);
         const valAyer=diaria[kDay(ayer)]||0;
-        _pintarComparacion(arrAyer,pctAyer,valHoy,valAyer,'vsAyerLabel','ayer');
+        _pintarReferencia(arrAyer,pctAyer,valAyer,'vsAyerLabel','Ayer',!!diaria[kDay(ayer)]);
         /* — vs prom. semanal: media de últimos 7 días EXCLUYENDO hoy — */
         let suma=0,n=0;
         for(let i=1;i<=7;i++){
@@ -463,63 +463,45 @@ function _renderHoyMiniCajas(){
             n++;
         }
         const promSem=n>0?suma/n:0;
-        _pintarComparacion(arrSem,pctSem,valHoy,promSem,'vsSemLabel','la semana');
+        _pintarReferencia(arrSem,pctSem,promSem,'vsSemLabel','Prom. semana',n>0);
     }catch(e){
         console.warn('[P2P] mini-cajas hoy (no crítico):',e&&e.message);
     }
 }
-/* Helper: pinta flecha + porcentaje según comparación de hoy vs base.
-   Umbral de "estable" ±2% para no mostrar movimientos insignificantes. */
-function _pintarComparacion(arrEl,pctEl,actual,base,idRotulo,textoBase){
-    arrEl.classList.remove('hc-up','hc-down','hc-flat');
-    if(!isFinite(actual)||!isFinite(base)||base===0){
-        /* Sin base válida → no se puede comparar */
-        arrEl.textContent='—';arrEl.classList.add('hc-flat');
-        pctEl.textContent='—';pctEl.classList.remove('hc-up','hc-down','hc-flat');
-        pctEl.classList.add('hc-flat');
+/* ═══════════════════════════════════════════════════════════════════════
+   v5.7.0 — Estas cajas muestran CUÁNTO se ganó en el período de referencia,
+   no cuánto cambió respecto de hoy.
+
+   Antes mostraban la diferencia entre hoy y el día anterior. Era correcta
+   —de −$7.640 a +$3.229 hay 10.869 de distancia— pero esa distancia no es
+   dinero: nadie ganó 10.869. En una pantalla donde todo lo demás son montos
+   reales, un número derivado con símbolo de peso se lee como un monto real,
+   y así se leyó. Con porcentajes tampoco funcionaba: al cruzar el cero, un
+   "185% menos" no dice que se pasó de ganar a perder.
+
+   La solución es no calcular nada intermedio. Arriba está la ganancia de hoy;
+   acá, la de ayer y el promedio de la semana. Se ven los tres números reales
+   y la comparación la hace el ojo, sin cifras inventadas.
+   ═══════════════════════════════════════════════════════════════════════ */
+function _pintarReferencia(arrEl,valEl,valor,idRotulo,rotulo,hayDato){
+    arrEl.className='hc-arrow';
+    arrEl.textContent='';
+    arrEl.style.display='none';
+    valEl.classList.remove('hc-up','hc-down','hc-flat');
+    const rot=idRotulo?$(idRotulo):null;
+    if(rot)rot.textContent=rotulo;
+    if(!hayDato){
+        valEl.textContent='—';
+        valEl.classList.add('hc-flat');
+        const caja=valEl.closest('.hoy-cell');
+        if(caja)caja.title='Sin datos para este período';
         return;
     }
-    const pct=((actual-base)/Math.abs(base))*100;
-    const abs=Math.abs(pct);
-    const dif=roundMoney(actual-base);
-    /* ═══ v5.6.0 — Cuándo el porcentaje deja de significar algo ═══
-       La fórmula es (hoy − base) ÷ base. Mientras los dos días tengan el mismo
-       signo el resultado se entiende: pasar de −$1.621 a −$454 es 72% mejor.
-       Pero si el signo se da vuelta, el número pierde sentido: con la semana en
-       +$534 y hoy en −$454 salía "185% menos", que no dice que pasaste de ganar
-       a perder ni cuánto. En esos casos, y también cuando el porcentaje se
-       dispara por encima de 400% (donde ya no es intuitivo), se muestra la
-       diferencia en pesos, que siempre se entiende. */
-    const cruzaCero=(actual>0&&base<0)||(actual<0&&base>0);
-    const enPesos=cruzaCero||abs>=400;
-    let cls,arr;
-    if(!enPesos&&abs<2){cls='hc-flat';arr='→';}
-    else if(dif>0){cls='hc-up';arr='↑';}
-    else if(dif<0){cls='hc-down';arr='↓';}
-    else{cls='hc-flat';arr='→';}
-    arrEl.classList.add(cls);
-    arrEl.textContent=arr;
-    pctEl.classList.remove('hc-up','hc-down','hc-flat');
-    pctEl.classList.add(cls);
-    /* La flecha ya indica la dirección, así que el signo delante del importe lo
-       repetiría: va solo el monto. */
-    pctEl.textContent=enPesos
-        ? '$'+fmtNum(Math.abs(dif),0)
-        : (abs>=10?fmtNum(abs,0):fmtNum(abs,1))+'%';
-    /* ═══ v5.6.4 — El rótulo tiene que decir que es una diferencia ═══
-       Con un porcentaje, "vs. ayer" se entiende: nadie lee "72%" como el monto
-       de ayer. Pero al pasar a pesos, "$8.743" junto a "vs. ayer" se lee como
-       "ayer: $8.743", y no es eso: es cuánto MÁS o MENOS que ayer. Cuando se
-       muestran pesos el rótulo lo dice con todas las letras. */
-    const rot=idRotulo?$(idRotulo):null;
-    if(rot&&textoBase){
-        rot.textContent=enPesos
-            ? (dif>=0?'más que ':'menos que ')+textoBase
-            : 'vs. '+textoBase;
-    }
-    /* El detalle completo queda al mantener presionado */
-    const caja=pctEl.closest('.hoy-cell');
-    if(caja)caja.title=`Base: ${(base>=0?'+$':'-$')+fmtNum(Math.abs(base),2)} · Hoy: ${(actual>=0?'+$':'-$')+fmtNum(Math.abs(actual),2)}`;
+    const v=roundMoney(valor);
+    valEl.textContent=(v>=0?'+$':'-$')+fmtNum(Math.abs(v),0);
+    valEl.classList.add(Math.abs(v)<0.005?'hc-flat':(v>0?'hc-up':'hc-down'));
+    const caja=valEl.closest('.hoy-cell');
+    if(caja)caja.title=rotulo+': '+(v>=0?'+$':'-$')+fmtNum(Math.abs(v),2);
 }
 
 /* ════════════════════════════════════════════════════════════════

@@ -17,12 +17,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.6.4">
-    <link rel="stylesheet" href="src/css/01-base.css?v=5.6.4">
-    <link rel="stylesheet" href="src/css/02-components.css?v=5.6.4">
-    <link rel="stylesheet" href="src/css/03-modals.css?v=5.6.4">
-    <link rel="stylesheet" href="src/css/04-views.css?v=5.6.4">
-    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.6.4">
+    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.7.0">
+    <link rel="stylesheet" href="src/css/01-base.css?v=5.7.0">
+    <link rel="stylesheet" href="src/css/02-components.css?v=5.7.0">
+    <link rel="stylesheet" href="src/css/03-modals.css?v=5.7.0">
+    <link rel="stylesheet" href="src/css/04-views.css?v=5.7.0">
+    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.7.0">
 </head>
 <body>
     <!-- ═══ OVERLAYS ═══ -->
@@ -137,8 +137,8 @@
                     <div class="hoy-meta hoy-meta-line"><span id="opsHoy">0 ops</span></div>
                     <!-- v4.7.53: mini-cajas con métricas operativas + Ver detalle -->
                     <div class="hoy-cells" id="hoyCells">
-                        <div class="hoy-cell" id="hoyCellVsAyer"><div class="hoy-cell-v"><span id="vsAyerArrow" class="hc-arrow">—</span><span id="vsAyerPct">—</span></div><div class="hoy-cell-l" id="vsAyerLabel">vs. ayer</div></div>
-                        <div class="hoy-cell" id="hoyCellVsSem"><div class="hoy-cell-v"><span id="vsSemArrow" class="hc-arrow">—</span><span id="vsSemPct">—</span></div><div class="hoy-cell-l" id="vsSemLabel">vs. semana</div></div>
+                        <div class="hoy-cell" id="hoyCellVsAyer"><div class="hoy-cell-v"><span id="vsAyerArrow" class="hc-arrow" style="display:none"></span><span id="vsAyerPct">—</span></div><div class="hoy-cell-l" id="vsAyerLabel">Ayer</div></div>
+                        <div class="hoy-cell" id="hoyCellVsSem"><div class="hoy-cell-v"><span id="vsSemArrow" class="hc-arrow" style="display:none"></span><span id="vsSemPct">—</span></div><div class="hoy-cell-l" id="vsSemLabel">Prom. semana</div></div>
                         <div class="hoy-cell" id="hoyCellSpread"><div class="hoy-cell-v"><span id="spreadPromedio">$0</span><span id="spreadTrend" class="spread-trend" style="display:none"></span></div><div class="hoy-cell-l">Spread prom.</div></div>
                     </div>
                     <div id="cardIngresosExt" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;font-size:0.68em;color:#64748b;justify-content:space-between;align-items:center"><span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 10h.01M18 14h.01"/></svg> Otros ingresos</span><span style="font-weight:700;color:#475569" id="ingresosExtHoy">$0</span></div>
@@ -385,21 +385,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <script src="src/js/01-config.js?v=5.6.4"></script>
-    <script src="src/js/02-state.js?v=5.6.4"></script>
-    <script src="src/js/03-news-changelog.js?v=5.6.4"></script>
-    <script src="src/js/04-utils-filtros.js?v=5.6.4"></script>
-    <script src="src/js/05-integridad.js?v=5.6.4"></script>
-    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.6.4"></script>
-    <script src="src/js/07-firebase-sync.js?v=5.6.4"></script>
-    <script src="src/js/08-backup-recovery-sdk.js?v=5.6.4"></script>
-    <script src="src/js/09-form-split.js?v=5.6.4"></script>
-    <script src="src/js/10-mov-transf-calendario.js?v=5.6.4"></script>
-    <script src="src/js/11-paginaciones-dashboard.js?v=5.6.4"></script>
-    <script src="src/js/12-lotes-reset-importexport.js?v=5.6.4"></script>
-    <script src="src/js/13-eventos.js?v=5.6.4"></script>
-    <script src="src/js/14-recovery-write.js?v=5.6.4"></script>
-    <script src="src/js/15-archivo.js?v=5.6.4"></script>
-    <script src="src/js/16-store-v2.js?v=5.6.4"></script>
+    <script src="src/js/01-config.js?v=5.7.0"></script>
+    <script src="src/js/02-state.js?v=5.7.0"></script>
+    <script src="src/js/03-news-changelog.js?v=5.7.0"></script>
+    <script src="src/js/04-utils-filtros.js?v=5.7.0"></script>
+    <script src="src/js/05-integridad.js?v=5.7.0"></script>
+    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.7.0"></script>
+    <script src="src/js/07-firebase-sync.js?v=5.7.0"></script>
+    <script src="src/js/08-backup-recovery-sdk.js?v=5.7.0"></script>
+    <script src="src/js/09-form-split.js?v=5.7.0"></script>
+    <script src="src/js/10-mov-transf-calendario.js?v=5.7.0"></script>
+    <script src="src/js/11-paginaciones-dashboard.js?v=5.7.0"></script>
+    <script src="src/js/12-lotes-reset-importexport.js?v=5.7.0"></script>
+    <script src="src/js/13-eventos.js?v=5.7.0"></script>
+    <script src="src/js/14-recovery-write.js?v=5.7.0"></script>
+    <script src="src/js/15-archivo.js?v=5.7.0"></script>
+    <script src="src/js/16-store-v2.js?v=5.7.0"></script>
 </body>
 </html>
