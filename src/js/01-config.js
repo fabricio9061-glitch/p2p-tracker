@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.6.3',
+    APP_VERSION: '5.6.4',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.6.4', date:'2026-08-09', headline:'💬 La comparación del día dice con todas las letras que es una diferencia.', changes:[
+        {type:'fix', title:'El importe de la comparación se leía como el resultado del otro día', desc:'Cuando la comparación se muestra en pesos, el rótulo decía "vs. ayer" y arriba un importe: se leía como "ayer gané esa cantidad", cuando en realidad es cuánto más o cuánto menos que ayer. Con un porcentaje no pasaba, porque nadie confunde un setenta y dos por ciento con un monto. El cálculo siempre fue correcto: con el día anterior en menos siete mil seiscientos cuarenta y hoy en más mil ciento tres, la diferencia es de ocho mil setecientos cuarenta y tres, que es lo que mostraba. Ahora el rótulo lo dice: "más que ayer" o "menos que la semana", según corresponda, y solo vuelve a "vs. ayer" cuando se muestra un porcentaje.'},
+        {type:'fix', title:'El ícono del tipo de cuenta se montaba sobre la palabra', desc:'El espacio reservado para el dibujo lo anulaba otra regla de estilo declarada como prioritaria, así que el ícono terminaba encima de la primera letra. Se repuso con la misma prioridad.'},
+        {type:'improve', title:'Los rótulos de la tarjeta pueden usar dos renglones', desc:'Los textos nuevos son más largos y antes se habrían cortado con puntos suspensivos, que es justo lo que había producido aquel "vs prom. se…" ilegible. Ahora pueden ocupar dos renglones y, como los tres indicadores comparten una cuadrícula, crecen todos por igual y la fila queda pareja.'}
+    ]},
     {version:'5.6.3', date:'2026-08-09', headline:'🎯 Análisis de Gastos con íconos propios y acciones que se pueden tocar.', changes:[
         {type:'improve', title:'Fusionar, editar y eliminar categorías', desc:'Eran tres emojis sin área definida, pegados uno al lado del otro, y el tercero borra. Ahora son íconos dibujados dentro de botones de treinta y seis píxeles, con separación real y color propio: grises en reposo, azules los de fusionar y editar al tocarlos, rojo el de eliminar. Cada uno tiene además su descripción para lectores de pantalla, que antes no tenía ninguna, y su texto de ayuda al mantenerlo presionado.'},
         {type:'improve', title:'Íconos en todo el análisis de gastos', desc:'Los botones para cambiar entre gráfico de dona y de barras usaban emojis, igual que los avisos de porcentaje sin categoría y el cartel de confirmación al fusionar. Todos pasaron a íconos dibujados, que se ven igual en cualquier teléfono y toman el color del texto que acompañan.'},
@@ -396,12 +401,6 @@ const CHANGELOG = [
         {type:'improve', title:'La línea del día cuenta qué pasó', desc:'Decía solo la cantidad de operaciones. Ahora dice la composición y el volumen: cuántas compras, cuántas ventas y cuánto moviste, que es lo que explica de dónde sale el resultado. Si el día tuvo una sola clase de operación, la línea se acorta sola.'},
         {type:'improve', title:'En Nueva Operación ya se ve lo que vas a recibir', desc:'Los USDT que recibís son la razón de la operación, pero aparecían al final del formulario, después de la tasa, la cuenta y las comisiones: había que terminar de cargar todo para verlos. Ahora aparecen justo debajo del monto y se actualizan con cada tecla, con la comisión ya descontada.'},
         {type:'improve', title:'Los saldos, dentro del desplegable de cuentas', desc:'Antes había que elegir una cuenta para recién entonces ver si tenía saldo suficiente. Ahora cada opción muestra su saldo, así se comparan antes de decidir, y las cuentas sin fondos lo dicen. Además, entre las cinco tasas rápidas quedó marcada la última que usaste: son las más recientes, pero no había forma de distinguir cuál era cuál.'}
-    ]},
-    {version:'5.5.0', date:'2026-08-08', headline:'🧭 Pantallas vacías que guían, carga con forma y botones que se pueden tocar.', changes:[
-        {type:'improve', title:'Las pantallas vacías dicen qué hacer', desc:'Antes mostraban solo "Sin operaciones". A quien recién empieza eso no le indica nada: un espacio vacío es una invitación a actuar, no un cartel. Ahora cada lista explica para qué sirve y ofrece el botón que corresponde: registrar la primera operación, cargar un ajuste o anotar una transferencia. Y cuando la lista está vacía porque los filtros no dejan pasar nada, el mensaje es otro y el botón ofrece quitarlos, que es la salida real de esa situación.'},
-        {type:'improve', title:'La carga muestra la forma de lo que viene', desc:'Al abrir la aplicación había un círculo girando sobre una pantalla en blanco. Ahora aparece un esquema con la forma de las tarjetas y las filas que están por cargarse. La espera dura lo mismo pero se siente más corta, porque la pantalla ya se parece al resultado en vez de estar vacía. Se desactiva solo si el sistema pide reducir el movimiento.'},
-        {type:'improve', title:'Editar y borrar ahora se pueden tocar sin errarle', desc:'En el teléfono medían treinta y dos píxeles de alto, doce menos que el mínimo recomendado, y están pegados uno al otro: en dos botones vecinos donde uno corrige y el otro destruye, esa diferencia es la que hace que borres algo sin querer. Ahora el área que responde al toque llega a cuarenta y cuatro píxeles. El dibujo no cambió, solo la zona sensible.'},
-        {type:'improve', title:'El botón de comprar avisa qué falta', desc:'La cuenta de origen es obligatoria, pero el botón se veía listo igual y el aviso llegaba recién al tocarlo. Ahora, mientras no elijas la cuenta, el botón lo dice: "Elegí de qué cuenta sale". Al elegirla vuelve a mostrar la cantidad a comprar y se habilita. No interfiere con los bloqueos que ya existían por guardado en curso ni con el aviso del pago dividido, que sigue teniendo prioridad.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

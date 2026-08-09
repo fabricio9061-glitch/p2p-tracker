@@ -315,10 +315,14 @@
             letter-spacing:var(--tracking-tight);
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
             line-height:1.1;display:flex;align-items:center;gap:3px}
+        /* v5.6.4 — El rótulo puede decir ahora "menos que la semana", que no entra
+           en un renglón. Se permite que use dos: como los tres indicadores están
+           en una cuadrícula, todos crecen igual y la fila sigue pareja. Recortar
+           con puntos suspensivos era peor: fue lo que produjo el "vs prom. se…". */
         .hoy-cell-l{font-size:clamp(0.56rem,2.3vw,0.68rem);
             color:var(--c-text-soft);font-weight:var(--fw-medium);
-            line-height:1.15;margin-top:2px;
-            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            line-height:1.2;margin-top:2px;
+            white-space:normal;overflow-wrap:break-word}
 
         /* Color semántico de flechas/porcentajes */
         .hc-up{color:var(--c-success)!important}
@@ -470,6 +474,10 @@
             .form-group input,.form-group select{
                 padding:9px 12px!important;font-size:15.5px!important;
                 border-radius:var(--r-md)!important;min-height:0}
+            /* v5.6.4 — La regla de arriba usa !important, así que ganaba sobre el
+               espacio reservado para el ícono del selector y el dibujo terminaba
+               encima de la palabra. Se repone acá, después y con la misma fuerza. */
+            .select-con-icono select{padding-left:40px!important}
             #monto{padding:11px 12px!important;font-size:1.05rem!important;
                 font-weight:var(--fw-semi);font-variant-numeric:tabular-nums}
 

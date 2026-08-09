@@ -454,7 +454,7 @@ function _renderHoyMiniCajas(){
         /* — vs ayer — */
         const ayer=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()-1);
         const valAyer=diaria[kDay(ayer)]||0;
-        _pintarComparacion(arrAyer,pctAyer,valHoy,valAyer);
+        _pintarComparacion(arrAyer,pctAyer,valHoy,valAyer,'vsAyerLabel','ayer');
         /* — vs prom. semanal: media de últimos 7 días EXCLUYENDO hoy — */
         let suma=0,n=0;
         for(let i=1;i<=7;i++){
@@ -463,14 +463,14 @@ function _renderHoyMiniCajas(){
             n++;
         }
         const promSem=n>0?suma/n:0;
-        _pintarComparacion(arrSem,pctSem,valHoy,promSem);
+        _pintarComparacion(arrSem,pctSem,valHoy,promSem,'vsSemLabel','la semana');
     }catch(e){
         console.warn('[P2P] mini-cajas hoy (no crítico):',e&&e.message);
     }
 }
 /* Helper: pinta flecha + porcentaje según comparación de hoy vs base.
    Umbral de "estable" ±2% para no mostrar movimientos insignificantes. */
-function _pintarComparacion(arrEl,pctEl,actual,base){
+function _pintarComparacion(arrEl,pctEl,actual,base,idRotulo,textoBase){
     arrEl.classList.remove('hc-up','hc-down','hc-flat');
     if(!isFinite(actual)||!isFinite(base)||base===0){
         /* Sin base válida → no se puede comparar */
@@ -501,11 +501,22 @@ function _pintarComparacion(arrEl,pctEl,actual,base){
     arrEl.textContent=arr;
     pctEl.classList.remove('hc-up','hc-down','hc-flat');
     pctEl.classList.add(cls);
-    /* v5.6.1 — La flecha ya indica la dirección, así que el signo delante del
-       importe lo repetía: se veía "↓ -$5.888". Va solo el monto. */
+    /* La flecha ya indica la dirección, así que el signo delante del importe lo
+       repetiría: va solo el monto. */
     pctEl.textContent=enPesos
         ? '$'+fmtNum(Math.abs(dif),0)
         : (abs>=10?fmtNum(abs,0):fmtNum(abs,1))+'%';
+    /* ═══ v5.6.4 — El rótulo tiene que decir que es una diferencia ═══
+       Con un porcentaje, "vs. ayer" se entiende: nadie lee "72%" como el monto
+       de ayer. Pero al pasar a pesos, "$8.743" junto a "vs. ayer" se lee como
+       "ayer: $8.743", y no es eso: es cuánto MÁS o MENOS que ayer. Cuando se
+       muestran pesos el rótulo lo dice con todas las letras. */
+    const rot=idRotulo?$(idRotulo):null;
+    if(rot&&textoBase){
+        rot.textContent=enPesos
+            ? (dif>=0?'más que ':'menos que ')+textoBase
+            : 'vs. '+textoBase;
+    }
     /* El detalle completo queda al mantener presionado */
     const caja=pctEl.closest('.hoy-cell');
     if(caja)caja.title=`Base: ${(base>=0?'+$':'-$')+fmtNum(Math.abs(base),2)} · Hoy: ${(actual>=0?'+$':'-$')+fmtNum(Math.abs(actual),2)}`;
