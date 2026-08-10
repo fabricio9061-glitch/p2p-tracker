@@ -69,30 +69,26 @@
         .banco-mini-card.has-gauge{
             padding-right:11px;  /* 3px de barra + 8px de respiro para el contenido */
         }
-        .banco-mini-card.has-gauge::before,
-        .banco-mini-card.has-gauge::after{
-            content:'';
-            position:absolute;
-            right:0;
-            top:0;
-            bottom:0;
-            width:3px;
-            pointer-events:none;
+        /* ═══ v5.7.1 — La barra usa su propio elemento ═══
+           Antes se dibujaba con los pseudo-elementos de la tarjeta, y el chevron
+           de "tocá para editar" usaba el mismo `::after`. Como las dos reglas
+           viven en hojas distintas, la del chevron —que carga después— le pisaba
+           la posición a la barra: quedaba colgando desde arriba en vez de crecer
+           desde abajo, y encima el chevron desaparecía justo en las tarjetas con
+           límite. Con un elemento propio cada cosa manda sobre lo suyo. */
+        .banco-gauge{
+            position:absolute;right:0;top:0;bottom:0;width:3px;
+            background:#e2e8f0;pointer-events:none;border-radius:0 8px 8px 0;
+            overflow:hidden;
         }
-        /* Track: línea base gris, siempre visible, altura completa del card.
-           El overflow:hidden + border-radius del card recorta automáticamente 
-           las esquinas superior e inferior derechas. */
-        .banco-mini-card.has-gauge::before{
-            background:#e2e8f0;
-        }
-        /* Fill: mismo rectángulo base, altura variable, anclado al bottom.
-           top:auto libera la posición superior para que height controle el tamaño. */
-        .banco-mini-card.has-gauge::after{
-            top:auto;
+        .banco-gauge::after{
+            content:'';position:absolute;left:0;right:0;bottom:0;
             height:var(--gauge-h,0%);
             background:var(--gauge-color,transparent);
-            transition:height 0.4s cubic-bezier(0.4,0,0.2,1),background-color 0.4s ease;
+            transition:height .4s cubic-bezier(.4,0,.2,1),background-color .4s ease;
         }
+        @media(prefers-reduced-motion:reduce){.banco-gauge::after{transition:none}}
+
         /* Tip on-demand */
         .banco-gauge-tip{
             position:absolute;

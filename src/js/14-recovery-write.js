@@ -177,7 +177,40 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnCancelTransf').addEventListener('click',()=>{AppState.ui.transEditandoId=null;AppState.ui.transEditandoIsConv=false;cerrarModal('modalTransferencia')});
     $('movMonto').addEventListener('input',()=>{actualizarFifoPreview();actualizarMovResumen()});
     $('btnCancelSaldo').addEventListener('click',()=>{cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
-    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'))}actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
+    /* ═══ v5.7.1 — Selector de días de renovación del límite ═══
+       Siete botones, uno por día. Los marcados renuevan el cupo; los que quedan
+       sin marcar siguen usando el del último día marcado. Siempre tiene que
+       quedar al menos uno: si no, el límite no se renovaría nunca. */
+    function _pintarDiasReset(banco){
+        const cont=$('diasResetBanco');if(!cont)return;
+        const grupo=$('diasResetGroup');
+        const lim=AppState.datos.bancos[banco]?.limiteDiarioUSD||0;
+        if(grupo)grupo.style.display=lim>0?'block':'none';
+        const activos=(typeof getDiasReset==='function')?getDiasReset(banco):[0,1,2,3,4,5,6];
+        cont.innerHTML=DIAS_SEMANA.map((d,i)=>
+            `<button type="button" data-dia="${i}" class="${activos.includes(i)?'on':''}" `+
+            `title="${DIAS_SEMANA_LARGO[i]}" aria-pressed="${activos.includes(i)}">${d}</button>`).join('');
+    }
+    function _leerDiasReset(){
+        const cont=$('diasResetBanco');if(!cont)return[0,1,2,3,4,5,6];
+        const on=[...cont.querySelectorAll('button.on')].map(b=>parseInt(b.dataset.dia,10));
+        return on.length?on.sort((a,b)=>a-b):[0,1,2,3,4,5,6];
+    }
+    $('diasResetBanco')?.addEventListener('click',e=>{
+        const b=e.target.closest('button[data-dia]');if(!b)return;
+        e.preventDefault();
+        const cont=$('diasResetBanco');
+        const marcados=cont.querySelectorAll('button.on').length;
+        if(b.classList.contains('on')&&marcados<=1)return;   /* al menos un día */
+        b.classList.toggle('on');
+        b.setAttribute('aria-pressed',b.classList.contains('on'));
+    });
+    /* Mostrar u ocultar el selector según haya límite cargado */
+    $('limiteDiarioBanco')?.addEventListener('input',()=>{
+        const g=$('diasResetGroup');if(g)g.style.display=pv('limiteDiarioBanco')>0?'block':'none';
+    });
+
+    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'));AppState.datos.bancos[n].diasReset=_leerDiasReset()}actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
     $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
@@ -280,7 +313,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             /* Re-render: cheap, preserves collapse state via _collapsedMonths */
             cargarHistorialMensual();
         }
-        else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}else{AppState.ui.bancoEditando=banco;$('editarSaldoHeader').innerHTML='Editar '+colorBanco(banco);$('nuevoSaldoBanco').value=fmtNum(AppState.datos.bancos[banco]?.saldo||0);$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=fmtNum(AppState.datos.bancos[banco]?.limiteDiarioUSD||0,0);abrirModal('modalEditarSaldo')}}
+        else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}else{AppState.ui.bancoEditando=banco;$('editarSaldoHeader').innerHTML='Editar '+colorBanco(banco);$('nuevoSaldoBanco').value=fmtNum(AppState.datos.bancos[banco]?.saldo||0);$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=fmtNum(AppState.datos.bancos[banco]?.limiteDiarioUSD||0,0);_pintarDiasReset(banco);abrirModal('modalEditarSaldo')}}
         else if(a==='toggle-banco'){const n=t.dataset.banco;if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;renderizarListaBancos();actualizarVista();guardaOptimista('update','bancos',n)}
         else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
         else if(a==='editar-lote')abrirEditarLote(loteId);

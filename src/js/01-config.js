@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.7.0',
+    APP_VERSION: '5.7.1',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.7.1', date:'2026-08-09', headline:'📅 Cada cuenta define en qué días renueva su límite.', changes:[
+        {type:'new', title:'Los días de renovación del límite ahora se configuran', desc:'Hasta ahora, la regla de que sábado, domingo y lunes comparten un mismo cupo estaba escrita a mano en el programa para una cuenta puntual, reconocida por una marca interna. Si otra cuenta pasaba a funcionar igual, o esa cambiaba su política, había que modificar el código. Ahora cada cuenta con límite tiene siete botones, uno por día de la semana: los marcados renuevan el cupo y los que quedan sin marcar siguen usando el del último día marcado. La descripción se arma sola y se lee siguiendo la semana, por ejemplo "sáb a lun = 1 cupo". Las cuentas que ya tenían la regla la conservan sin cambios y las demás siguen renovando todos los días, así que nada se comporta distinto hasta que lo cambies.'},
+        {type:'fix', title:'La barra de límite quedaba colgando y el chevron desaparecía', desc:'La barra vertical que muestra cuánto queda del límite y la flecha que indica que la tarjeta se puede tocar usaban el mismo elemento decorativo. Como las reglas de estilo viven en hojas distintas y la de la flecha se aplica después, le pisaba la posición a la barra: en vez de crecer desde abajo quedaba colgando desde arriba, y en esas mismas tarjetas la flecha no aparecía. Ahora la barra tiene su propio elemento y cada cosa manda sobre lo suyo.'},
+        {type:'improve', title:'Íconos en el resumen mensual', desc:'Las pestañas de meses y comparación todavía usaban emojis. Con esto, la interfaz no tiene ninguno: los únicos que quedan están en las ventanas de aviso del navegador, que solo aceptan texto.'}
+    ]},
     {version:'5.7.0', date:'2026-08-09', headline:'💵 Las cajas del día muestran dinero real, no diferencias calculadas.', changes:[
         {type:'improve', title:'Ahora dicen cuánto ganaste ayer y cuánto en promedio esta semana', desc:'Hasta ahora esas dos cajas mostraban cuánto había cambiado el resultado respecto de la referencia. El cálculo era correcto, pero la cifra no era dinero: si un día cerró en menos siete mil seiscientos cuarenta y el siguiente en más tres mil doscientos veintinueve, entre los dos hay una distancia de diez mil ochocientos sesenta y nueve, pero nadie ganó esa cantidad. En una pantalla donde todo lo demás son montos reales, un número con signo de peso se lee como un monto real, y así se leía. Antes se mostraba en porcentaje y era peor todavía: al pasar de ganancia a pérdida, un "ciento ochenta y cinco por ciento menos" no dice nada. Ahora no se calcula nada intermedio: arriba está la ganancia de hoy, y debajo la de ayer y el promedio de los últimos siete días. Tres números reales, y la comparación la hace la vista. Cada uno lleva su color según haya sido ganancia o pérdida, y el valor con centavos aparece al mantenerlo presionado.'}
     ]},
@@ -393,10 +398,6 @@ const CHANGELOG = [
         {type:'fix', title:'La línea del día mezclaba pesos con dólares', desc:'La línea bajo la ganancia contaba todas las operaciones del día, incluidas las hechas en dólares, y sumaba sus montos al volumen en pesos como si fueran la misma moneda. La ganancia de esa tarjeta, en cambio, deja las de dólares afuera porque tienen su propia tarjeta. El resultado era que la línea describía un día distinto del que mostraba el número grande, con un volumen inflado. Ahora ambos miran exactamente las mismas operaciones.'},
         {type:'improve', title:'Ya no queda ningún emoji en pantalla', desc:'El encabezado de Ajuste Externo se escribía desde el programa y pisaba el ícono de la página, el mismo problema que había tenido el botón de comprar. Además quedaban emojis en las opciones de tipo de cuenta, en los campos de búsqueda, en el resumen mensual, en el análisis de gastos y en varios avisos. Todo pasó a íconos dibujados o a texto simple.'},
         {type:'improve', title:'Las categorías se leen mejor', desc:'El número de veces que usaste cada categoría era texto gris pegado al nombre y podía leerse como parte de ella, por ejemplo "Transporte 77". Ahora es una insignia con fondo propio, que se entiende como lo que es. Los colores de los botones de crear, sugerir y ver más estaban escritos dentro del programa: pasaron a la hoja de estilos y usan las variables del sistema. Los chips además crecieron a una altura cómoda para el dedo.'}
-    ]},
-    {version:'5.6.1', date:'2026-08-08', headline:'✂️ Menos texto en Ganancia Hoy: el número vuelve a ser lo primero.', changes:[
-        {type:'improve', title:'La tarjeta del día quedó cargada de texto', desc:'La versión anterior sumó dos líneas de contexto, pero con muchas operaciones ninguna entraba en el ancho disponible y cada una se partía en dos renglones: la tarjeta creció hasta cuatro líneas de texto y el número grande, que es lo que se mira primero, quedó apretado entre medio. Ahora hay una sola línea corta con la cantidad de operaciones y el volumen. El desglose de compras y ventas se ve al mantenerla presionada, y el resumen de los catorce días pasó a acompañar al propio gráfico, también al mantenerlo presionado. La información sigue estando, pero deja de competir con la cifra.'},
-        {type:'fix', title:'La comparación mostraba el signo dos veces', desc:'Cuando la diferencia se expresa en pesos aparecía como "flecha hacia abajo, menos cinco mil ochocientos ochenta y ocho": la flecha ya indica la dirección, así que el signo delante del importe lo repetía. Ahora va solo el monto.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

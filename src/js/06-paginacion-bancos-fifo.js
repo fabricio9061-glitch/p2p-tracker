@@ -127,16 +127,66 @@ function inicializarBancos(){
     });
 }
 
+/* ═══ v5.7.1 — Los días de renovación son un dato de cada cuenta ═══
+   Antes esta regla estaba escrita a mano para un banco puntual, reconocido por
+   una marca en la configuración: si otra cuenta pasaba a comportarse igual, o
+   ese banco cambiaba su política, había que tocar el programa. Ahora cada cuenta
+   guarda en qué días renueva su cupo, y se configura desde su ventana de edición.
+
+   Los días que quedan sin marcar no renuevan: siguen usando el cupo del último
+   día marcado. Así, marcando de martes a viernes, el sábado, el domingo y el
+   lunes comparten un mismo cupo, que es como opera un banco que no procesa los
+   fines de semana. */
+const DIAS_SEMANA=['D','L','M','M','J','V','S'];
+const DIAS_SEMANA_LARGO=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const DIAS_RESET_TODOS=[0,1,2,3,4,5,6];
+
+function getDiasReset(nombreBanco){
+    const bk=AppState.datos.bancos[nombreBanco];
+    if(bk&&Array.isArray(bk.diasReset)&&bk.diasReset.length)return bk.diasReset;
+    /* Sin configurar: se hereda la regla que tenía el banco marcado como especial
+       para no cambiarle el comportamiento a quien ya la usaba. */
+    const info=getBancoInfo(nombreBanco);
+    if(info&&info.especial==='itau')return[2,3,4,5];
+    return DIAS_RESET_TODOS;
+}
+
+/* Texto explicativo del agrupamiento. Solo dice algo si NO renueva todos los
+   días. Los días se ordenan siguiendo la semana y contemplando la vuelta al
+   domingo: los que comparten cupo con el sábado se leen "sáb a lun", no
+   "dom-lun-sáb", que es correcto pero se entiende peor. */
+function textoDiasReset(nombreBanco){
+    const d=getDiasReset(nombreBanco);
+    if(d.length>=7||!d.length)return'';
+    const sinRenovar=DIAS_RESET_TODOS.filter(x=>!d.includes(x));
+    if(!sinRenovar.length)return'';
+    const ab=i=>DIAS_SEMANA_LARGO[i].slice(0,3);
+    if(sinRenovar.length===1)return` (${ab(sinRenovar[0])} comparte cupo)`;
+    /* Buscar el arranque del tramo: el primer día sin renovar cuyo anterior sí renueva */
+    let ini=sinRenovar.find(x=>d.includes((x+6)%7));
+    if(ini===undefined)ini=sinRenovar[0];
+    /* Recorrer desde ahí dando la vuelta a la semana */
+    const orden=[];
+    for(let k=0,i=ini;k<7;k++,i=(i+1)%7){
+        if(!sinRenovar.includes(i))break;
+        orden.push(i);
+    }
+    const seq=orden.length===sinRenovar.length?orden:sinRenovar;
+    return seq.length===2
+        ? ` (${ab(seq[0])} y ${ab(seq[1])} = 1 cupo)`
+        : ` (${ab(seq[0])} a ${ab(seq[seq.length-1])} = 1 cupo)`;
+}
+
 function verificarResetLimites(){
     const ah=getUDate(),hr=0.5,ha=ah.getHours()+ah.getMinutes()/60,hoy=getUDateStr();
+    const ds=ah.getDay();
     CONFIG.BANCOS.forEach(b=>{
         const bk=AppState.datos.bancos[b.nombre];if(!bk)return;
-        const ur=bk.ultimoResetLimite||null;
-        if(b.especial==='itau'){
-            const ds=ah.getDay();
-            if(ds===2&&ha>=hr){if(ur!==hoy){bk.limiteUsadoUSD=0;bk.ultimoResetLimite=hoy}}
-            else if(ds>2&&ds<6&&ha>=hr){if(ur!==hoy){bk.limiteUsadoUSD=0;bk.ultimoResetLimite=hoy}}
-        }else{if(ha>=hr&&ur!==hoy){bk.limiteUsadoUSD=0;bk.ultimoResetLimite=hoy}}
+        if(ha<hr)return;                       /* antes de las 0:30 todavía no renueva */
+        if(bk.ultimoResetLimite===hoy)return;  /* ya renovó hoy */
+        if(!getDiasReset(b.nombre).includes(ds))return;
+        bk.limiteUsadoUSD=0;
+        bk.ultimoResetLimite=hoy;
     });
 }
 
@@ -233,7 +283,7 @@ function actualizarBancosGrid(){
             tipHtml=`<div class="banco-gauge-tip">${fmtNum(pct,0)}% · US$${fmtNum(disp,0)}</div>`;
             limTxt=`<div class="banco-limite-txt">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div>`;
         }
-        h+=`<div class="banco-mini-card${hasGauge?' has-gauge':''}"${cardStyle} data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'};display:flex;align-items:center;gap:4px">${_bancoLogoImg(b.nombre,17)}<span class="banco-nombre-txt">${b.nombre}</span></div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${tipHtml}</div>`;
+        h+=`<div class="banco-mini-card${hasGauge?' has-gauge':''}"${cardStyle} data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'};display:flex;align-items:center;gap:4px">${_bancoLogoImg(b.nombre,17)}<span class="banco-nombre-txt">${b.nombre}</span></div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${tipHtml}${hasGauge?'<span class="banco-gauge" aria-hidden="true"></span>':''}</div>`;
     });
     setHtml('bancosGrid',h);
 }
@@ -267,7 +317,7 @@ function renderizarListaBancos(){
     let h='';
     CONFIG.BANCOS.forEach(b=>{
         const a=AppState.datos.bancos[b.nombre]?.activo||false,s=AppState.datos.bancos[b.nombre]?.saldo||0,lim=AppState.datos.bancos[b.nombre]?.limiteDiarioUSD||0;
-        let li=lim>0?` | Límite: US$${fmtNum(lim,0)}/día`:'';if(b.especial==='itau')li+=' (sáb-lun=1día)';
+        let li=lim>0?` | Límite: US$${fmtNum(lim,0)}/día`+textoDiasReset(b.nombre):'';
         h+=`<div class="banco-list-item"><div><div style="font-weight:600;font-size:0.9em"><span style="color:${b.color||'#1e293b'}">${b.nombre}</span> <span style="color:#94a3b8">(${b.moneda})</span></div><div style="color:#64748b;font-size:0.8em">${getSym(b.moneda)}${fmtNum(s)}${li}</div></div><div class="banco-list-actions"><button class="btn-edit-small" data-action="editar-saldo" data-banco="${b.nombre}">Editar</button><label class="toggle-switch"><input type="checkbox" ${a?'checked':''} data-action="toggle-banco" data-banco="${b.nombre}"><span class="toggle-slider"></span></label></div></div>`;
     });
     setHtml('listaBancos',h);

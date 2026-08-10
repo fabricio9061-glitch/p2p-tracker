@@ -361,9 +361,10 @@
             transition:opacity var(--dur-fast) var(--ease-out),
                        transform var(--dur-fast) var(--ease-out)}
         .banco-mini-card:active::after{opacity:1;transform:translateX(2px)}
-        /* Si la tarjeta tiene gauge (límite), el chevron se mueve un poco
-           para no superponerse con el indicador del gauge */
-        .banco-mini-card.has-gauge::after{top:8px;right:8px}
+        /* v5.7.1 — La barra de límite ya no usa este pseudo-elemento, así que el
+           chevron vuelve a mostrarse también en las tarjetas con límite. Solo se
+           corre un poco para no quedar encima de la barra. */
+        .banco-mini-card.has-gauge::after{right:9px}
 
         /* ════════════ FIN v4.7.53 ════════════ */
 

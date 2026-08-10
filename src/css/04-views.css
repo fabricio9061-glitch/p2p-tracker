@@ -465,3 +465,21 @@
 
         /* Los chips son objetivos táctiles: alto mínimo cómodo y sin retardo */
         .tags-container .tag-pill{min-height:34px;touch-action:manipulation}
+
+
+        /* ═══ Días de renovación del límite (v5.7.1) ═══
+           Siete botones, uno por día. Los marcados renuevan el límite; los que
+           quedan sin marcar siguen usando el cupo del último día marcado, que es
+           como funcionan los bancos que no procesan fines de semana. */
+        .dias-reset{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:2px}
+        .dias-reset button{
+            min-height:40px;padding:0;border:1px solid var(--c-border);
+            background:var(--c-surface);border-radius:9px;cursor:pointer;
+            font:inherit;font-size:0.82em;font-weight:700;color:var(--c-text-mute);
+            touch-action:manipulation;transition:background .12s,color .12s,border-color .12s;
+        }
+        .dias-reset button.on{
+            background:var(--c-brand);border-color:var(--c-brand);color:#fff;
+        }
+        .dias-reset button:active{transform:scale(0.94)}
+        #diasResetHelp{display:block;margin-top:6px;line-height:1.4}

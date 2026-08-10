@@ -236,8 +236,8 @@ async function cargarHistorialMensual(){
         const view=AppState.ui._resumenView||'months';
         /* Toolbar */
         let h=`<div class="resumen-toolbar">
-            <button class="resumen-toolbar-btn ${view==='months'?'active':''}" data-action="resumen-view" data-view="months">📋 Meses</button>
-            <button class="resumen-toolbar-btn ${view==='compare'?'active':''}" data-action="resumen-view" data-view="compare">⚖️ Comparar</button>
+            <button class="resumen-toolbar-btn ${view==='months'?'active':''}" data-action="resumen-view" data-view="months"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg> Meses</button>
+            <button class="resumen-toolbar-btn ${view==='compare'?'active':''}" data-action="resumen-view" data-view="compare"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M7 21h10M3 8l4-4 4 4M3 8l2 5h4l2-5M13 8l4-4 4 4M13 8l2 5h4l2-5"/></svg> Comparar</button>
         </div>`;
         if(view==='compare'){
             /* Compare view */
