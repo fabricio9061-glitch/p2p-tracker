@@ -210,7 +210,12 @@ document.addEventListener('DOMContentLoaded',()=>{
         const g=$('diasResetGroup');if(g)g.style.display=pv('limiteDiarioBanco')>0?'block':'none';
     });
 
-    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'));AppState.datos.bancos[n].diasReset=_leerDiasReset()}
+    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'));AppState.datos.bancos[n].diasReset=_leerDiasReset();
+            /* v5.8.0 — Fijar el saldo a mano establece un nuevo punto de partida:
+               de acá en adelante el saldo correcto es este más los eventos que
+               vengan después. */
+            AppState.datos.bancos[n].saldoBase=fixNeg(ns);
+            AppState.datos.bancos[n].saldoBaseTs=new Date().toISOString();}
         if(typeof _auditoriaAnotar==='function')_auditoriaAnotar();actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
     $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));

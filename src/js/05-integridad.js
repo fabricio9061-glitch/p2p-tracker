@@ -77,6 +77,174 @@ function verificarIntegridadGlobal(){
    deltas.limitesUSD: {nombre: deltaLimiteUsado}  (opcional, + aumenta uso, - lo reduce)
 */
 /* ═══════════════════════════════════════════════════════════════════════════
+   EFECTO DE CADA EVENTO SOBRE LOS SALDOS (v5.8.0)
+   ═══════════════════════════════════════════════════════════════════════════
+   Hasta acá el saldo de cada cuenta se modificaba en diecinueve lugares
+   distintos del programa: al crear, al editar y al borrar cada tipo de registro.
+   Diecinueve lugares que tienen que estar todos de acuerdo, y basta que uno
+   falle para que el saldo quede mal para siempre, porque nadie lo recalcula.
+
+   Pero los eventos son solo CUATRO, y cada uno tiene un efecto bien definido.
+   Esta función es ese efecto, en un único lugar. Con ella se puede reconstruir
+   cualquier saldo sumando los eventos, igual que el saldo USDT se reconstruye
+   reproduciendo las operaciones. Es la pieza que faltaba para que todo derive
+   de la misma fuente.
+
+   Devuelve un objeto {cuenta: variación}. Los montos ya vienen redondeados. */
+function efectoEnBancos(tipo,ev){
+    const d={};
+    const sumar=(cuenta,monto)=>{
+        if(!cuenta||!isFinite(monto)||!monto)return;
+        d[cuenta]=roundMoney((d[cuenta]||0)+monto);
+    };
+    if(!ev)return d;
+    if(tipo==='operaciones'){
+        if(ev.tipo==='compra'){
+            /* Pago dividido: cada cuenta aporta su parte. La comisión bancaria
+               la cobra siempre la cuenta principal. */
+            if(Array.isArray(ev.aportes)&&ev.aportes.length){
+                ev.aportes.forEach(a=>sumar(a.banco,-(a.monto||0)));
+                sumar(ev.banco,-(ev.comisionBanco||0));
+            }else{
+                sumar(ev.banco,-((ev.monto||0)+(ev.comisionBanco||0)));
+            }
+        }else{
+            sumar(ev.banco,ev.monto||0);
+        }
+    }else if(tipo==='movimientos'){
+        /* Los movimientos sobre la billetera USDT no tocan cuentas bancarias */
+        if(ev.tipoCuenta==='usdt')return d;
+        sumar(ev.banco,ev.tipoMovimiento==='ingreso'?(ev.monto||0):-(ev.monto||0));
+    }else if(tipo==='transferencias'){
+        sumar(ev.origen,-((ev.monto||0)+(ev.comision||0)));
+        sumar(ev.destino,ev.monto||0);
+    }else if(tipo==='conversiones'){
+        sumar(ev.origen,-(ev.montoOrigen||0));
+        sumar(ev.destino,ev.montoDestino||0);
+    }
+    return d;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RECONCILIACIÓN GENERAL (v5.8.0)
+   ═══════════════════════════════════════════════════════════════════════════
+   Reconstruye todo desde la única fuente que no puede mentir: los eventos.
+
+   Cada cuenta guarda un punto de partida —el último saldo que fijaste a mano— y
+   la fecha en que lo fijaste. A partir de ahí, su saldo correcto es ese punto
+   más el efecto de todos los eventos posteriores. Es el mismo principio con el
+   que ya funcionan los lotes y el saldo USDT, que se reconstruyen reproduciendo
+   las operaciones y por eso se corrigen solos.
+
+   Si una cuenta nunca tuvo punto de partida, se adopta su saldo actual como tal
+   en el momento de correr esto. Eso no cambia ningún número: solo fija la
+   referencia desde la cual se podrá verificar de ahí en adelante.
+
+   NO aplica nada por su cuenta: muestra cada diferencia encontrada y pregunta.
+   Sobre dinero, un ajuste automático a partir de un diagnóstico equivocado es
+   peor que el problema que intenta resolver.                                  */
+function reconciliarTodo(opts){
+    opts=opts||{};
+    if(!AppState.datos)return null;
+    const ahora=new Date().toISOString();
+    const marca=ev=>String(ev.timestamp||((ev.fecha||'')+'T'+(ev.hora||'00:00')+':00'));
+
+    /* 1 ── Lotes, ganancias y saldo USDT: ya se reconstruyen solos */
+    const usdtAntes=AppState.datos.saldoUsdt;
+    recalcularLotesYGanancias();
+    const usdtDespues=AppState.datos.saldoUsdt;
+
+    /* 2 ── Saldos: punto de partida más los eventos posteriores */
+    const esperados={},adoptadas=[];
+    Object.keys(AppState.datos.bancos||{}).forEach(n=>{
+        const bk=AppState.datos.bancos[n];
+        if(!isFinite(bk.saldoBase)||!bk.saldoBaseTs){
+            /* Sin referencia previa: se adopta la actual sin cambiar nada */
+            bk.saldoBase=roundMoney(bk.saldo||0);
+            bk.saldoBaseTs=ahora;
+            adoptadas.push(n);
+        }
+        esperados[n]=roundMoney(bk.saldoBase);
+    });
+    ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{
+        (AppState.datos[tipo]||[]).forEach(ev=>{
+            const efecto=efectoEnBancos(tipo,ev);
+            Object.keys(efecto).forEach(cuenta=>{
+                const bk=AppState.datos.bancos[cuenta];
+                if(!bk||!bk.saldoBaseTs)return;
+                if(marca(ev)<=String(bk.saldoBaseTs))return;   /* anterior al punto de partida */
+                esperados[cuenta]=roundMoney((esperados[cuenta]||0)+efecto[cuenta]);
+            });
+        });
+    });
+
+    const diffs=[];
+    Object.keys(esperados).forEach(n=>{
+        if(adoptadas.includes(n))return;      /* recién adoptada: no hay nada que comparar */
+        const real=roundMoney(AppState.datos.bancos[n].saldo||0);
+        if(Math.abs(real-esperados[n])>0.005){
+            diffs.push({cuenta:n,enPantalla:real,segunEventos:esperados[n],diferencia:roundMoney(real-esperados[n])});
+        }
+    });
+
+    /* 3 ── Duplicados: un mismo evento contado dos veces */
+    const duplicados=[];
+    ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{
+        const vistos=new Set();
+        (AppState.datos[tipo]||[]).forEach(ev=>{
+            const id=String(ev&&ev.id);
+            if(vistos.has(id))duplicados.push({tipo,id});
+            vistos.add(id);
+        });
+    });
+
+    const informe={
+        usdt:{antes:usdtAntes,despues:usdtDespues,cambio:roundMoney(usdtDespues-usdtAntes)},
+        referenciasAdoptadas:adoptadas,
+        saldos:diffs,
+        duplicados,
+        ok:diffs.length===0&&duplicados.length===0
+    };
+
+    console.log('%c[Reconciliación]',informe.ok?'color:#15803d;font-weight:bold':'color:#b91c1c;font-weight:bold',informe);
+    if(diffs.length)console.table(diffs);
+
+    if(opts.silencioso)return informe;
+
+    let msg='';
+    if(adoptadas.length){
+        msg+='Se fijó el punto de partida de '+adoptadas.length+' cuenta(s): '+adoptadas.join(', ')+
+             '.\nNo se modificó ningún saldo. A partir de ahora se pueden verificar.\n\n';
+    }
+    if(Math.abs(informe.usdt.cambio)>0.005){
+        msg+='El saldo USDT se recalculó: '+fmtNum(usdtAntes,2)+' → '+fmtNum(usdtDespues,2)+'\n\n';
+    }
+    if(duplicados.length){
+        msg+='⚠ '+duplicados.length+' registro(s) aparecen dos veces. Revisalos con verificarIntegridad().\n\n';
+    }
+    if(!diffs.length){
+        msg+=adoptadas.length?'Los saldos quedaron con su referencia fijada.':'Todos los saldos coinciden con los eventos.';
+        alert('Reconciliación\n\n'+msg);
+        return informe;
+    }
+    msg+='Diferencias encontradas:\n\n'+diffs.map(d=>
+        '• '+d.cuenta+'\n   en pantalla: '+fmtNum(d.enPantalla,2)+
+        '\n   según los eventos: '+fmtNum(d.segunEventos,2)+
+        '\n   diferencia: '+(d.diferencia>0?'+':'')+fmtNum(d.diferencia,2)).join('\n\n');
+    msg+='\n\n¿Corregir los saldos con el valor que surge de los eventos?';
+    if(confirm('Reconciliación\n\n'+msg)){
+        diffs.forEach(d=>{AppState.datos.bancos[d.cuenta].saldo=d.segunEventos});
+        if(typeof _auditoriaAnotar==='function')_auditoriaAnotar();
+        if(typeof guardaOptimista==='function')guardaOptimista('update','bancos','reconciliacion');
+        if(typeof actualizarVista==='function')actualizarVista();
+        informe.aplicado=true;
+        alert('Saldos corregidos.\n\nVerificá que coincidan con tus cuentas reales.');
+    }
+    return informe;
+}
+window.reconciliarTodo=reconciliarTodo;
+
+/* ═══════════════════════════════════════════════════════════════════════════
    AUDITORÍA AUTOMÁTICA DE SALDOS (v5.7.2)
    ═══════════════════════════════════════════════════════════════════════════
    Por qué hace falta, y por qué solo para los saldos.
