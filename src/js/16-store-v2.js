@@ -513,9 +513,21 @@ function v2OnEstadoSnapshot(doc){
         if(Array.isArray(d.lotesManuales)){
             const noManual=(AppState.datos.lotes||[]).filter(l=>l&&!l.manual);
             AppState.datos.lotes=[...d.lotesManuales.map(l=>({...l})),...noManual];
+            /* v5.7.2 — Documentos anteriores a la separación guardaban los lotes
+               de arrastre mezclados con los manuales. Se adoptan acá, UNA sola vez
+               y desde lo guardado, nunca desde el array que el motor ya calculó:
+               ahí las cantidades vienen infladas por las fusiones y adoptarlas
+               duplicaba el USDT. */
+            if(!Array.isArray(AppState.datos._archivoCarryover)){
+                const heredados=d.lotesManuales.filter(l=>l&&l.carryover);
+                if(heredados.length)AppState.datos._archivoCarryover=heredados.map(l=>({...l}));
+            }
         }
         AppState._localVersion=serverV;
         AppState.datos._version=serverV;
+        /* Una foto aceptada del servidor es un cambio legítimo: se toma como
+           nueva referencia para no reportarla como desvío. */
+        if(typeof _auditoriaAnotar==='function')_auditoriaAnotar();
     }
     AppState._datosStale=false;
     _v2EstadoOk=true;

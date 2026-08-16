@@ -210,7 +210,8 @@ document.addEventListener('DOMContentLoaded',()=>{
         const g=$('diasResetGroup');if(g)g.style.display=pv('limiteDiarioBanco')>0?'block':'none';
     });
 
-    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'));AppState.datos.bancos[n].diasReset=_leerDiasReset()}actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
+    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'));AppState.datos.bancos[n].diasReset=_leerDiasReset()}
+        if(typeof _auditoriaAnotar==='function')_auditoriaAnotar();actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
     $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});

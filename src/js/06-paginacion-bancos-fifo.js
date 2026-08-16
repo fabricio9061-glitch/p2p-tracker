@@ -381,10 +381,16 @@ function recalcularLotesYGanancias(){
        array de lotes. Los manuales del usuario sí salen del array: su `cantidad`
        no se muta nunca. Compatibilidad: si un documento viejo todavía trae los de
        arrastre dentro de los manuales, se adoptan al campo nuevo la primera vez. */
-    if(!Array.isArray(AppState.datos._archivoCarryover)){
-        const heredados=AppState.datos.lotes.filter(l=>l&&l.manual&&l.carryover);
-        if(heredados.length)AppState.datos._archivoCarryover=heredados.map(l=>({...l}));
-    }
+    /* ═══ v5.7.2 — La adopción salió de acá ═══
+       Antes, si el campo venía sin definir, se reconstruía leyendo los lotes de
+       arrastre del array calculado. Pero ese array ya pasó por el motor: las
+       compras a la misma tasa se fusionan dentro de esos lotes, así que su
+       cantidad no es la declarada sino la declarada MÁS las compras absorbidas.
+       Cuando una foto del servidor traía el campo sin definir, la reconstrucción
+       tomaba esa cantidad inflada como nueva declaración y la compra pasaba a
+       contarse dos veces: dentro del lote de arrastre y como operación propia.
+       Eso duplicaba el USDT. Ahora la adopción se hace una sola vez, al cargar,
+       leyendo la declaración guardada y no el resultado del cálculo. */
     const lotesCarry=(AppState.datos._archivoCarryover||[]).map(l=>({...l,manual:true,carryover:true}));
     const lotesManual=[...lotesCarry,...AppState.datos.lotes.filter(l=>l&&l.manual&&!l.carryover).map(l=>({...l}))];
     AppState.datos.lotes=[];const ev=[];

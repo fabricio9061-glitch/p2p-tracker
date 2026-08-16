@@ -76,6 +76,94 @@ function verificarIntegridadGlobal(){
    deltas.bancos: {nombre: deltaSaldo}
    deltas.limitesUSD: {nombre: deltaLimiteUsado}  (opcional, + aumenta uso, - lo reduce)
 */
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUDITORÍA AUTOMÁTICA DE SALDOS (v5.7.2)
+   ═══════════════════════════════════════════════════════════════════════════
+   Por qué hace falta, y por qué solo para los saldos.
+
+   El saldo USDT es DERIVADO: se recalcula desde cero reproduciendo todas las
+   operaciones. Si un cálculo sale mal, el siguiente lo corrige solo. En cambio
+   el saldo de cada cuenta es MUTADO: se le suma y se le resta, y el resultado
+   es el único registro que existe. Si una resta se pierde —o se aplica dos
+   veces— nadie lo nota y el error queda ahí para siempre, arrastrándose sobre
+   todos los cálculos posteriores.
+
+   Esa asimetría es la que produjo las dos fallas de esta versión. Mientras los
+   saldos sigan siendo mutados, la única defensa es vigilarlos.
+
+   Cómo funciona: cada vez que la app cambia un saldo a propósito, anota cuál
+   debería ser el resultado. En el siguiente dibujado compara lo anotado con lo
+   real. Si no coinciden, algo lo cambió por fuera de una acción del usuario, y
+   eso siempre es un error. Lo registra con el detalle y avisa.
+
+   No corrige sola: un ajuste automático sobre dinero, hecho a partir de un
+   diagnóstico que puede estar equivocado, es peor que el problema. Avisa, deja
+   la evidencia y ofrece revisarlo.                                            */
+const _AUDITORIA_TOLERANCIA=0.005;
+let _saldosEsperados=null;
+let _auditoriaAvisada=false;
+const _auditoriaHallazgos=[];
+
+/* Registra cuál debería ser el saldo tras un cambio deliberado */
+function _auditoriaAnotar(){
+    if(!AppState.datos||!AppState.datos.bancos)return;
+    _saldosEsperados={};
+    Object.keys(AppState.datos.bancos).forEach(n=>{
+        _saldosEsperados[n]=roundMoney(AppState.datos.bancos[n].saldo||0);
+    });
+}
+
+/* Compara lo anotado con lo real. Devuelve las cuentas que no coinciden. */
+function auditarSaldos(opts){
+    opts=opts||{};
+    if(!_saldosEsperados||!AppState.datos||!AppState.datos.bancos)return[];
+    const desvios=[];
+    Object.keys(_saldosEsperados).forEach(n=>{
+        const bk=AppState.datos.bancos[n];
+        if(!bk)return;
+        const real=roundMoney(bk.saldo||0),esp=_saldosEsperados[n];
+        if(Math.abs(real-esp)>_AUDITORIA_TOLERANCIA){
+            desvios.push({banco:n,esperado:esp,real,diferencia:roundMoney(real-esp)});
+        }
+    });
+    if(desvios.length){
+        const reg={cuando:new Date().toISOString(),desvios};
+        _auditoriaHallazgos.push(reg);
+        if(_auditoriaHallazgos.length>50)_auditoriaHallazgos.shift();
+        console.error('%c[P2P][auditoría] Saldos alterados sin una acción que lo explique',
+            'color:#b91c1c;font-weight:bold',desvios);
+        if(!_auditoriaAvisada&&!opts.silencioso){
+            _auditoriaAvisada=true;
+            const lista=desvios.map(d=>`${d.banco}: esperado ${fmtNum(d.esperado,2)} · quedó ${fmtNum(d.real,2)}`).join('\n• ');
+            setTimeout(()=>{
+                alert('Se detectó un saldo alterado\n\n• '+lista+
+                      '\n\nAlgo cambió estos saldos por fuera de una operación tuya. '+
+                      'No se modificó nada de forma automática.\n\n'+
+                      'Revisá el detalle con auditoriaSaldos() en la consola, '+
+                      'y verificá el estado general con verificarIntegridad().');
+            },400);
+        }
+    }
+    /* La foto pasa a ser la nueva referencia */
+    _auditoriaAnotar();
+    return desvios;
+}
+
+/* Informe para la consola */
+function auditoriaSaldos(){
+    const inf={
+        vigilando:_saldosEsperados?Object.keys(_saldosEsperados).length:0,
+        hallazgos:_auditoriaHallazgos.length,
+        detalle:_auditoriaHallazgos
+    };
+    console.log('%c[Auditoría de saldos]',
+        _auditoriaHallazgos.length?'color:#b91c1c;font-weight:bold':'color:#15803d;font-weight:bold',inf);
+    if(!_auditoriaHallazgos.length)console.log('  Sin desvíos desde que abriste la app.');
+    else console.table(_auditoriaHallazgos.flatMap(h=>h.desvios));
+    return inf;
+}
+window.auditoriaSaldos=auditoriaSaldos;
+
 function aplicarDeltas(deltas){
     deltas=deltas||{};
     if(deltas.bancos){
@@ -83,8 +171,19 @@ function aplicarDeltas(deltas){
             const bk=AppState.datos.bancos[nombre];
             if(!bk)continue;
             bk.saldo=fixNeg(roundMoney(bk.saldo+delta));
+            /* ═══ v5.7.2 — Sin esto el descuento se perdía ═══
+               El saldo de cada cuenta no se recalcula nunca: se le suma y se le
+               resta. Al cargar una operación se anotaba como pendiente la
+               operación, pero NO el cambio de saldo, así que el guardián que
+               protege lo local no lo veía. Si en esa ventana llegaba una foto del
+               servidor —el eco de un guardado anterior, u otro dispositivo— el
+               saldo remoto pisaba al recién descontado y la resta desaparecía
+               para siempre, porque nadie la vuelve a calcular. */
+            if(typeof enqueueSync==='function')enqueueSync('update','bancos',nombre);
         }
     }
+    /* Cambio deliberado: se anota el resultado esperado para poder vigilarlo */
+    _auditoriaAnotar();
     if(deltas.limitesUSD){
         for(const [nombre,delta] of Object.entries(deltas.limitesUSD)){
             const bk=AppState.datos.bancos[nombre];
