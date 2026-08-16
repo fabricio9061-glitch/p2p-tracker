@@ -540,3 +540,24 @@
         .rec-otras button:active{background:var(--c-surface-2)}
         .rec-otras button small{display:block;font-weight:500;font-size:0.86em;
             color:var(--c-text-mute);margin-top:2px;line-height:1.35}
+
+
+        /* ═══ Registros repetidos y estados imposibles (v5.8.2) ═══ */
+        .rec-dups,.rec-imposibles{margin-top:15px;padding-top:13px;border-top:1px solid var(--c-border-soft)}
+        .rec-dups-t{font-size:0.72em;font-weight:750;letter-spacing:0.06em;
+            text-transform:uppercase;color:var(--c-danger);margin-bottom:5px}
+        .rec-dups-s{font-size:0.79em;color:var(--c-text-mute);line-height:1.45;margin-bottom:10px}
+        .rec-dup{display:flex;align-items:center;gap:10px;
+            background:#fef2f2;border:1px solid #fecaca;border-radius:11px;
+            padding:10px 12px;margin-bottom:7px}
+        .rec-dup-i{flex:1;min-width:0}
+        .rec-dup-i .d{font-size:0.87em;font-weight:650;color:var(--c-text)}
+        .rec-dup-i .m{font-size:0.76em;color:var(--c-text-mute);margin-top:2px}
+        .rec-dup button{flex-shrink:0;min-height:38px;padding:0 14px;border-radius:9px;
+            border:1px solid var(--c-danger);background:var(--c-surface);
+            color:var(--c-danger);font:inherit;font-size:0.83em;font-weight:700;
+            cursor:pointer;touch-action:manipulation}
+        .rec-dup button:active{background:var(--c-danger);color:#fff}
+        .rec-imp{font-size:0.86em;color:var(--c-text);padding:5px 0;
+            font-variant-numeric:tabular-nums}
+        .rec-imp b{color:var(--c-danger)}

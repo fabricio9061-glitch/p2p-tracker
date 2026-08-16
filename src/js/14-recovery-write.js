@@ -46,21 +46,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
         else if(a==='historial-mensual')cargarHistorialMensual();
         else if(a==='restaurar-respaldo')restaurarRespaldoManual();
-        /* v5.8.1 — Verificar y reconciliar, desde el menú o desde Lotes */
-        else if(a==='reconciliar'){
-            cerrarModal('configPanel');cerrarModal('modalInventario');
-            if(typeof reconciliarTodo==='function')setTimeout(()=>reconciliarTodo(),120);
-        }
-        else if(a==='reconciliar-aplicar'){if(typeof reconciliarAplicar==='function')reconciliarAplicar()}
-        else if(a==='cerrar-reconciliar')cerrarModal('modalReconciliar');
-        else if(a==='rec-servidor'){
-            cerrarModal('modalReconciliar');
-            if(typeof verificarIntegridad==='function')setTimeout(()=>verificarIntegridad(),120);
-        }
-        else if(a==='rec-arrastre'){
-            cerrarModal('modalReconciliar');
-            if(typeof repararCarryover==='function')setTimeout(()=>repararCarryover(),120);
-        }
+
         else if(a==='exportar-datos')exportarDatos();
         else if(a==='importar-datos')importarDatos();
         else if(a==='borrar-todo')borrarTodo();
@@ -307,6 +293,28 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='editar-op')abrirEditarOperacion(id);
         else if(a==='dismiss-news'){const v=t.dataset.version;if(v)descartarNovedad(v)}
         else if(a==='eliminar-mov')eliminarMovimiento(id);
+        /* ═══ v5.8.3 — Verificar y reconciliar ═══
+           Estos manejadores estaban atados al panel del menú lateral, así que solo
+           respondían dentro de él: el botón de Lotes de USDT y todos los de la
+           pantalla de resultados —corregir, cerrar, comparar con el servidor,
+           recalcular arrastre— quedaban fuera de su alcance y no hacían nada al
+           tocarlos, sin ningún aviso. Acá los ve toda la pantalla. */
+        else if(a==='reconciliar'){
+            cerrarModal('modalInventario');
+            if(typeof reconciliarTodo==='function')setTimeout(()=>reconciliarTodo(),120);
+            else alert('No se pudo iniciar la verificación. Recargá la app e intentá de nuevo.');
+        }
+        else if(a==='reconciliar-aplicar'){if(typeof reconciliarAplicar==='function')reconciliarAplicar()}
+        else if(a==='cerrar-reconciliar')cerrarModal('modalReconciliar');
+        else if(a==='rec-servidor'){
+            cerrarModal('modalReconciliar');
+            if(typeof verificarIntegridad==='function')setTimeout(()=>verificarIntegridad(),120);
+        }
+        else if(a==='rec-arrastre'){
+            cerrarModal('modalReconciliar');
+            if(typeof repararCarryover==='function')setTimeout(()=>repararCarryover(),120);
+        }
+
         else if(a==='rec-borrar-dup'){
             /* v5.8.2 — Borra el registro repetido usando la misma función que el
                botón de la lista, así el reverso de saldos y lotes es idéntico.

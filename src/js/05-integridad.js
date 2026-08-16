@@ -187,15 +187,65 @@ function reconciliarTodo(opts){
         }
     });
 
-    /* 3 ── Duplicados: un mismo evento contado dos veces */
+    /* ═══ 3 ── Registros repetidos ═══
+       v5.8.2 — Antes solo se buscaban identificadores repetidos, y eso deja fuera
+       el caso más frecuente: cuando la app falla a mitad de una operación, el
+       registro se vuelve a crear con un identificador NUEVO. Queda entonces un
+       gemelo idéntico en todo lo que importa —tipo, monto, cuenta, categoría— y
+       con pocos minutos de diferencia, que a los cálculos les entra dos veces.
+       Se los busca comparando el contenido, dentro de una ventana de 10 minutos:
+       lo bastante amplia para atrapar un reintento fallido y lo bastante angosta
+       para no confundir dos gastos reales parecidos en días distintos. */
+    const VENTANA_MS=10*60*1000;
     const duplicados=[];
+    const huella=(tipo,ev)=>{
+        if(tipo==='operaciones')return[ev.tipo,ev.monto,ev.tasa,ev.banco,ev.moneda].join('|');
+        if(tipo==='movimientos')return[ev.tipoCuenta,ev.tipoMovimiento,ev.monto,ev.banco||'',ev.descripcion||''].join('|');
+        if(tipo==='transferencias')return[ev.origen,ev.destino,ev.monto,ev.comision||0].join('|');
+        return[ev.origen,ev.destino,ev.montoOrigen,ev.montoDestino].join('|');
+    };
+    const cuando=ev=>{
+        const t=Date.parse(ev.timestamp||'');
+        if(isFinite(t))return t;
+        const d=Date.parse((ev.fecha||'')+'T'+(ev.hora||'00:00')+':00');
+        return isFinite(d)?d:0;
+    };
     ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{
-        const vistos=new Set();
-        (AppState.datos[tipo]||[]).forEach(ev=>{
-            const id=String(ev&&ev.id);
-            if(vistos.has(id))duplicados.push({tipo,id});
-            vistos.add(id);
+        const lista=AppState.datos[tipo]||[];
+        const porId=new Set(),porHuella=new Map();
+        lista.forEach(ev=>{
+            if(!ev)return;
+            const id=String(ev.id);
+            if(porId.has(id)){
+                duplicados.push({tipo,id,motivo:'identificador repetido',ev});
+                return;
+            }
+            porId.add(id);
+            const h=huella(tipo,ev),t=cuando(ev);
+            const previos=porHuella.get(h)||[];
+            const gemelo=previos.find(p=>Math.abs(cuando(p)-t)<=VENTANA_MS);
+            if(gemelo){
+                duplicados.push({tipo,id,motivo:'idéntico a otro registro cercano',ev,gemelo:String(gemelo.id)});
+            }
+            previos.push(ev);porHuella.set(h,previos);
         });
+    });
+
+    /* ═══ 4 ── Estados que no pueden darse ═══
+       Un saldo negativo o un lote con más disponible del que se compró siempre
+       significan que algo se contó mal. Antes no se avisaba de ninguno. */
+    const imposibles=[];
+    Object.keys(AppState.datos.bancos||{}).forEach(n=>{
+        const v=roundMoney(AppState.datos.bancos[n].saldo||0);
+        if(v<-0.005)imposibles.push({que:'Saldo negativo en '+n,valor:v});
+    });
+    if(roundMoney(AppState.datos.saldoUsdt||0)<-0.005){
+        imposibles.push({que:'Saldo USDT negativo',valor:roundMoney(AppState.datos.saldoUsdt)});
+    }
+    (AppState.datos.lotes||[]).forEach(l=>{
+        if(l&&l.disponible>(l.cantidad||0)+0.005){
+            imposibles.push({que:'Lote con más disponible que lo comprado',valor:l.disponible});
+        }
     });
 
     const informe={
@@ -203,7 +253,8 @@ function reconciliarTodo(opts){
         referenciasAdoptadas:adoptadas,
         saldos:diffs,
         duplicados,
-        ok:diffs.length===0&&duplicados.length===0
+        imposibles,
+        ok:diffs.length===0&&duplicados.length===0&&imposibles.length===0
     };
 
     console.log('%c[Reconciliación]',informe.ok?'color:#15803d;font-weight:bold':'color:#b91c1c;font-weight:bold',informe);
@@ -248,21 +299,60 @@ function _pintarReconciliacion(inf){
     }
     h+='<div class="rec-linea"><span class="n">Cuentas verificadas</span>'+
        '<span class="v">'+Object.keys(AppState.datos.bancos||{}).length+'</span></div>';
-    h+='<div class="rec-linea"><span class="n">Registros duplicados</span>'+
+    h+='<div class="rec-linea"><span class="n">Registros repetidos</span>'+
        '<span class="v"'+(inf.duplicados.length?' style="color:var(--c-danger)"':'')+'>'+
        inf.duplicados.length+'</span></div>';
 
-    if(!inf.saldos.length){
+    /* v5.8.2 — Cada repetido se muestra con su contenido y un botón para
+       borrarlo. Antes solo se decía cuántos había, y sin poder verlos no había
+       forma de arreglarlo desde el teléfono. */
+    if(inf.duplicados.length){
+        h+='<div class="rec-dups"><div class="rec-dups-t">Registros repetidos</div>'+
+           '<div class="rec-dups-s">Aparecen dos veces y por eso se cuentan doble. '+
+           'Suele pasar cuando la app falla a mitad de una operación y el registro '+
+           'se vuelve a crear. Revisá cuál sobra antes de borrarlo.</div>';
+        inf.duplicados.forEach(d=>{
+            const ev=d.ev||{};
+            let desc='';
+            if(d.tipo==='operaciones')desc=(ev.tipo==='compra'?'Compra ':'Venta ')+fmtMonto(ev.monto,ev.moneda)+' a '+fmtTasaMon(ev.tasa,ev.moneda);
+            else if(d.tipo==='movimientos')desc=(ev.tipoMovimiento==='ingreso'?'Ingreso ':'Egreso ')+
+                (ev.tipoCuenta==='usdt'?fmtTrunc(ev.monto,2)+' USDT':fmtMonto(ev.monto))+
+                (ev.descripcion?' · '+escHtml(ev.descripcion):'');
+            else if(d.tipo==='transferencias')desc=fmtMonto(ev.monto)+' · '+escHtml(ev.origen||'')+' → '+escHtml(ev.destino||'');
+            else desc='Conversión '+fmtMonto(ev.montoOrigen);
+            h+='<div class="rec-dup"><div class="rec-dup-i">'+
+               '<div class="d">'+desc+'</div>'+
+               '<div class="m">'+escHtml(String(ev.fecha||''))+' '+escHtml(String(ev.hora||''))+' · '+escHtml(d.motivo)+'</div></div>'+
+               '<button data-action="rec-borrar-dup" data-tipo="'+d.tipo+'" data-id="'+escHtml(String(d.id))+'">Borrar</button></div>';
+        });
+        h+='</div>';
+    }
+
+    if(inf.imposibles&&inf.imposibles.length){
+        h+='<div class="rec-imposibles"><div class="rec-dups-t">Estados imposibles</div>';
+        inf.imposibles.forEach(x=>{
+            h+='<div class="rec-imp">'+escHtml(x.que)+' <b>'+fmtNum(x.valor,2)+'</b></div>';
+        });
+        h+='<div class="rec-dups-s">Un saldo negativo o un lote con más disponible del '+
+           'que se compró siempre indican que algo se contó de más. Suele resolverse '+
+           'borrando el registro repetido de arriba.</div></div>';
+    }
+
+    if(!inf.saldos.length&&!inf.duplicados.length&&!(inf.imposibles||[]).length){
         h='<div class="rec-estado ok"><div class="t">Todo coincide</div>'+
           '<div class="s">Cada saldo es exactamente el que surge de sumar tus eventos '+
           'desde su punto de partida.</div></div>'+h;
         h+=_recHerramientas();
         h+='<div class="rec-acciones"><button class="pri" data-action="cerrar-reconciliar">Listo</button></div>';
     }else{
-        h='<div class="rec-estado alerta"><div class="t">'+inf.saldos.length+
-          ' cuenta'+(inf.saldos.length===1?'':'s')+' con diferencia</div>'+
-          '<div class="s">El saldo guardado no coincide con el que resulta de sumar los eventos. '+
-          'Podés corregirlo con el valor reconstruido, o cerrar sin tocar nada.</div></div>'+h;
+        const partes=[];
+        if(inf.saldos.length)partes.push(inf.saldos.length+' cuenta'+(inf.saldos.length===1?'':'s')+' con diferencia');
+        if(inf.duplicados.length)partes.push(inf.duplicados.length+' registro'+(inf.duplicados.length===1?'':'s')+' repetido'+(inf.duplicados.length===1?'':'s'));
+        if((inf.imposibles||[]).length)partes.push((inf.imposibles).length+' estado'+(inf.imposibles.length===1?'':'s')+' imposible'+(inf.imposibles.length===1?'':'s'));
+        h='<div class="rec-estado alerta"><div class="t">'+partes.join(' · ')+'</div>'+
+          '<div class="s">Revisá cada punto antes de aplicar nada. Si hay registros '+
+          'repetidos, conviene borrarlos primero: muchas diferencias de saldo se '+
+          'corrigen solas al hacerlo.</div></div>'+h;
         h+='<div style="margin-top:13px">';
         inf.saldos.forEach(d=>{
             h+='<div class="rec-diff"><div class="c">'+escHtml(d.cuenta)+'</div>'+
@@ -273,8 +363,8 @@ function _pintarReconciliacion(inf){
         });
         h+='</div>';
         h+='<div class="rec-acciones">'+
-           '<button class="sec" data-action="cerrar-reconciliar">No tocar nada</button>'+
-           '<button class="pri" data-action="reconciliar-aplicar">Corregir saldos</button></div>';
+           '<button class="sec" data-action="cerrar-reconciliar">'+(inf.saldos.length?'No tocar nada':'Cerrar')+'</button>'+
+           (inf.saldos.length?'<button class="pri" data-action="reconciliar-aplicar">Corregir saldos</button>':'')+'</div>';
         h+='<div class="rec-nota">Después de corregir, comparalo con el saldo real de tus cuentas. '+
            'Si no coincide, no vuelvas a aplicar: puede faltar registrar alguna operación.</div>';
         h+=_recHerramientas();
