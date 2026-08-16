@@ -153,18 +153,48 @@ function efectoEnBancos(tipo,ev){
    El punto de partida es el último saldo que fijaste a mano. Tiene que existir,
    porque la app no conoce tu historia anterior a ella: la primera vez se adopta
    el saldo actual, sin cambiar ningún número.                                 */
+/* Marca de tiempo comparable de un registro. Si no tiene una propia, se arma
+   con su fecha y hora, que están en hora local: convertirla evita comparar hora
+   local contra hora universal, que son tres horas de diferencia. */
+function _marcaEvento(ev){
+    if(ev&&ev.timestamp)return String(ev.timestamp);
+    const d=new Date(String((ev&&ev.fecha)||'')+'T'+String((ev&&ev.hora)||'00:00')+':00');
+    return isFinite(d.getTime())?d.toISOString():'';
+}
+
 function recalcularSaldosBancos(){
     if(!AppState.datos||!AppState.datos.bancos)return;
-    const ahora=new Date().toISOString();
-    const marca=ev=>String(ev.timestamp||((ev.fecha||'')+'T'+(ev.hora||'00:00')+':00'));
+    const marca=_marcaEvento;
     const saldos={};
+
+    /* ═══ v6.2.0 — El punto de partida se fija DESPUÉS de todo lo ya contado ═══
+       Se fijaba con la hora del reloj. El problema: cuando se adopta en medio de
+       una operación —una cuenta recién habilitada, o un documento que llega sin
+       el dato— el saldo que se toma como base YA tiene descontada esa operación,
+       porque el descuento se aplica antes de recalcular. Y como su marca de
+       tiempo quedaba después del punto de partida, se volvía a contar: el saldo
+       se descontaba dos veces y cambiaba solo al llegar la siguiente foto del
+       servidor. Fijándolo un instante después del último registro conocido, todo
+       lo que ya está reflejado en el saldo queda excluido, y lo que venga
+       después se cuenta una sola vez. */
+    let ultimo='';
+    ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(tipo=>{
+        (AppState.datos[tipo]||[]).forEach(ev=>{
+            if(!ev)return;
+            const t=marca(ev);
+            if(t>ultimo)ultimo=t;
+        });
+    });
+    const ahora=new Date().toISOString();
+    const corte=(ultimo&&ultimo>=ahora)
+        ? new Date(Date.parse(ultimo)+1).toISOString()
+        : ahora;
 
     Object.keys(AppState.datos.bancos).forEach(n=>{
         const bk=AppState.datos.bancos[n];
         if(!isFinite(bk.saldoBase)||!bk.saldoBaseTs){
-            /* Primera vez: lo que hay hoy pasa a ser el punto de partida */
             bk.saldoBase=roundMoney(bk.saldo||0);
-            bk.saldoBaseTs=ahora;
+            bk.saldoBaseTs=corte;
         }
         saldos[n]=roundMoney(bk.saldoBase);
     });
@@ -176,7 +206,9 @@ function recalcularSaldosBancos(){
             for(const cuenta in efecto){
                 const bk=AppState.datos.bancos[cuenta];
                 if(!bk)continue;
-                if(marca(ev)<=String(bk.saldoBaseTs))continue;
+                /* Estrictamente anterior al corte queda excluido: su efecto ya está
+                   dentro del punto de partida. */
+                if(marca(ev)<String(bk.saldoBaseTs))continue;
                 saldos[cuenta]=roundMoney(saldos[cuenta]+efecto[cuenta]);
             }
         });
@@ -200,14 +232,14 @@ function recalcularSaldosBancos(){
 function historialCuenta(nombre,limite){
     const bk=AppState.datos&&AppState.datos.bancos&&AppState.datos.bancos[nombre];
     if(!bk)return[];
-    const marca=ev=>String(ev.timestamp||((ev.fecha||'')+'T'+(ev.hora||'00:00')+':00'));
+    const marca=_marcaEvento;
     const lineas=[];
 
     ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(tipo=>{
         (AppState.datos[tipo]||[]).forEach(ev=>{
             if(!ev)return;
             const t=marca(ev);
-            if(bk.saldoBaseTs&&t<=String(bk.saldoBaseTs))return;
+            if(bk.saldoBaseTs&&t<String(bk.saldoBaseTs))return;
             const efecto=efectoEnBancos(tipo,ev);
             const v=efecto[nombre];
             if(v===undefined||Math.abs(v)<0.005)return;
@@ -344,7 +376,9 @@ function reconciliarTodo(opts){
     opts=opts||{};
     if(!AppState.datos)return null;
     const ahora=new Date().toISOString();
-    const marca=ev=>String(ev.timestamp||((ev.fecha||'')+'T'+(ev.hora||'00:00')+':00'));
+    /* v6.2.0 — Misma función que usan el saldo y el libro. Tener tres copias de
+       este criterio fue lo que permitió que uno quedara desalineado. */
+    const marca=_marcaEvento;
 
     /* 1 ── Lotes, ganancias y saldo USDT: ya se reconstruyen solos */
     const usdtAntes=AppState.datos.saldoUsdt;
