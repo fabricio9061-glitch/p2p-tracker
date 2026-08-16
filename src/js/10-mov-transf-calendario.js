@@ -76,6 +76,8 @@ function abrirModalMovimiento(editId){
     /* v5.6.2 — Se escribía con textContent y pisaba el ícono puesto en la página,
        así que el emoji volvía a aparecer. Mismo caso que el botón de comprar. */
     if(header)header.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'+(editing?' Editar ajuste':' Ajuste Externo');
+    /* v5.9.0 — El botón de eliminar solo tiene sentido al editar algo existente */
+    {const be=$('btnEliminarMov');if(be)be.style.display=editing?'block':'none';}
     $('btnGuardarMov').textContent=editing?'Guardar cambios':'Guardar';
     $('btnGuardarMov').disabled=false;
     /* Populate fields */

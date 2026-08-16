@@ -36,7 +36,23 @@ async function guardarLote(){
     AppState.ui.guardandoLote=true;btn.disabled=true;btn.textContent='⏳ Guardando';
     try{
         let loteId=AppState.ui.loteEditandoId;
-        if(loteId){const l=AppState.datos.lotes.find(x=>x.id===loteId);if(l&&l.manual){l.precioCompra=roundMoney(p,3);l.disponible=truncUsdt(d);l.cantidad=truncUsdt(d);l.fecha=f}}
+        if(loteId){
+            const l=AppState.datos.lotes.find(x=>x.id===loteId);
+            if(l&&l.manual){
+                l.precioCompra=roundMoney(p,3);l.disponible=truncUsdt(d);l.cantidad=truncUsdt(d);l.fecha=f;
+                /* ═══ v5.9.0 — Los lotes de arrastre también se guardan ═══
+                   Desde que la declaración del arrastre vive en su propio campo, el
+                   editor cambiaba solo la copia calculada: el próximo recálculo la
+                   reconstruía desde la declaración original y el cambio desaparecía
+                   sin ningún aviso. Se veía como que los lotes de arrastre no se
+                   pueden modificar. Ahora se actualiza la declaración, que es lo
+                   único que el recálculo respeta. */
+                if(l.carryover&&Array.isArray(AppState.datos._archivoCarryover)){
+                    const decl=AppState.datos._archivoCarryover.find(x=>String(x.id)===String(loteId));
+                    if(decl){decl.precioCompra=l.precioCompra;decl.cantidad=l.cantidad;decl.disponible=l.disponible;decl.fecha=l.fecha}
+                }
+            }
+        }
         else{loteId=uid();AppState.datos.lotes.push({id:loteId,fecha:f,hora:getUTimeStr(),precioCompra:roundMoney(p,3),cantidad:truncUsdt(d),disponible:truncUsdt(d),moneda:'UYU',manual:true})}
         const isEdit=!!AppState.ui.loteEditandoId;
         recalcularLotesYGanancias();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
@@ -55,6 +71,11 @@ async function eliminarLoteActual(){
     AppState.ui.guardandoLote=true;const btn=$('btnEliminarLote');btn.disabled=true;btn.textContent='⏳ Eliminando';
     try{
         const delLoteId=AppState.ui.loteEditandoId;
+        /* v5.9.0 — Si es de arrastre, se saca también de la declaración: si no,
+           el recálculo lo vuelve a crear y parece que el borrado no funcionó. */
+        if(lExist&&lExist.carryover&&Array.isArray(AppState.datos._archivoCarryover)){
+            AppState.datos._archivoCarryover=AppState.datos._archivoCarryover.filter(x=>String(x.id)!==String(delLoteId));
+        }
         AppState.datos.lotes=AppState.datos.lotes.filter(l=>l.id!==delLoteId);
         recalcularLotesYGanancias();actualizarVista();renderizarInventario();
         guardaOptimista('delete','lotes',delLoteId);

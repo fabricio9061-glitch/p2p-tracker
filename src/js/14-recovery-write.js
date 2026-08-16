@@ -168,6 +168,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('movTipoCuenta').addEventListener('change',()=>{actualizarCuentasMovimiento();actualizarMovResumen()});
     $('movBanco').addEventListener('change',()=>{const v=$('movBanco').value;$('movBanco').style.color=v?getBancoColor(v):'#1e293b';$('movBanco').style.fontWeight=v?'600':'400';actualizarMovResumen()});
     $('btnGuardarMov').addEventListener('click',guardarMovimiento);
+    $('btnEliminarMov')?.addEventListener('click',()=>{
+        const id=AppState.ui.movEditandoId;
+        if(id&&typeof eliminarMovimiento==='function'){cerrarModal('modalMovimiento');eliminarMovimiento(id)}
+    });
     $('btnCancelMov').addEventListener('click',()=>{AppState.ui.movEditandoId=null;cerrarModal('modalMovimiento')});
     $('btnCerrarBancos').addEventListener('click',()=>{cerrarModal('modalBancos');actualizarVista();guardaOptimista('update','bancos','close')});
     $('bancoOrigen').addEventListener('change',()=>{const v=$('bancoOrigen').value;$('bancoOrigen').style.color=v?getBancoColor(v):'#1e293b';mostrarSaldoOrigen();actualizarTransfUI()});

@@ -115,3 +115,13 @@
         .app-container{display:none}
         .app-container.active{display:block}
         .auth-container.hidden{display:none}
+
+
+        /* Eliminar desde el modal (v5.9.0) */
+        .btn-eliminar-modal{
+            width:100%;margin-top:9px;min-height:44px;border-radius:11px;
+            border:1px solid var(--c-danger);background:var(--c-surface);
+            color:var(--c-danger);font:inherit;font-weight:650;font-size:0.88em;
+            cursor:pointer;touch-action:manipulation;
+        }
+        .btn-eliminar-modal:active{background:var(--c-danger-bg)}
