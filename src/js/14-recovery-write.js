@@ -307,6 +307,20 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='editar-op')abrirEditarOperacion(id);
         else if(a==='dismiss-news'){const v=t.dataset.version;if(v)descartarNovedad(v)}
         else if(a==='eliminar-mov')eliminarMovimiento(id);
+        else if(a==='rec-borrar-dup'){
+            /* v5.8.2 — Borra el registro repetido usando la misma función que el
+               botón de la lista, así el reverso de saldos y lotes es idéntico.
+               Después vuelve a verificar para mostrar cómo quedó todo. */
+            const tipo=t.dataset.tipo;
+            if(!confirm('¿Borrar este registro repetido?\n\nSe va a revertir su efecto sobre los saldos y los lotes.'))return;
+            const alTerminar=()=>{if(typeof reconciliarTodo==='function')setTimeout(()=>reconciliarTodo(),350)};
+            if(tipo==='movimientos'&&typeof eliminarMovimiento==='function'){eliminarMovimiento(id);alTerminar()}
+            else if(tipo==='operaciones'&&typeof eliminarOperacion==='function'){eliminarOperacion(id);alTerminar()}
+            else if(tipo==='transferencias'&&typeof eliminarTransferencia==='function'){eliminarTransferencia(id);alTerminar()}
+            else if(tipo==='conversiones'&&typeof eliminarConversion==='function'){eliminarConversion(id);alTerminar()}
+            else alert('No se pudo borrar desde acá. Buscalo en su lista y borralo con el botón de la fila.');
+        }
+
         else if(a==='eliminar-trans')eliminarTransferencia(id);
         else if(a==='eliminar-conv')eliminarConversion(id);
         else if(a==='editar-mov')abrirModalMovimiento(id);
