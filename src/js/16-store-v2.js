@@ -527,8 +527,7 @@ function v2OnEstadoSnapshot(doc){
         AppState.datos._version=serverV;
         /* Una foto aceptada del servidor es un cambio legítimo: se toma como
            nueva referencia para no reportarla como desvío. */
-        if(typeof _auditoriaAnotar==='function')_auditoriaAnotar();
-    }
+        }
     AppState._datosStale=false;
     _v2EstadoOk=true;
     v2AttachEventos();

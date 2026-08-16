@@ -447,6 +447,10 @@ function recalcularLotesYGanancias(){
     AppState.datos.ultimaTasaCompra=utcL;AppState.datos.ultimaTasaCompraUSD=utcUL;
     AppState.datos.ultimaTasaVenta=utvL;AppState.datos.ultimaTasaVentaUSD=utvU;
     sincronizarSaldoUsdt();
+    /* v6.0.0 — Los saldos de las cuentas se reconstruyen acá mismo, en el mismo
+       recorrido que los lotes y el USDT. A partir de ahora los tres derivan de
+       los eventos y ninguno puede quedar desincronizado de los otros. */
+    if(typeof recalcularSaldosBancos==='function')recalcularSaldosBancos();
     invalidarGananciaCache();
     /* Listas dependen de ganancia/ops recalculadas → invalidar fingerprints también */
     if(typeof _invalidateListCache==='function')_invalidateListCache();

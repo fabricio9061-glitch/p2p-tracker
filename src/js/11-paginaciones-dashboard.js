@@ -641,7 +641,6 @@ function _detalleDelDia(total,compras,ventas,volumen){
 function actualizarVista(){
     /* v5.7.2 — Cada dibujado compara los saldos contra lo que deberían ser. Si
        algo los cambió sin que haya una acción que lo explique, queda registrado. */
-    try{if(typeof auditarSaldos==='function')auditarSaldos()}catch(_){}
     const hoy=getUDate(),mesA=getMesActivo(),ops=opsMes();
     let tp=0,tr=0,stc=0,stv=0,cc=0,cv=0;
     ops.forEach(op=>{if(op.tipo==='compra'){tp=roundMoney(tp+op.monto+(op.comisionBanco||0));stc=roundMoney(stc+op.tasa);cc++}else{tr=roundMoney(tr+op.monto);stv=roundMoney(stv+op.tasa);cv++}});

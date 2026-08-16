@@ -126,6 +126,63 @@ function efectoEnBancos(tipo,ev){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   SALDOS DERIVADOS (v6.0.0) — el saldo es el resultado, no un dato aparte
+   ═══════════════════════════════════════════════════════════════════════════
+   Así trabaja un contador: no guarda el saldo de una cuenta, lo obtiene sumando
+   los asientos. Si algo no cuadra, se vuelve a sumar y listo.
+
+   Hasta acá la app hacía lo contrario con las cuentas bancarias: guardaba el
+   saldo y lo iba modificando en cada operación, en diecinueve lugares distintos.
+   Bastaba con que una modificación se perdiera —por una desconexión, por dos
+   pestañas abiertas, por un error a mitad de camino— para que el número quedara
+   mal PARA SIEMPRE, porque nadie lo volvía a calcular. Todo lo que veníamos
+   agregando —vigilancia, auditoría, reconciliación manual— eran formas de
+   convivir con ese problema en vez de resolverlo.
+
+   Ahora el saldo de cada cuenta se reconstruye igual que los lotes y el USDT:
+   punto de partida más el efecto de cada operación, ajuste, transferencia y
+   conversión posterior. Se recalcula solo, en el mismo momento que todo lo
+   demás. Una modificación perdida deja de importar, porque el número no depende
+   de que se aplique: depende de los eventos, que sí están guardados uno por uno.
+
+   El punto de partida es el último saldo que fijaste a mano. Tiene que existir,
+   porque la app no conoce tu historia anterior a ella: la primera vez se adopta
+   el saldo actual, sin cambiar ningún número.                                 */
+function recalcularSaldosBancos(){
+    if(!AppState.datos||!AppState.datos.bancos)return;
+    const ahora=new Date().toISOString();
+    const marca=ev=>String(ev.timestamp||((ev.fecha||'')+'T'+(ev.hora||'00:00')+':00'));
+    const saldos={};
+
+    Object.keys(AppState.datos.bancos).forEach(n=>{
+        const bk=AppState.datos.bancos[n];
+        if(!isFinite(bk.saldoBase)||!bk.saldoBaseTs){
+            /* Primera vez: lo que hay hoy pasa a ser el punto de partida */
+            bk.saldoBase=roundMoney(bk.saldo||0);
+            bk.saldoBaseTs=ahora;
+        }
+        saldos[n]=roundMoney(bk.saldoBase);
+    });
+
+    ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{
+        (AppState.datos[tipo]||[]).forEach(ev=>{
+            if(!ev)return;
+            const efecto=efectoEnBancos(tipo,ev);
+            for(const cuenta in efecto){
+                const bk=AppState.datos.bancos[cuenta];
+                if(!bk)continue;
+                if(marca(ev)<=String(bk.saldoBaseTs))continue;
+                saldos[cuenta]=roundMoney(saldos[cuenta]+efecto[cuenta]);
+            }
+        });
+    });
+
+    Object.keys(saldos).forEach(n=>{
+        AppState.datos.bancos[n].saldo=fixNeg(saldos[n]);
+    });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    RECONCILIACIÓN GENERAL (v5.8.0)
    ═══════════════════════════════════════════════════════════════════════════
    Reconstruye todo desde la única fuente que no puede mentir: los eventos.
@@ -154,39 +211,9 @@ function reconciliarTodo(opts){
     recalcularLotesYGanancias();
     const usdtDespues=AppState.datos.saldoUsdt;
 
-    /* 2 ── Saldos: punto de partida más los eventos posteriores */
-    const esperados={},adoptadas=[];
-    Object.keys(AppState.datos.bancos||{}).forEach(n=>{
-        const bk=AppState.datos.bancos[n];
-        if(!isFinite(bk.saldoBase)||!bk.saldoBaseTs){
-            /* Sin referencia previa: se adopta la actual sin cambiar nada */
-            bk.saldoBase=roundMoney(bk.saldo||0);
-            bk.saldoBaseTs=ahora;
-            adoptadas.push(n);
-        }
-        esperados[n]=roundMoney(bk.saldoBase);
-    });
-    ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{
-        (AppState.datos[tipo]||[]).forEach(ev=>{
-            const efecto=efectoEnBancos(tipo,ev);
-            Object.keys(efecto).forEach(cuenta=>{
-                const bk=AppState.datos.bancos[cuenta];
-                if(!bk||!bk.saldoBaseTs)return;
-                if(marca(ev)<=String(bk.saldoBaseTs))return;   /* anterior al punto de partida */
-                esperados[cuenta]=roundMoney((esperados[cuenta]||0)+efecto[cuenta]);
-            });
-        });
-    });
-
-    const diffs=[];
-    Object.keys(esperados).forEach(n=>{
-        if(adoptadas.includes(n))return;      /* recién adoptada: no hay nada que comparar */
-        const real=roundMoney(AppState.datos.bancos[n].saldo||0);
-        if(Math.abs(real-esperados[n])>0.005){
-            diffs.push({cuenta:n,enPantalla:real,segunEventos:esperados[n],diferencia:roundMoney(real-esperados[n])});
-        }
-    });
-
+    /* v6.0.0 — Ya no se comparan saldos: se reconstruyen en cada recálculo, así
+       que no pueden estar desviados. Lo que sí hay que buscar son registros
+       repetidos y estados imposibles, que sí son datos mal cargados. */
     /* ═══ 3 ── Registros repetidos ═══
        v5.8.2 — Antes solo se buscaban identificadores repetidos, y eso deja fuera
        el caso más frecuente: cuando la app falla a mitad de una operación, el
@@ -250,15 +277,12 @@ function reconciliarTodo(opts){
 
     const informe={
         usdt:{antes:usdtAntes,despues:usdtDespues,cambio:roundMoney(usdtDespues-usdtAntes)},
-        referenciasAdoptadas:adoptadas,
-        saldos:diffs,
         duplicados,
         imposibles,
-        ok:diffs.length===0&&duplicados.length===0&&imposibles.length===0
+        ok:duplicados.length===0&&imposibles.length===0
     };
 
-    console.log('%c[Reconciliación]',informe.ok?'color:#15803d;font-weight:bold':'color:#b91c1c;font-weight:bold',informe);
-    if(diffs.length)console.table(diffs);
+    console.log('%c[Verificación]',informe.ok?'color:#15803d;font-weight:bold':'color:#b91c1c;font-weight:bold',informe);
 
     if(opts.silencioso)return informe;
     _pintarReconciliacion(informe);
@@ -271,41 +295,35 @@ function reconciliarTodo(opts){
    como una fila con el valor que hay en pantalla, el que surge de los eventos y
    cuánto difieren, que es lo que hace falta para decidir si corregir. */
 function _pintarReconciliacion(inf){
-    /* v5.8.1 — El resultado se guarda ANTES de dibujar. Si se guardara después,
-       y por cualquier motivo la pantalla no estuviera disponible, el botón de
-       corregir no tendría nada que aplicar y no haría nada sin explicar por qué. */
-    _reconciliarPendiente=inf;
     const cont=$('reconciliarBody');
-    if(!cont){
-        console.log('[P2P][reconciliación]',inf);
-        return;
-    }
-    const money=v=>(v>=0?'':'-')+'$'+fmtNum(Math.abs(v),2);
+    if(!cont){console.log('[P2P][verificación]',inf);return}
     let h='';
 
-    if(inf.referenciasAdoptadas.length){
-        h+='<div class="rec-estado ok"><div class="t">Referencias fijadas</div>'+
-           '<div class="s">Se guardó el punto de partida de '+inf.referenciasAdoptadas.length+
-           ' cuenta'+(inf.referenciasAdoptadas.length===1?'':'s')+': '+
-           escHtml(inf.referenciasAdoptadas.join(', '))+'. No se modificó ningún saldo. '+
-           'A partir de ahora se pueden verificar contra los eventos.</div></div>';
+    const problemas=inf.duplicados.length+(inf.imposibles||[]).length;
+    if(!problemas){
+        h+='<div class="rec-estado ok"><div class="t">Todo cuadra</div>'+
+           '<div class="s">Los saldos de tus cuentas, los lotes y el USDT salen de '+
+           'sumar tus operaciones, ajustes, transferencias y conversiones. No hay '+
+           'registros repetidos ni cifras imposibles.</div></div>';
+    }else{
+        const partes=[];
+        if(inf.duplicados.length)partes.push(inf.duplicados.length+' registro'+(inf.duplicados.length===1?'':'s')+' repetido'+(inf.duplicados.length===1?'':'s'));
+        if((inf.imposibles||[]).length)partes.push(inf.imposibles.length+' cifra'+(inf.imposibles.length===1?'':'s')+' imposible'+(inf.imposibles.length===1?'':'s'));
+        h+='<div class="rec-estado alerta"><div class="t">'+partes.join(' · ')+'</div>'+
+           '<div class="s">Los saldos se recalculan solos, así que lo que aparece acá '+
+           'son datos mal cargados, no errores de cuenta. Borrando lo que sobra, todo '+
+           'lo demás se acomoda en el momento.</div></div>';
     }
 
-    h+='<div class="rec-linea"><span class="n">Saldo USDT recalculado</span>'+
+    h+='<div class="rec-linea"><span class="n">Saldo USDT</span>'+
        '<span class="v">'+fmtNum(inf.usdt.despues,2)+'</span></div>';
-    if(Math.abs(inf.usdt.cambio)>0.005){
-        h+='<div class="rec-linea"><span class="n">Corrección aplicada al USDT</span>'+
-           '<span class="v" style="color:var(--c-danger)">'+money(inf.usdt.cambio)+'</span></div>';
-    }
-    h+='<div class="rec-linea"><span class="n">Cuentas verificadas</span>'+
+    h+='<div class="rec-linea"><span class="n">Cuentas</span>'+
        '<span class="v">'+Object.keys(AppState.datos.bancos||{}).length+'</span></div>';
-    h+='<div class="rec-linea"><span class="n">Registros repetidos</span>'+
-       '<span class="v"'+(inf.duplicados.length?' style="color:var(--c-danger)"':'')+'>'+
-       inf.duplicados.length+'</span></div>';
+    const nEv=['operaciones','movimientos','transferencias','conversiones']
+        .reduce((a,k)=>a+((AppState.datos[k]||[]).length),0);
+    h+='<div class="rec-linea"><span class="n">Registros considerados</span>'+
+       '<span class="v">'+nEv+'</span></div>';
 
-    /* v5.8.2 — Cada repetido se muestra con su contenido y un botón para
-       borrarlo. Antes solo se decía cuántos había, y sin poder verlos no había
-       forma de arreglarlo desde el teléfono. */
     if(inf.duplicados.length){
         h+='<div class="rec-dups"><div class="rec-dups-t">Registros repetidos</div>'+
            '<div class="rec-dups-s">Aparecen dos veces y por eso se cuentan doble. '+
@@ -328,52 +346,20 @@ function _pintarReconciliacion(inf){
         h+='</div>';
     }
 
-    if(inf.imposibles&&inf.imposibles.length){
-        h+='<div class="rec-imposibles"><div class="rec-dups-t">Estados imposibles</div>';
-        inf.imposibles.forEach(x=>{
-            h+='<div class="rec-imp">'+escHtml(x.que)+' <b>'+fmtNum(x.valor,2)+'</b></div>';
-        });
+    if((inf.imposibles||[]).length){
+        h+='<div class="rec-imposibles"><div class="rec-dups-t">Cifras imposibles</div>';
+        inf.imposibles.forEach(x=>{h+='<div class="rec-imp">'+escHtml(x.que)+' <b>'+fmtNum(x.valor,2)+'</b></div>'});
         h+='<div class="rec-dups-s">Un saldo negativo o un lote con más disponible del '+
-           'que se compró siempre indican que algo se contó de más. Suele resolverse '+
-           'borrando el registro repetido de arriba.</div></div>';
+           'que se compró indican que algo se cargó de más. Suele resolverse borrando '+
+           'el registro repetido de arriba.</div></div>';
     }
 
-    if(!inf.saldos.length&&!inf.duplicados.length&&!(inf.imposibles||[]).length){
-        h='<div class="rec-estado ok"><div class="t">Todo coincide</div>'+
-          '<div class="s">Cada saldo es exactamente el que surge de sumar tus eventos '+
-          'desde su punto de partida.</div></div>'+h;
-        h+=_recHerramientas();
-        h+='<div class="rec-acciones"><button class="pri" data-action="cerrar-reconciliar">Listo</button></div>';
-    }else{
-        const partes=[];
-        if(inf.saldos.length)partes.push(inf.saldos.length+' cuenta'+(inf.saldos.length===1?'':'s')+' con diferencia');
-        if(inf.duplicados.length)partes.push(inf.duplicados.length+' registro'+(inf.duplicados.length===1?'':'s')+' repetido'+(inf.duplicados.length===1?'':'s'));
-        if((inf.imposibles||[]).length)partes.push((inf.imposibles).length+' estado'+(inf.imposibles.length===1?'':'s')+' imposible'+(inf.imposibles.length===1?'':'s'));
-        h='<div class="rec-estado alerta"><div class="t">'+partes.join(' · ')+'</div>'+
-          '<div class="s">Revisá cada punto antes de aplicar nada. Si hay registros '+
-          'repetidos, conviene borrarlos primero: muchas diferencias de saldo se '+
-          'corrigen solas al hacerlo.</div></div>'+h;
-        h+='<div style="margin-top:13px">';
-        inf.saldos.forEach(d=>{
-            h+='<div class="rec-diff"><div class="c">'+escHtml(d.cuenta)+'</div>'+
-               '<div class="fila"><span>En pantalla</span><span>'+money(d.enPantalla)+'</span></div>'+
-               '<div class="fila"><span>Según los eventos</span><span>'+money(d.segunEventos)+'</span></div>'+
-               '<div class="fila"><span>Diferencia</span><span class="delta">'+
-               (d.diferencia>0?'+':'')+money(d.diferencia).replace('-','')+'</span></div></div>';
-        });
-        h+='</div>';
-        h+='<div class="rec-acciones">'+
-           '<button class="sec" data-action="cerrar-reconciliar">'+(inf.saldos.length?'No tocar nada':'Cerrar')+'</button>'+
-           (inf.saldos.length?'<button class="pri" data-action="reconciliar-aplicar">Corregir saldos</button>':'')+'</div>';
-        h+='<div class="rec-nota">Después de corregir, comparalo con el saldo real de tus cuentas. '+
-           'Si no coincide, no vuelvas a aplicar: puede faltar registrar alguna operación.</div>';
-        h+=_recHerramientas();
-    }
+    h+=_recHerramientas();
+    h+='<div class="rec-acciones"><button class="pri" data-action="cerrar-reconciliar">Listo</button></div>';
     cont.innerHTML=h;
     abrirModal('modalReconciliar');
 }
 
-let _reconciliarPendiente=null;
 
 /* v5.8.1 — Las otras dos verificaciones también se alcanzan desde acá.
    Estaban solo por consola, que en un teléfono es inaccesible: eran código que
@@ -394,114 +380,17 @@ function _recHerramientas(){
 
 
 
-/* Aplica lo que el informe propone. Solo se llega acá desde el botón. */
-function reconciliarAplicar(){
-    const inf=_reconciliarPendiente;
-    if(!inf||!inf.saldos||!inf.saldos.length)return;
-    inf.saldos.forEach(d=>{
-        if(AppState.datos.bancos[d.cuenta])AppState.datos.bancos[d.cuenta].saldo=d.segunEventos;
-    });
-    if(typeof _auditoriaAnotar==='function')_auditoriaAnotar();
-    if(typeof guardaOptimista==='function')guardaOptimista('update','bancos','reconciliacion');
-    if(typeof actualizarVista==='function')actualizarVista();
-    _reconciliarPendiente=null;
-    const cont=$('reconciliarBody');
-    if(cont)cont.innerHTML='<div class="rec-estado ok"><div class="t">Saldos corregidos</div>'+
-        '<div class="s">Quedaron con el valor que surge de tus eventos. Verificá que coincidan '+
-        'con el saldo real de tus cuentas.</div></div>'+
-        '<div class="rec-acciones"><button class="pri" data-action="cerrar-reconciliar">Listo</button></div>';
-}
-window.reconciliarAplicar=reconciliarAplicar;
+/* v6.0.0 — Se retiró la corrección manual de saldos: dejaron de poder desviarse
+   cuando pasaron a recalcularse desde los eventos, así que no había nada que
+   corregir. */
+
 
 window.reconciliarTodo=reconciliarTodo;
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   AUDITORÍA AUTOMÁTICA DE SALDOS (v5.7.2)
-   ═══════════════════════════════════════════════════════════════════════════
-   Por qué hace falta, y por qué solo para los saldos.
-
-   El saldo USDT es DERIVADO: se recalcula desde cero reproduciendo todas las
-   operaciones. Si un cálculo sale mal, el siguiente lo corrige solo. En cambio
-   el saldo de cada cuenta es MUTADO: se le suma y se le resta, y el resultado
-   es el único registro que existe. Si una resta se pierde —o se aplica dos
-   veces— nadie lo nota y el error queda ahí para siempre, arrastrándose sobre
-   todos los cálculos posteriores.
-
-   Esa asimetría es la que produjo las dos fallas de esta versión. Mientras los
-   saldos sigan siendo mutados, la única defensa es vigilarlos.
-
-   Cómo funciona: cada vez que la app cambia un saldo a propósito, anota cuál
-   debería ser el resultado. En el siguiente dibujado compara lo anotado con lo
-   real. Si no coinciden, algo lo cambió por fuera de una acción del usuario, y
-   eso siempre es un error. Lo registra con el detalle y avisa.
-
-   No corrige sola: un ajuste automático sobre dinero, hecho a partir de un
-   diagnóstico que puede estar equivocado, es peor que el problema. Avisa, deja
-   la evidencia y ofrece revisarlo.                                            */
-const _AUDITORIA_TOLERANCIA=0.005;
-let _saldosEsperados=null;
-let _auditoriaAvisada=false;
-const _auditoriaHallazgos=[];
-
-/* Registra cuál debería ser el saldo tras un cambio deliberado */
-function _auditoriaAnotar(){
-    if(!AppState.datos||!AppState.datos.bancos)return;
-    _saldosEsperados={};
-    Object.keys(AppState.datos.bancos).forEach(n=>{
-        _saldosEsperados[n]=roundMoney(AppState.datos.bancos[n].saldo||0);
-    });
-}
-
-/* Compara lo anotado con lo real. Devuelve las cuentas que no coinciden. */
-function auditarSaldos(opts){
-    opts=opts||{};
-    if(!_saldosEsperados||!AppState.datos||!AppState.datos.bancos)return[];
-    const desvios=[];
-    Object.keys(_saldosEsperados).forEach(n=>{
-        const bk=AppState.datos.bancos[n];
-        if(!bk)return;
-        const real=roundMoney(bk.saldo||0),esp=_saldosEsperados[n];
-        if(Math.abs(real-esp)>_AUDITORIA_TOLERANCIA){
-            desvios.push({banco:n,esperado:esp,real,diferencia:roundMoney(real-esp)});
-        }
-    });
-    if(desvios.length){
-        const reg={cuando:new Date().toISOString(),desvios};
-        _auditoriaHallazgos.push(reg);
-        if(_auditoriaHallazgos.length>50)_auditoriaHallazgos.shift();
-        console.error('%c[P2P][auditoría] Saldos alterados sin una acción que lo explique',
-            'color:#b91c1c;font-weight:bold',desvios);
-        if(!_auditoriaAvisada&&!opts.silencioso){
-            _auditoriaAvisada=true;
-            const lista=desvios.map(d=>`${d.banco}: esperado ${fmtNum(d.esperado,2)} · quedó ${fmtNum(d.real,2)}`).join('\n• ');
-            setTimeout(()=>{
-                alert('Se detectó un saldo alterado\n\n• '+lista+
-                      '\n\nAlgo cambió estos saldos por fuera de una operación tuya. '+
-                      'No se modificó nada de forma automática.\n\n'+
-                      'Revisá el detalle con auditoriaSaldos() en la consola, '+
-                      'y verificá el estado general con verificarIntegridad().');
-            },400);
-        }
-    }
-    /* La foto pasa a ser la nueva referencia */
-    _auditoriaAnotar();
-    return desvios;
-}
-
-/* Informe para la consola */
-function auditoriaSaldos(){
-    const inf={
-        vigilando:_saldosEsperados?Object.keys(_saldosEsperados).length:0,
-        hallazgos:_auditoriaHallazgos.length,
-        detalle:_auditoriaHallazgos
-    };
-    console.log('%c[Auditoría de saldos]',
-        _auditoriaHallazgos.length?'color:#b91c1c;font-weight:bold':'color:#15803d;font-weight:bold',inf);
-    if(!_auditoriaHallazgos.length)console.log('  Sin desvíos desde que abriste la app.');
-    else console.table(_auditoriaHallazgos.flatMap(h=>h.desvios));
-    return inf;
-}
-window.auditoriaSaldos=auditoriaSaldos;
+/* La auditoría de saldos se retiró en v6.0.0: vigilaba que el saldo guardado no
+   se desviara del esperado, y eso dejó de tener sentido cuando el saldo pasó a
+   recalcularse desde los eventos en cada actualización. No hay nada que vigilar
+   si el número se reconstruye solo. */
 
 function aplicarDeltas(deltas){
     deltas=deltas||{};
@@ -521,8 +410,6 @@ function aplicarDeltas(deltas){
             if(typeof enqueueSync==='function')enqueueSync('update','bancos',nombre);
         }
     }
-    /* Cambio deliberado: se anota el resultado esperado para poder vigilarlo */
-    _auditoriaAnotar();
     if(deltas.limitesUSD){
         for(const [nombre,delta] of Object.entries(deltas.limitesUSD)){
             const bk=AppState.datos.bancos[nombre];

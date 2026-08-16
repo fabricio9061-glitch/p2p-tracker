@@ -17,12 +17,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.9.0">
-    <link rel="stylesheet" href="src/css/01-base.css?v=5.9.0">
-    <link rel="stylesheet" href="src/css/02-components.css?v=5.9.0">
-    <link rel="stylesheet" href="src/css/03-modals.css?v=5.9.0">
-    <link rel="stylesheet" href="src/css/04-views.css?v=5.9.0">
-    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.9.0">
+    <link rel="stylesheet" href="src/css/00-tokens.css?v=6.0.0">
+    <link rel="stylesheet" href="src/css/01-base.css?v=6.0.0">
+    <link rel="stylesheet" href="src/css/02-components.css?v=6.0.0">
+    <link rel="stylesheet" href="src/css/03-modals.css?v=6.0.0">
+    <link rel="stylesheet" href="src/css/04-views.css?v=6.0.0">
+    <link rel="stylesheet" href="src/css/05-overrides.css?v=6.0.0">
 </head>
 <body>
     <!-- ═══ OVERLAYS ═══ -->
@@ -299,11 +299,7 @@
                              desplegarla, el teléfono muestra su propio selector con el texto. -->
                         <div class="select-con-icono"><span class="select-icono" id="movTipoIcono"></span>
                         <select id="movTipoCuenta" class="select-tipo"><option value="banco">Banco</option><option value="usdt">USDT</option></select></div></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco" class="select-banco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="text" inputmode="decimal" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group mov-monto-group"><label id="movMontoLabel">Monto</label><input type="text" inputmode="decimal" id="movMonto" class="mov-monto-input" placeholder="0"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción</label><textarea id="movDescripcion" rows="1" placeholder="Ej: Almuerzo, Uber, etc."></textarea><div id="tagSugerenciasMov"></div></div><div id="movResumen" class="mov-resumen" style="display:none"></div>
-                <!-- v5.9.0 — Eliminar desde el modal. Antes solo se podía deslizando la
-                     fila, que no está anunciado en ningún lado: en el teléfono no había
-                     forma de descubrirlo. -->
-                <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div>
-                <button class="btn-eliminar-modal" id="btnEliminarMov" style="display:none">Eliminar este ajuste</button></div></div>
+                <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18"/></svg> Cuentas Bancarias</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
     <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
     <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div><div class="form-group"><label>Nuevo saldo</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div>
@@ -405,21 +401,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <script src="src/js/01-config.js?v=5.9.0"></script>
-    <script src="src/js/02-state.js?v=5.9.0"></script>
-    <script src="src/js/03-news-changelog.js?v=5.9.0"></script>
-    <script src="src/js/04-utils-filtros.js?v=5.9.0"></script>
-    <script src="src/js/05-integridad.js?v=5.9.0"></script>
-    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.9.0"></script>
-    <script src="src/js/07-firebase-sync.js?v=5.9.0"></script>
-    <script src="src/js/08-backup-recovery-sdk.js?v=5.9.0"></script>
-    <script src="src/js/09-form-split.js?v=5.9.0"></script>
-    <script src="src/js/10-mov-transf-calendario.js?v=5.9.0"></script>
-    <script src="src/js/11-paginaciones-dashboard.js?v=5.9.0"></script>
-    <script src="src/js/12-lotes-reset-importexport.js?v=5.9.0"></script>
-    <script src="src/js/13-eventos.js?v=5.9.0"></script>
-    <script src="src/js/14-recovery-write.js?v=5.9.0"></script>
-    <script src="src/js/15-archivo.js?v=5.9.0"></script>
-    <script src="src/js/16-store-v2.js?v=5.9.0"></script>
+    <script src="src/js/01-config.js?v=6.0.0"></script>
+    <script src="src/js/02-state.js?v=6.0.0"></script>
+    <script src="src/js/03-news-changelog.js?v=6.0.0"></script>
+    <script src="src/js/04-utils-filtros.js?v=6.0.0"></script>
+    <script src="src/js/05-integridad.js?v=6.0.0"></script>
+    <script src="src/js/06-paginacion-bancos-fifo.js?v=6.0.0"></script>
+    <script src="src/js/07-firebase-sync.js?v=6.0.0"></script>
+    <script src="src/js/08-backup-recovery-sdk.js?v=6.0.0"></script>
+    <script src="src/js/09-form-split.js?v=6.0.0"></script>
+    <script src="src/js/10-mov-transf-calendario.js?v=6.0.0"></script>
+    <script src="src/js/11-paginaciones-dashboard.js?v=6.0.0"></script>
+    <script src="src/js/12-lotes-reset-importexport.js?v=6.0.0"></script>
+    <script src="src/js/13-eventos.js?v=6.0.0"></script>
+    <script src="src/js/14-recovery-write.js?v=6.0.0"></script>
+    <script src="src/js/15-archivo.js?v=6.0.0"></script>
+    <script src="src/js/16-store-v2.js?v=6.0.0"></script>
 </body>
 </html>

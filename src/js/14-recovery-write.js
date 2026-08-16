@@ -168,10 +168,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('movTipoCuenta').addEventListener('change',()=>{actualizarCuentasMovimiento();actualizarMovResumen()});
     $('movBanco').addEventListener('change',()=>{const v=$('movBanco').value;$('movBanco').style.color=v?getBancoColor(v):'#1e293b';$('movBanco').style.fontWeight=v?'600':'400';actualizarMovResumen()});
     $('btnGuardarMov').addEventListener('click',guardarMovimiento);
-    $('btnEliminarMov')?.addEventListener('click',()=>{
-        const id=AppState.ui.movEditandoId;
-        if(id&&typeof eliminarMovimiento==='function'){cerrarModal('modalMovimiento');eliminarMovimiento(id)}
-    });
     $('btnCancelMov').addEventListener('click',()=>{AppState.ui.movEditandoId=null;cerrarModal('modalMovimiento')});
     $('btnCerrarBancos').addEventListener('click',()=>{cerrarModal('modalBancos');actualizarVista();guardaOptimista('update','bancos','close')});
     $('bancoOrigen').addEventListener('change',()=>{const v=$('bancoOrigen').value;$('bancoOrigen').style.color=v?getBancoColor(v):'#1e293b';mostrarSaldoOrigen();actualizarTransfUI()});
@@ -221,7 +217,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                vengan después. */
             AppState.datos.bancos[n].saldoBase=fixNeg(ns);
             AppState.datos.bancos[n].saldoBaseTs=new Date().toISOString();}
-        if(typeof _auditoriaAnotar==='function')_auditoriaAnotar();actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
+actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
     $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
@@ -308,7 +304,6 @@ document.addEventListener('DOMContentLoaded',()=>{
             if(typeof reconciliarTodo==='function')setTimeout(()=>reconciliarTodo(),120);
             else alert('No se pudo iniciar la verificación. Recargá la app e intentá de nuevo.');
         }
-        else if(a==='reconciliar-aplicar'){if(typeof reconciliarAplicar==='function')reconciliarAplicar()}
         else if(a==='cerrar-reconciliar')cerrarModal('modalReconciliar');
         else if(a==='rec-servidor'){
             cerrarModal('modalReconciliar');
