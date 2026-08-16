@@ -253,8 +253,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             /* v5.8.0 — Fijar el saldo a mano establece un nuevo punto de partida:
                de acá en adelante el saldo correcto es este más los eventos que
                vengan después. */
-            AppState.datos.bancos[n].saldoBase=fixNeg(ns);
-            AppState.datos.bancos[n].saldoBaseTs=new Date().toISOString();}
+}
 actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
     $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));

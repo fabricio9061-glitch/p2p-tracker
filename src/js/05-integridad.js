@@ -164,58 +164,47 @@ function _marcaEvento(ev){
 
 function recalcularSaldosBancos(){
     if(!AppState.datos||!AppState.datos.bancos)return;
-    const marca=_marcaEvento;
-    const saldos={};
 
-    /* ═══ v6.2.0 — El punto de partida se fija DESPUÉS de todo lo ya contado ═══
-       Se fijaba con la hora del reloj. El problema: cuando se adopta en medio de
-       una operación —una cuenta recién habilitada, o un documento que llega sin
-       el dato— el saldo que se toma como base YA tiene descontada esa operación,
-       porque el descuento se aplica antes de recalcular. Y como su marca de
-       tiempo quedaba después del punto de partida, se volvía a contar: el saldo
-       se descontaba dos veces y cambiaba solo al llegar la siguiente foto del
-       servidor. Fijándolo un instante después del último registro conocido, todo
-       lo que ya está reflejado en el saldo queda excluido, y lo que venga
-       después se cuenta una sola vez. */
-    let ultimo='';
-    ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(tipo=>{
-        (AppState.datos[tipo]||[]).forEach(ev=>{
-            if(!ev)return;
-            const t=marca(ev);
-            if(t>ultimo)ultimo=t;
-        });
-    });
-    const ahora=new Date().toISOString();
-    const corte=(ultimo&&ultimo>=ahora)
-        ? new Date(Date.parse(ultimo)+1).toISOString()
-        : ahora;
+    /* ═══ v6.3.0 — Sin marcas de tiempo: se cuenta TODO ═══
+       Las versiones anteriores guardaban un punto de partida con la hora en que
+       se había fijado, y sumaban solo lo posterior a esa hora. Eso arrastró un
+       problema tras otro: empates de marca que descartaban una operación, horas
+       locales comparadas contra horas universales, y relojes distintos entre el
+       teléfono y la computadora que hacían que cada uno calculara un saldo
+       diferente. Todos eran variantes del mismo error: depender de una hora
+       invisible para decidir qué cuenta y qué no.
 
-    Object.keys(AppState.datos.bancos).forEach(n=>{
-        const bk=AppState.datos.bancos[n];
-        if(!isFinite(bk.saldoBase)||!bk.saldoBaseTs){
-            bk.saldoBase=roundMoney(bk.saldo||0);
-            bk.saldoBaseTs=corte;
-        }
-        saldos[n]=roundMoney(bk.saldoBase);
-    });
+       Ahora no hay corte. El punto de partida es el saldo de apertura de la
+       cuenta —lo que había antes de que existiera cualquier registro— y el saldo
+       actual es ese valor más el efecto de TODOS los registros, sin importar
+       cuándo ocurrieron. Se cuenta cada uno exactamente una vez.
 
+       Para las cuentas que ya venían en uso, el saldo de apertura se deduce:
+       es el saldo que se muestra hoy menos lo que los registros ya explican. Por
+       construcción el número no cambia al adoptarlo, y de ahí en adelante todo
+       cuadra sin depender de ninguna hora. */
+    const efectoTotal={};
+    Object.keys(AppState.datos.bancos).forEach(n=>{efectoTotal[n]=0});
     ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(tipo=>{
         (AppState.datos[tipo]||[]).forEach(ev=>{
             if(!ev)return;
             const efecto=efectoEnBancos(tipo,ev);
             for(const cuenta in efecto){
-                const bk=AppState.datos.bancos[cuenta];
-                if(!bk)continue;
-                /* Estrictamente anterior al corte queda excluido: su efecto ya está
-                   dentro del punto de partida. */
-                if(marca(ev)<String(bk.saldoBaseTs))continue;
-                saldos[cuenta]=roundMoney(saldos[cuenta]+efecto[cuenta]);
+                if(efectoTotal[cuenta]===undefined)continue;
+                efectoTotal[cuenta]=roundMoney(efectoTotal[cuenta]+efecto[cuenta]);
             }
         });
     });
 
-    Object.keys(saldos).forEach(n=>{
-        AppState.datos.bancos[n].saldo=fixNeg(saldos[n]);
+    Object.keys(AppState.datos.bancos).forEach(n=>{
+        const bk=AppState.datos.bancos[n];
+        if(!isFinite(bk.saldoApertura)){
+            /* Se deduce del saldo visible: así el número no cambia al adoptarlo */
+            bk.saldoApertura=roundMoney((bk.saldo||0)-efectoTotal[n]);
+            /* El dato viejo ya no se usa; se limpia para que nadie lo lea por error */
+            delete bk.saldoBase;delete bk.saldoBaseTs;
+        }
+        bk.saldo=fixNeg(roundMoney(bk.saldoApertura+efectoTotal[n]));
     });
 }
 
@@ -239,7 +228,6 @@ function historialCuenta(nombre,limite){
         (AppState.datos[tipo]||[]).forEach(ev=>{
             if(!ev)return;
             const t=marca(ev);
-            if(bk.saldoBaseTs&&t<String(bk.saldoBaseTs))return;
             const efecto=efectoEnBancos(tipo,ev);
             const v=efecto[nombre];
             if(v===undefined||Math.abs(v)<0.005)return;
@@ -250,9 +238,10 @@ function historialCuenta(nombre,limite){
 
     lineas.sort((a,b)=>a.ts<b.ts?-1:a.ts>b.ts?1:0);
 
-    /* Encadenar los saldos desde el punto de partida */
-    let corriente=roundMoney(bk.saldoBase||0);
-    const base={ts:bk.saldoBaseTs||'',tipo:'inicial',clase:'inicial',variacion:0,
+    /* Encadenar desde el saldo de apertura. Sin corte por fecha: cada registro
+       de esta cuenta aparece, y la suma tiene que dar exactamente el saldo. */
+    let corriente=roundMoney(bk.saldoApertura||0);
+    const base={ts:'',tipo:'inicial',clase:'inicial',variacion:0,
                 anterior:corriente,resultante:corriente};
     lineas.forEach(l=>{
         l.anterior=corriente;
@@ -376,9 +365,7 @@ function reconciliarTodo(opts){
     opts=opts||{};
     if(!AppState.datos)return null;
     const ahora=new Date().toISOString();
-    /* v6.2.0 — Misma función que usan el saldo y el libro. Tener tres copias de
-       este criterio fue lo que permitió que uno quedara desalineado. */
-    const marca=_marcaEvento;
+    /* v6.3.0 — Sin corte por fecha: se recorren todos los registros. */
 
     /* 1 ── Lotes, ganancias y saldo USDT: ya se reconstruyen solos */
     const usdtAntes=AppState.datos.saldoUsdt;

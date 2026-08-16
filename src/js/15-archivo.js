@@ -219,8 +219,30 @@ function _calcularPlanArchivo(datos,mesesAMantener){
     const indexPrev=(datos._archivoIndex&&datos._archivoIndex.meses)||{};
     const indexMeses={...indexPrev};
     meses.forEach(mes=>{indexMeses[mes]={...(indexMeses[mes]||{}),...porMes[mes].stats}});
+    /* ═══ v6.3.0 — El saldo de apertura absorbe lo que se archiva ═══
+       Desde que el saldo se calcula sumando TODOS los registros, sacar los viejos
+       del listado cambiaría el resultado: los saldos saltarían de golpe al
+       archivar. Se traslada su efecto al saldo de apertura de cada cuenta, que es
+       precisamente para lo que existe: representa todo lo anterior a lo que sigue
+       listado. El saldo visible no se mueve ni un peso. */
+    const _bancosArch=_cloneJson(datos.bancos||{});
+    ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{
+        const viejos=(tipo==='operaciones')?ops.viejo
+                    :(tipo==='movimientos')?movs.viejo
+                    :(tipo==='transferencias')?transfs.viejo:convs.viejo;
+        (viejos||[]).forEach(ev=>{
+            const efecto=(typeof efectoEnBancos==='function')?efectoEnBancos(tipo,ev):{};
+            for(const cuenta in efecto){
+                const bk=_bancosArch[cuenta];
+                if(!bk||!isFinite(bk.saldoApertura))continue;
+                bk.saldoApertura=roundMoney(bk.saldoApertura+efecto[cuenta]);
+            }
+        });
+    });
+
     const datosNuevo=_cloneJson({
         ...datos,
+        bancos:_bancosArch,
         operaciones:ops.reciente,
         movimientos:movs.reciente,
         transferencias:transfs.reciente,
