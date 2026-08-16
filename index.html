@@ -17,12 +17,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.8.0">
-    <link rel="stylesheet" href="src/css/01-base.css?v=5.8.0">
-    <link rel="stylesheet" href="src/css/02-components.css?v=5.8.0">
-    <link rel="stylesheet" href="src/css/03-modals.css?v=5.8.0">
-    <link rel="stylesheet" href="src/css/04-views.css?v=5.8.0">
-    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.8.0">
+    <link rel="stylesheet" href="src/css/00-tokens.css?v=5.8.1">
+    <link rel="stylesheet" href="src/css/01-base.css?v=5.8.1">
+    <link rel="stylesheet" href="src/css/02-components.css?v=5.8.1">
+    <link rel="stylesheet" href="src/css/03-modals.css?v=5.8.1">
+    <link rel="stylesheet" href="src/css/04-views.css?v=5.8.1">
+    <link rel="stylesheet" href="src/css/05-overrides.css?v=5.8.1">
 </head>
 <body>
     <!-- ═══ OVERLAYS ═══ -->
@@ -119,6 +119,7 @@
 
                     <div class="menu-group-title">Sistema</div>
                     <div class="menu-group">
+                        <div class="menu-row" data-action="reconciliar"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="menu-row-label">Verificar y reconciliar</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="restaurar-respaldo"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v11a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5zM7 3v6h9M8 17h8"/></svg></span><span class="menu-row-label">Restaurar último respaldo</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="exportar-datos"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v13M7 8l5-5 5 5"/></svg></span><span class="menu-row-label">Exportar datos (.json)</span><span class="menu-row-chevron">›</span></div>
                         <div class="menu-row" data-action="importar-datos"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg></span><span class="menu-row-label">Importar datos (.json)</span><span class="menu-row-chevron">›</span></div>
@@ -307,7 +308,15 @@
                     <div class="dias-reset" id="diasResetBanco"></div>
                     <small id="diasResetHelp">Los días sin marcar comparten el límite del día marcado anterior</small>
                 </div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
-    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/></svg> Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
+    <!-- v5.8.1 — Resultado de la verificación, con formato en vez de un aviso del navegador -->
+    <div id="modalReconciliar" class="modal"><div class="modal-content" style="max-width:560px">
+        <div class="modal-header" data-action="cerrar-reconciliar"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> Verificar y reconciliar</div>
+        <div id="reconciliarBody"></div>
+    </div></div>
+
+    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/></svg> Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><!-- v5.8.1 — Verificación al alcance, sin consola -->
+            <button class="inv-verificar" data-action="reconciliar" type="button"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> Verificar y reconciliar</button>
+            <div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15.5A9 9 0 118.5 3v9h9a9 9 0 013.5 3.5z"/><path d="M20.9 9.5A9 9 0 0014.5 3.1V9.5h6.4z"/></svg> Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
@@ -391,21 +400,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <script src="src/js/01-config.js?v=5.8.0"></script>
-    <script src="src/js/02-state.js?v=5.8.0"></script>
-    <script src="src/js/03-news-changelog.js?v=5.8.0"></script>
-    <script src="src/js/04-utils-filtros.js?v=5.8.0"></script>
-    <script src="src/js/05-integridad.js?v=5.8.0"></script>
-    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.8.0"></script>
-    <script src="src/js/07-firebase-sync.js?v=5.8.0"></script>
-    <script src="src/js/08-backup-recovery-sdk.js?v=5.8.0"></script>
-    <script src="src/js/09-form-split.js?v=5.8.0"></script>
-    <script src="src/js/10-mov-transf-calendario.js?v=5.8.0"></script>
-    <script src="src/js/11-paginaciones-dashboard.js?v=5.8.0"></script>
-    <script src="src/js/12-lotes-reset-importexport.js?v=5.8.0"></script>
-    <script src="src/js/13-eventos.js?v=5.8.0"></script>
-    <script src="src/js/14-recovery-write.js?v=5.8.0"></script>
-    <script src="src/js/15-archivo.js?v=5.8.0"></script>
-    <script src="src/js/16-store-v2.js?v=5.8.0"></script>
+    <script src="src/js/01-config.js?v=5.8.1"></script>
+    <script src="src/js/02-state.js?v=5.8.1"></script>
+    <script src="src/js/03-news-changelog.js?v=5.8.1"></script>
+    <script src="src/js/04-utils-filtros.js?v=5.8.1"></script>
+    <script src="src/js/05-integridad.js?v=5.8.1"></script>
+    <script src="src/js/06-paginacion-bancos-fifo.js?v=5.8.1"></script>
+    <script src="src/js/07-firebase-sync.js?v=5.8.1"></script>
+    <script src="src/js/08-backup-recovery-sdk.js?v=5.8.1"></script>
+    <script src="src/js/09-form-split.js?v=5.8.1"></script>
+    <script src="src/js/10-mov-transf-calendario.js?v=5.8.1"></script>
+    <script src="src/js/11-paginaciones-dashboard.js?v=5.8.1"></script>
+    <script src="src/js/12-lotes-reset-importexport.js?v=5.8.1"></script>
+    <script src="src/js/13-eventos.js?v=5.8.1"></script>
+    <script src="src/js/14-recovery-write.js?v=5.8.1"></script>
+    <script src="src/js/15-archivo.js?v=5.8.1"></script>
+    <script src="src/js/16-store-v2.js?v=5.8.1"></script>
 </body>
 </html>

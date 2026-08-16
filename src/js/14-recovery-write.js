@@ -46,6 +46,21 @@ document.addEventListener('DOMContentLoaded',()=>{
         else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
         else if(a==='historial-mensual')cargarHistorialMensual();
         else if(a==='restaurar-respaldo')restaurarRespaldoManual();
+        /* v5.8.1 — Verificar y reconciliar, desde el menú o desde Lotes */
+        else if(a==='reconciliar'){
+            cerrarModal('configPanel');cerrarModal('modalInventario');
+            if(typeof reconciliarTodo==='function')setTimeout(()=>reconciliarTodo(),120);
+        }
+        else if(a==='reconciliar-aplicar'){if(typeof reconciliarAplicar==='function')reconciliarAplicar()}
+        else if(a==='cerrar-reconciliar')cerrarModal('modalReconciliar');
+        else if(a==='rec-servidor'){
+            cerrarModal('modalReconciliar');
+            if(typeof verificarIntegridad==='function')setTimeout(()=>verificarIntegridad(),120);
+        }
+        else if(a==='rec-arrastre'){
+            cerrarModal('modalReconciliar');
+            if(typeof repararCarryover==='function')setTimeout(()=>repararCarryover(),120);
+        }
         else if(a==='exportar-datos')exportarDatos();
         else if(a==='importar-datos')importarDatos();
         else if(a==='borrar-todo')borrarTodo();

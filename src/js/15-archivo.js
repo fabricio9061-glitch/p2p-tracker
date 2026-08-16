@@ -881,27 +881,7 @@ document.addEventListener('DOMContentLoaded',()=>{_connWatchdog()});
 /* Mostrar el botón 📦 cuando el índice esté hidratado */
 document.addEventListener('DOMContentLoaded',()=>{setTimeout(mostrarBotonArchivo,3500);setTimeout(mostrarBotonArchivo,8000)});
 
-/* v4.9.6 — Diagnóstico de velocidad de sincronización, a demanda desde consola:
-   diagnosticoSync() → cuánto pesa el documento, qué lo ocupa y cuánto tarda un save. */
-function diagnosticoSync(){
-    const bd=calcularBreakdownPayload();
-    const meses=(AppState.datos&&AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses)||{};
-    const est=kb=>({'4G lento (0,5 Mb/s)':(kb*8/512).toFixed(1)+'s','4G (1 Mb/s)':(kb*8/1024).toFixed(1)+'s','WiFi (5 Mb/s)':(kb*8/5120).toFixed(1)+'s'});
-    const r={
-        documentoKB:bd.totalKB,
-        traficoPorOperacionKB:bd.totalKB*2,   /* sube el doc + el listener lo baja */
-        subidaEstimada:est(bd.totalKB),
-        porSeccion:bd.secciones,
-        operaciones:(AppState.datos.operaciones||[]).length,
-        mesesArchivados:Object.keys(meses).sort(),
-        recomendacion:bd.totalKB>ARCHIVO_KB_RENDIMIENTO
-            ?'Archivá meses viejos: window.archivarHistorial({mesesAMantener:1})'
-            :'Tamaño saludable — la sincronización debería ser casi instantánea.'
-    };
-    console.table(bd.secciones);console.log(r);
-    return r;
-}
-window.diagnosticoSync=diagnosticoSync;
+
 window.archivarHistorial=archivarHistorial;
 window.calcularBreakdownPayload=calcularBreakdownPayload;
 window.verArchivo=verArchivo;

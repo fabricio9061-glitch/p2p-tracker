@@ -210,38 +210,119 @@ function reconciliarTodo(opts){
     if(diffs.length)console.table(diffs);
 
     if(opts.silencioso)return informe;
-
-    let msg='';
-    if(adoptadas.length){
-        msg+='Se fijó el punto de partida de '+adoptadas.length+' cuenta(s): '+adoptadas.join(', ')+
-             '.\nNo se modificó ningún saldo. A partir de ahora se pueden verificar.\n\n';
-    }
-    if(Math.abs(informe.usdt.cambio)>0.005){
-        msg+='El saldo USDT se recalculó: '+fmtNum(usdtAntes,2)+' → '+fmtNum(usdtDespues,2)+'\n\n';
-    }
-    if(duplicados.length){
-        msg+='⚠ '+duplicados.length+' registro(s) aparecen dos veces. Revisalos con verificarIntegridad().\n\n';
-    }
-    if(!diffs.length){
-        msg+=adoptadas.length?'Los saldos quedaron con su referencia fijada.':'Todos los saldos coinciden con los eventos.';
-        alert('Reconciliación\n\n'+msg);
-        return informe;
-    }
-    msg+='Diferencias encontradas:\n\n'+diffs.map(d=>
-        '• '+d.cuenta+'\n   en pantalla: '+fmtNum(d.enPantalla,2)+
-        '\n   según los eventos: '+fmtNum(d.segunEventos,2)+
-        '\n   diferencia: '+(d.diferencia>0?'+':'')+fmtNum(d.diferencia,2)).join('\n\n');
-    msg+='\n\n¿Corregir los saldos con el valor que surge de los eventos?';
-    if(confirm('Reconciliación\n\n'+msg)){
-        diffs.forEach(d=>{AppState.datos.bancos[d.cuenta].saldo=d.segunEventos});
-        if(typeof _auditoriaAnotar==='function')_auditoriaAnotar();
-        if(typeof guardaOptimista==='function')guardaOptimista('update','bancos','reconciliacion');
-        if(typeof actualizarVista==='function')actualizarVista();
-        informe.aplicado=true;
-        alert('Saldos corregidos.\n\nVerificá que coincidan con tus cuentas reales.');
-    }
+    _pintarReconciliacion(informe);
     return informe;
 }
+
+/* ═══ v5.8.1 — El resultado se muestra en la app ═══
+   Antes esto salía por avisos del navegador, que no permiten formato y obligan a
+   leer un bloque de texto corrido con cifras mezcladas. Acá cada diferencia se ve
+   como una fila con el valor que hay en pantalla, el que surge de los eventos y
+   cuánto difieren, que es lo que hace falta para decidir si corregir. */
+function _pintarReconciliacion(inf){
+    /* v5.8.1 — El resultado se guarda ANTES de dibujar. Si se guardara después,
+       y por cualquier motivo la pantalla no estuviera disponible, el botón de
+       corregir no tendría nada que aplicar y no haría nada sin explicar por qué. */
+    _reconciliarPendiente=inf;
+    const cont=$('reconciliarBody');
+    if(!cont){
+        console.log('[P2P][reconciliación]',inf);
+        return;
+    }
+    const money=v=>(v>=0?'':'-')+'$'+fmtNum(Math.abs(v),2);
+    let h='';
+
+    if(inf.referenciasAdoptadas.length){
+        h+='<div class="rec-estado ok"><div class="t">Referencias fijadas</div>'+
+           '<div class="s">Se guardó el punto de partida de '+inf.referenciasAdoptadas.length+
+           ' cuenta'+(inf.referenciasAdoptadas.length===1?'':'s')+': '+
+           escHtml(inf.referenciasAdoptadas.join(', '))+'. No se modificó ningún saldo. '+
+           'A partir de ahora se pueden verificar contra los eventos.</div></div>';
+    }
+
+    h+='<div class="rec-linea"><span class="n">Saldo USDT recalculado</span>'+
+       '<span class="v">'+fmtNum(inf.usdt.despues,2)+'</span></div>';
+    if(Math.abs(inf.usdt.cambio)>0.005){
+        h+='<div class="rec-linea"><span class="n">Corrección aplicada al USDT</span>'+
+           '<span class="v" style="color:var(--c-danger)">'+money(inf.usdt.cambio)+'</span></div>';
+    }
+    h+='<div class="rec-linea"><span class="n">Cuentas verificadas</span>'+
+       '<span class="v">'+Object.keys(AppState.datos.bancos||{}).length+'</span></div>';
+    h+='<div class="rec-linea"><span class="n">Registros duplicados</span>'+
+       '<span class="v"'+(inf.duplicados.length?' style="color:var(--c-danger)"':'')+'>'+
+       inf.duplicados.length+'</span></div>';
+
+    if(!inf.saldos.length){
+        h='<div class="rec-estado ok"><div class="t">Todo coincide</div>'+
+          '<div class="s">Cada saldo es exactamente el que surge de sumar tus eventos '+
+          'desde su punto de partida.</div></div>'+h;
+        h+=_recHerramientas();
+        h+='<div class="rec-acciones"><button class="pri" data-action="cerrar-reconciliar">Listo</button></div>';
+    }else{
+        h='<div class="rec-estado alerta"><div class="t">'+inf.saldos.length+
+          ' cuenta'+(inf.saldos.length===1?'':'s')+' con diferencia</div>'+
+          '<div class="s">El saldo guardado no coincide con el que resulta de sumar los eventos. '+
+          'Podés corregirlo con el valor reconstruido, o cerrar sin tocar nada.</div></div>'+h;
+        h+='<div style="margin-top:13px">';
+        inf.saldos.forEach(d=>{
+            h+='<div class="rec-diff"><div class="c">'+escHtml(d.cuenta)+'</div>'+
+               '<div class="fila"><span>En pantalla</span><span>'+money(d.enPantalla)+'</span></div>'+
+               '<div class="fila"><span>Según los eventos</span><span>'+money(d.segunEventos)+'</span></div>'+
+               '<div class="fila"><span>Diferencia</span><span class="delta">'+
+               (d.diferencia>0?'+':'')+money(d.diferencia).replace('-','')+'</span></div></div>';
+        });
+        h+='</div>';
+        h+='<div class="rec-acciones">'+
+           '<button class="sec" data-action="cerrar-reconciliar">No tocar nada</button>'+
+           '<button class="pri" data-action="reconciliar-aplicar">Corregir saldos</button></div>';
+        h+='<div class="rec-nota">Después de corregir, comparalo con el saldo real de tus cuentas. '+
+           'Si no coincide, no vuelvas a aplicar: puede faltar registrar alguna operación.</div>';
+        h+=_recHerramientas();
+    }
+    cont.innerHTML=h;
+    abrirModal('modalReconciliar');
+}
+
+let _reconciliarPendiente=null;
+
+/* v5.8.1 — Las otras dos verificaciones también se alcanzan desde acá.
+   Estaban solo por consola, que en un teléfono es inaccesible: eran código que
+   se descargaba y nunca podía usarse. */
+function _recHerramientas(){
+    const hayArchivo=!!(AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses&&
+                        Object.keys(AppState.datos._archivoIndex.meses).length);
+    let h='<div class="rec-otras"><div class="rec-otras-t">Otras verificaciones</div>';
+    h+='<button data-action="rec-servidor">Comparar con el servidor'+
+       '<small>Revisa que lo guardado en la nube coincida con lo que ves</small></button>';
+    if(hayArchivo){
+        h+='<button data-action="rec-arrastre">Recalcular lotes de arrastre'+
+           '<small>Los reconstruye desde el historial archivado</small></button>';
+    }
+    h+='</div>';
+    return h;
+}
+
+
+
+/* Aplica lo que el informe propone. Solo se llega acá desde el botón. */
+function reconciliarAplicar(){
+    const inf=_reconciliarPendiente;
+    if(!inf||!inf.saldos||!inf.saldos.length)return;
+    inf.saldos.forEach(d=>{
+        if(AppState.datos.bancos[d.cuenta])AppState.datos.bancos[d.cuenta].saldo=d.segunEventos;
+    });
+    if(typeof _auditoriaAnotar==='function')_auditoriaAnotar();
+    if(typeof guardaOptimista==='function')guardaOptimista('update','bancos','reconciliacion');
+    if(typeof actualizarVista==='function')actualizarVista();
+    _reconciliarPendiente=null;
+    const cont=$('reconciliarBody');
+    if(cont)cont.innerHTML='<div class="rec-estado ok"><div class="t">Saldos corregidos</div>'+
+        '<div class="s">Quedaron con el valor que surge de tus eventos. Verificá que coincidan '+
+        'con el saldo real de tus cuentas.</div></div>'+
+        '<div class="rec-acciones"><button class="pri" data-action="cerrar-reconciliar">Listo</button></div>';
+}
+window.reconciliarAplicar=reconciliarAplicar;
+
 window.reconciliarTodo=reconciliarTodo;
 
 /* ═══════════════════════════════════════════════════════════════════════════

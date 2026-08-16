@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '5.8.0',
+    APP_VERSION: '5.8.1',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'5.8.1', date:'2026-08-15', headline:'🔘 Verificar y reconciliar, ahora con un botón.', changes:[
+        {type:'new', title:'Botón de verificación en la app', desc:'La reconciliación estaba solo como comando escrito, que en un teléfono no se puede usar. Ahora hay un botón en el menú lateral y otro dentro de Lotes de USDT. El resultado se muestra en una pantalla con formato: cada cuenta con diferencia aparece con el saldo que hay en pantalla, el que surge de sumar los eventos y cuánto difieren, y recién ahí aparece el botón para corregir. Si está todo bien, lo dice y no ofrece tocar nada.'},
+        {type:'improve', title:'Las tres verificaciones quedaron juntas', desc:'Comparar contra la nube y recalcular los lotes de arrastre también estaban solo por consola: era código que el teléfono descargaba y nunca podía ejecutar. Ahora se alcanzan desde la misma pantalla, y la de lotes de arrastre solo aparece si hay historial archivado que la haga necesaria.'},
+        {type:'improve', title:'Retirado el diagnóstico de sincronización', desc:'Era una herramienta de desarrollo que solo funcionaba escribiendo un comando, sin ninguna forma de llegar a ella desde la aplicación. No aportaba nada al uso diario.'}
+    ]},
     {version:'5.8.0', date:'2026-08-15', headline:'🔗 Todo se reconstruye desde los eventos: lotes, ganancias y ahora también saldos.', changes:[
         {type:'new', title:'Reconciliación general', desc:'Los lotes, las ganancias y el saldo USDT ya se reconstruían solos reproduciendo las operaciones, y por eso se corrigen a sí mismos. Los saldos de las cuentas no: se modificaban en diecinueve lugares distintos del programa, uno por cada forma de crear, editar o borrar un registro, y bastaba con que uno fallara para que el saldo quedara mal para siempre. Ahora hay una única función que define qué le hace cada evento a cada cuenta, y con ella se puede reconstruir cualquier saldo. Cada cuenta guarda un punto de partida, que es el último saldo que fijaste a mano, y desde ahí el saldo correcto es ese valor más el efecto de todo lo que vino después.'},
         {type:'new', title:'Un comando para verificar y corregir', desc:'reconciliarTodo() en la consola recalcula lotes y ganancias, reconstruye cada saldo desde los eventos, busca registros duplicados y muestra todas las diferencias encontradas, con el valor que hay en pantalla y el que surge de los eventos. Recién ahí pregunta si querés corregir. No aplica nada por su cuenta: sobre dinero, un ajuste automático a partir de un diagnóstico equivocado es peor que el problema que intenta resolver. La primera vez fija el punto de partida de cada cuenta sin modificar ningún número.'},
@@ -391,11 +396,6 @@ const CHANGELOG = [
     ]},
     {version:'5.7.0', date:'2026-08-09', headline:'💵 Las cajas del día muestran dinero real, no diferencias calculadas.', changes:[
         {type:'improve', title:'Ahora dicen cuánto ganaste ayer y cuánto en promedio esta semana', desc:'Hasta ahora esas dos cajas mostraban cuánto había cambiado el resultado respecto de la referencia. El cálculo era correcto, pero la cifra no era dinero: si un día cerró en menos siete mil seiscientos cuarenta y el siguiente en más tres mil doscientos veintinueve, entre los dos hay una distancia de diez mil ochocientos sesenta y nueve, pero nadie ganó esa cantidad. En una pantalla donde todo lo demás son montos reales, un número con signo de peso se lee como un monto real, y así se leía. Antes se mostraba en porcentaje y era peor todavía: al pasar de ganancia a pérdida, un "ciento ochenta y cinco por ciento menos" no dice nada. Ahora no se calcula nada intermedio: arriba está la ganancia de hoy, y debajo la de ayer y el promedio de los últimos siete días. Tres números reales, y la comparación la hace la vista. Cada uno lleva su color según haya sido ganancia o pérdida, y el valor con centavos aparece al mantenerlo presionado.'}
-    ]},
-    {version:'5.6.4', date:'2026-08-09', headline:'💬 La comparación del día dice con todas las letras que es una diferencia.', changes:[
-        {type:'fix', title:'El importe de la comparación se leía como el resultado del otro día', desc:'Cuando la comparación se muestra en pesos, el rótulo decía "vs. ayer" y arriba un importe: se leía como "ayer gané esa cantidad", cuando en realidad es cuánto más o cuánto menos que ayer. Con un porcentaje no pasaba, porque nadie confunde un setenta y dos por ciento con un monto. El cálculo siempre fue correcto: con el día anterior en menos siete mil seiscientos cuarenta y hoy en más mil ciento tres, la diferencia es de ocho mil setecientos cuarenta y tres, que es lo que mostraba. Ahora el rótulo lo dice: "más que ayer" o "menos que la semana", según corresponda, y solo vuelve a "vs. ayer" cuando se muestra un porcentaje.'},
-        {type:'fix', title:'El ícono del tipo de cuenta se montaba sobre la palabra', desc:'El espacio reservado para el dibujo lo anulaba otra regla de estilo declarada como prioritaria, así que el ícono terminaba encima de la primera letra. Se repuso con la misma prioridad.'},
-        {type:'improve', title:'Los rótulos de la tarjeta pueden usar dos renglones', desc:'Los textos nuevos son más largos y antes se habrían cortado con puntos suspensivos, que es justo lo que había producido aquel "vs prom. se…" ilegible. Ahora pueden ocupar dos renglones y, como los tres indicadores comparten una cuadrícula, crecen todos por igual y la fila queda pareja.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
