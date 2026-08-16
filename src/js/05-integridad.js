@@ -98,7 +98,12 @@ function efectoEnBancos(tipo,ev){
         d[cuenta]=roundMoney((d[cuenta]||0)+monto);
     };
     if(!ev)return d;
-    if(tipo==='operaciones'){
+    if(tipo==='ajustesSaldo'){
+        /* v6.1.0 — Corrección manual del saldo. Es un asiento como cualquier otro:
+           no reescribe el pasado ni toca las estadísticas, solo suma o resta la
+           diferencia entre lo que decía la app y lo que hay de verdad en el banco. */
+        sumar(ev.cuenta,ev.delta||0);
+    }else if(tipo==='operaciones'){
         if(ev.tipo==='compra'){
             /* Pago dividido: cada cuenta aporta su parte. La comisión bancaria
                la cobra siempre la cuenta principal. */
@@ -164,7 +169,7 @@ function recalcularSaldosBancos(){
         saldos[n]=roundMoney(bk.saldoBase);
     });
 
-    ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{
+    ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(tipo=>{
         (AppState.datos[tipo]||[]).forEach(ev=>{
             if(!ev)return;
             const efecto=efectoEnBancos(tipo,ev);
@@ -181,6 +186,141 @@ function recalcularSaldosBancos(){
         AppState.datos.bancos[n].saldo=fixNeg(saldos[n]);
     });
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIBRO DE MOVIMIENTOS POR CUENTA (v6.1.0)
+   ═══════════════════════════════════════════════════════════════════════════
+   No hace falta guardar un libro aparte: los asientos ya están: cada operación,
+   ajuste, transferencia y conversión es uno. Este libro se arma leyéndolos, así
+   que no puede quedar desincronizado de los saldos —sale de la misma fuente— ni
+   necesita migrar nada de lo que ya tenés guardado.
+
+   Cada línea trae el saldo antes, la variación y el saldo después, para poder
+   seguir la cuenta paso a paso hasta el número que muestra la tarjeta.        */
+function historialCuenta(nombre,limite){
+    const bk=AppState.datos&&AppState.datos.bancos&&AppState.datos.bancos[nombre];
+    if(!bk)return[];
+    const marca=ev=>String(ev.timestamp||((ev.fecha||'')+'T'+(ev.hora||'00:00')+':00'));
+    const lineas=[];
+
+    ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(tipo=>{
+        (AppState.datos[tipo]||[]).forEach(ev=>{
+            if(!ev)return;
+            const t=marca(ev);
+            if(bk.saldoBaseTs&&t<=String(bk.saldoBaseTs))return;
+            const efecto=efectoEnBancos(tipo,ev);
+            const v=efecto[nombre];
+            if(v===undefined||Math.abs(v)<0.005)return;
+            lineas.push({ts:t,tipo,id:ev.id,variacion:v,ev,
+                         clase:_claseMovimiento(tipo,ev,v)});
+        });
+    });
+
+    lineas.sort((a,b)=>a.ts<b.ts?-1:a.ts>b.ts?1:0);
+
+    /* Encadenar los saldos desde el punto de partida */
+    let corriente=roundMoney(bk.saldoBase||0);
+    const base={ts:bk.saldoBaseTs||'',tipo:'inicial',clase:'inicial',variacion:0,
+                anterior:corriente,resultante:corriente};
+    lineas.forEach(l=>{
+        l.anterior=corriente;
+        corriente=roundMoney(corriente+l.variacion);
+        l.resultante=corriente;
+    });
+
+    const todo=[base,...lineas];
+    /* Más recientes primero, que es como se lee un extracto */
+    todo.reverse();
+    return limite>0?todo.slice(0,limite):todo;
+}
+
+/* Etiqueta legible de cada asiento */
+function _claseMovimiento(tipo,ev,v){
+    if(tipo==='ajustesSaldo')return'ajuste';
+    if(tipo==='operaciones')return ev.tipo==='compra'?'compra':'venta';
+    if(tipo==='movimientos')return v>0?'ingreso':'egreso';
+    if(tipo==='transferencias')return v>0?'transf-entra':'transf-sale';
+    return v>0?'conv-entra':'conv-sale';
+}
+const _ETIQUETA_MOV={
+    inicial:'Saldo inicial',compra:'Compra USDT',venta:'Venta USDT',
+    ingreso:'Ingreso',egreso:'Egreso',ajuste:'Ajuste manual',
+    'transf-entra':'Transferencia recibida','transf-sale':'Transferencia enviada',
+    'conv-entra':'Conversión recibida','conv-sale':'Conversión enviada'
+};
+
+/* Dibuja los movimientos de una cuenta. Empieza mostrando los últimos cinco,
+   como pediste, con la opción de ver todo el historial. */
+let _movsCuentaActual=null,_movsCuentaTodo=false;
+function abrirMovimientosCuenta(nombre){
+    _movsCuentaActual=nombre;_movsCuentaTodo=false;
+    _pintarMovimientosCuenta();
+    abrirModal('modalMovsCuenta');
+}
+function _pintarMovimientosCuenta(){
+    const nombre=_movsCuentaActual;
+    const cont=$('movsCuentaBody');if(!cont||!nombre)return;
+    const bk=AppState.datos.bancos[nombre];if(!bk)return;
+    const hd=$('movsCuentaHeader');
+    if(hd)hd.innerHTML=escHtml(nombre);
+    const todas=historialCuenta(nombre);
+    const lista=_movsCuentaTodo?todas:todas.slice(0,5);
+    const sym=getSym(getBancoInfo(nombre)&&getBancoInfo(nombre).moneda);
+    const dinero=v=>sym+fmtNum(Math.abs(v),2);
+
+    let h='<div class="movc-saldo"><div class="l">Saldo actual</div>'+
+          '<div class="v">'+sym+fmtNum(bk.saldo||0,2)+'</div></div>';
+
+    if(!todas.length){
+        h+='<div class="movc-nota">Sin movimientos registrados en esta cuenta.</div>';
+    }else{
+        h+='<div class="movc-lista">';
+        lista.forEach(l=>{
+            const entra=l.variacion>0, esInicial=l.tipo==='inicial', esAjuste=l.clase==='ajuste';
+            const cls=esInicial?'inicial':esAjuste?'ajuste':(entra?'entra':'sale');
+            const cuando=String(l.ts||'').replace('T',' ').slice(0,16);
+            let detalle='';
+            if(esAjuste&&l.ev&&l.ev.motivo)detalle=' · '+escHtml(l.ev.motivo);
+            else if(l.tipo==='operaciones'&&l.ev)detalle=' · '+fmtTasaMon(l.ev.tasa,l.ev.moneda);
+            else if(l.tipo==='movimientos'&&l.ev&&l.ev.descripcion)detalle=' · '+escHtml(l.ev.descripcion);
+            else if(l.tipo==='transferencias'&&l.ev)detalle=' · '+escHtml(entra?l.ev.origen:l.ev.destino);
+            h+='<div class="movc-row '+cls+'"><div class="movc-i">'+
+               '<div class="t">'+(_ETIQUETA_MOV[l.clase]||'Movimiento')+detalle+'</div>'+
+               '<div class="m">'+escHtml(cuando)+'</div></div>'+
+               '<div class="movc-d">'+
+               (esInicial?'':'<div class="v '+(entra?'entra':'sale')+'">'+(entra?'+':'-')+dinero(l.variacion)+'</div>')+
+               '<div class="s">'+sym+fmtNum(l.resultante,2)+'</div></div></div>';
+        });
+        h+='</div>';
+        if(!_movsCuentaTodo&&todas.length>5){
+            h+='<button class="movc-mas" data-action="movs-cuenta-todo">Ver los '+todas.length+' movimientos</button>';
+        }
+        h+='<div class="movc-nota">Cada línea muestra la variación y el saldo que quedó. '+
+           'El saldo actual es el resultado de sumarlas todas desde el saldo inicial.</div>';
+    }
+    h+='<button class="movc-mas" data-action="corregir-saldo">Corregir saldo o límites</button>';
+    cont.innerHTML=h;
+}
+window.abrirMovimientosCuenta=abrirMovimientosCuenta;
+
+/* Registra una corrección manual como un asiento más */
+function registrarAjusteSaldo(cuenta,nuevoSaldo,motivo){
+    if(!AppState.datos.bancos[cuenta])return null;
+    if(!Array.isArray(AppState.datos.ajustesSaldo))AppState.datos.ajustesSaldo=[];
+    const actual=roundMoney(AppState.datos.bancos[cuenta].saldo||0);
+    const delta=roundMoney(nuevoSaldo-actual);
+    if(Math.abs(delta)<0.005)return null;
+    const aj={id:(typeof uid==='function'?uid():Date.now()),cuenta,delta,
+              motivo:String(motivo||'').slice(0,120),
+              fecha:(typeof getUDateStr==='function'?getUDateStr():''),
+              hora:(typeof getUTimeStr==='function'?getUTimeStr():''),
+              timestamp:new Date().toISOString()};
+    AppState.datos.ajustesSaldo.push(aj);
+    /* Se conservan los últimos 200 por cuenta para no engordar el documento */
+    if(AppState.datos.ajustesSaldo.length>200)AppState.datos.ajustesSaldo.shift();
+    return aj;
+}
+window.registrarAjusteSaldo=registrarAjusteSaldo;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    RECONCILIACIÓN GENERAL (v5.8.0)
@@ -214,47 +354,25 @@ function reconciliarTodo(opts){
     /* v6.0.0 — Ya no se comparan saldos: se reconstruyen en cada recálculo, así
        que no pueden estar desviados. Lo que sí hay que buscar son registros
        repetidos y estados imposibles, que sí son datos mal cargados. */
-    /* ═══ 3 ── Registros repetidos ═══
-       v5.8.2 — Antes solo se buscaban identificadores repetidos, y eso deja fuera
-       el caso más frecuente: cuando la app falla a mitad de una operación, el
-       registro se vuelve a crear con un identificador NUEVO. Queda entonces un
-       gemelo idéntico en todo lo que importa —tipo, monto, cuenta, categoría— y
-       con pocos minutos de diferencia, que a los cálculos les entra dos veces.
-       Se los busca comparando el contenido, dentro de una ventana de 10 minutos:
-       lo bastante amplia para atrapar un reintento fallido y lo bastante angosta
-       para no confundir dos gastos reales parecidos en días distintos. */
-    const VENTANA_MS=10*60*1000;
+    /* ═══ 3 ── Registros con el mismo identificador ═══
+       v6.0.1 — Se intentó además detectar registros "gemelos" comparando su
+       contenido: mismo tipo, monto y cuenta con pocos minutos de diferencia. En
+       una app de uso general habría servido; acá no. Operando P2P se venden
+       muchas veces montos redondos a tasas parecidas en el mismo rato, así que
+       esa comparación marcó ciento sesenta operaciones legítimas como si fueran
+       errores. Una lista de falsos avisos es peor que no avisar nada: entrena a
+       ignorarla, y el día que aparezca uno real va a pasar desapercibido.
+
+       Queda solo lo que sí es inequívoco: dos registros con el mismo
+       identificador. Eso nunca puede ser correcto. */
     const duplicados=[];
-    const huella=(tipo,ev)=>{
-        if(tipo==='operaciones')return[ev.tipo,ev.monto,ev.tasa,ev.banco,ev.moneda].join('|');
-        if(tipo==='movimientos')return[ev.tipoCuenta,ev.tipoMovimiento,ev.monto,ev.banco||'',ev.descripcion||''].join('|');
-        if(tipo==='transferencias')return[ev.origen,ev.destino,ev.monto,ev.comision||0].join('|');
-        return[ev.origen,ev.destino,ev.montoOrigen,ev.montoDestino].join('|');
-    };
-    const cuando=ev=>{
-        const t=Date.parse(ev.timestamp||'');
-        if(isFinite(t))return t;
-        const d=Date.parse((ev.fecha||'')+'T'+(ev.hora||'00:00')+':00');
-        return isFinite(d)?d:0;
-    };
     ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{
-        const lista=AppState.datos[tipo]||[];
-        const porId=new Set(),porHuella=new Map();
-        lista.forEach(ev=>{
+        const vistos=new Set();
+        (AppState.datos[tipo]||[]).forEach(ev=>{
             if(!ev)return;
             const id=String(ev.id);
-            if(porId.has(id)){
-                duplicados.push({tipo,id,motivo:'identificador repetido',ev});
-                return;
-            }
-            porId.add(id);
-            const h=huella(tipo,ev),t=cuando(ev);
-            const previos=porHuella.get(h)||[];
-            const gemelo=previos.find(p=>Math.abs(cuando(p)-t)<=VENTANA_MS);
-            if(gemelo){
-                duplicados.push({tipo,id,motivo:'idéntico a otro registro cercano',ev,gemelo:String(gemelo.id)});
-            }
-            previos.push(ev);porHuella.set(h,previos);
+            if(vistos.has(id))duplicados.push({tipo,id,motivo:'identificador repetido',ev});
+            vistos.add(id);
         });
     });
 

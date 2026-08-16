@@ -182,6 +182,40 @@ document.addEventListener('DOMContentLoaded',()=>{
        Siete botones, uno por día. Los marcados renuevan el cupo; los que quedan
        sin marcar siguen usando el del último día marcado. Siempre tiene que
        quedar al menos uno: si no, el límite no se renovaría nunca. */
+    /* v6.1.0 — Abre el editor de saldo mostrando lo registrado y la diferencia */
+    function _abrirEditarSaldo(banco){
+        if(!banco||!AppState.datos.bancos[banco])return;
+        AppState.ui.bancoEditando=banco;
+        const bk=AppState.datos.bancos[banco];
+        const sym=getSym(getBancoInfo(banco)&&getBancoInfo(banco).moneda);
+        $('editarSaldoHeader').innerHTML='Editar '+colorBanco(banco);
+        setText('saldoRegistrado',sym+fmtNum(bk.saldo||0,2));
+        $('nuevoSaldoBanco').value=fmtNum(bk.saldo||0);
+        $('motivoAjuste').value='';
+        $('limiteDiarioGroup').style.display='block';
+        $('limiteDiarioBanco').value=fmtNum(bk.limiteDiarioUSD||0,0);
+        _pintarDiasReset(banco);
+        _actualizarDiferenciaSaldo();
+        abrirModal('modalEditarSaldo');
+    }
+    /* Muestra en vivo la diferencia que se va a registrar */
+    function _actualizarDiferenciaSaldo(){
+        const banco=AppState.ui.bancoEditando;if(!banco)return;
+        const bk=AppState.datos.bancos[banco];if(!bk)return;
+        const sym=getSym(getBancoInfo(banco)&&getBancoInfo(banco).moneda);
+        const nuevo=roundMoney(pv('nuevoSaldoBanco'));
+        const dif=roundMoney(nuevo-roundMoney(bk.saldo||0));
+        const caja=$('saldoDiffBox'),grupo=$('motivoAjusteGroup'),val=$('saldoDiff');
+        const hay=Math.abs(dif)>=0.005;
+        if(caja)caja.style.display=hay?'flex':'none';
+        if(grupo)grupo.style.display=hay?'block':'none';
+        if(val){
+            val.textContent=(dif>0?'+':'-')+sym+fmtNum(Math.abs(dif),2);
+            val.className=dif>0?'sube':'baja';
+        }
+    }
+    $('nuevoSaldoBanco')?.addEventListener('input',_actualizarDiferenciaSaldo);
+
     function _pintarDiasReset(banco){
         const cont=$('diasResetBanco');if(!cont)return;
         const grupo=$('diasResetGroup');
@@ -211,7 +245,11 @@ document.addEventListener('DOMContentLoaded',()=>{
         const g=$('diasResetGroup');if(g)g.style.display=pv('limiteDiarioBanco')>0?'block':'none';
     });
 
-    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].saldo=fixNeg(ns);AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'));AppState.datos.bancos[n].diasReset=_leerDiasReset();
+    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'));AppState.datos.bancos[n].diasReset=_leerDiasReset();
+            /* v6.1.0 — La corrección queda como asiento con su motivo. El saldo no se
+               pisa: lo recalcula el motor sumando este ajuste a todo lo demás, así que
+               las operaciones, las ganancias y las estadísticas quedan intactas. */
+            if(typeof registrarAjusteSaldo==='function')registrarAjusteSaldo(n,fixNeg(ns),$('motivoAjuste')?.value);
             /* v5.8.0 — Fijar el saldo a mano establece un nuevo punto de partida:
                de acá en adelante el saldo correcto es este más los eventos que
                vengan después. */
@@ -355,7 +393,14 @@ actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppSta
             /* Re-render: cheap, preserves collapse state via _collapsedMonths */
             cargarHistorialMensual();
         }
-        else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}else{AppState.ui.bancoEditando=banco;$('editarSaldoHeader').innerHTML='Editar '+colorBanco(banco);$('nuevoSaldoBanco').value=fmtNum(AppState.datos.bancos[banco]?.saldo||0);$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=fmtNum(AppState.datos.bancos[banco]?.limiteDiarioUSD||0,0);_pintarDiasReset(banco);abrirModal('modalEditarSaldo')}}
+        /* v6.1.0 — Tocar una cuenta muestra sus movimientos. El saldo se corrige
+           desde ahí, para no editar a ciegas sin ver de dónde sale el número. */
+        else if(a==='movs-cuenta-todo'){_movsCuentaTodo=true;_pintarMovimientosCuenta()}
+        else if(a==='cerrar-movs-cuenta')cerrarModal('modalMovsCuenta');
+        else if(a==='corregir-saldo'){cerrarModal('modalMovsCuenta');setTimeout(()=>_abrirEditarSaldo(_movsCuentaActual),120)}
+        else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}
+            else if(typeof abrirMovimientosCuenta==='function'){abrirMovimientosCuenta(banco)}
+            else{AppState.ui.bancoEditando=banco;$('editarSaldoHeader').innerHTML='Editar '+colorBanco(banco);$('nuevoSaldoBanco').value=fmtNum(AppState.datos.bancos[banco]?.saldo||0);$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=fmtNum(AppState.datos.bancos[banco]?.limiteDiarioUSD||0,0);_pintarDiasReset(banco);abrirModal('modalEditarSaldo')}}
         else if(a==='toggle-banco'){const n=t.dataset.banco;if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;renderizarListaBancos();actualizarVista();guardaOptimista('update','bancos',n)}
         else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
         else if(a==='editar-lote')abrirEditarLote(loteId);
