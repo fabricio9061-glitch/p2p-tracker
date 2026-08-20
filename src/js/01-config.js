@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '6.3.0',
+    APP_VERSION: '6.3.1',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,9 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'6.3.1', date:'2026-08-20', headline:'📅 El libro de la cuenta muestra el último mes, no todo el historial.', changes:[
+        {type:'improve', title:'Ya no ofrece abrir miles de movimientos de una vez', desc:'El botón proponía ver el historial completo, que en una cuenta con uso intenso son miles de líneas: no se puede recorrer con el dedo y el teléfono tarda en dibujarlas. Ahora despliega el último mes, que es lo que se consulta de verdad, y dice cuántos son antes de abrir. Si ese mes tuviera muchísimo movimiento, muestra los ciento veinte más recientes y lo aclara. Lo anterior sigue disponible en la lista de operaciones y en el historial archivado. El saldo se sigue calculando con todos los registros sin excepción: el recorte es solo de lo que se muestra.'}
+    ]},
     {version:'6.3.0', date:'2026-08-16', headline:'⏱️ Se quitaron las fechas del cálculo de saldos.', changes:[
         {type:'fix', title:'El saldo volvía al valor anterior', desc:'Las últimas versiones guardaban un punto de partida junto con la hora en que se había fijado, y sumaban solo lo posterior a esa hora. De ahí salieron tres fallas seguidas: una operación cargada en el mismo instante quedaba afuera por empate, las horas locales se comparaban contra horas universales con tres horas de diferencia, y el punto de partida fijado en medio de una operación la contaba dos veces. Todas eran la misma raíz: depender de una hora invisible para decidir qué se cuenta. Ahora no hay corte. Cada cuenta tiene un saldo de apertura y el saldo actual es ese valor más el efecto de TODOS los registros, sin importar cuándo ocurrieron ni qué reloj tenga cada dispositivo. Cada registro se cuenta exactamente una vez. Para las cuentas en uso el saldo de apertura se deduce del saldo que ya se muestra, así que al actualizar ningún número cambia.'},
         {type:'fix', title:'Archivar habría movido todos los saldos', desc:'Al archivar, las operaciones viejas salen del listado. Como el saldo pasó a sumar todos los registros, sacarlas habría hecho saltar los saldos de golpe. Ahora su efecto se traslada al saldo de apertura de cada cuenta, que es exactamente para lo que existe: representar todo lo anterior a lo que sigue listado. El saldo visible no se mueve.'}
@@ -385,11 +388,6 @@ const CHANGELOG = [
     ]},
     {version:'6.1.1', date:'2026-08-16', headline:'🎯 Corregida la operación que no descontaba el saldo.', changes:[
         {type:'fix', title:'La primera operación después de abrir la app podía no descontarse', desc:'Cada cuenta guarda un punto de partida, y el saldo se calcula sumando todo lo que ocurrió después de esa marca de tiempo. La comparación descartaba lo anterior O IGUAL a esa marca, y el punto de partida se fijaba en el instante exacto de abrir la app: una operación cargada en ese mismo segundo caía justo en el empate y quedaba afuera. Su descuento no se aplicaba nunca, y como el saldo se reconstruye desde cero, tampoco había forma de recuperarlo después. Era exactamente el caso de abrir la aplicación y cargar la primera operación. Ahora el punto de partida se fija un segundo antes, con lo que el empate se vuelve imposible, y la comparación acepta las operaciones que coincidan con esa marca. Se verificó ejecutando el código real de punta a punta, no solo la lógica por separado.'}
-    ]},
-    {version:'6.1.0', date:'2026-08-16', headline:'📒 Cada cuenta tiene su libro de movimientos.', changes:[
-        {type:'new', title:'Historial de movimientos por cuenta', desc:'Tocando una cuenta en Mis Saldos ahora se abre su libro: cada compra, venta, ajuste, transferencia y conversión que la afectó, con la variación y el saldo que quedó después de cada una. Se puede seguir la cuenta paso a paso desde el saldo inicial hasta el número que muestra la tarjeta. Empieza mostrando los últimos cinco, con un botón para ver todo. Las entradas, las salidas y las correcciones manuales se distinguen por color. El libro no se guarda aparte: se arma leyendo los mismos registros de los que sale el saldo, así que no puede quedar desincronizado ni hizo falta migrar nada de lo que ya tenías.'},
-        {type:'new', title:'Corregir el saldo ahora deja constancia', desc:'Antes se escribía el número nuevo encima del anterior y no quedaba rastro. Ahora la ventana muestra el saldo que tiene registrado la app, pide el saldo real del banco, calcula la diferencia mientras escribís y permite anotar un motivo. Al confirmar se guarda como un ajuste con esa diferencia, que aparece en el libro de la cuenta. La corrección no toca ninguna operación anterior, ni las ganancias, ni la cantidad de operaciones, ni los volúmenes, ni los spreads: solo suma o resta la diferencia, y a partir de ahí las operaciones nuevas parten del saldo corregido.'},
-        {type:'improve', title:'Los ajustes no son operaciones', desc:'Las correcciones de saldo se guardan aparte de las compras y las ventas, así que no aparecen en las listas de operaciones ni entran en ningún cálculo comercial. Las estadísticas siguen saliendo exclusivamente de las operaciones reales.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

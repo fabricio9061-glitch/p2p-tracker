@@ -284,8 +284,18 @@ function _pintarMovimientosCuenta(){
     const bk=AppState.datos.bancos[nombre];if(!bk)return;
     const hd=$('movsCuentaHeader');
     if(hd)hd.innerHTML=escHtml(nombre);
+    /* ═══ v6.3.1 — El listado completo se limita al último mes ═══
+       Con miles de movimientos, mostrarlos todos no sirve para nada: no se puede
+       recorrer con el dedo y el teléfono tarda en dibujarlos. El último mes es
+       lo que se consulta de verdad; lo anterior está en la lista de operaciones
+       y en el archivo histórico. El saldo sigue calculándose con TODO: acá solo
+       se recorta lo que se muestra. */
     const todas=historialCuenta(nombre);
-    const lista=_movsCuentaTodo?todas:todas.slice(0,5);
+    const desde=Date.now()-30*24*60*60*1000;
+    const delMes=todas.filter(l=>l.tipo!=='inicial'&&Date.parse(l.ts||'')>=desde);
+    const TOPE=120;
+    const recortado=_movsCuentaTodo&&delMes.length>TOPE;
+    const lista=_movsCuentaTodo?delMes.slice(0,TOPE):todas.slice(0,5);
     const sym=getSym(getBancoInfo(nombre)&&getBancoInfo(nombre).moneda);
     const dinero=v=>sym+fmtNum(Math.abs(v),2);
 
@@ -314,10 +324,16 @@ function _pintarMovimientosCuenta(){
         });
         h+='</div>';
         if(!_movsCuentaTodo&&todas.length>5){
-            h+='<button class="movc-mas" data-action="movs-cuenta-todo">Ver los '+todas.length+' movimientos</button>';
+            h+='<button class="movc-mas" data-action="movs-cuenta-todo">'+
+               (delMes.length?'Ver el último mes ('+delMes.length+')':'Ver más')+'</button>';
         }
         h+='<div class="movc-nota">Cada línea muestra la variación y el saldo que quedó. '+
-           'El saldo actual es el resultado de sumarlas todas desde el saldo inicial.</div>';
+           (_movsCuentaTodo
+             ? (recortado
+                 ? 'Se muestran los '+TOPE+' más recientes de los '+delMes.length+' del último mes. '
+                 : 'Se muestra el último mes. ')+
+               'Lo anterior está en la lista de operaciones y en el historial archivado.'
+             : 'El saldo actual es el resultado de sumarlas todas desde el saldo inicial.')+'</div>';
     }
     h+='<button class="movc-mas" data-action="corregir-saldo">Corregir saldo o límites</button>';
     cont.innerHTML=h;
