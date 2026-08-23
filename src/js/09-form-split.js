@@ -521,15 +521,26 @@ async function agregarOperacion(){
     try{
         const opId=uid();
         if(t==='compra'){
-            /* Construir deltas: saldos + límite USD (solo al banco principal) */
+            /* ═══ v6.4.0 — El cupo diario se reparte entre las cuentas que pagaron ═══
+               Antes se cargaba entero a la cuenta principal, incluso cuando el pago
+               se dividía entre varias. El resultado: una cuenta consumía cupo que
+               nunca usó y las otras quedaban con el suyo intacto, así que los dos
+               números estaban mal. Cada cuenta descuenta ahora exactamente lo que
+               aportó. */
             const deltas={bancos:{},limitesUSD:{}};
             if(isSplit){
-                aportes.forEach(a=>{deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)-a.monto});
+                aportes.forEach(a=>{
+                    deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)-a.monto;
+                    const uA=_montoEnUSDLimite(a.banco,a.monto);
+                    if(uA>0)deltas.limitesUSD[a.banco]=roundMoney((deltas.limitesUSD[a.banco]||0)+uA);
+                });
+                /* La comisión bancaria la cobra la cuenta principal */
+                if(cb>0)deltas.bancos[b]=roundMoney((deltas.bancos[b]||0)-cb);
             }else{
                 deltas.bancos[b]=-(m+cb);
+                const mU=_montoEnUSDLimite(b,m);
+                if(mU>0)deltas.limitesUSD[b]=mU;
             }
-            const mU=_montoEnUSDLimite(b,isSplit?m:m);
-            if(mU>0)deltas.limitesUSD[b]=mU;
             aplicarDeltas(deltas);
         }else{
             aplicarDeltas({bancos:{[b]:m}});
@@ -559,12 +570,21 @@ async function agregarOperacion(){
 async function eliminarOperacion(id){
     const op=AppState.datos.operaciones.find(o=>o.id===id);if(!op)return;
     /* INTEGRIDAD: pre-validar que el rollback no deje saldos negativos */
-    const deltas={bancos:{}};
+    /* v6.4.0 — También se devuelve el cupo diario consumido: sin esto, borrar una
+       compra dejaba el límite gastado y la cuenta bloqueada por el resto del día. */
+    const deltas={bancos:{},limitesUSD:{}};
     if(op.tipo==='compra'){
         if(Array.isArray(op.aportes)&&op.aportes.length){
-            op.aportes.forEach(a=>{deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)+a.monto});
+            op.aportes.forEach(a=>{
+                deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)+a.monto;
+                const uA=_montoEnUSDLimite(a.banco,a.monto);
+                if(uA>0)deltas.limitesUSD[a.banco]=roundMoney((deltas.limitesUSD[a.banco]||0)-uA);
+            });
+            if(op.comisionBanco>0)deltas.bancos[op.banco]=roundMoney((deltas.bancos[op.banco]||0)+op.comisionBanco);
         }else if(op.banco){
             deltas.bancos[op.banco]=roundMoney(op.monto+(op.comisionBanco||0));
+            const uD=_montoEnUSDLimite(op.banco,op.monto);
+            if(uD>0)deltas.limitesUSD[op.banco]=-uD;
         }
     }else{
         /* Venta: revertir suma positiva al banco → restar. Si banco ya gastó esos UYU, queda negativo. */

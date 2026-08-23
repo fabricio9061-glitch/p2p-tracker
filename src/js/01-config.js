@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '6.3.1',
+    APP_VERSION: '6.4.0',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'6.4.0', date:'2026-08-23', headline:'💳 El cupo diario se reparte entre las cuentas que pagaron.', changes:[
+        {type:'fix', title:'Una compra dividida cargaba todo el cupo a una sola cuenta', desc:'Cuando el pago se reparte entre varias cuentas, el cupo diario en dólares se cargaba entero a la cuenta principal, aunque hubiera puesto una parte chica. El resultado eran dos números mal a la vez: esa cuenta consumía cupo que nunca usó y quedaba bloqueada antes de tiempo, mientras las otras seguían mostrando su cupo intacto pese a haber pagado. Ahora cada cuenta descuenta exactamente lo que aportó, y la suma equivale al total comprado. La comisión bancaria se sigue cobrando a la cuenta principal, que es donde se cobra de verdad.'},
+        {type:'fix', title:'Borrar una compra no devolvía el cupo', desc:'Al eliminar una compra se revertía el saldo pero no el cupo diario consumido, así que la cuenta quedaba bloqueada por el resto del día por una operación que ya no existía. Ahora se devuelve, y en las compras divididas cada cuenta recupera su parte.'}
+    ]},
     {version:'6.3.1', date:'2026-08-20', headline:'📅 El libro de la cuenta muestra el último mes, no todo el historial.', changes:[
         {type:'improve', title:'Ya no ofrece abrir miles de movimientos de una vez', desc:'El botón proponía ver el historial completo, que en una cuenta con uso intenso son miles de líneas: no se puede recorrer con el dedo y el teléfono tarda en dibujarlas. Ahora despliega el último mes, que es lo que se consulta de verdad, y dice cuántos son antes de abrir. Si ese mes tuviera muchísimo movimiento, muestra los ciento veinte más recientes y lo aclara. Lo anterior sigue disponible en la lista de operaciones y en el historial archivado. El saldo se sigue calculando con todos los registros sin excepción: el recorte es solo de lo que se muestra.'}
     ]},
@@ -385,9 +389,6 @@ const CHANGELOG = [
         {type:'fix', title:'Una operación podía descontarse dos veces del banco', desc:'El saldo se calcula desde un punto de partida más todo lo ocurrido después, y ese punto se fijaba usando la hora del reloj. El problema aparecía cuando había que fijarlo en medio de una operación: al habilitar una cuenta nueva y operar enseguida, o al recibir del servidor un documento que no traía ese dato. En esos casos el saldo que se tomaba como base YA tenía descontada la operación, porque el descuento se aplica antes de recalcular, pero como la marca de tiempo de esa operación quedaba después del punto de partida, se volvía a contar. El saldo bajaba el doble y cambiaba solo al llegar la siguiente actualización desde el servidor. Ahora el punto de partida se fija un instante después del último registro conocido, así que todo lo que ya está reflejado en el saldo queda excluido y lo nuevo se cuenta una sola vez.'},
         {type:'fix', title:'Los registros sin marca propia se comparaban con tres horas de diferencia', desc:'Cuando un registro no tiene su propia marca de tiempo, se arma con su fecha y hora, que están en horario de Uruguay. Esa marca se comparaba directamente contra el punto de partida, que está en horario universal: tres horas de diferencia que podían dejar afuera registros que sí correspondía contar. Ahora se convierte antes de comparar.'},
         {type:'improve', title:'Un solo criterio de fecha para todo', desc:'Ese criterio estaba escrito tres veces: en el cálculo del saldo, en el libro de movimientos y en la verificación. Tener tres copias fue lo que permitió que una quedara desalineada de las otras. Ahora es una sola función que usan las tres.'}
-    ]},
-    {version:'6.1.1', date:'2026-08-16', headline:'🎯 Corregida la operación que no descontaba el saldo.', changes:[
-        {type:'fix', title:'La primera operación después de abrir la app podía no descontarse', desc:'Cada cuenta guarda un punto de partida, y el saldo se calcula sumando todo lo que ocurrió después de esa marca de tiempo. La comparación descartaba lo anterior O IGUAL a esa marca, y el punto de partida se fijaba en el instante exacto de abrir la app: una operación cargada en ese mismo segundo caía justo en el empate y quedaba afuera. Su descuento no se aplicaba nunca, y como el saldo se reconstruye desde cero, tampoco había forma de recuperarlo después. Era exactamente el caso de abrir la aplicación y cargar la primera operación. Ahora el punto de partida se fija un segundo antes, con lo que el empate se vuelve imposible, y la comparación acepta las operaciones que coincidan con esa marca. Se verificó ejecutando el código real de punta a punta, no solo la lógica por separado.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
