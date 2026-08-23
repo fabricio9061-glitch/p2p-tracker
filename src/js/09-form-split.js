@@ -102,7 +102,16 @@ function calcularPreview(){
         const b=$('banco').value,cb=roundMoney(pv('comisionBanco'));
         if(b&&AppState.datos.bancos[b]){
             const sActual=AppState.datos.bancos[b].saldo,bsy=getSym(getBancoInfo(b)?.moneda);
-            const sDesp=isC?fixNeg(sActual-(m+cb)):fixNeg(sActual+m);
+            /* v6.4.1 — Con el pago dividido, de esta cuenta sale solo su aporte, no
+               el total. Antes el resumen le restaba la compra entera y mostraba un
+               saldo negativo que nunca iba a ocurrir. */
+            let _sale=m+cb;
+            if(isC&&typeof splitActivo==='function'&&splitActivo()){
+                const _ap=(typeof _computeSplitState==='function')?(_computeSplitState().aportes||[]):[];
+                const _mio=_ap.filter(x=>x&&x.banco===b).reduce((acc,x)=>acc+(x.monto||0),0);
+                if(_ap.length)_sale=roundMoney(_mio+cb);
+            }
+            const sDesp=isC?fixNeg(sActual-_sale):fixNeg(sActual+m);
             setText('opSumBancoLabel',b);
             $('opSumBancoValue').innerHTML=`${bsy}${fmtNum(sActual)} → <b style="color:${sDesp>=sActual?'#16a34a':'#dc2626'}">${bsy}${fmtNum(sDesp)}</b>`;
         }else{setText('opSumBancoLabel','Saldo');setText('opSumBancoValue','--')}
@@ -501,8 +510,34 @@ async function agregarOperacion(){
     /* monto = UYU directamente */
     const u=usdtBase(m/ta,t),cpl=truncar(u*cp,2);
     if(t==='compra'){
-        const bk=AppState.datos.bancos[b];
-        if(bk.limiteDiarioUSD>0){const mU=isU?m:truncar(m/ta),dU=roundMoney(bk.limiteDiarioUSD-(bk.limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario. Disponible: US$${fmtNum(dU,0)} (${fmtNum(mU,2)} USD requeridos)`);return}}
+        /* ═══ v6.4.1 — El límite se valida por lo que aporta cada cuenta ═══
+           Se comparaba el monto TOTAL contra el cupo de la cuenta principal, aunque
+           el pago estuviera dividido. Con una compra grande repartida entre dos
+           cuentas, la app rechazaba la operación diciendo que faltaba cupo cuando
+           en realidad a cada cuenta le sobraba: a ninguna se le pedía el total.
+           Ahora cada aporte se compara contra el cupo de su propia cuenta. */
+        const _cupoDisponible=nombre=>{
+            const bkx=AppState.datos.bancos[nombre];
+            if(!bkx||!(bkx.limiteDiarioUSD>0))return Infinity;
+            return roundMoney(bkx.limiteDiarioUSD-(bkx.limiteUsadoUSD||0));
+        };
+        const _requerido=(nombre,monto)=>{
+            const bi=getBancoInfo(nombre);
+            if(bi?.moneda==='USD')return roundMoney(monto);
+            return ta>0?truncar(monto/ta):0;
+        };
+        const _porCuenta=isSplit
+            ? aportes.map(a=>({banco:a.banco,monto:a.monto}))
+            : [{banco:b,monto:m}];
+        for(const p of _porCuenta){
+            const disp=_cupoDisponible(p.banco);
+            if(disp===Infinity)continue;
+            const req=_requerido(p.banco,p.monto);
+            if(req>disp){
+                alert(`${p.banco} excede su límite diario.\n\nAporta: ${getSym(getBancoInfo(p.banco)?.moneda)}${fmtNum(p.monto)}\nRequiere: US$${fmtNum(req,2)}\nDisponible: US$${fmtNum(disp,0)}`);
+                return;
+            }
+        }
         /* INTEGRIDAD: validación dura — no se permite saldo negativo bajo ninguna circunstancia */
         if(isSplit){
             const valI=validarDeltas({aportes});

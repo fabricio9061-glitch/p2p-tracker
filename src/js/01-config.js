@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '6.4.0',
+    APP_VERSION: '6.4.1',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'6.4.1', date:'2026-08-23', headline:'🚦 El límite diario se valida por lo que aporta cada cuenta.', changes:[
+        {type:'fix', title:'Rechazaba compras divididas que sí entraban en los cupos', desc:'La versión anterior corrigió cómo se descuenta el cupo, pero la validación previa seguía comparando el monto TOTAL contra el cupo de la cuenta principal. Con una compra grande repartida entre dos cuentas, la app la rechazaba diciendo que faltaba cupo cuando en realidad a cada una le sobraba: a ninguna se le estaba pidiendo el total. Ahora cada aporte se compara contra el cupo de su propia cuenta, y si alguna se pasa el aviso dice cuál es, cuánto aporta, cuánto requiere y cuánto tiene disponible.'},
+        {type:'fix', title:'El resumen mostraba un saldo negativo imposible', desc:'Al pie del formulario, el saldo resultante de la cuenta principal se calculaba restándole la compra entera, aunque el pago estuviera dividido. Mostraba a esa cuenta quedando en rojo por una plata que en realidad ponía otra. Ahora se le resta solo lo que aporta.'}
+    ]},
     {version:'6.4.0', date:'2026-08-23', headline:'💳 El cupo diario se reparte entre las cuentas que pagaron.', changes:[
         {type:'fix', title:'Una compra dividida cargaba todo el cupo a una sola cuenta', desc:'Cuando el pago se reparte entre varias cuentas, el cupo diario en dólares se cargaba entero a la cuenta principal, aunque hubiera puesto una parte chica. El resultado eran dos números mal a la vez: esa cuenta consumía cupo que nunca usó y quedaba bloqueada antes de tiempo, mientras las otras seguían mostrando su cupo intacto pese a haber pagado. Ahora cada cuenta descuenta exactamente lo que aportó, y la suma equivale al total comprado. La comisión bancaria se sigue cobrando a la cuenta principal, que es donde se cobra de verdad.'},
         {type:'fix', title:'Borrar una compra no devolvía el cupo', desc:'Al eliminar una compra se revertía el saldo pero no el cupo diario consumido, así que la cuenta quedaba bloqueada por el resto del día por una operación que ya no existía. Ahora se devuelve, y en las compras divididas cada cuenta recupera su parte.'}
@@ -384,11 +388,6 @@ const CHANGELOG = [
     {version:'6.3.0', date:'2026-08-16', headline:'⏱️ Se quitaron las fechas del cálculo de saldos.', changes:[
         {type:'fix', title:'El saldo volvía al valor anterior', desc:'Las últimas versiones guardaban un punto de partida junto con la hora en que se había fijado, y sumaban solo lo posterior a esa hora. De ahí salieron tres fallas seguidas: una operación cargada en el mismo instante quedaba afuera por empate, las horas locales se comparaban contra horas universales con tres horas de diferencia, y el punto de partida fijado en medio de una operación la contaba dos veces. Todas eran la misma raíz: depender de una hora invisible para decidir qué se cuenta. Ahora no hay corte. Cada cuenta tiene un saldo de apertura y el saldo actual es ese valor más el efecto de TODOS los registros, sin importar cuándo ocurrieron ni qué reloj tenga cada dispositivo. Cada registro se cuenta exactamente una vez. Para las cuentas en uso el saldo de apertura se deduce del saldo que ya se muestra, así que al actualizar ningún número cambia.'},
         {type:'fix', title:'Archivar habría movido todos los saldos', desc:'Al archivar, las operaciones viejas salen del listado. Como el saldo pasó a sumar todos los registros, sacarlas habría hecho saltar los saldos de golpe. Ahora su efecto se traslada al saldo de apertura de cada cuenta, que es exactamente para lo que existe: representar todo lo anterior a lo que sigue listado. El saldo visible no se mueve.'}
-    ]},
-    {version:'6.2.0', date:'2026-08-16', headline:'🎯 Corregido el saldo que se descontaba dos veces o volvía atrás.', changes:[
-        {type:'fix', title:'Una operación podía descontarse dos veces del banco', desc:'El saldo se calcula desde un punto de partida más todo lo ocurrido después, y ese punto se fijaba usando la hora del reloj. El problema aparecía cuando había que fijarlo en medio de una operación: al habilitar una cuenta nueva y operar enseguida, o al recibir del servidor un documento que no traía ese dato. En esos casos el saldo que se tomaba como base YA tenía descontada la operación, porque el descuento se aplica antes de recalcular, pero como la marca de tiempo de esa operación quedaba después del punto de partida, se volvía a contar. El saldo bajaba el doble y cambiaba solo al llegar la siguiente actualización desde el servidor. Ahora el punto de partida se fija un instante después del último registro conocido, así que todo lo que ya está reflejado en el saldo queda excluido y lo nuevo se cuenta una sola vez.'},
-        {type:'fix', title:'Los registros sin marca propia se comparaban con tres horas de diferencia', desc:'Cuando un registro no tiene su propia marca de tiempo, se arma con su fecha y hora, que están en horario de Uruguay. Esa marca se comparaba directamente contra el punto de partida, que está en horario universal: tres horas de diferencia que podían dejar afuera registros que sí correspondía contar. Ahora se convierte antes de comparar.'},
-        {type:'improve', title:'Un solo criterio de fecha para todo', desc:'Ese criterio estaba escrito tres veces: en el cálculo del saldo, en el libro de movimientos y en la verificación. Tener tres copias fue lo que permitió que una quedara desalineada de las otras. Ahora es una sola función que usan las tres.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
