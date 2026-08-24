@@ -49,8 +49,15 @@ const V2_WRITE_TIMEOUT=45000;
 const V2_EPSILON=0.005;
 
 /* Entidad de la app ⇄ discriminador corto del documento */
-const V2_PREFIJO={operaciones:'op',movimientos:'mv',transferencias:'tr',conversiones:'cv'};
-const V2_ENTIDAD={op:'operaciones',mv:'movimientos',tr:'transferencias',cv:'conversiones'};
+/* ═══ v6.7.0 — Los ajustes de saldo pasan a tener documento propio ═══
+   Viajaban dentro del documento de estado, que se escribe COMPLETO y sin
+   fusionar: cuando el teléfono guardaba, pisaba los ajustes hechos en la
+   computadora, y viceversa. El último en sincronizar borraba los del otro, y
+   como el saldo se calcula sumándolos, cada aparato terminaba mostrando un
+   número distinto. Con un documento por ajuste —igual que las operaciones— dos
+   dispositivos pueden registrar ajustes a la vez sin pisarse. */
+const V2_PREFIJO={operaciones:'op',movimientos:'mv',transferencias:'tr',conversiones:'cv',ajustesSaldo:'aj'};
+const V2_ENTIDAD={op:'operaciones',mv:'movimientos',tr:'transferencias',cv:'conversiones',aj:'ajustesSaldo'};
 /* Entidades que viven en el documento de ESTADO (no generan doc por evento) */
 const V2_ENTIDADES_ESTADO=new Set(['bancos','config','tags','settings','lotes']);
 
@@ -99,7 +106,8 @@ function v2FromDoc(data){
    siguen viajando acá, igual que en v1. */
 function v2ExtraerEstado(datos,version){
     const d=datos||{};
-    const{operaciones,movimientos,transferencias,conversiones,lotes,saldoUsdt,...resto}=d;
+    /* v6.7.0 — ajustesSaldo sale del estado: ahora tiene documento por registro */
+    const{operaciones,movimientos,transferencias,conversiones,ajustesSaldo,lotes,saldoUsdt,...resto}=d;
     const estado={...resto};
     /* v5.0.1 — sin los de arrastre: su declaración va en _archivoCarryover, que
        viaja intacta dentro de `resto` */
@@ -125,7 +133,7 @@ function v2EnsamblarDatos(estado,eventosDocs){
     });
     /* Mismo orden que usa la app en pantalla: lo más reciente primero. El motor
        FIFO reordena por su cuenta al reproducir, así que esto no afecta cálculos. */
-    ['operaciones','movimientos','transferencias','conversiones'].forEach(e=>{
+    ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(e=>{
         datos[e].sort((a,b)=>{const ka=_v2Clave(a),kb=_v2Clave(b);return ka>kb?-1:ka<kb?1:0});
     });
     datos.lotes=Array.isArray(estado&&estado.lotesManuales)?estado.lotesManuales.map(l=>({...l})):[];
@@ -180,7 +188,7 @@ function v2VerificarEquivalencia(datosV1,datosV2){
         }finally{AppState.datos=original}
     };
     const a=replay(datosV1),b=replay(datosV2);
-    ['operaciones','movimientos','transferencias','conversiones'].forEach(e=>{
+    ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(e=>{
         const na=(datosV1[e]||[]).length,nb=(datosV2[e]||[]).length;
         if(na!==nb)diffs.push(e+': '+na+' → '+nb);
     });
@@ -272,7 +280,7 @@ async function migrarAV2(opts){
         /* ── 1. Armar todos los documentos ── */
         setPhase('Preparando documentos…');
         const pendientes=[];
-        ['operaciones','movimientos','transferencias','conversiones'].forEach(entidad=>{
+        ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(entidad=>{
             (datosV1[entidad]||[]).forEach(item=>{
                 const id=v2DocId(entidad,item.id);
                 const data=v2ToDoc(entidad,item);
@@ -285,7 +293,7 @@ async function migrarAV2(opts){
                acá y la persona quedaba atascada en "Formato anterior" para siempre. */
             const estadoVacio=v2ExtraerEstado(datosV1,(AppState._localVersion||datosV1._version||0)+1);
             estadoVacio.ultimaActualizacion=firebase.firestore.FieldValue.serverTimestamp();
-            ['operaciones','movimientos','transferencias','conversiones','lotes','saldoUsdt'].forEach(c=>{
+            ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo','lotes','saldoUsdt'].forEach(c=>{
                 estadoVacio[c]=firebase.firestore.FieldValue.delete();
             });
             await conTimeout(userRef.set(estadoVacio,{merge:true}),V2_WRITE_TIMEOUT,'documento de estado');
@@ -339,7 +347,7 @@ async function migrarAV2(opts){
         const estado=v2ExtraerEstado(datosV1,nuevaVersion);
         estado.ultimaActualizacion=firebase.firestore.FieldValue.serverTimestamp();
         /* Borrar explícitamente los arrays v1 del documento remoto */
-        ['operaciones','movimientos','transferencias','conversiones','lotes','saldoUsdt'].forEach(c=>{
+        ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo','lotes','saldoUsdt'].forEach(c=>{
             estado[c]=firebase.firestore.FieldValue.delete();
         });
         await conTimeout(userRef.set(estado,{merge:true}),V2_WRITE_TIMEOUT,'documento de estado');
@@ -504,9 +512,26 @@ function v2OnEstadoSnapshot(doc){
     const pendienteEstado=_syncQueue.some(a=>a&&(V2_ENTIDADES_ESTADO.has(a.entity)||!V2_PREFIJO[a.entity]));
     if(!AppState.datos)AppState.datos=(typeof crearDatosVacios==='function')?crearDatosVacios():{};
     if(serverV>=(AppState._localVersion||0)&&!doc.metadata.hasPendingWrites&&!pendienteEstado){
+        /* v6.6.0 — Al aceptar el estado del servidor se conserva el saldo de
+           apertura ya fijado en este dispositivo si el documento remoto no lo
+           trae. Sin esto, un documento escrito por una versión anterior lo
+           borraba y el dispositivo volvía a deducir uno distinto: de ahí que el
+           teléfono y la computadora mostraran números que no coincidían. */
+        const _aperturas={};
+        Object.keys(AppState.datos.bancos||{}).forEach(n=>{
+            const bk=AppState.datos.bancos[n];
+            if(bk&&isFinite(bk.saldoApertura))_aperturas[n]={v:bk.saldoApertura,ts:bk.saldoAperturaTs};
+        });
         Object.keys(d).forEach(k=>{
             if(k==='lotesManuales'||k==='ultimaActualizacion')return;
             AppState.datos[k]=d[k];
+        });
+        Object.keys(_aperturas).forEach(n=>{
+            const bk=AppState.datos.bancos&&AppState.datos.bancos[n];
+            if(bk&&!isFinite(bk.saldoApertura)){
+                bk.saldoApertura=_aperturas[n].v;
+                bk.saldoAperturaTs=_aperturas[n].ts;
+            }
         });
         /* Los lotes manuales/carryover no son derivables: vienen del estado.
            Los automáticos los regenera recalcularLotesYGanancias(). */
@@ -721,7 +746,7 @@ async function v2SubirTodo(opts){
         const snap=await _v2ConTimeout(evRef.get({source:'server'}),45000,'lectura de eventos');
         const remotos=new Set();snap.forEach(d=>remotos.add(d.id));
         const enMemoria=[];
-        ['operaciones','movimientos','transferencias','conversiones'].forEach(ent=>{
+        ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(ent=>{
             (AppState.datos[ent]||[]).forEach(it=>{
                 const id=v2DocId(ent,it.id),data=v2ToDoc(ent,it);
                 if(id&&data)enMemoria.push({id,data});
@@ -832,7 +857,7 @@ async function verificarIntegridad(opts){
         if(!estadoSnap.exists)problemas.push('El documento de estado no existe en el servidor.');
         const est=estadoSnap.data()||{};
         if(est._schema!==V2_SCHEMA)problemas.push('El documento de estado no está en el formato nuevo (_schema='+est._schema+').');
-        ['operaciones','movimientos','transferencias','conversiones','lotes','saldoUsdt'].forEach(c=>{
+        ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo','lotes','saldoUsdt'].forEach(c=>{
             if(est[c]!==undefined)problemas.push('Quedó un campo residual del formato viejo en el estado: '+c+'.');
         });
         const vRemota=est._version||0,vLocal=AppState._localVersion||0;

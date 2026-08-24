@@ -196,13 +196,27 @@ function recalcularSaldosBancos(){
         });
     });
 
+    /* ═══ v6.6.0 — La apertura se fija UNA vez y con todo cargado ═══
+       Se deducía restándole al saldo visible lo que los registros explican. Eso
+       la hacía dependiente del momento: si se deducía antes de que llegaran los
+       registros, o con un saldo que venía desactualizado del servidor, la
+       apertura absorbía ese error y el libro quedaba coherente pero terminaba en
+       un número equivocado. Peor: cada dispositivo deducía la suya desde lo que
+       tenía a mano, así que el teléfono y la computadora llegaban a aperturas
+       distintas y ganaba el último que sincronizaba.
+
+       Ahora se deduce solo cuando los datos están completos, se guarda con la
+       fecha en que se fijó, y no se vuelve a tocar nunca. Si falta con los datos
+       incompletos, se deja el saldo como está y se reintenta más tarde. */
+    const _completos=(typeof _v2EstadoOk==='undefined')||(_v2EstadoOk&&_v2EventosOk);
     Object.keys(AppState.datos.bancos).forEach(n=>{
         const bk=AppState.datos.bancos[n];
         if(!isFinite(bk.saldoApertura)){
-            /* Se deduce del saldo visible: así el número no cambia al adoptarlo */
+            if(!_completos)return;         /* todavía no: se reintenta al terminar de cargar */
             bk.saldoApertura=roundMoney((bk.saldo||0)-efectoTotal[n]);
-            /* El dato viejo ya no se usa; se limpia para que nadie lo lea por error */
+            bk.saldoAperturaTs=new Date().toISOString();
             delete bk.saldoBase;delete bk.saldoBaseTs;
+            console.warn('[P2P] Saldo de apertura fijado para '+n+': '+bk.saldoApertura);
         }
         bk.saldo=fixNeg(roundMoney(bk.saldoApertura+efectoTotal[n]));
     });
@@ -479,6 +493,18 @@ function reconciliarTodo(opts){
        Un saldo negativo o un lote con más disponible del que se compró siempre
        significan que algo se contó mal. Antes no se avisaba de ninguno. */
     const imposibles=[];
+    /* ═══ v6.6.0 — Cuentas sin apertura fijada ═══
+       Mientras una cuenta no tenga su saldo de apertura guardado, su saldo se
+       deduce de lo que hay en pantalla, y eso hace que dos dispositivos puedan
+       mostrar números distintos. Es la causa de que el teléfono y la computadora
+       no coincidan, así que conviene verlo antes que cualquier otra cosa. */
+    Object.keys(AppState.datos.bancos||{}).forEach(n=>{
+        const bk=AppState.datos.bancos[n];
+        if(!bk)return;
+        if(!isFinite(bk.saldoApertura)){
+            imposibles.push({que:n+': sin saldo de apertura fijado',valor:roundMoney(bk.saldo||0)});
+        }
+    });
     if(Math.abs(usdtSinCubrir)>0.05){
         imposibles.push({que:usdtSinCubrir>0
             ? 'USDT de más: ventas que no encontraron inventario'
@@ -546,6 +572,22 @@ function _pintarReconciliacion(inf){
         .reduce((a,k)=>a+((AppState.datos[k]||[]).length),0);
     h+='<div class="rec-linea"><span class="n">Registros considerados</span>'+
        '<span class="v">'+nEv+'</span></div>';
+    /* v6.7.0 — Detalle por tipo. Sirve para comparar dos dispositivos: si una
+       misma cuenta muestra saldos distintos, acá se ve enseguida si es porque a
+       uno le faltan registros o porque difiere el saldo de apertura. */
+    [['operaciones','Operaciones'],['movimientos','Ajustes externos'],
+     ['transferencias','Transferencias'],['conversiones','Conversiones'],
+     ['ajustesSaldo','Correcciones de saldo']].forEach(([k,et])=>{
+        const c=(AppState.datos[k]||[]).length;
+        if(c)h+='<div class="rec-linea"><span class="n" style="padding-left:12px;opacity:0.8">'+et+'</span>'+
+               '<span class="v" style="font-weight:600">'+c+'</span></div>';
+    });
+    Object.keys(AppState.datos.bancos||{}).forEach(n=>{
+        const bk=AppState.datos.bancos[n];
+        if(bk&&isFinite(bk.saldoApertura))
+            h+='<div class="rec-linea"><span class="n" style="padding-left:12px;opacity:0.8">Apertura '+escHtml(n)+'</span>'+
+               '<span class="v" style="font-weight:600">'+fmtNum(bk.saldoApertura,2)+'</span></div>';
+    });
 
     if(inf.duplicados.length){
         h+='<div class="rec-dups"><div class="rec-dups-t">Registros repetidos</div>'+

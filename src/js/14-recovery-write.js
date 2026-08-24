@@ -249,7 +249,11 @@ document.addEventListener('DOMContentLoaded',()=>{
             /* v6.1.0 — La corrección queda como asiento con su motivo. El saldo no se
                pisa: lo recalcula el motor sumando este ajuste a todo lo demás, así que
                las operaciones, las ganancias y las estadísticas quedan intactas. */
-            if(typeof registrarAjusteSaldo==='function')registrarAjusteSaldo(n,fixNeg(ns),$('motivoAjuste')?.value);
+            if(typeof registrarAjusteSaldo==='function'){
+                const _aj=registrarAjusteSaldo(n,fixNeg(ns),$('motivoAjuste')?.value);
+                /* v6.7.0 — El ajuste se sube como registro propio, no dentro del estado */
+                if(_aj&&typeof guardaOptimista==='function')guardaOptimista('create','ajustesSaldo',_aj.id);
+            }
             /* v5.8.0 — Fijar el saldo a mano establece un nuevo punto de partida:
                de acá en adelante el saldo correcto es este más los eventos que
                vengan después. */
