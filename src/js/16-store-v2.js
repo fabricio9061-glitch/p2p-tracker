@@ -124,7 +124,7 @@ function v2ExtraerEstado(datos,version){
 function _v2Clave(x){return String(x.fecha||'')+String(x.hora||'00:00')+String(x.id||'')}
 /* ─── Ensamblador: documento de estado + docs de eventos → AppState.datos ─── */
 function v2EnsamblarDatos(estado,eventosDocs){
-    const base=(typeof crearDatosVacios==='function')?crearDatosVacios():{operaciones:[],movimientos:[],transferencias:[],conversiones:[],bancos:{},lotes:[],tags:[]};
+    const base=(typeof crearDatosVacios==='function')?crearDatosVacios():{operaciones:[],movimientos:[],transferencias:[],conversiones:[],ajustesSaldo:[],bancos:{},lotes:[],tags:[]};
     const datos={...base,...(estado||{})};
     datos.operaciones=[];datos.movimientos=[];datos.transferencias=[];datos.conversiones=[];
     (eventosDocs||[]).forEach(raw=>{
@@ -600,7 +600,17 @@ function v2AttachEventos(){
             return;
         }
         _v2EsperandoServidor=false;
-        const nuevos={operaciones:[],movimientos:[],transferencias:[],conversiones:[]};
+        /* ═══ v6.8.2 — Faltaba ajustesSaldo ═══
+       Al convertir las correcciones de saldo en registros propios se actualizó
+       el camino de SUBIDA pero no el de BAJADA: esta lista define qué entidades
+       se reconstruyen desde el servidor, y la línea de abajo descarta todo lo
+       que no tenga su casilla acá. Las correcciones se subían bien y después se
+       tiraban al recibirlas, así que una hecha en la computadora nunca llegaba
+       al teléfono. Este objeto tiene que salir de la tabla de entidades y no
+       escribirse a mano, justamente para que no vuelva a quedar desactualizado
+       cuando se agregue otra. */
+    const nuevos={};
+    Object.values(V2_ENTIDAD).forEach(e=>{nuevos[e]=[]});
         snap.forEach(d=>{
             const r=v2FromDoc(d.data());
             if(r&&nuevos[r.entidad])nuevos[r.entidad].push(r.item);

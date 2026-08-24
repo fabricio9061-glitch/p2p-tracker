@@ -459,7 +459,7 @@ function reconciliarTodo(opts){
        Queda solo lo que sí es inequívoco: dos registros con el mismo
        identificador. Eso nunca puede ser correcto. */
     const duplicados=[];
-    ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{
+    ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(tipo=>{
         const vistos=new Set();
         (AppState.datos[tipo]||[]).forEach(ev=>{
             if(!ev)return;
@@ -568,7 +568,7 @@ function _pintarReconciliacion(inf){
        '<span class="v">'+fmtNum(inf.usdt.despues,2)+'</span></div>';
     h+='<div class="rec-linea"><span class="n">Cuentas</span>'+
        '<span class="v">'+Object.keys(AppState.datos.bancos||{}).length+'</span></div>';
-    const nEv=['operaciones','movimientos','transferencias','conversiones']
+    const nEv=['operaciones','movimientos','transferencias','conversiones','ajustesSaldo']
         .reduce((a,k)=>a+((AppState.datos[k]||[]).length),0);
     h+='<div class="rec-linea"><span class="n">Registros considerados</span>'+
        '<span class="v">'+nEv+'</span></div>';

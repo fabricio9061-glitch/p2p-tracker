@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '6.8.1',
+    APP_VERSION: '6.8.2',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'6.8.2', date:'2026-08-23', headline:'📬 Las correcciones de saldo por fin llegan al otro dispositivo.', changes:[
+        {type:'fix', title:'Se subían bien y se descartaban al recibirlas', desc:'Al convertir las correcciones de saldo en registros propios se actualizó el camino de subida pero no el de bajada. Una lista escrita a mano definía qué tipos de registro se reconstruyen con lo que llega del servidor, y las correcciones no estaban en ella: cada una que llegaba se descartaba sin dejar rastro. El resultado era desconcertante, porque la corrección se guardaba correctamente en la nube y simplemente nunca aparecía en el otro aparato, ni siquiera recargando o borrando la caché. Esa lista ahora se arma sola a partir de la tabla de tipos de registro, así que agregar uno nuevo no puede volver a dejarla desactualizada.'},
+        {type:'fix', title:'Las correcciones faltaban en el estado inicial', desc:'Después de un reseteo o de restaurar un respaldo, la lista de correcciones quedaba sin declarar y la aplicación tenía que crearla sobre la marcha. Ahora forma parte del estado inicial, como el resto.'}
+    ]},
     {version:'6.8.1', date:'2026-08-23', headline:'🔨 Ahora sí: la subida forzada no se puede ignorar.', changes:[
         {type:'fix', title:'El otro dispositivo descartaba la subida en silencio', desc:'Cada dispositivo lleva su propio contador de guardados, y al recibir datos de la nube solo los acepta si ese número es mayor o igual al suyo. El que guardó más veces tiene el número más alto, así que descartaba lo que mandaba el otro sin ningún aviso: ganaba el que había usado más la aplicación, no el que tenía los datos correctos. Por eso apretar el botón en el teléfono no cambiaba nada en la computadora. Ahora la subida forzada hace dos cosas: lee primero el número que hay en la nube y escribe uno mayor que todos, y además marca el documento como impuesto, de modo que quien lo reciba lo acepta aunque su propio contador esté más alto. El guardado normal sigue funcionando igual que siempre.'}
     ]},
@@ -383,10 +387,6 @@ const CHANGELOG = [
     {version:'6.7.0', date:'2026-08-23', headline:'🔀 Las correcciones de saldo dejan de pisarse entre dispositivos.', changes:[
         {type:'fix', title:'Un dispositivo borraba las correcciones hechas en el otro', desc:'Las correcciones manuales de saldo viajaban dentro del documento general de configuración, que se guarda completo y sin fusionar. Cada vez que un dispositivo guardaba, ese documento reemplazaba al anterior por entero, así que las correcciones registradas en el otro desaparecían. Como el saldo se calcula sumándolas, cada aparato terminaba mostrando un número distinto para la misma cuenta, y el libro de movimientos de cada uno era coherente consigo mismo aunque no coincidieran entre sí. Ahora cada corrección tiene su propio registro, igual que las operaciones y las transferencias, así que dos dispositivos pueden registrar correcciones a la vez sin borrarse mutuamente.'},
         {type:'new', title:'La verificación permite comparar dos dispositivos', desc:'La pantalla de verificación ahora desglosa cuántos registros hay de cada tipo —operaciones, ajustes externos, transferencias, conversiones y correcciones de saldo— y muestra el saldo de apertura de cada cuenta. Abriéndola en dos aparatos se ve enseguida dónde está la diferencia: si a uno le faltan registros o si difieren las aperturas.'}
-    ]},
-    {version:'6.6.0', date:'2026-08-23', headline:'🔗 El teléfono y la computadora vuelven a mostrar lo mismo.', changes:[
-        {type:'fix', title:'Cada dispositivo calculaba un saldo distinto', desc:'El saldo de una cuenta es su saldo de apertura más el efecto de todos los registros, y esa apertura se deducía restándole al saldo visible lo que los registros explican. El problema es que eso depende del momento en que se hace: si se deducía antes de que terminaran de llegar los registros, o partiendo de un saldo que venía desactualizado del servidor, la apertura absorbía ese error. El libro quedaba perfectamente coherente pero terminaba en un número equivocado, y en vez de detectar el problema se adaptaba a él. Peor todavía: cada dispositivo deducía la suya con lo que tenía a mano, así que el teléfono y la computadora llegaban a aperturas diferentes y ganaba el último que sincronizara. Ahora la apertura se fija una sola vez, únicamente cuando todos los registros terminaron de cargar, se guarda con la fecha en que se fijó y no se vuelve a tocar. Si un documento del servidor llega sin ella, se conserva la que ya estaba en lugar de deducir otra.'},
-        {type:'new', title:'La verificación avisa si falta fijar una apertura', desc:'Mientras una cuenta no tenga su saldo de apertura guardado, su saldo depende de lo que haya en pantalla y dos dispositivos pueden discrepar. Ahora eso aparece listado en la pantalla de verificación, que es lo primero que conviene mirar cuando dos aparatos no coinciden.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
