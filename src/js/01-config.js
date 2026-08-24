@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '6.8.0',
+    APP_VERSION: '6.8.1',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,9 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'6.8.1', date:'2026-08-23', headline:'🔨 Ahora sí: la subida forzada no se puede ignorar.', changes:[
+        {type:'fix', title:'El otro dispositivo descartaba la subida en silencio', desc:'Cada dispositivo lleva su propio contador de guardados, y al recibir datos de la nube solo los acepta si ese número es mayor o igual al suyo. El que guardó más veces tiene el número más alto, así que descartaba lo que mandaba el otro sin ningún aviso: ganaba el que había usado más la aplicación, no el que tenía los datos correctos. Por eso apretar el botón en el teléfono no cambiaba nada en la computadora. Ahora la subida forzada hace dos cosas: lee primero el número que hay en la nube y escribe uno mayor que todos, y además marca el documento como impuesto, de modo que quien lo reciba lo acepta aunque su propio contador esté más alto. El guardado normal sigue funcionando igual que siempre.'}
+    ]},
     {version:'6.8.0', date:'2026-08-23', headline:'📲 Podés decidir qué dispositivo tiene los datos correctos.', changes:[
         {type:'new', title:'Imponer los datos de este dispositivo', desc:'Cuando el teléfono y la computadora muestran saldos distintos hay que poder decidir cuál tiene razón, y hasta ahora no había forma de hacerlo desde la aplicación. En la pantalla de verificación hay un botón que sube todo lo de este dispositivo y reemplaza lo guardado en la nube; el otro queda alineado al recargar. Antes de hacer nada muestra los saldos que va a imponer, el USDT y cuántos registros hay de cada tipo, para poder comprobar que es el dispositivo correcto. Está marcado en ámbar y aclara que solo debe usarse cuando otro aparato muestra saldos equivocados.'}
     ]},
@@ -384,11 +387,6 @@ const CHANGELOG = [
     {version:'6.6.0', date:'2026-08-23', headline:'🔗 El teléfono y la computadora vuelven a mostrar lo mismo.', changes:[
         {type:'fix', title:'Cada dispositivo calculaba un saldo distinto', desc:'El saldo de una cuenta es su saldo de apertura más el efecto de todos los registros, y esa apertura se deducía restándole al saldo visible lo que los registros explican. El problema es que eso depende del momento en que se hace: si se deducía antes de que terminaran de llegar los registros, o partiendo de un saldo que venía desactualizado del servidor, la apertura absorbía ese error. El libro quedaba perfectamente coherente pero terminaba en un número equivocado, y en vez de detectar el problema se adaptaba a él. Peor todavía: cada dispositivo deducía la suya con lo que tenía a mano, así que el teléfono y la computadora llegaban a aperturas diferentes y ganaba el último que sincronizara. Ahora la apertura se fija una sola vez, únicamente cuando todos los registros terminaron de cargar, se guarda con la fecha en que se fijó y no se vuelve a tocar. Si un documento del servidor llega sin ella, se conserva la que ya estaba en lugar de deducir otra.'},
         {type:'new', title:'La verificación avisa si falta fijar una apertura', desc:'Mientras una cuenta no tenga su saldo de apertura guardado, su saldo depende de lo que haya en pantalla y dos dispositivos pueden discrepar. Ahora eso aparece listado en la pantalla de verificación, que es lo primero que conviene mirar cuando dos aparatos no coinciden.'}
-    ]},
-    {version:'6.5.0', date:'2026-08-23', headline:'📗 El USDT ahora tiene su libro, y se detecta el inventario inflado.', changes:[
-        {type:'new', title:'Libro de movimientos del USDT', desc:'La billetera tiene ahora el mismo historial que las cuentas bancarias: cada compra que sumó, cada venta que restó y cada ajuste, con el inventario que quedó después de cada uno. Se abre desde la pantalla de lotes. Igual que en las cuentas, se arma leyendo los mismos registros de los que sale el inventario, así que no puede quedar desincronizado.'},
-        {type:'fix', title:'Borrar una compra vieja inflaba el USDT sin avisar', desc:'Los lotes se reconstruyen reproduciendo las operaciones en orden. Cuando una venta se reproduce y en ese momento no hay lotes suficientes, el motor consume lo que hay y descarta el resto en silencio. Eso pasa justo al borrar una compra antigua que ventas posteriores ya habían consumido: esas ventas se quedan sin de dónde restar, y el inventario sube en lugar de bajar. Era completamente invisible. Ahora la verificación compara el inventario real contra lo que dicen las operaciones y avisa cuánto sobra, con el detalle. El motor sigue comportándose igual, pero ya no lo hace a escondidas.'},
-        {type:'improve', title:'Los lotes muestran su fecha', desc:'El orden siempre fue por fecha de compra, pero sin verla no había forma de comprobarlo. Además, las compras a la misma tasa se fusionan en un solo lote que conserva la fecha de la primera, así que un lote grande puede ser más antiguo de lo que aparenta: mostrando la fecha eso queda explicado.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

@@ -511,7 +511,14 @@ function v2OnEstadoSnapshot(doc){
        Mismo criterio que usaba mergeRemoteState en v1. */
     const pendienteEstado=_syncQueue.some(a=>a&&(V2_ENTIDADES_ESTADO.has(a.entity)||!V2_PREFIJO[a.entity]));
     if(!AppState.datos)AppState.datos=(typeof crearDatosVacios==='function')?crearDatosVacios():{};
-    if(serverV>=(AppState._localVersion||0)&&!doc.metadata.hasPendingWrites&&!pendienteEstado){
+    /* ═══ v6.8.1 — Una subida forzada no se puede ignorar ═══
+       Cuando otro dispositivo declara tener los datos correctos, su documento
+       viene marcado. Se acepta aunque su número de versión sea menor: ese
+       contador sirve para ordenar guardados normales, no para decidir qué
+       aparato tiene razón, y usarlo para eso era lo que hacía que la
+       computadora descartara en silencio lo que mandaba el teléfono. */
+    const _impuesto=!!(d&&d._impuestoPor&&d._impuestoPor!==_v2DispositivoId());
+    if((_impuesto||serverV>=(AppState._localVersion||0))&&!doc.metadata.hasPendingWrites&&!pendienteEstado){
         /* v6.6.0 — Al aceptar el estado del servidor se conserva el saldo de
            apertura ya fijado en este dispositivo si el documento remoto no lo
            trae. Sin esto, un documento escrito por una versión anterior lo
@@ -730,6 +737,17 @@ async function v2Guardar(forzar){
    Esta función hace que la subcolección coincida exactamente con la memoria:
    escribe todos los eventos y BORRA los que ya no existen (si el respaldo es
    anterior, las operaciones posteriores tienen que desaparecer del servidor). */
+/* Identificador estable de este dispositivo, para no aplicarse a sí mismo la
+   marca de subida forzada. */
+function _v2DispositivoId(){
+    try{
+        let id=localStorage.getItem('p2p_dispositivo_id');
+        if(!id){id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+                localStorage.setItem('p2p_dispositivo_id',id)}
+        return id;
+    }catch(e){return 'd0'}
+}
+
 async function v2SubirTodo(opts){
     opts=opts||{};
     const ui=window._recoveryUI||{};
@@ -774,8 +792,29 @@ async function v2SubirTodo(opts){
             await commitLote(b=>trozo.forEach(id=>b.delete(evRef.doc(id))),'borrado de eventos');
         }
         setPhase('Guardando estado…');
-        const nueva=(AppState._localVersion||0)+1;
+        /* ═══ v6.8.1 — La subida completa tiene que ganarle a cualquier versión ═══
+           Se escribía la versión propia más uno. Pero el dispositivo que recibe
+           solo acepta un documento cuyo número sea mayor o igual al suyo, y cada
+           aparato lleva su propio contador: el que guardó más veces tiene el
+           número más alto y descarta lo que manda el otro, sin avisar. Por eso
+           apretar "este dispositivo tiene los datos correctos" en el teléfono no
+           cambiaba nada en la computadora. Ahora se lee primero la versión que
+           hay en el servidor y se escribe una mayor que todas, para que ningún
+           dispositivo pueda ignorarla. */
+        let _vServidor=0;
+        try{
+            const _snap=await _v2UserRef().get();
+            if(_snap&&_snap.exists){
+                const _d=_snap.data()||{};
+                if(isFinite(_d._version))_vServidor=Number(_d._version);
+            }
+        }catch(e){console.warn('[P2P] No se pudo leer la versión del servidor:',e&&e.message)}
+        const nueva=Math.max(AppState._localVersion||0,_vServidor)+1;
+        AppState._localVersion=nueva;
         const estado=v2ExtraerEstado(AppState.datos,nueva);
+        /* Marca de subida forzada: quien la reciba la acepta sin mirar la versión */
+        estado._impuestoPor=_v2DispositivoId();
+        estado._impuestoTs=new Date().toISOString();
         estado.ultimaActualizacion=firebase.firestore.FieldValue.serverTimestamp();
         await _v2ConTimeout(_v2UserRef().set(estado),V2_WRITE_TIMEOUT,'documento de estado');
         AppState._localVersion=nueva;AppState.datos._version=nueva;
