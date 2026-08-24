@@ -209,6 +209,18 @@ function recalcularSaldosBancos(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   EFECTO DE CADA REGISTRO SOBRE EL USDT (v6.5.0)
+   El equivalente de efectoEnBancos pero para la billetera, para poder armar su
+   libro leyendo los mismos registros de los que ya sale el inventario.       */
+function efectoEnUsdt(tipo,ev){
+    if(!ev)return 0;
+    if(tipo==='operaciones')return ev.tipo==='compra'?truncUsdt(ev.usdt||0):-truncUsdt(ev.usdt||0);
+    if(tipo==='movimientos'&&ev.tipoCuenta==='usdt')
+        return ev.tipoMovimiento==='ingreso'?truncUsdt(ev.monto||0):-truncUsdt(ev.monto||0);
+    return 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    LIBRO DE MOVIMIENTOS POR CUENTA (v6.1.0)
    ═══════════════════════════════════════════════════════════════════════════
    No hace falta guardar un libro aparte: los asientos ya están: cada operación,
@@ -219,6 +231,7 @@ function recalcularSaldosBancos(){
    Cada línea trae el saldo antes, la variación y el saldo después, para poder
    seguir la cuenta paso a paso hasta el número que muestra la tarjeta.        */
 function historialCuenta(nombre,limite){
+    if(nombre==='USDT')return _historialUsdt(limite);   /* v6.5.0 */
     const bk=AppState.datos&&AppState.datos.bancos&&AppState.datos.bancos[nombre];
     if(!bk)return[];
     const marca=_marcaEvento;
@@ -255,6 +268,29 @@ function historialCuenta(nombre,limite){
     return limite>0?todo.slice(0,limite):todo;
 }
 
+/* Libro de la billetera. Su apertura son los lotes declarados a mano y los de
+   arrastre: lo que existe sin venir de una operación. */
+function _historialUsdt(limite){
+    const d=AppState.datos||{};
+    const apertura=truncUsdt((d.lotes||[]).filter(l=>l&&l.manual).reduce((a,l)=>a+(l.cantidad||0),0));
+    const lineas=[];
+    ['operaciones','movimientos'].forEach(tipo=>{
+        (d[tipo]||[]).forEach(ev=>{
+            if(!ev)return;
+            const v=efectoEnUsdt(tipo,ev);
+            if(!v||Math.abs(v)<0.005)return;
+            lineas.push({ts:_marcaEvento(ev),tipo,id:ev.id,variacion:v,ev,
+                         clase:_claseMovimiento(tipo,ev,v)});
+        });
+    });
+    lineas.sort((a,b)=>a.ts<b.ts?-1:a.ts>b.ts?1:0);
+    let corriente=apertura;
+    const base={ts:'',tipo:'inicial',clase:'inicial',variacion:0,anterior:corriente,resultante:corriente};
+    lineas.forEach(l=>{l.anterior=corriente;corriente=truncUsdt(corriente+l.variacion);l.resultante=corriente});
+    const todo=[base,...lineas];todo.reverse();
+    return limite>0?todo.slice(0,limite):todo;
+}
+
 /* Etiqueta legible de cada asiento */
 function _claseMovimiento(tipo,ev,v){
     if(tipo==='ajustesSaldo')return'ajuste';
@@ -281,9 +317,12 @@ function abrirMovimientosCuenta(nombre){
 function _pintarMovimientosCuenta(){
     const nombre=_movsCuentaActual;
     const cont=$('movsCuentaBody');if(!cont||!nombre)return;
-    const bk=AppState.datos.bancos[nombre];if(!bk)return;
+    /* v6.5.0 — La billetera se dibuja con la misma pantalla que las cuentas */
+    const esUsdt=nombre==='USDT';
+    const bk=esUsdt?{saldo:AppState.datos.saldoUsdt||0}:AppState.datos.bancos[nombre];
+    if(!bk)return;
     const hd=$('movsCuentaHeader');
-    if(hd)hd.innerHTML=escHtml(nombre);
+    if(hd)hd.innerHTML=escHtml(esUsdt?'Movimientos de USDT':nombre);
     /* ═══ v6.3.1 — El listado completo se limita al último mes ═══
        Con miles de movimientos, mostrarlos todos no sirve para nada: no se puede
        recorrer con el dedo y el teléfono tarda en dibujarlos. El último mes es
@@ -296,11 +335,12 @@ function _pintarMovimientosCuenta(){
     const TOPE=120;
     const recortado=_movsCuentaTodo&&delMes.length>TOPE;
     const lista=_movsCuentaTodo?delMes.slice(0,TOPE):todas.slice(0,5);
-    const sym=getSym(getBancoInfo(nombre)&&getBancoInfo(nombre).moneda);
-    const dinero=v=>sym+fmtNum(Math.abs(v),2);
+    const sym=esUsdt?'':(getSym(getBancoInfo(nombre)&&getBancoInfo(nombre).moneda));
+    const suf=esUsdt?' USDT':'';
+    const dinero=v=>sym+fmtNum(Math.abs(v),2)+suf;
 
-    let h='<div class="movc-saldo"><div class="l">Saldo actual</div>'+
-          '<div class="v">'+sym+fmtNum(bk.saldo||0,2)+'</div></div>';
+    let h='<div class="movc-saldo"><div class="l">'+(esUsdt?'Inventario actual':'Saldo actual')+'</div>'+
+          '<div class="v">'+sym+fmtNum(bk.saldo||0,2)+suf+'</div></div>';
 
     if(!todas.length){
         h+='<div class="movc-nota">Sin movimientos registrados en esta cuenta.</div>';
@@ -320,14 +360,16 @@ function _pintarMovimientosCuenta(){
                '<div class="m">'+escHtml(cuando)+'</div></div>'+
                '<div class="movc-d">'+
                (esInicial?'':'<div class="v '+(entra?'entra':'sale')+'">'+(entra?'+':'-')+dinero(l.variacion)+'</div>')+
-               '<div class="s">'+sym+fmtNum(l.resultante,2)+'</div></div></div>';
+               '<div class="s">'+sym+fmtNum(l.resultante,2)+suf+'</div></div></div>';
         });
         h+='</div>';
         if(!_movsCuentaTodo&&todas.length>5){
             h+='<button class="movc-mas" data-action="movs-cuenta-todo">'+
                (delMes.length?'Ver el último mes ('+delMes.length+')':'Ver más')+'</button>';
         }
-        h+='<div class="movc-nota">Cada línea muestra la variación y el saldo que quedó. '+
+        h+='<div class="movc-nota">'+(esUsdt
+             ? 'Cada línea muestra cuánto entró o salió y el inventario que quedó. Las compras suman, las ventas restan. '
+             : 'Cada línea muestra la variación y el saldo que quedó. ')+
            (_movsCuentaTodo
              ? (recortado
                  ? 'Se muestran los '+TOPE+' más recientes de los '+delMes.length+' del último mes. '
@@ -335,7 +377,7 @@ function _pintarMovimientosCuenta(){
                'Lo anterior está en la lista de operaciones y en el historial archivado.'
              : 'El saldo actual es el resultado de sumarlas todas desde el saldo inicial.')+'</div>';
     }
-    h+='<button class="movc-mas" data-action="corregir-saldo">Corregir saldo o límites</button>';
+    if(!esUsdt)h+='<button class="movc-mas" data-action="corregir-saldo">Corregir saldo o límites</button>';
     cont.innerHTML=h;
 }
 window.abrirMovimientosCuenta=abrirMovimientosCuenta;
@@ -413,10 +455,36 @@ function reconciliarTodo(opts){
         });
     });
 
+    /* ═══ v6.5.0 — Ventas que no encontraron inventario ═══
+       Cuando una venta se reproduce y no hay lotes suficientes en ese momento,
+       el motor consume lo que hay y descarta el resto sin decir nada. Pasa al
+       borrar una compra vieja que ventas posteriores ya habían consumido: esas
+       ventas quedan sin de dónde restar y el USDT sube en vez de bajar. Era
+       completamente invisible; ahora se informa cuánto se perdió. */
+    let usdtSinCubrir=0;
+    {
+        const compras=(AppState.datos.operaciones||[]).filter(o=>o&&o.tipo==='compra')
+            .reduce((a,o)=>a+truncUsdt(o.usdt||0),0);
+        const ventas=(AppState.datos.operaciones||[]).filter(o=>o&&o.tipo==='venta')
+            .reduce((a,o)=>a+truncUsdt(o.usdt||0),0);
+        const manuales=(AppState.datos.lotes||[]).filter(l=>l&&l.manual)
+            .reduce((a,l)=>a+(l.cantidad||0),0);
+        const ajustes=(AppState.datos.movimientos||[]).filter(m=>m&&m.tipoCuenta==='usdt')
+            .reduce((a,m)=>a+(m.tipoMovimiento==='ingreso'?truncUsdt(m.monto||0):-truncUsdt(m.monto||0)),0);
+        const teorico=truncUsdt(manuales+compras-ventas+ajustes);
+        usdtSinCubrir=truncUsdt((AppState.datos.saldoUsdt||0)-teorico);
+    }
+
     /* ═══ 4 ── Estados que no pueden darse ═══
        Un saldo negativo o un lote con más disponible del que se compró siempre
        significan que algo se contó mal. Antes no se avisaba de ninguno. */
     const imposibles=[];
+    if(Math.abs(usdtSinCubrir)>0.05){
+        imposibles.push({que:usdtSinCubrir>0
+            ? 'USDT de más: ventas que no encontraron inventario'
+            : 'USDT de menos que lo que indican las operaciones',
+            valor:Math.abs(usdtSinCubrir)});
+    }
     Object.keys(AppState.datos.bancos||{}).forEach(n=>{
         const v=roundMoney(AppState.datos.bancos[n].saldo||0);
         if(v<-0.005)imposibles.push({que:'Saldo negativo en '+n,valor:v});

@@ -394,6 +394,10 @@ actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppSta
         }
         /* v6.1.0 — Tocar una cuenta muestra sus movimientos. El saldo se corrige
            desde ahí, para no editar a ciegas sin ver de dónde sale el número. */
+        else if(a==='movs-usdt'){
+            cerrarModal('modalInventario');
+            if(typeof abrirMovimientosCuenta==='function')setTimeout(()=>abrirMovimientosCuenta('USDT'),120);
+        }
         else if(a==='movs-cuenta-todo'){_movsCuentaTodo=true;_pintarMovimientosCuenta()}
         else if(a==='cerrar-movs-cuenta')cerrarModal('modalMovsCuenta');
         else if(a==='corregir-saldo'){cerrarModal('modalMovsCuenta');setTimeout(()=>_abrirEditarSaldo(_movsCuentaActual),120)}

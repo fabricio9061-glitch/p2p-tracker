@@ -17,12 +17,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <link rel="stylesheet" href="src/css/00-tokens.css?v=6.4.1">
-    <link rel="stylesheet" href="src/css/01-base.css?v=6.4.1">
-    <link rel="stylesheet" href="src/css/02-components.css?v=6.4.1">
-    <link rel="stylesheet" href="src/css/03-modals.css?v=6.4.1">
-    <link rel="stylesheet" href="src/css/04-views.css?v=6.4.1">
-    <link rel="stylesheet" href="src/css/05-overrides.css?v=6.4.1">
+    <link rel="stylesheet" href="src/css/00-tokens.css?v=6.5.0">
+    <link rel="stylesheet" href="src/css/01-base.css?v=6.5.0">
+    <link rel="stylesheet" href="src/css/02-components.css?v=6.5.0">
+    <link rel="stylesheet" href="src/css/03-modals.css?v=6.5.0">
+    <link rel="stylesheet" href="src/css/04-views.css?v=6.5.0">
+    <link rel="stylesheet" href="src/css/05-overrides.css?v=6.5.0">
 </head>
 <body>
     <!-- ═══ OVERLAYS ═══ -->
@@ -328,6 +328,8 @@
     </div></div>
 
     <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/></svg> Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><!-- v5.8.1 — Verificación al alcance, sin consola -->
+            <!-- v6.5.0 — La billetera también tiene su libro de movimientos -->
+            <button class="inv-verificar" data-action="movs-usdt" type="button"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg> Ver movimientos</button>
             <button class="inv-verificar" data-action="reconciliar" type="button"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> Verificar y reconciliar</button>
             <div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
     <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
@@ -413,21 +415,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <script src="src/js/01-config.js?v=6.4.1"></script>
-    <script src="src/js/02-state.js?v=6.4.1"></script>
-    <script src="src/js/03-news-changelog.js?v=6.4.1"></script>
-    <script src="src/js/04-utils-filtros.js?v=6.4.1"></script>
-    <script src="src/js/05-integridad.js?v=6.4.1"></script>
-    <script src="src/js/06-paginacion-bancos-fifo.js?v=6.4.1"></script>
-    <script src="src/js/07-firebase-sync.js?v=6.4.1"></script>
-    <script src="src/js/08-backup-recovery-sdk.js?v=6.4.1"></script>
-    <script src="src/js/09-form-split.js?v=6.4.1"></script>
-    <script src="src/js/10-mov-transf-calendario.js?v=6.4.1"></script>
-    <script src="src/js/11-paginaciones-dashboard.js?v=6.4.1"></script>
-    <script src="src/js/12-lotes-reset-importexport.js?v=6.4.1"></script>
-    <script src="src/js/13-eventos.js?v=6.4.1"></script>
-    <script src="src/js/14-recovery-write.js?v=6.4.1"></script>
-    <script src="src/js/15-archivo.js?v=6.4.1"></script>
-    <script src="src/js/16-store-v2.js?v=6.4.1"></script>
+    <script src="src/js/01-config.js?v=6.5.0"></script>
+    <script src="src/js/02-state.js?v=6.5.0"></script>
+    <script src="src/js/03-news-changelog.js?v=6.5.0"></script>
+    <script src="src/js/04-utils-filtros.js?v=6.5.0"></script>
+    <script src="src/js/05-integridad.js?v=6.5.0"></script>
+    <script src="src/js/06-paginacion-bancos-fifo.js?v=6.5.0"></script>
+    <script src="src/js/07-firebase-sync.js?v=6.5.0"></script>
+    <script src="src/js/08-backup-recovery-sdk.js?v=6.5.0"></script>
+    <script src="src/js/09-form-split.js?v=6.5.0"></script>
+    <script src="src/js/10-mov-transf-calendario.js?v=6.5.0"></script>
+    <script src="src/js/11-paginaciones-dashboard.js?v=6.5.0"></script>
+    <script src="src/js/12-lotes-reset-importexport.js?v=6.5.0"></script>
+    <script src="src/js/13-eventos.js?v=6.5.0"></script>
+    <script src="src/js/14-recovery-write.js?v=6.5.0"></script>
+    <script src="src/js/15-archivo.js?v=6.5.0"></script>
+    <script src="src/js/16-store-v2.js?v=6.5.0"></script>
 </body>
 </html>

@@ -1,3 +1,15 @@
+/* v6.5.0 — La fecha de cada lote, que faltaba. El orden siempre fue por fecha
+   de compra, pero sin verla no había forma de comprobarlo. Las compras a la
+   misma tasa se fusionan en un lote y este conserva la fecha de la primera,
+   así que un lote grande puede ser más viejo de lo que parece: mostrarla lo
+   explica. */
+function _fechaLote(l){
+    const f=String(l&&l.fecha||'');
+    if(!f)return '';
+    const p=f.split('-');
+    return p.length===3?`${p[2]}/${p[1]}`:f;
+}
+
 function renderizarInventario(){
     const la=getLotesActivosFIFO();
     if(!la.length){setHtml('inventarioContent','<div style="text-align:center;padding:30px;color:#94a3b8"><div style="margin-bottom:8px"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></div><div>Sin USDT en inventario</div></div>');return}
@@ -10,7 +22,8 @@ function renderizarInventario(){
                     <span style="font-size:0.88em;font-weight:700;color:#2563eb">${fmtTrunc(l.disponible,2)} USDT</span>
                     <span style="font-size:0.7em;color:#94a3b8;font-weight:500">#${i+1}${tag}</span>
                 </div>
-                <div style="display:flex;gap:10px;margin-top:3px;font-size:0.72em;color:#64748b">
+                <div style="display:flex;gap:10px;margin-top:3px;font-size:0.72em;color:#64748b;flex-wrap:wrap">
+                    <span>${_fechaLote(l)}</span>
                     <span>Precio: <b style="color:#475569">${fmtTasaMon(l.precioCompra,mon)}</b></span>
                     <span>Valor: <b style="color:#475569">${sy}${fmtNum(v,2)}</b></span>
                 </div>

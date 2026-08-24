@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '6.4.1',
+    APP_VERSION: '6.5.0',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,11 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'6.5.0', date:'2026-08-23', headline:'📗 El USDT ahora tiene su libro, y se detecta el inventario inflado.', changes:[
+        {type:'new', title:'Libro de movimientos del USDT', desc:'La billetera tiene ahora el mismo historial que las cuentas bancarias: cada compra que sumó, cada venta que restó y cada ajuste, con el inventario que quedó después de cada uno. Se abre desde la pantalla de lotes. Igual que en las cuentas, se arma leyendo los mismos registros de los que sale el inventario, así que no puede quedar desincronizado.'},
+        {type:'fix', title:'Borrar una compra vieja inflaba el USDT sin avisar', desc:'Los lotes se reconstruyen reproduciendo las operaciones en orden. Cuando una venta se reproduce y en ese momento no hay lotes suficientes, el motor consume lo que hay y descarta el resto en silencio. Eso pasa justo al borrar una compra antigua que ventas posteriores ya habían consumido: esas ventas se quedan sin de dónde restar, y el inventario sube en lugar de bajar. Era completamente invisible. Ahora la verificación compara el inventario real contra lo que dicen las operaciones y avisa cuánto sobra, con el detalle. El motor sigue comportándose igual, pero ya no lo hace a escondidas.'},
+        {type:'improve', title:'Los lotes muestran su fecha', desc:'El orden siempre fue por fecha de compra, pero sin verla no había forma de comprobarlo. Además, las compras a la misma tasa se fusionan en un solo lote que conserva la fecha de la primera, así que un lote grande puede ser más antiguo de lo que aparenta: mostrando la fecha eso queda explicado.'}
+    ]},
     {version:'6.4.1', date:'2026-08-23', headline:'🚦 El límite diario se valida por lo que aporta cada cuenta.', changes:[
         {type:'fix', title:'Rechazaba compras divididas que sí entraban en los cupos', desc:'La versión anterior corrigió cómo se descuenta el cupo, pero la validación previa seguía comparando el monto TOTAL contra el cupo de la cuenta principal. Con una compra grande repartida entre dos cuentas, la app la rechazaba diciendo que faltaba cupo cuando en realidad a cada una le sobraba: a ninguna se le estaba pidiendo el total. Ahora cada aporte se compara contra el cupo de su propia cuenta, y si alguna se pasa el aviso dice cuál es, cuánto aporta, cuánto requiere y cuánto tiene disponible.'},
         {type:'fix', title:'El resumen mostraba un saldo negativo imposible', desc:'Al pie del formulario, el saldo resultante de la cuenta principal se calculaba restándole la compra entera, aunque el pago estuviera dividido. Mostraba a esa cuenta quedando en rojo por una plata que en realidad ponía otra. Ahora se le resta solo lo que aporta.'}
@@ -384,10 +389,6 @@ const CHANGELOG = [
     ]},
     {version:'6.3.1', date:'2026-08-20', headline:'📅 El libro de la cuenta muestra el último mes, no todo el historial.', changes:[
         {type:'improve', title:'Ya no ofrece abrir miles de movimientos de una vez', desc:'El botón proponía ver el historial completo, que en una cuenta con uso intenso son miles de líneas: no se puede recorrer con el dedo y el teléfono tarda en dibujarlas. Ahora despliega el último mes, que es lo que se consulta de verdad, y dice cuántos son antes de abrir. Si ese mes tuviera muchísimo movimiento, muestra los ciento veinte más recientes y lo aclara. Lo anterior sigue disponible en la lista de operaciones y en el historial archivado. El saldo se sigue calculando con todos los registros sin excepción: el recorte es solo de lo que se muestra.'}
-    ]},
-    {version:'6.3.0', date:'2026-08-16', headline:'⏱️ Se quitaron las fechas del cálculo de saldos.', changes:[
-        {type:'fix', title:'El saldo volvía al valor anterior', desc:'Las últimas versiones guardaban un punto de partida junto con la hora en que se había fijado, y sumaban solo lo posterior a esa hora. De ahí salieron tres fallas seguidas: una operación cargada en el mismo instante quedaba afuera por empate, las horas locales se comparaban contra horas universales con tres horas de diferencia, y el punto de partida fijado en medio de una operación la contaba dos veces. Todas eran la misma raíz: depender de una hora invisible para decidir qué se cuenta. Ahora no hay corte. Cada cuenta tiene un saldo de apertura y el saldo actual es ese valor más el efecto de TODOS los registros, sin importar cuándo ocurrieron ni qué reloj tenga cada dispositivo. Cada registro se cuenta exactamente una vez. Para las cuentas en uso el saldo de apertura se deduce del saldo que ya se muestra, así que al actualizar ningún número cambia.'},
-        {type:'fix', title:'Archivar habría movido todos los saldos', desc:'Al archivar, las operaciones viejas salen del listado. Como el saldo pasó a sumar todos los registros, sacarlas habría hecho saltar los saldos de golpe. Ahora su efecto se traslada al saldo de apertura de cada cuenta, que es exactamente para lo que existe: representar todo lo anterior a lo que sigue listado. El saldo visible no se mueve.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
