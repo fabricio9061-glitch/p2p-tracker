@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '6.7.0',
+    APP_VERSION: '6.8.0',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,9 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'6.8.0', date:'2026-08-23', headline:'📲 Podés decidir qué dispositivo tiene los datos correctos.', changes:[
+        {type:'new', title:'Imponer los datos de este dispositivo', desc:'Cuando el teléfono y la computadora muestran saldos distintos hay que poder decidir cuál tiene razón, y hasta ahora no había forma de hacerlo desde la aplicación. En la pantalla de verificación hay un botón que sube todo lo de este dispositivo y reemplaza lo guardado en la nube; el otro queda alineado al recargar. Antes de hacer nada muestra los saldos que va a imponer, el USDT y cuántos registros hay de cada tipo, para poder comprobar que es el dispositivo correcto. Está marcado en ámbar y aclara que solo debe usarse cuando otro aparato muestra saldos equivocados.'}
+    ]},
     {version:'6.7.0', date:'2026-08-23', headline:'🔀 Las correcciones de saldo dejan de pisarse entre dispositivos.', changes:[
         {type:'fix', title:'Un dispositivo borraba las correcciones hechas en el otro', desc:'Las correcciones manuales de saldo viajaban dentro del documento general de configuración, que se guarda completo y sin fusionar. Cada vez que un dispositivo guardaba, ese documento reemplazaba al anterior por entero, así que las correcciones registradas en el otro desaparecían. Como el saldo se calcula sumándolas, cada aparato terminaba mostrando un número distinto para la misma cuenta, y el libro de movimientos de cada uno era coherente consigo mismo aunque no coincidieran entre sí. Ahora cada corrección tiene su propio registro, igual que las operaciones y las transferencias, así que dos dispositivos pueden registrar correcciones a la vez sin borrarse mutuamente.'},
         {type:'new', title:'La verificación permite comparar dos dispositivos', desc:'La pantalla de verificación ahora desglosa cuántos registros hay de cada tipo —operaciones, ajustes externos, transferencias, conversiones y correcciones de saldo— y muestra el saldo de apertura de cada cuenta. Abriéndola en dos aparatos se ve enseguida dónde está la diferencia: si a uno le faltan registros o si difieren las aperturas.'}
@@ -386,10 +389,6 @@ const CHANGELOG = [
         {type:'new', title:'Libro de movimientos del USDT', desc:'La billetera tiene ahora el mismo historial que las cuentas bancarias: cada compra que sumó, cada venta que restó y cada ajuste, con el inventario que quedó después de cada uno. Se abre desde la pantalla de lotes. Igual que en las cuentas, se arma leyendo los mismos registros de los que sale el inventario, así que no puede quedar desincronizado.'},
         {type:'fix', title:'Borrar una compra vieja inflaba el USDT sin avisar', desc:'Los lotes se reconstruyen reproduciendo las operaciones en orden. Cuando una venta se reproduce y en ese momento no hay lotes suficientes, el motor consume lo que hay y descarta el resto en silencio. Eso pasa justo al borrar una compra antigua que ventas posteriores ya habían consumido: esas ventas se quedan sin de dónde restar, y el inventario sube en lugar de bajar. Era completamente invisible. Ahora la verificación compara el inventario real contra lo que dicen las operaciones y avisa cuánto sobra, con el detalle. El motor sigue comportándose igual, pero ya no lo hace a escondidas.'},
         {type:'improve', title:'Los lotes muestran su fecha', desc:'El orden siempre fue por fecha de compra, pero sin verla no había forma de comprobarlo. Además, las compras a la misma tasa se fusionan en un solo lote que conserva la fecha de la primera, así que un lote grande puede ser más antiguo de lo que aparenta: mostrando la fecha eso queda explicado.'}
-    ]},
-    {version:'6.4.1', date:'2026-08-23', headline:'🚦 El límite diario se valida por lo que aporta cada cuenta.', changes:[
-        {type:'fix', title:'Rechazaba compras divididas que sí entraban en los cupos', desc:'La versión anterior corrigió cómo se descuenta el cupo, pero la validación previa seguía comparando el monto TOTAL contra el cupo de la cuenta principal. Con una compra grande repartida entre dos cuentas, la app la rechazaba diciendo que faltaba cupo cuando en realidad a cada una le sobraba: a ninguna se le estaba pidiendo el total. Ahora cada aporte se compara contra el cupo de su propia cuenta, y si alguna se pasa el aviso dice cuál es, cuánto aporta, cuánto requiere y cuánto tiene disponible.'},
-        {type:'fix', title:'El resumen mostraba un saldo negativo imposible', desc:'Al pie del formulario, el saldo resultante de la cuenta principal se calculaba restándole la compra entera, aunque el pago estuviera dividido. Mostraba a esa cuenta quedando en rojo por una plata que en realidad ponía otra. Ahora se le resta solo lo que aporta.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

@@ -346,6 +346,28 @@ actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppSta
             else alert('No se pudo iniciar la verificación. Recargá la app e intentá de nuevo.');
         }
         else if(a==='cerrar-reconciliar')cerrarModal('modalReconciliar');
+        else if(a==='rec-imponer'){
+            /* v6.8.0 — Acción destructiva sobre la nube: se pide confirmación con
+               el detalle de lo que se va a subir, para que se pueda comprobar que
+               es el dispositivo correcto antes de aceptar. */
+            const d=AppState.datos||{};
+            const resumen=Object.keys(d.bancos||{}).map(n=>
+                '  '+n+': '+fmtNum((d.bancos[n]||{}).saldo||0,2)).join('\n');
+            const n1=(d.operaciones||[]).length,n2=(d.movimientos||[]).length,
+                  n3=(d.transferencias||[]).length,n4=(d.ajustesSaldo||[]).length;
+            if(!confirm('Vas a reemplazar lo guardado en la nube con lo de ESTE dispositivo.\n\n'+
+                'Saldos que se van a imponer:\n'+resumen+
+                '\n\nUSDT: '+fmtTrunc(d.saldoUsdt||0,2)+
+                '\nRegistros: '+n1+' operaciones · '+n2+' ajustes · '+n3+' transferencias · '+n4+' correcciones\n\n'+
+                'Los otros dispositivos van a quedar con estos datos al recargar.\n'+
+                'Comprobá que los saldos de arriba sean los correctos antes de continuar.'))return;
+            cerrarModal('modalReconciliar');
+            const fn=(window._v2sync&&window._v2sync.subirTodo)||window.v2SubirTodo;
+            if(typeof fn!=='function'){alert('No se pudo iniciar la subida. Recargá la app e intentá de nuevo.');return}
+            Promise.resolve(fn({motivo:'imponer-dispositivo'}))
+                .then(()=>alert('Listo. Se subieron los datos de este dispositivo.\n\nAbrí el otro dispositivo y recargá la página para que tome estos valores.'))
+                .catch(e=>alert('No se pudo completar la subida.\n\n'+(e&&e.message||e)));
+        }
         else if(a==='rec-servidor'){
             cerrarModal('modalReconciliar');
             if(typeof verificarIntegridad==='function')setTimeout(()=>verificarIntegridad(),120);

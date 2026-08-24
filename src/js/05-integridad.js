@@ -635,6 +635,14 @@ function _recHerramientas(){
     let h='<div class="rec-otras"><div class="rec-otras-t">Otras verificaciones</div>';
     h+='<button data-action="rec-servidor">Comparar con el servidor'+
        '<small>Revisa que lo guardado en la nube coincida con lo que ves</small></button>';
+    /* ═══ v6.8.0 — Resolver una discrepancia entre dispositivos ═══
+       Cuando el teléfono y la computadora muestran saldos distintos, hace falta
+       poder decidir cuál tiene razón. Esto sube TODO lo de este dispositivo y
+       reemplaza lo de la nube, con lo que el otro queda alineado al recargar. */
+    h+='<button data-action="rec-imponer" style="border-color:#fcd34d;background:#fffbeb">'+
+       'Este dispositivo tiene los datos correctos'+
+       '<small>Sube todo lo de acá y reemplaza lo de la nube. Usalo solo si otro '+
+       'dispositivo muestra saldos equivocados.</small></button>';
     if(hayArchivo){
         h+='<button data-action="rec-arrastre">Recalcular lotes de arrastre'+
            '<small>Los reconstruye desde el historial archivado</small></button>';
