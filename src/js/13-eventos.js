@@ -13,7 +13,10 @@ function importarDatos(){
                 const datos=parsed.datos&&parsed._meta?parsed.datos:parsed;
                 /* Validación estructural */
                 if(!datos||typeof datos!=='object'){alert('❌ Archivo inválido: no es un objeto JSON de datos.');return}
-                const camposRequeridos=['operaciones','movimientos','transferencias','conversiones','bancos','lotes'];
+                /* v6.9.0 — ajustesSaldo faltaba acá: al restaurar un respaldo las
+                   correcciones manuales de saldo se perdían y las cuentas quedaban
+                   con los valores anteriores a esas correcciones. */
+                const camposRequeridos=['operaciones','movimientos','transferencias','conversiones','ajustesSaldo','bancos','lotes'];
                 const faltantes=camposRequeridos.filter(c=>datos[c]===undefined);
                 if(faltantes.length===camposRequeridos.length){
                     alert('❌ Archivo inválido: no contiene ninguno de los campos esperados (operaciones, bancos, etc.).');return;
@@ -22,7 +25,7 @@ function importarDatos(){
                 camposRequeridos.forEach(c=>{if(datos[c]===undefined)datos[c]=(c==='bancos')?{}:[]});
                 /* Validación de tipos: los arrays deben serlo, bancos debe ser objeto */
                 const tiposMal=[];
-                ['operaciones','movimientos','transferencias','conversiones','lotes'].forEach(c=>{
+                ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo','lotes'].forEach(c=>{
                     if(!Array.isArray(datos[c]))tiposMal.push(c);
                 });
                 if(typeof datos.bancos!=='object'||Array.isArray(datos.bancos))tiposMal.push('bancos');

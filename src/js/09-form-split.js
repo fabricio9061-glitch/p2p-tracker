@@ -672,7 +672,7 @@ function abrirEditarOperacion(id){
     $('editOpTasa').value=fmtTasa(op.tasa,op.moneda||'UYU');
     /* Comisión Binance: poblar con el valor persistido en la operación.
        Fallback al global de la moneda si la op no tiene (datos legacy). */
-    const cpOp=op.comisionPct!==undefined?op.comisionPct:(op.moneda==='USD'?(AppState.datos.comisionUSD||0.14):(AppState.datos.comisionPlataforma||0.14));
+    const cpOp=op.comisionPct!==undefined?op.comisionPct:comisionConfigurada(op.moneda);
     $('editOpComisionPct').value=fmtNum(cpOp);
     $('editOpComisionPct').classList.remove('error');
     /* Poblar select de bancos */
@@ -692,7 +692,7 @@ function _editOpComisionPctLeida(op){
     const v=parsearComisionPct(raw);
     if(v!==null)return v;
     /* Fallback — mismo que en abrir */
-    return op.comisionPct!==undefined?op.comisionPct:(op.moneda==='USD'?(AppState.datos.comisionUSD||0.14):(AppState.datos.comisionPlataforma||0.14));
+    return op.comisionPct!==undefined?op.comisionPct:comisionConfigurada(op.moneda);
 }
 
 function calcularEditOpPreview(){

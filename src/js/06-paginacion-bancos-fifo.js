@@ -412,7 +412,15 @@ function recalcularLotesYGanancias(){
             const op=e.data;if(!op.tasa||op.tasa<=0){op.ganancia=0;op.usdt=0;op.comisionPlataforma=0;return}
             /* Defensive: normalize comisionBanco to number, preserve through replay */
             if(typeof op.comisionBanco!=='number'||!isFinite(op.comisionBanco))op.comisionBanco=0;
-            const cpct=(op.comisionPct||0.14)/100;
+            /* ═══ v6.9.0 — Este era el peor de los tres ═══
+               Está en el motor de recálculo, que reproduce TODAS las operaciones
+               cada vez. Una operación guardada con comisión 0% entraba acá, el
+               operador la tomaba como vacía y la reemplazaba por 0,14%: la
+               ganancia histórica de esa operación quedaba mal calculada, y se
+               volvía a calcular mal en cada actualización. Cero es un valor
+               guardado a propósito y hay que respetarlo. */
+            const cpct=((op.comisionPct===undefined||op.comisionPct===null||!isFinite(op.comisionPct))
+                        ?comisionConfigurada(op.moneda):Number(op.comisionPct))/100;
             const uBase=usdtBase(op.monto/op.tasa,op.tipo),cp=truncar(uBase*cpct,2),isU=op.moneda==='USD';
             if(op.tipo==='compra'){
                 const un=usdtNeto(uBase,cp,op.tipo);

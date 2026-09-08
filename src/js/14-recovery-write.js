@@ -84,24 +84,9 @@ document.addEventListener('DOMContentLoaded',()=>{
        La función wireQuickAmounts y sus listeners se retiraron para no
        dejar código muerto. La pieza que quita la "selección" al tipear
        en #monto también se removió porque ya no hay selección que quitar. */
-    /* v4.7.55: "Ver detalle ›" en la tarjeta GANANCIA HOY → abrir calendario.
-       El handler global del menú panel no lo capturaba porque el botón vive
-       en el home, fuera de #menuPanel. Lo conecto directo y reuso la MISMA
-       lógica que la entrada del menú (consistencia: mismo enfoque al hoy). */
-    (function wireHoyDetalleBtn(){
-        const btn=$('hoyDetalleBtn');if(!btn)return;
-        btn.addEventListener('click',()=>{
-            try{
-                AppState.ui.calendarDate=new Date();
-                AppState.ui.calSelectedDay=null;
-                renderizarCalendario();
-                abrirModal('modalCalendario');
-                if(typeof _syncLog==='function')_syncLog('ui:ver-detalle-calendario',{from:'hero'});
-            }catch(e){
-                console.warn('[P2P] ver-detalle (no crítico):',e&&e.message);
-            }
-        });
-    })();
+    /* El botón "Ver detalle" del panel de hoy se retiró en v5.4.5; su conexión
+       quedó acá sin nada que conectar. Retirada en v6.9.0. */
+
     $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview();/* v4.7.59: cambio de tasa puede activar/desactivar split */ renderSplitPanel();/* v4.7.62: re-evaluar pill activa */ renderizarTasasRecientes()});
     $('banco').addEventListener('change',()=>{AppState.ui.splitExtras=[];mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect();renderSplitPanel();
         /* v5.5.0 — Al elegir la cuenta hay que reevaluar el botón y sacar el
@@ -295,7 +280,7 @@ actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppSta
         const v=parsearComisionPct(inp.value.replace(',','.').trim());
         if(v===null){
             /* Revertir al valor persistido o fallback */
-            const cv=op.comisionPct!==undefined?op.comisionPct:(op.moneda==='USD'?(AppState.datos.comisionUSD||0.14):(AppState.datos.comisionPlataforma||0.14));
+            const cv=op.comisionPct!==undefined?op.comisionPct:comisionConfigurada(op.moneda);
             inp.value=fmtNum(cv);
             inp.classList.remove('error');
             calcularEditOpPreview();

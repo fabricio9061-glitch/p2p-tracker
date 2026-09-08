@@ -27,6 +27,18 @@ function truncar(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const f=Number(n+'e'+
 function roundMoney(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const r=Number(Math.round(parseFloat(n+'e'+d))+'e-'+d);return Object.is(r,-0)?0:r}
 /* truncUsdt: truncar a 2dp — uso conservador para FIFO, lotes, saldos internos */
 function truncUsdt(n){return truncar(n,2)}
+
+/* ═══ v6.9.0 — La comisión configurada, respetando el cero ═══
+   Se leía con `comisionPlataforma||0.14`. Ese operador toma el cero como si
+   fuera un valor vacío, así que quien tuviera la comisión en 0% veía cómo se le
+   reemplazaba por 0,14% cada vez que se guardaba o recalculaba una operación.
+   Cero es un porcentaje perfectamente válido: solo se recurre al valor por
+   defecto cuando el campo realmente no está definido. */
+function comisionConfigurada(moneda){
+    const d=(typeof AppState!=='undefined'&&AppState.datos)||{};
+    const v=(moneda==='USD')?d.comisionUSD:d.comisionPlataforma;
+    return (v===undefined||v===null||!isFinite(v))?0.14:Number(v);
+}
 /* Binance-matching: compra=round, venta=truncar para la base USDT (monto/tasa) */
 function usdtBase(n,tipo){return tipo==='compra'?roundMoney(n,2):truncar(n,2)}
 function usdtNeto(base,com,tipo){return tipo==='compra'?roundMoney(base-com,2):truncar(base+com,2)}

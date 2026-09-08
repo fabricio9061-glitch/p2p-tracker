@@ -113,7 +113,9 @@ function repairOrphanPendingStates(){
     const pendingIds=new Set();
     _syncQueue.forEach(a=>{if(a.id!==null&&a.id!==undefined)pendingIds.add(String(a.id))});
     let cleaned=0;
-    ['operaciones','movimientos','transferencias','conversiones','lotes'].forEach(key=>{
+    /* v6.9.0 — ajustesSaldo faltaba: sus marcas de "pendiente" no se limpiaban
+       nunca y quedaban visibles para siempre. */
+    ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo','lotes'].forEach(key=>{
         const arr=AppState.datos[key];if(!Array.isArray(arr))return;
         arr.forEach(item=>{
             if(item&&item._syncState==='pending'&&!pendingIds.has(String(item.id))){

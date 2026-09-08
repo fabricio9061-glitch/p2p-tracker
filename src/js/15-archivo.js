@@ -226,7 +226,10 @@ function _calcularPlanArchivo(datos,mesesAMantener){
        precisamente para lo que existe: representa todo lo anterior a lo que sigue
        listado. El saldo visible no se mueve ni un peso. */
     const _bancosArch=_cloneJson(datos.bancos||{});
-    ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{
+    /* Los ajustes de saldo NO se archivan a propósito: son pocos y definen el
+       saldo actual de cada cuenta, así que tienen que seguir contándose siempre.
+       Por eso esta lista sí es correcta con cuatro tipos. */
+    ['operaciones','movimientos','transferencias','conversiones'].forEach(tipo=>{ /* coherencia:ok — los ajustes de saldo no se archivan a propósito */
         const viejos=(tipo==='operaciones')?ops.viejo
                     :(tipo==='movimientos')?movs.viejo
                     :(tipo==='transferencias')?transfs.viejo:convs.viejo;
@@ -674,11 +677,59 @@ function _archivoEnsureModal(){
 function _archMonto(o){return fmtMonto(o.monto||0,o&&o.moneda)}
 function _archTasa(o){return fmtTasaMon(o.tasa||0,o&&o.moneda)}
 
+/* ═══ v6.9.0 — El listado sale de los meses guardados, no de un índice ═══
+   Cada mes archivado es un documento propio, pero la pantalla se armaba leyendo
+   un índice que vive dentro del documento de configuración. Si ese índice se
+   perdía o quedaba incompleto —por un reseteo, por una restauración, o porque
+   otro dispositivo guardó una configuración sin él— los meses seguían estando
+   guardados pero desaparecían de la pantalla, sin ninguna forma de recuperarlos.
+   Es exactamente el motivo por el que el Resumen Mensual conservaba los
+   resultados y el Historial se veía vacío: el resumen lee otra fuente.
+
+   Ahora se consulta la colección real y, si aparece algún mes que el índice no
+   tenía, se lo reincorpora. El índice pasa a ser una copia rápida, no la verdad. */
+async function _archivoSincronizarIndice(){
+    try{
+        if(!AppState.currentUser||!AppState.db)return 0;
+        const userRef=AppState.db.collection('users').doc(AppState.currentUser.uid);
+        const snap=await userRef.collection('archivo').get();
+        if(!AppState.datos._archivoIndex)AppState.datos._archivoIndex={meses:{},actualizado:''};
+        if(!AppState.datos._archivoIndex.meses)AppState.datos._archivoIndex.meses={};
+        const idx=AppState.datos._archivoIndex.meses;
+        let recuperados=0;
+        snap.forEach(doc=>{
+            const mes=doc.id;
+            if(mes==='_ping'||!/^\d{4}-\d{2}$/.test(mes))return;
+            if(idx[mes])return;                       /* ya estaba */
+            const d=doc.data()||{};
+            const ops=Array.isArray(d.operaciones)?d.operaciones:[];
+            const movs=Array.isArray(d.movimientos)?d.movimientos:[];
+            idx[mes]=d.stats||{
+                ops:ops.length,movs:movs.length,
+                transfs:(d.transferencias||[]).length,
+                ganancia:ops.reduce((a,o)=>roundMoney(a+(o.ganancia||0)),0),
+                montoCompras:ops.filter(o=>o.tipo==='compra').reduce((a,o)=>roundMoney(a+(o.monto||0)),0),
+                montoVentas:ops.filter(o=>o.tipo==='venta').reduce((a,o)=>roundMoney(a+(o.monto||0)),0)
+            };
+            recuperados++;
+        });
+        if(recuperados){
+            AppState.datos._archivoIndex.actualizado=getUDateStr();
+            if(typeof guardaOptimista==='function')guardaOptimista('update','config','archivoIndex');
+            console.warn('[P2P] Meses de archivo recuperados desde el servidor:',recuperados);
+        }
+        return recuperados;
+    }catch(e){console.warn('[P2P] No se pudo revisar el archivo del servidor:',e&&e.message);return 0}
+}
+
 function verArchivo(){
     const m=_archivoEnsureModal();
     const idx=(AppState.datos&&AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses)||{};
     const meses=Object.keys(idx).sort().reverse();
     const body=$('archivoBody');
+    /* Se consulta el servidor en paralelo: si aparecen meses que el índice no
+       tenía, la pantalla se vuelve a dibujar con ellos incluidos. */
+    _archivoSincronizarIndice().then(n=>{if(n>0&&typeof verArchivo==='function')verArchivo()});
     if(!meses.length){
         body.innerHTML='<div class="empty-state">'+
             '<div class="empty-state-icon">'+ICONO_ARCHIVO+'</div>'+
