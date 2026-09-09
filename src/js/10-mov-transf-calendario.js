@@ -24,11 +24,7 @@ async function guardarEditarOperacion(){
     try{
         /* 1. Revertir impacto bancario de la operación original */
         if(oldB&&AppState.datos.bancos[oldB]){
-            if(op.tipo==='compra'){
-                AppState.datos.bancos[oldB].saldo=fixNeg(AppState.datos.bancos[oldB].saldo+roundMoney(oldM+oldCb));
-            }else{
-                AppState.datos.bancos[oldB].saldo=fixNeg(AppState.datos.bancos[oldB].saldo-oldM);
-            }
+            
         }
         /* 2. Aplicar nuevos valores */
         op.monto=roundMoney(newM);op.tasa=newTa;op.banco=newB;
@@ -40,11 +36,7 @@ async function guardarEditarOperacion(){
         op.updatedAt=new Date().toISOString();
         /* 3. Aplicar nuevo impacto bancario */
         if(newB&&AppState.datos.bancos[newB]){
-            if(op.tipo==='compra'){
-                AppState.datos.bancos[newB].saldo=fixNeg(AppState.datos.bancos[newB].saldo-roundMoney(newM+oldCb));
-            }else{
-                AppState.datos.bancos[newB].saldo=fixNeg(AppState.datos.bancos[newB].saldo+newM);
-            }
+            
         }
         /* 4. Recalcular FIFO determinístico + guardar */
         recalcularLotesYGanancias();
@@ -184,9 +176,7 @@ async function guardarMovimiento(){
             /* Capture pre-mutation state for decisions that depend on it */
             const wasUsdt=original.tipoCuenta==='usdt';
             /* 1. Revertir impacto bancario del movimiento original (si era banco) */
-            if(original.tipoCuenta==='banco'&&original.banco&&AppState.datos.bancos[original.banco]){
-                AppState.datos.bancos[original.banco].saldo=fixNeg(AppState.datos.bancos[original.banco].saldo+(original.tipoMovimiento==='ingreso'?-original.monto:original.monto));
-            }
+            if(original.tipoCuenta==='banco'&&original.banco&&AppState.datos.bancos[original.banco]){}
             /* 2. Mutar el movimiento en su posición (preserva fecha/hora/timestamp/id) */
             original.tipoMovimiento=AppState.ui.tipoMovimiento;
             original.tipoCuenta=tc;
@@ -199,9 +189,7 @@ async function guardarMovimiento(){
                Si el tc cambió de usdt→banco, el valor viejo queda irrelevante (igual 0). */
             original.valorUYU=0;
             /* 3. Aplicar nuevo impacto bancario */
-            if(tc==='banco'&&AppState.datos.bancos[b]){
-                AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?mR:-mR));
-            }
+            if(tc==='banco'&&AppState.datos.bancos[b]){}
             /* 4. Recalcular FIFO si toca USDT (antes O ahora) */
             if(tc==='usdt'||wasUsdt)recalcularLotesYGanancias();
             actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
@@ -212,9 +200,7 @@ async function guardarMovimiento(){
         }else{
             const mId=uid();
             /* Actualizar saldo bancario (no FIFO) */
-            if(tc==='banco'){
-                AppState.datos.bancos[b].saldo=fixNeg(AppState.datos.bancos[b].saldo+(AppState.ui.tipoMovimiento==='ingreso'?mR:-mR));
-            }
+            if(tc==='banco'){}
             /* Insertar movimiento (valorUYU se calcula en recalcular para egresos USDT) */
             const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:mR,valorUYU:0,tasaRef:tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0,descripcion:desc,fecha:getUDateStr(),hora:getUTimeStr(),timestamp:new Date().toISOString()};
             AppState.datos.movimientos.unshift(md);
@@ -240,9 +226,7 @@ async function eliminarMovimiento(id){
     if(!valI.ok){alert('🚫 No se puede eliminar este ajuste:\n\n'+valI.reason);return}
     if(!confirm('¿Eliminar?'))return;
     try{
-        if(mv.tipoCuenta==='banco'&&mv.banco&&AppState.datos.bancos[mv.banco]){
-            AppState.datos.bancos[mv.banco].saldo=fixNeg(AppState.datos.bancos[mv.banco].saldo+(mv.tipoMovimiento==='ingreso'?-mv.monto:mv.monto));
-        }
+        if(mv.tipoCuenta==='banco'&&mv.banco&&AppState.datos.bancos[mv.banco]){}
         AppState.datos.movimientos=AppState.datos.movimientos.filter(m=>m.id!==id);
         recalcularLotesYGanancias();
         verificarIntegridadGlobal();
@@ -403,8 +387,6 @@ async function realizarTransferencia(){
                 }else{
                     original.origen=o;original.destino=d;original.montoOrigen=m;original.montoDestino=montoRecibido;original.tasa=t;original.monedaOrigen=oi.moneda;original.monedaDestino=di.moneda;original.updatedAt=new Date().toISOString();
                 }
-                AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-m);
-                AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+montoRecibido);
                 actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
                 AppState.ui.transEditandoId=null;AppState.ui.transEditandoIsConv=false;
                 guardaOptimista('update','conversiones',editId);
@@ -418,8 +400,6 @@ async function realizarTransferencia(){
                 }else{
                     original.origen=o;original.destino=d;original.monto=m;original.comision=c;original.updatedAt=new Date().toISOString();
                 }
-                AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-(m+c));
-                AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+m);
                 if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,roundMoney((AppState.datos.bancos[o].limiteUsadoUSD||0)+mU))}
                 actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
                 AppState.ui.transEditandoId=null;AppState.ui.transEditandoIsConv=false;
@@ -444,8 +424,6 @@ async function realizarTransferencia(){
         try{
             const convId=uid();
             AppState.datos.conversiones.unshift({id:convId,origen:o,destino:d,montoOrigen:m,montoDestino:montoRecibido,tasa:t,monedaOrigen:oi.moneda,monedaDestino:di.moneda,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
-            AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-m);
-            AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+montoRecibido);
             actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
             guardaOptimista('create','conversiones',convId);
             showSuccess({amount:getSym(di.moneda)+fmtNum(montoRecibido),message:'Conversión realizada con éxito',sub:o+' → '+d});
@@ -459,7 +437,6 @@ async function realizarTransferencia(){
         try{
             const trId=uid();
             AppState.datos.transferencias.unshift({id:trId,origen:o,destino:d,monto:m,comision:c,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
-            AppState.datos.bancos[o].saldo=fixNeg(AppState.datos.bancos[o].saldo-(m+c));AppState.datos.bancos[d].saldo=fixNeg(AppState.datos.bancos[d].saldo+m);
             if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,roundMoney((AppState.datos.bancos[o].limiteUsadoUSD||0)+mU))}
             actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
             guardaOptimista('create','transferencias',trId);

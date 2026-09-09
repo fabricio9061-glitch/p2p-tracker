@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '7.0.0',
+    APP_VERSION: '7.1.0',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'7.1.0', date:'2026-08-24', headline:'🧹 Diecinueve ajustes de saldo redundantes, retirados.', changes:[
+        {type:'improve', title:'El saldo dejó de tocarse a mano al editar y borrar', desc:'Desde que el saldo se reconstruye sumando los registros, los ajustes manuales que quedaban en los caminos de editar, borrar y cambiar de cuenta ya no servían para nada: el recálculo posterior los pisaba siempre. Se comprobó midiendo el resultado con y sin ellos en los tres escenarios —borrar una operación, cambiarle el monto y cambiarle la cuenta— y da exactamente lo mismo. Eran diecinueve líneas que había que mantener de acuerdo entre sí sin ningún beneficio, y donde ya nos había fallado el pago dividido en cuatro lugares distintos. Retirarlas no cambia ningún número y deja una sola función responsable del saldo.'},
+        {type:'improve', title:'Queda una sola regla repetida', desc:'De las seis reglas que estaban escritas en muchos lugares a la vez, cinco ya tienen una única función dueña: la fecha de un registro, el efecto sobre las cuentas, el efecto sobre la billetera, el cupo diario y ahora el saldo. Cada una dejó de producir fallas apenas se unificó. La que queda es la interpretación del pago dividido, que es justamente la que más problemas dio.'}
+    ]},
     {version:'7.0.0', date:'2026-08-24', headline:'♻️ El cupo diario se calcula solo, como los saldos y los lotes.', changes:[
         {type:'improve', title:'El cupo consumido dejó de mantenerse a mano', desc:'Se llevaba sumando y restando en veintinueve lugares distintos: al comprar, al editar, al borrar, al revertir. Veintinueve puntos que tenían que estar todos de acuerdo, y esta misma semana fallaron dos de ellos: en un pago dividido se cargaba todo a una sola cuenta, y al borrar una compra no se devolvía. Peor: cuando quedaba mal no había manera de arreglarlo, había que esperar a que renovara al día siguiente. Ahora el cupo consumido no es un dato que haya que mantener, es el resultado de sumar las compras hechas desde la última renovación, y se recalcula en el mismo recorrido que los saldos y los lotes. Un cupo mal cargado se corrige solo al actualizar, y renovar dejó de significar poner el contador en cero: solo mueve la fecha desde la cual cuentan las compras.'},
         {type:'improve', title:'Tercera regla con dueño único', desc:'Con esta ya son cuatro las reglas que dejaron de estar repetidas: la fecha de un registro, el efecto de cada evento sobre las cuentas, el efecto sobre la billetera y ahora el cupo diario. Cada una de las tres primeras dejó de producir fallas apenas se unificó. Quedan dos por hacer: el saldo de un banco y la interpretación del pago dividido.'}
@@ -388,9 +392,6 @@ const CHANGELOG = [
     {version:'6.8.2', date:'2026-08-23', headline:'📬 Las correcciones de saldo por fin llegan al otro dispositivo.', changes:[
         {type:'fix', title:'Se subían bien y se descartaban al recibirlas', desc:'Al convertir las correcciones de saldo en registros propios se actualizó el camino de subida pero no el de bajada. Una lista escrita a mano definía qué tipos de registro se reconstruyen con lo que llega del servidor, y las correcciones no estaban en ella: cada una que llegaba se descartaba sin dejar rastro. El resultado era desconcertante, porque la corrección se guardaba correctamente en la nube y simplemente nunca aparecía en el otro aparato, ni siquiera recargando o borrando la caché. Esa lista ahora se arma sola a partir de la tabla de tipos de registro, así que agregar uno nuevo no puede volver a dejarla desactualizada.'},
         {type:'fix', title:'Las correcciones faltaban en el estado inicial', desc:'Después de un reseteo o de restaurar un respaldo, la lista de correcciones quedaba sin declarar y la aplicación tenía que crearla sobre la marcha. Ahora forma parte del estado inicial, como el resto.'}
-    ]},
-    {version:'6.8.1', date:'2026-08-23', headline:'🔨 Ahora sí: la subida forzada no se puede ignorar.', changes:[
-        {type:'fix', title:'El otro dispositivo descartaba la subida en silencio', desc:'Cada dispositivo lleva su propio contador de guardados, y al recibir datos de la nube solo los acepta si ese número es mayor o igual al suyo. El que guardó más veces tiene el número más alto, así que descartaba lo que mandaba el otro sin ningún aviso: ganaba el que había usado más la aplicación, no el que tenía los datos correctos. Por eso apretar el botón en el teléfono no cambiaba nada en la computadora. Ahora la subida forzada hace dos cosas: lee primero el número que hay en la nube y escribe uno mayor que todos, y además marca el documento como impuesto, de modo que quien lo reciba lo acepta aunque su propio contador esté más alto. El guardado normal sigue funcionando igual que siempre.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

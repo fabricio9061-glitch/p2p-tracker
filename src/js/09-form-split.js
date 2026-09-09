@@ -631,16 +631,9 @@ async function eliminarOperacion(id){
     try{
         if(op.tipo==='compra'){
             if(Array.isArray(op.aportes)&&op.aportes.length){
-                op.aportes.forEach(a=>{
-                    if(AppState.datos.bancos[a.banco])AppState.datos.bancos[a.banco].saldo=fixNeg(AppState.datos.bancos[a.banco].saldo+a.monto);
-                });
-            }else if(op.banco&&AppState.datos.bancos[op.banco]){
-                AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo+roundMoney(op.monto+(op.comisionBanco||0)));
-                
+                op.aportes.forEach(a=>{});
+            }else if(op.banco&&AppState.datos.bancos[op.banco]){}
             }
-        }else{
-            if(op.banco&&AppState.datos.bancos[op.banco])AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo-op.monto);
-        }
         AppState.datos.operaciones=AppState.datos.operaciones.filter(o=>o.id!==id);
         recalcularLotesYGanancias();actualizarVista();
         verificarIntegridadGlobal();
