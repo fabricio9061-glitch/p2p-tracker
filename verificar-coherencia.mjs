@@ -98,7 +98,63 @@ const campos = 'comision|porcentaje|monto|limite|saldo';
             `${m[1]}||${m[2]} — si el valor es 0 se reemplaza por ${m[2]}`);
     });
 
-/* ── 5 · Funciones publicadas al navegador que no existen ── */
+/* ── 5 · Dependencias que rompen el orden de carga ──
+   Los archivos se leen en el orden que declara index.html, uno tras otro. Si al
+   cargarse uno se ejecuta algo que necesita una función definida más adelante,
+   salta un error que corta su ejecución a la mitad: todo lo que venía después
+   nunca llega a definirse. La aplicación arranca igual, pero incompleta, y los
+   síntomas aparecen lejos de la causa.
+
+   No alcanza con mirar la llamada directa: si el archivo ejecuta al cargarse una
+   función propia, y esa a su vez llama a otra de un archivo posterior, el error
+   ocurre igual. Se sigue esa cadena. */
+const cuerpoDe = (src, nombre) => {
+    const i = src.search(new RegExp(`function\\s+${nombre}\\s*\\(`));
+    if (i < 0) return '';
+    let j = src.indexOf('{', i), d = 0, k = j;
+    do { if (src[k] === '{') d++; else if (src[k] === '}') d--; k++; } while (d > 0 && k < src.length);
+    return src.slice(i, k);
+};
+const dueñoDe = nombre => archivos.findIndex(f =>
+    new RegExp(`function\\s+${nombre}\\s*\\(`).test(limpio(js[f])));
+
+archivos.forEach((f, i) => {
+    const s = limpio(js[f]);
+    /* Llamadas que ocurren al cargarse: están fuera de toda función */
+    const inmediatas = [];
+    let prof = 0;
+    s.split('\n').forEach(l => {
+        if (prof === 0) {
+            const m = l.trim().match(/^(\w+)\s*\(/);
+            if (m && !/^(if|for|while|switch|catch|function|return|typeof|else)$/.test(m[1]))
+                inmediatas.push(m[1]);
+        }
+        prof += (l.match(/\{/g) || []).length - (l.match(/\}/g) || []).length;
+    });
+
+    /* Se sigue la cadena de llamadas desde cada una, dentro del mismo archivo */
+    const vistas = new Set();
+    const revisar = (nombre, camino) => {
+        if (vistas.has(nombre) || camino.length > 6) return;
+        vistas.add(nombre);
+        const cuerpo = cuerpoDe(s, nombre);
+        if (!cuerpo) return;
+        [...cuerpo.matchAll(/\b(\w+)\s*\(/g)].forEach(m => {
+            const llamada = m[1];
+            if (/^(if|for|while|switch|catch|function|return|typeof|new|else)$/.test(llamada)) return;
+            const d = dueñoDe(llamada);
+            if (d > i) {
+                rep('ALTA', 'Dependencia de orden de carga',
+                    `${f} ejecuta ${camino.join(' → ')} al cargarse, y ${llamada}() se define en ${archivos[d]}, que carga después`);
+            } else if (d === i) {
+                revisar(llamada, [...camino, llamada]);
+            }
+        });
+    };
+    inmediatas.forEach(n => revisar(n, [n]));
+});
+
+/* ── 6 · Funciones publicadas al navegador que no existen ── */
 [...todoJS.matchAll(/window\.(\w+)\s*=\s*(\w+)\s*;/g)].forEach(m => {
     if (m[1] === m[2]
         && !new RegExp(`function\\s+${m[2]}\\s*\\(`).test(todoJS)

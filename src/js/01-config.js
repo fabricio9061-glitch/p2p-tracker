@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '7.2.0',
+    APP_VERSION: '7.2.1',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -174,7 +174,14 @@ function _compressOpForWire(op){
     /* aportes (split): mantener tal cual, los bancos internos se codifican
        igual que arriba pero como subobjetos. Es array chico (≤5 entradas
        típicamente), el ahorro de comprimirlos no compensa la complejidad. */
-    if(esPagoDividido(op))out.ap=op.aportes;   /* v7.2.0 */
+    /* ═══ v7.2.1 — Sin depender del orden de carga ═══
+       Acá se llamaba a esPagoDividido(), que se define en 04-utils. Pero este
+       archivo es el PRIMERO que carga y la autoprueba de compresión se ejecuta
+       apenas termina de leerse, cuando esa función todavía no existe: el error
+       cortaba la ejecución a la mitad y todo lo que venía después nunca llegaba
+       a definirse. De ahí que la app quedara en modo local y que la campana no
+       respondiera. La comprobación es de una línea y no vale la dependencia. */
+    if(Array.isArray(op.aportes)&&op.aportes.length)out.ap=op.aportes;
     /* timestamp: ELIMINADO del wire — se regenera al decodificar desde fecha+hora.
        Es campo derivable (no fuente de verdad). Ahorro ~136 KB. */
     /* Cualquier OTRO campo: copiar tal cual con prefijo "x_" para no chocar
@@ -374,6 +381,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'7.2.1', date:'2026-08-24', headline:'🚑 Corregido el error que dejaba la app en modo local.', changes:[
+        {type:'fix', title:'La aplicación arrancaba a medias', desc:'En la versión anterior se usó dentro del primer archivo que carga una función que se define en el cuarto. Ese archivo ejecuta al terminar de leerse una comprobación de la compresión de datos, y ahí la función todavía no existía: saltaba un error que cortaba su ejecución a la mitad, así que todo lo que venía después nunca llegaba a definirse. La aplicación arrancaba igual pero incompleta, y por eso quedaba en modo local sin sincronizar y la campana de novedades no respondía. Los síntomas aparecían lejos de la causa, que es lo que hace difíciles estos errores. La comprobación es de una sola línea, así que se escribió directamente y no depende de ningún otro archivo.'},
+        {type:'improve', title:'El verificador detecta este tipo de error', desc:'Se le agregó una comprobación que sigue la cadena de llamadas: si un archivo ejecuta algo al cargarse, y eso llama a una función de un archivo posterior, lo informa con la cadena completa. Se comprobó reintroduciendo el error a propósito, y lo detecta. Ninguna de las herramientas anteriores podía verlo, porque el código es correcto: el problema es únicamente el momento en que se ejecuta.'}
+    ]},
     {version:'7.2.0', date:'2026-08-24', headline:'🏁 La última regla repetida ya tiene una sola función dueña.', changes:[
         {type:'improve', title:'Quién pagó cuánto se responde en un solo lugar', desc:'Una compra puede pagarse desde una cuenta o repartida entre varias, y esa pregunta se respondía en diez lugares distintos, cada uno con su propia versión. De ahí salieron cuatro fallas en una sola semana: el saldo se descontaba a una cuenta que no había pagado, el cupo diario se cargaba entero a la principal, la validación pedía el total a una sola cuenta y rechazaba compras que sí entraban, y el resumen mostraba un saldo negativo imposible. Ahora hay una única función que devuelve siempre la lista de cuentas con lo que puso cada una, tenga la compra pago dividido o no, así que quien la usa no necesita saber la diferencia. También se retiró un bloque que había quedado completamente vacío al simplificar el borrado.'},
         {type:'improve', title:'Las seis reglas quedaron con dueño único', desc:'Era el último de los seis casos que el verificador venía señalando: la fecha de un registro, el efecto sobre las cuentas, el efecto sobre la billetera, el cupo diario, el saldo de un banco y ahora el pago dividido. Cada uno dejó de producir fallas apenas se unificó. El verificador de coherencia informa cero problemas.'}
@@ -385,13 +396,6 @@ const CHANGELOG = [
     {version:'7.0.0', date:'2026-08-24', headline:'♻️ El cupo diario se calcula solo, como los saldos y los lotes.', changes:[
         {type:'improve', title:'El cupo consumido dejó de mantenerse a mano', desc:'Se llevaba sumando y restando en veintinueve lugares distintos: al comprar, al editar, al borrar, al revertir. Veintinueve puntos que tenían que estar todos de acuerdo, y esta misma semana fallaron dos de ellos: en un pago dividido se cargaba todo a una sola cuenta, y al borrar una compra no se devolvía. Peor: cuando quedaba mal no había manera de arreglarlo, había que esperar a que renovara al día siguiente. Ahora el cupo consumido no es un dato que haya que mantener, es el resultado de sumar las compras hechas desde la última renovación, y se recalcula en el mismo recorrido que los saldos y los lotes. Un cupo mal cargado se corrige solo al actualizar, y renovar dejó de significar poner el contador en cero: solo mueve la fecha desde la cual cuentan las compras.'},
         {type:'improve', title:'Tercera regla con dueño único', desc:'Con esta ya son cuatro las reglas que dejaron de estar repetidas: la fecha de un registro, el efecto de cada evento sobre las cuentas, el efecto sobre la billetera y ahora el cupo diario. Cada una de las tres primeras dejó de producir fallas apenas se unificó. Quedan dos por hacer: el saldo de un banco y la interpretación del pago dividido.'}
-    ]},
-    {version:'6.9.0', date:'2026-08-24', headline:'🔬 Revisión general: cuatro fallas encontradas con un verificador automático.', changes:[
-        {type:'fix', title:'La comisión en 0% volvía sola a 0,14%', desc:'La comisión configurada se leía con un operador que trata el cero como si fuera un campo vacío, así que quien la tuviera en cero por ciento veía cómo se le reemplazaba por catorce centésimas cada vez que se guardaba o recalculaba una operación. Cero es un porcentaje perfectamente válido. Ahora solo se recurre al valor predeterminado cuando el campo realmente no está definido, y el porcentaje que se usó queda guardado dentro de cada operación para que los cálculos históricos no cambien si después modificás el predeterminado.'},
-        {type:'fix', title:'Los meses archivados podían desaparecer de la pantalla', desc:'Cada mes archivado se guarda como un registro propio, pero el Historial se armaba leyendo un índice que vive dentro de la configuración. Si ese índice se perdía o quedaba incompleto, los meses seguían guardados en el servidor pero no aparecían por ningún lado, sin forma de recuperarlos. Es exactamente por eso que el Resumen Mensual conservaba los resultados y el Historial se veía vacío: el resumen lee otra fuente. Ahora se consulta directamente lo que hay guardado y, si aparece un mes que el índice no tenía, se lo reincorpora solo.'},
-        {type:'fix', title:'Restaurar un respaldo perdía las correcciones de saldo', desc:'La lista de campos que se leen al importar un respaldo no incluía las correcciones manuales de saldo, así que al restaurar se perdían y las cuentas quedaban con los valores anteriores a esas correcciones. Lo mismo ocurría con la limpieza de marcas de sincronización, que dejaba esas correcciones marcadas como pendientes para siempre.'},
-        {type:'fix', title:'La ganancia histórica se calculaba mal con comisión 0%', desc:'El mismo problema del cero descartado estaba también dentro del motor que reproduce todas las operaciones para recalcular ganancias y lotes. Una operación guardada con comisión cero entraba ahí, se la tomaba como vacía y se la reemplazaba por catorce centésimas: su ganancia quedaba mal calculada, y se volvía a calcular mal en cada actualización. Era el peor de los tres casos porque afectaba al historial completo, no solo a las operaciones nuevas.'},
-        {type:'improve', title:'Verificador automático de coherencia', desc:'Casi todas las fallas de las últimas semanas tuvieron la misma forma: algo escrito a mano en dos lugares que tenían que coincidir, y uno quedó desactualizado. Se agregó una herramienta que busca esas incoherencias sola: botones sin nadie que responda, campos que el programa busca y no existen, listas de tipos de registro incompletas y reglas repetidas en demasiados lugares. Se ejecuta antes de publicar y encontró estas mismas fallas.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══
