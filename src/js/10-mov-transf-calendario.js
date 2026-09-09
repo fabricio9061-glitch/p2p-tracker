@@ -26,10 +26,6 @@ async function guardarEditarOperacion(){
         if(oldB&&AppState.datos.bancos[oldB]){
             if(op.tipo==='compra'){
                 AppState.datos.bancos[oldB].saldo=fixNeg(AppState.datos.bancos[oldB].saldo+roundMoney(oldM+oldCb));
-                if(AppState.datos.bancos[oldB].limiteDiarioUSD>0&&op.tasa>0){
-                    const mU=roundMoney(oldM/op.tasa);
-                    AppState.datos.bancos[oldB].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[oldB].limiteUsadoUSD||0)-mU));
-                }
             }else{
                 AppState.datos.bancos[oldB].saldo=fixNeg(AppState.datos.bancos[oldB].saldo-oldM);
             }
@@ -46,10 +42,6 @@ async function guardarEditarOperacion(){
         if(newB&&AppState.datos.bancos[newB]){
             if(op.tipo==='compra'){
                 AppState.datos.bancos[newB].saldo=fixNeg(AppState.datos.bancos[newB].saldo-roundMoney(newM+oldCb));
-                if(AppState.datos.bancos[newB].limiteDiarioUSD>0){
-                    const mU=op.moneda==='USD'?newM:truncar(newM/newTa);
-                    AppState.datos.bancos[newB].limiteUsadoUSD=Math.min(AppState.datos.bancos[newB].limiteDiarioUSD,roundMoney((AppState.datos.bancos[newB].limiteUsadoUSD||0)+mU));
-                }
             }else{
                 AppState.datos.bancos[newB].saldo=fixNeg(AppState.datos.bancos[newB].saldo+newM);
             }

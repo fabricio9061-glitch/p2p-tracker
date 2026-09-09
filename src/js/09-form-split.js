@@ -562,19 +562,17 @@ async function agregarOperacion(){
                nunca usó y las otras quedaban con el suyo intacto, así que los dos
                números estaban mal. Cada cuenta descuenta ahora exactamente lo que
                aportó. */
-            const deltas={bancos:{},limitesUSD:{}};
+            /* v7.0.0 — El cupo ya no se descuenta acá: se recalcula solo sumando
+               las compras desde la última renovación. Un punto menos que mantener. */
+            const deltas={bancos:{}};
             if(isSplit){
                 aportes.forEach(a=>{
                     deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)-a.monto;
-                    const uA=_montoEnUSDLimite(a.banco,a.monto);
-                    if(uA>0)deltas.limitesUSD[a.banco]=roundMoney((deltas.limitesUSD[a.banco]||0)+uA);
                 });
                 /* La comisión bancaria la cobra la cuenta principal */
                 if(cb>0)deltas.bancos[b]=roundMoney((deltas.bancos[b]||0)-cb);
             }else{
                 deltas.bancos[b]=-(m+cb);
-                const mU=_montoEnUSDLimite(b,m);
-                if(mU>0)deltas.limitesUSD[b]=mU;
             }
             aplicarDeltas(deltas);
         }else{
@@ -602,24 +600,23 @@ async function agregarOperacion(){
     }catch(e){console.error('[P2P] Error guardando operación:',e)}finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect();/* v4.7.59: re-evaluar split por si el usuario agregó fila inválida durante el guardado */ if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();}
 }
 
+/* v7.0.0 — Los ajustes manuales del cupo se retiraron: se recalcula solo
+   sumando las compras y transferencias vigentes, así que revertirlo a mano era
+   redundante y era justo donde se olvidaba un caso. */
 async function eliminarOperacion(id){
     const op=AppState.datos.operaciones.find(o=>o.id===id);if(!op)return;
     /* INTEGRIDAD: pre-validar que el rollback no deje saldos negativos */
-    /* v6.4.0 — También se devuelve el cupo diario consumido: sin esto, borrar una
-       compra dejaba el límite gastado y la cuenta bloqueada por el resto del día. */
-    const deltas={bancos:{},limitesUSD:{}};
+    /* v7.0.0 — El cupo se devuelve solo: al desaparecer la compra deja de sumarse
+       en el recálculo. Antes había que acordarse de revertirlo a mano acá. */
+    const deltas={bancos:{}};
     if(op.tipo==='compra'){
         if(Array.isArray(op.aportes)&&op.aportes.length){
             op.aportes.forEach(a=>{
                 deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)+a.monto;
-                const uA=_montoEnUSDLimite(a.banco,a.monto);
-                if(uA>0)deltas.limitesUSD[a.banco]=roundMoney((deltas.limitesUSD[a.banco]||0)-uA);
             });
             if(op.comisionBanco>0)deltas.bancos[op.banco]=roundMoney((deltas.bancos[op.banco]||0)+op.comisionBanco);
         }else if(op.banco){
             deltas.bancos[op.banco]=roundMoney(op.monto+(op.comisionBanco||0));
-            const uD=_montoEnUSDLimite(op.banco,op.monto);
-            if(uD>0)deltas.limitesUSD[op.banco]=-uD;
         }
     }else{
         /* Venta: revertir suma positiva al banco → restar. Si banco ya gastó esos UYU, queda negativo. */
@@ -637,13 +634,9 @@ async function eliminarOperacion(id){
                 op.aportes.forEach(a=>{
                     if(AppState.datos.bancos[a.banco])AppState.datos.bancos[a.banco].saldo=fixNeg(AppState.datos.bancos[a.banco].saldo+a.monto);
                 });
-                if(op.banco&&AppState.datos.bancos[op.banco]&&AppState.datos.bancos[op.banco].limiteDiarioUSD>0&&op.tasa>0){
-                    const mU=roundMoney(op.monto/op.tasa);
-                    AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU));
-                }
             }else if(op.banco&&AppState.datos.bancos[op.banco]){
                 AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo+roundMoney(op.monto+(op.comisionBanco||0)));
-                if(AppState.datos.bancos[op.banco].limiteDiarioUSD>0&&op.tasa>0){const mU=roundMoney(op.monto/op.tasa);AppState.datos.bancos[op.banco].limiteUsadoUSD=Math.max(0,roundMoney((AppState.datos.bancos[op.banco].limiteUsadoUSD||0)-mU))}
+                
             }
         }else{
             if(op.banco&&AppState.datos.bancos[op.banco])AppState.datos.bancos[op.banco].saldo=fixNeg(AppState.datos.bancos[op.banco].saldo-op.monto);

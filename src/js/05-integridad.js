@@ -223,6 +223,67 @@ function recalcularSaldosBancos(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   CUPO DIARIO DERIVADO (v7.0.0)
+   ═══════════════════════════════════════════════════════════════════════════
+   El cupo consumido de cada cuenta se llevaba sumando y restando en veintinueve
+   lugares distintos del programa: al comprar, al editar, al borrar, al revertir.
+   Veintinueve puntos que tenían que estar todos de acuerdo, y esta semana ya
+   fallaron dos —el pago dividido cargaba todo a una sola cuenta, y borrar una
+   compra no devolvía el cupo—. Además, cuando quedaba mal no había forma de
+   arreglarlo: había que esperar a que renovara al día siguiente.
+
+   Es exactamente el mismo problema que tenían los saldos, y la solución es la
+   misma: el cupo consumido no es un dato que haya que mantener, es el resultado
+   de sumar las compras hechas desde la última renovación. Se recalcula solo, y
+   un error deja de ser permanente.                                            */
+function _cupoDesde(nombre){
+    /* Fecha desde la cual cuentan las compras: la última renovación registrada */
+    const bk=AppState.datos.bancos[nombre];
+    return (bk&&bk.ultimoResetLimite)||'';
+}
+
+function recalcularCuposDiarios(){
+    if(!AppState.datos||!AppState.datos.bancos)return;
+    const usado={};
+    Object.keys(AppState.datos.bancos).forEach(n=>{
+        const bk=AppState.datos.bancos[n];
+        usado[n]=(bk&&bk.limiteDiarioUSD>0)?0:null;   /* null = sin límite, no se calcula */
+    });
+
+    /* Las transferencias salientes también consumen cupo de la cuenta de origen:
+       es dinero que sale igual que en una compra. Faltaba contemplarlas y habría
+       dejado el cupo corto. */
+    (AppState.datos.transferencias||[]).forEach(tr=>{
+        if(!tr||!tr.origen)return;
+        if(usado[tr.origen]===undefined||usado[tr.origen]===null)return;
+        const desde=_cupoDesde(tr.origen);
+        if(desde&&String(tr.fecha||'')<String(desde))return;
+        const u=_montoEnUSDLimite(tr.origen,(tr.monto||0)+(tr.comision||0));
+        if(u>0)usado[tr.origen]=roundMoney(usado[tr.origen]+u);
+    });
+
+    (AppState.datos.operaciones||[]).forEach(op=>{
+        if(!op||op.tipo!=='compra')return;
+        /* Cada cuenta que aportó consume su parte; sin pago dividido, todo el monto */
+        const partes=(Array.isArray(op.aportes)&&op.aportes.length)
+            ? op.aportes.map(a=>({banco:a.banco,monto:a.monto||0}))
+            : [{banco:op.banco,monto:op.monto||0}];
+        partes.forEach(p=>{
+            if(usado[p.banco]===undefined||usado[p.banco]===null)return;
+            const desde=_cupoDesde(p.banco);
+            if(desde&&String(op.fecha||'')<String(desde))return;   /* anterior a la renovación */
+            const u=_montoEnUSDLimite(p.banco,p.monto);
+            if(u>0)usado[p.banco]=roundMoney(usado[p.banco]+u);
+        });
+    });
+
+    Object.keys(usado).forEach(n=>{
+        if(usado[n]===null)return;
+        AppState.datos.bancos[n].limiteUsadoUSD=usado[n];
+    });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    EFECTO DE CADA REGISTRO SOBRE EL USDT (v6.5.0)
    El equivalente de efectoEnBancos pero para la billetera, para poder armar su
    libro leyendo los mismos registros de los que ya sale el inventario.       */

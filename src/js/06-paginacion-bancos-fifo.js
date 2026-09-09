@@ -185,7 +185,8 @@ function verificarResetLimites(){
         if(ha<hr)return;                       /* antes de las 0:30 todavía no renueva */
         if(bk.ultimoResetLimite===hoy)return;  /* ya renovó hoy */
         if(!getDiasReset(b.nombre).includes(ds))return;
-        bk.limiteUsadoUSD=0;
+        /* v7.0.0 — Renovar ya no es poner el contador en cero: solo mueve la
+           fecha desde la cual cuentan las compras. El consumo se recalcula. */
         bk.ultimoResetLimite=hoy;
     });
 }
@@ -459,6 +460,9 @@ function recalcularLotesYGanancias(){
        recorrido que los lotes y el USDT. A partir de ahora los tres derivan de
        los eventos y ninguno puede quedar desincronizado de los otros. */
     if(typeof recalcularSaldosBancos==='function')recalcularSaldosBancos();
+    /* v7.0.0 — El cupo diario también: los tres —lotes, saldos y cupo— salen del
+       mismo recorrido y no pueden quedar desincronizados entre sí. */
+    if(typeof recalcularCuposDiarios==='function')recalcularCuposDiarios();
     invalidarGananciaCache();
     /* Listas dependen de ganancia/ops recalculadas → invalidar fingerprints también */
     if(typeof _invalidateListCache==='function')_invalidateListCache();

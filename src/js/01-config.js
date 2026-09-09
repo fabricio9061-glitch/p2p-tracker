@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '6.9.0',
+    APP_VERSION: '7.0.0',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -374,6 +374,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'7.0.0', date:'2026-08-24', headline:'♻️ El cupo diario se calcula solo, como los saldos y los lotes.', changes:[
+        {type:'improve', title:'El cupo consumido dejó de mantenerse a mano', desc:'Se llevaba sumando y restando en veintinueve lugares distintos: al comprar, al editar, al borrar, al revertir. Veintinueve puntos que tenían que estar todos de acuerdo, y esta misma semana fallaron dos de ellos: en un pago dividido se cargaba todo a una sola cuenta, y al borrar una compra no se devolvía. Peor: cuando quedaba mal no había manera de arreglarlo, había que esperar a que renovara al día siguiente. Ahora el cupo consumido no es un dato que haya que mantener, es el resultado de sumar las compras hechas desde la última renovación, y se recalcula en el mismo recorrido que los saldos y los lotes. Un cupo mal cargado se corrige solo al actualizar, y renovar dejó de significar poner el contador en cero: solo mueve la fecha desde la cual cuentan las compras.'},
+        {type:'improve', title:'Tercera regla con dueño único', desc:'Con esta ya son cuatro las reglas que dejaron de estar repetidas: la fecha de un registro, el efecto de cada evento sobre las cuentas, el efecto sobre la billetera y ahora el cupo diario. Cada una de las tres primeras dejó de producir fallas apenas se unificó. Quedan dos por hacer: el saldo de un banco y la interpretación del pago dividido.'}
+    ]},
     {version:'6.9.0', date:'2026-08-24', headline:'🔬 Revisión general: cuatro fallas encontradas con un verificador automático.', changes:[
         {type:'fix', title:'La comisión en 0% volvía sola a 0,14%', desc:'La comisión configurada se leía con un operador que trata el cero como si fuera un campo vacío, así que quien la tuviera en cero por ciento veía cómo se le reemplazaba por catorce centésimas cada vez que se guardaba o recalculaba una operación. Cero es un porcentaje perfectamente válido. Ahora solo se recurre al valor predeterminado cuando el campo realmente no está definido, y el porcentaje que se usó queda guardado dentro de cada operación para que los cálculos históricos no cambien si después modificás el predeterminado.'},
         {type:'fix', title:'Los meses archivados podían desaparecer de la pantalla', desc:'Cada mes archivado se guarda como un registro propio, pero el Historial se armaba leyendo un índice que vive dentro de la configuración. Si ese índice se perdía o quedaba incompleto, los meses seguían guardados en el servidor pero no aparecían por ningún lado, sin forma de recuperarlos. Es exactamente por eso que el Resumen Mensual conservaba los resultados y el Historial se veía vacío: el resumen lee otra fuente. Ahora se consulta directamente lo que hay guardado y, si aparece un mes que el índice no tenía, se lo reincorpora solo.'},
@@ -387,9 +391,6 @@ const CHANGELOG = [
     ]},
     {version:'6.8.1', date:'2026-08-23', headline:'🔨 Ahora sí: la subida forzada no se puede ignorar.', changes:[
         {type:'fix', title:'El otro dispositivo descartaba la subida en silencio', desc:'Cada dispositivo lleva su propio contador de guardados, y al recibir datos de la nube solo los acepta si ese número es mayor o igual al suyo. El que guardó más veces tiene el número más alto, así que descartaba lo que mandaba el otro sin ningún aviso: ganaba el que había usado más la aplicación, no el que tenía los datos correctos. Por eso apretar el botón en el teléfono no cambiaba nada en la computadora. Ahora la subida forzada hace dos cosas: lee primero el número que hay en la nube y escribe uno mayor que todos, y además marca el documento como impuesto, de modo que quien lo reciba lo acepta aunque su propio contador esté más alto. El guardado normal sigue funcionando igual que siempre.'}
-    ]},
-    {version:'6.8.0', date:'2026-08-23', headline:'📲 Podés decidir qué dispositivo tiene los datos correctos.', changes:[
-        {type:'new', title:'Imponer los datos de este dispositivo', desc:'Cuando el teléfono y la computadora muestran saldos distintos hay que poder decidir cuál tiene razón, y hasta ahora no había forma de hacerlo desde la aplicación. En la pantalla de verificación hay un botón que sube todo lo de este dispositivo y reemplaza lo guardado en la nube; el otro queda alineado al recargar. Antes de hacer nada muestra los saldos que va a imponer, el USDT y cuántos registros hay de cada tipo, para poder comprobar que es el dispositivo correcto. Está marcado en ámbar y aclara que solo debe usarse cuando otro aparato muestra saldos equivocados.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

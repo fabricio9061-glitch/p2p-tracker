@@ -110,10 +110,13 @@ const campos = 'comision|porcentaje|monto|limite|saldo';
 /* ── 6 · Reglas repetidas en demasiados lugares ──
    No es un error por sí mismo, pero es el terreno donde nacen: cuantos más
    lugares tengan que coincidir, más fácil es que uno quede atrás. */
+/* Se cuentan MODIFICACIONES, no lecturas. Leer un valor en muchos lugares es
+   normal; el riesgo está en que muchos lugares lo escriban, porque ahí es donde
+   uno puede quedar desalineado de los otros. */
 const reglas = {
-    'tocar el saldo de un banco': /bancos\[[^\]]+\]\.saldo\s*=/g,
+    'escribir el saldo de un banco': /bancos\[[^\]]+\]\.saldo\s*=(?!=)/g,
     'interpretar el pago dividido': /\.aportes\b/g,
-    'calcular el cupo diario': /limiteUsadoUSD/g,
+    'escribir el cupo diario': /limiteUsadoUSD\s*=(?!=)/g,
 };
 Object.entries(reglas).forEach(([n, re]) => {
     const c = (todoJS.match(re) || []).length;
