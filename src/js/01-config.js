@@ -42,7 +42,7 @@ const CONFIG = {
      * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
      * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '7.1.0',
+    APP_VERSION: '7.2.0',
     /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
        medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
     POR_PAGINA: 25,
@@ -174,7 +174,7 @@ function _compressOpForWire(op){
     /* aportes (split): mantener tal cual, los bancos internos se codifican
        igual que arriba pero como subobjetos. Es array chico (≤5 entradas
        típicamente), el ahorro de comprimirlos no compensa la complejidad. */
-    if(Array.isArray(op.aportes))out.ap=op.aportes;
+    if(esPagoDividido(op))out.ap=op.aportes;   /* v7.2.0 */
     /* timestamp: ELIMINADO del wire — se regenera al decodificar desde fecha+hora.
        Es campo derivable (no fuente de verdad). Ahorro ~136 KB. */
     /* Cualquier OTRO campo: copiar tal cual con prefijo "x_" para no chocar
@@ -374,6 +374,10 @@ _selftestWireCompression();
  * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'7.2.0', date:'2026-08-24', headline:'🏁 La última regla repetida ya tiene una sola función dueña.', changes:[
+        {type:'improve', title:'Quién pagó cuánto se responde en un solo lugar', desc:'Una compra puede pagarse desde una cuenta o repartida entre varias, y esa pregunta se respondía en diez lugares distintos, cada uno con su propia versión. De ahí salieron cuatro fallas en una sola semana: el saldo se descontaba a una cuenta que no había pagado, el cupo diario se cargaba entero a la principal, la validación pedía el total a una sola cuenta y rechazaba compras que sí entraban, y el resumen mostraba un saldo negativo imposible. Ahora hay una única función que devuelve siempre la lista de cuentas con lo que puso cada una, tenga la compra pago dividido o no, así que quien la usa no necesita saber la diferencia. También se retiró un bloque que había quedado completamente vacío al simplificar el borrado.'},
+        {type:'improve', title:'Las seis reglas quedaron con dueño único', desc:'Era el último de los seis casos que el verificador venía señalando: la fecha de un registro, el efecto sobre las cuentas, el efecto sobre la billetera, el cupo diario, el saldo de un banco y ahora el pago dividido. Cada uno dejó de producir fallas apenas se unificó. El verificador de coherencia informa cero problemas.'}
+    ]},
     {version:'7.1.0', date:'2026-08-24', headline:'🧹 Diecinueve ajustes de saldo redundantes, retirados.', changes:[
         {type:'improve', title:'El saldo dejó de tocarse a mano al editar y borrar', desc:'Desde que el saldo se reconstruye sumando los registros, los ajustes manuales que quedaban en los caminos de editar, borrar y cambiar de cuenta ya no servían para nada: el recálculo posterior los pisaba siempre. Se comprobó midiendo el resultado con y sin ellos en los tres escenarios —borrar una operación, cambiarle el monto y cambiarle la cuenta— y da exactamente lo mismo. Eran diecinueve líneas que había que mantener de acuerdo entre sí sin ningún beneficio, y donde ya nos había fallado el pago dividido en cuatro lugares distintos. Retirarlas no cambia ningún número y deja una sola función responsable del saldo.'},
         {type:'improve', title:'Queda una sola regla repetida', desc:'De las seis reglas que estaban escritas en muchos lugares a la vez, cinco ya tienen una única función dueña: la fecha de un registro, el efecto sobre las cuentas, el efecto sobre la billetera, el cupo diario y ahora el saldo. Cada una dejó de producir fallas apenas se unificó. La que queda es la interpretación del pago dividido, que es justamente la que más problemas dio.'}
@@ -388,10 +392,6 @@ const CHANGELOG = [
         {type:'fix', title:'Restaurar un respaldo perdía las correcciones de saldo', desc:'La lista de campos que se leen al importar un respaldo no incluía las correcciones manuales de saldo, así que al restaurar se perdían y las cuentas quedaban con los valores anteriores a esas correcciones. Lo mismo ocurría con la limpieza de marcas de sincronización, que dejaba esas correcciones marcadas como pendientes para siempre.'},
         {type:'fix', title:'La ganancia histórica se calculaba mal con comisión 0%', desc:'El mismo problema del cero descartado estaba también dentro del motor que reproduce todas las operaciones para recalcular ganancias y lotes. Una operación guardada con comisión cero entraba ahí, se la tomaba como vacía y se la reemplazaba por catorce centésimas: su ganancia quedaba mal calculada, y se volvía a calcular mal en cada actualización. Era el peor de los tres casos porque afectaba al historial completo, no solo a las operaciones nuevas.'},
         {type:'improve', title:'Verificador automático de coherencia', desc:'Casi todas las fallas de las últimas semanas tuvieron la misma forma: algo escrito a mano en dos lugares que tenían que coincidir, y uno quedó desactualizado. Se agregó una herramienta que busca esas incoherencias sola: botones sin nadie que responda, campos que el programa busca y no existen, listas de tipos de registro incompletas y reglas repetidas en demasiados lugares. Se ejecuta antes de publicar y encontró estas mismas fallas.'}
-    ]},
-    {version:'6.8.2', date:'2026-08-23', headline:'📬 Las correcciones de saldo por fin llegan al otro dispositivo.', changes:[
-        {type:'fix', title:'Se subían bien y se descartaban al recibirlas', desc:'Al convertir las correcciones de saldo en registros propios se actualizó el camino de subida pero no el de bajada. Una lista escrita a mano definía qué tipos de registro se reconstruyen con lo que llega del servidor, y las correcciones no estaban en ella: cada una que llegaba se descartaba sin dejar rastro. El resultado era desconcertante, porque la corrección se guardaba correctamente en la nube y simplemente nunca aparecía en el otro aparato, ni siquiera recargando o borrando la caché. Esa lista ahora se arma sola a partir de la tabla de tipos de registro, así que agregar uno nuevo no puede volver a dejarla desactualizada.'},
-        {type:'fix', title:'Las correcciones faltaban en el estado inicial', desc:'Después de un reseteo o de restaurar un respaldo, la lista de correcciones quedaba sin declarar y la aplicación tenía que crearla sobre la marcha. Ahora forma parte del estado inicial, como el resto.'}
     ]},
 ];
 /* ═══ Regla fija: solo las últimas N versiones viven en el bundle ═══

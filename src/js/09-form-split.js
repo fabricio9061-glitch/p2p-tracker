@@ -610,8 +610,8 @@ async function eliminarOperacion(id){
        en el recálculo. Antes había que acordarse de revertirlo a mano acá. */
     const deltas={bancos:{}};
     if(op.tipo==='compra'){
-        if(Array.isArray(op.aportes)&&op.aportes.length){
-            op.aportes.forEach(a=>{
+        if(esPagoDividido(op)){
+            aportesDe(op).forEach(a=>{
                 deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)+a.monto;
             });
             if(op.comisionBanco>0)deltas.bancos[op.banco]=roundMoney((deltas.bancos[op.banco]||0)+op.comisionBanco);
@@ -629,11 +629,9 @@ async function eliminarOperacion(id){
     }
     if(!confirm('¿Eliminar operación? Se recalcularán los lotes y ganancias.'))return;
     try{
-        if(op.tipo==='compra'){
-            if(Array.isArray(op.aportes)&&op.aportes.length){
-                op.aportes.forEach(a=>{});
-            }else if(op.banco&&AppState.datos.bancos[op.banco]){}
-            }
+        /* v7.2.0 — Acá se revertían los saldos y el cupo a mano. Ya no hace
+           falta: al sacar la operación de la lista, el recálculo los reconstruye
+           sin ella. El bloque quedaba vacío. */
         AppState.datos.operaciones=AppState.datos.operaciones.filter(o=>o.id!==id);
         recalcularLotesYGanancias();actualizarVista();
         verificarIntegridadGlobal();
@@ -645,7 +643,7 @@ function abrirEditarOperacion(id){
     const op=AppState.datos.operaciones.find(o=>o.id===id);if(!op)return;
     /* Cualquier operación con aportes (split pago) no puede editarse directamente — 
        hay que eliminar y recrear para mantener la coherencia de los saldos por banco */
-    if(Array.isArray(op.aportes)&&op.aportes.length>0){
+    if(esPagoDividido(op)){
         alert('Esta operación se pagó con múltiples cuentas. Por ahora no se puede editar directamente — eliminala y recreala si necesitás cambiarla.');
         return;
     }

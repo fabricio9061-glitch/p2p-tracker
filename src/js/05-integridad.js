@@ -107,12 +107,9 @@ function efectoEnBancos(tipo,ev){
         if(ev.tipo==='compra'){
             /* Pago dividido: cada cuenta aporta su parte. La comisión bancaria
                la cobra siempre la cuenta principal. */
-            if(Array.isArray(ev.aportes)&&ev.aportes.length){
-                ev.aportes.forEach(a=>sumar(a.banco,-(a.monto||0)));
-                sumar(ev.banco,-(ev.comisionBanco||0));
-            }else{
-                sumar(ev.banco,-((ev.monto||0)+(ev.comisionBanco||0)));
-            }
+            /* v7.2.0 — Una sola forma de saber quién pagó cuánto */
+            aportesDe(ev).forEach(a=>sumar(a.banco,-a.monto));
+            sumar(ev.banco,-(ev.comisionBanco||0));
         }else{
             sumar(ev.banco,ev.monto||0);
         }
@@ -265,10 +262,7 @@ function recalcularCuposDiarios(){
     (AppState.datos.operaciones||[]).forEach(op=>{
         if(!op||op.tipo!=='compra')return;
         /* Cada cuenta que aportó consume su parte; sin pago dividido, todo el monto */
-        const partes=(Array.isArray(op.aportes)&&op.aportes.length)
-            ? op.aportes.map(a=>({banco:a.banco,monto:a.monto||0}))
-            : [{banco:op.banco,monto:op.monto||0}];
-        partes.forEach(p=>{
+        aportesDe(op).forEach(p=>{
             if(usado[p.banco]===undefined||usado[p.banco]===null)return;
             const desde=_cupoDesde(p.banco);
             if(desde&&String(op.fecha||'')<String(desde))return;   /* anterior a la renovación */

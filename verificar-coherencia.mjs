@@ -115,7 +115,10 @@ const campos = 'comision|porcentaje|monto|limite|saldo';
    uno puede quedar desalineado de los otros. */
 const reglas = {
     'escribir el saldo de un banco': /bancos\[[^\]]+\]\.saldo\s*=(?!=)/g,
-    'interpretar el pago dividido': /\.aportes\b/g,
+    /* Se cuenta INTERPRETAR el dato (preguntar si hay pago dividido), no crearlo
+       ni leerlo desde su función dueña. Esa pregunta repetida fue la que produjo
+       cuatro fallas distintas en una sola semana. */
+    'interpretar el pago dividido': /Array\.isArray\(\w*\.aportes\)/g,
     'escribir el cupo diario': /limiteUsadoUSD\s*=(?!=)/g,
 };
 Object.entries(reglas).forEach(([n, re]) => {

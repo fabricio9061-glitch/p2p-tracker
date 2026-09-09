@@ -28,6 +28,33 @@ function roundMoney(n,d=2){if(isNaN(n)||!isFinite(n))return 0;const r=Number(Mat
 /* truncUsdt: truncar a 2dp — uso conservador para FIFO, lotes, saldos internos */
 function truncUsdt(n){return truncar(n,2)}
 
+/* ═══ v7.2.0 — Quién pagó cuánto en una operación ═══
+   Una compra puede pagarse desde una sola cuenta o repartida entre varias. Esa
+   pregunta se respondía en diez lugares distintos, cada uno con su propia
+   versión de `si tiene aportes... si no...`, y de ahí salieron cuatro fallas en
+   una sola semana: el saldo se descontaba a una cuenta que no pagó, el cupo se
+   cargaba entero a la principal, la validación pedía el total a una sola y el
+   resumen mostraba un saldo negativo imposible.
+
+   Ahora la respuesta es una sola. Devuelve siempre una lista de {banco, monto},
+   tenga la operación pago dividido o no, así quien la use no necesita saber la
+   diferencia. La comisión bancaria no entra acá: la cobra siempre la cuenta
+   principal, y eso lo resuelve quien corresponda. */
+function aportesDe(op){
+    if(!op)return[];
+    if(Array.isArray(op.aportes)&&op.aportes.length){
+        return op.aportes
+            .filter(a=>a&&a.banco)
+            .map(a=>({banco:a.banco,monto:Number(a.monto)||0}));
+    }
+    return op.banco?[{banco:op.banco,monto:Number(op.monto)||0}]:[];
+}
+
+/* Verdadero si el pago se repartió entre varias cuentas */
+function esPagoDividido(op){
+    return !!(op&&Array.isArray(op.aportes)&&op.aportes.length);
+}
+
 /* ═══ v6.9.0 — La comisión configurada, respetando el cero ═══
    Se leía con `comisionPlataforma||0.14`. Ese operador toma el cero como si
    fuera un valor vacío, así que quien tuviera la comisión en 0% veía cómo se le
@@ -130,7 +157,7 @@ function aplicarOpsFilters(ops){
         /* Banco: considera op.banco y aportes si hay split */
         if(f.banco!=='all'){
             let match=op.banco===f.banco;
-            if(!match&&Array.isArray(op.aportes))match=op.aportes.some(a=>a.banco===f.banco);
+            if(!match)match=aportesDe(op).some(a=>a.banco===f.banco);
             if(!match)return false;
         }
         if(f.resultado!=='all'){
@@ -152,7 +179,7 @@ function _bancosEnOperaciones(){
     const set=new Set();
     AppState.datos.operaciones.forEach(op=>{
         if(op.banco)set.add(op.banco);
-        if(Array.isArray(op.aportes))op.aportes.forEach(a=>a.banco&&set.add(a.banco));
+        aportesDe(op).forEach(a=>set.add(a.banco));
     });
     return [...set];
 }
