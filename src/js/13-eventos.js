@@ -12,14 +12,14 @@ function importarDatos(){
                 /* Aceptar formato nuevo (con _meta.datos) o legacy (datos directos) */
                 const datos=parsed.datos&&parsed._meta?parsed.datos:parsed;
                 /* Validación estructural */
-                if(!datos||typeof datos!=='object'){alert('❌ Archivo inválido: no es un objeto JSON de datos.');return}
+                if(!datos||typeof datos!=='object'){alert('Archivo inválido: no contiene datos de la app.');return}
                 /* v6.9.0 — ajustesSaldo faltaba acá: al restaurar un respaldo las
                    correcciones manuales de saldo se perdían y las cuentas quedaban
                    con los valores anteriores a esas correcciones. */
                 const camposRequeridos=['operaciones','movimientos','transferencias','conversiones','ajustesSaldo','bancos','lotes'];
                 const faltantes=camposRequeridos.filter(c=>datos[c]===undefined);
                 if(faltantes.length===camposRequeridos.length){
-                    alert('❌ Archivo inválido: no contiene ninguno de los campos esperados (operaciones, bancos, etc.).');return;
+                    alert('Archivo inválido: no tiene operaciones, cuentas ni ningún otro dato de la app.');return;
                 }
                 /* Normalizar campos faltantes para que la app no reviente */
                 camposRequeridos.forEach(c=>{if(datos[c]===undefined)datos[c]=(c==='bancos')?{}:[]});
@@ -29,7 +29,7 @@ function importarDatos(){
                     if(!Array.isArray(datos[c]))tiposMal.push(c);
                 });
                 if(typeof datos.bancos!=='object'||Array.isArray(datos.bancos))tiposMal.push('bancos');
-                if(tiposMal.length){alert('❌ Archivo con tipos inválidos en: '+tiposMal.join(', '));return}
+                if(tiposMal.length){alert('El archivo está dañado en: '+tiposMal.join(', '));return}
                 /* Validar que los montos numéricos sean realmente números */
                 let numericosMal=0;
                 (datos.operaciones||[]).forEach(op=>{
@@ -40,20 +40,20 @@ function importarDatos(){
                     if(typeof m.monto!=='number'||!isFinite(m.monto))numericosMal++;
                 });
                 if(numericosMal>0){
-                    if(!confirm(`⚠️ Se detectaron ${numericosMal} campos numéricos inválidos en el archivo. Esto puede causar errores de cálculo.\n\n¿Importar de todos modos?`))return;
+                    if(!confirm(`El archivo tiene ${numericosMal} montos o tasas inválidos y los cálculos podrían salir mal.\n\n¿Importar igual?`))return;
                 }
                 if(esDatosVacios(datos)){
-                    alert('⚠️ El archivo contiene un estado vacío. No se importará — sería destructivo.');return;
+                    alert('El archivo está vacío: no se importa para no borrar tus datos.');return;
                 }
                 /* Resumen + confirmación */
                 const meta=parsed._meta||{};
                 let resumen=`¿Importar este respaldo?\n\n`;
-                if(meta.user)resumen+=`👤 Usuario: ${meta.user}\n`;
+                if(meta.user)resumen+=`Usuario: ${meta.user}\n`;
                 if(meta.exported_at){
-                    try{resumen+=`📅 Exportado: ${new Date(meta.exported_at).toLocaleString('es-UY')}\n`}catch(e){}
+                    try{resumen+=`Exportado: ${new Date(meta.exported_at).toLocaleString('es-UY')}\n`}catch(e){}
                 }
-                if(meta.version)resumen+=`🏷️ App v${meta.version}\n`;
-                resumen+=`\n📊 Contenido:\n`
+                if(meta.version)resumen+=`Versión de la app: ${meta.version}\n`;
+                resumen+=`\nContenido:\n`
                     +`  • ${(datos.operaciones||[]).length} operaciones\n`
                     +`  • ${(datos.movimientos||[]).length} ajustes\n`
                     +`  • ${(datos.transferencias||[]).length} transferencias\n`
@@ -64,7 +64,7 @@ function importarDatos(){
                 if(meta.user){
                     const actual=emailToUser(AppState.currentUser.email);
                     if(meta.user!==actual){
-                        resumen+=`⚠️ ATENCIÓN: este archivo es del usuario "${meta.user}" pero estás logueado como "${actual}".\n`
+                        resumen+=`ATENCIÓN: este archivo es del usuario "${meta.user}" y estás con la cuenta "${actual}".\n`
                             +`Si confirmás, los datos se aplicarán a tu cuenta actual.\n\n`;
                     }
                 }
@@ -73,10 +73,10 @@ function importarDatos(){
                 await _aplicarRespaldo(datos,'importado desde archivo');
             }catch(ex){
                 console.error('[P2P] Error importando:',ex);
-                alert('❌ Error al leer el archivo: '+(ex.message||'formato inválido'));
+                alert('No se pudo leer el archivo: '+(ex.message||'formato inválido'));
             }
         };
-        reader.onerror=()=>alert('❌ Error al leer el archivo.');
+        reader.onerror=()=>alert('No se pudo leer el archivo.');
         reader.readAsText(file);
     });
     input.click();

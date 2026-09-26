@@ -1,0 +1,20 @@
+rules_version = '2';
+// Reglas de seguridad de Firestore — Registro P2P (v7.3.0)
+// Cada usuario puede leer y escribir SOLO lo suyo: su documento users/{uid}
+// y todo lo que cuelga de él (eventos, archivo, monthly_summaries). Nadie puede
+// leer ni tocar los datos de otra persona, aunque conozca su identificador.
+// Se pegan en Firebase Console → Firestore Database → Reglas → Publicar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /{subcoleccion=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+    // Cualquier otra ruta queda cerrada
+    match /{documento=**} {
+      allow read, write: if false;
+    }
+  }
+}

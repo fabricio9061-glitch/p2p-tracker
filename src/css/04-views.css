@@ -131,7 +131,6 @@
             .col-left .op-summary-row.main{font-size:0.88em;padding:2px 0}
             .col-left .op-btn-wrap{margin-top:6px;padding:4px 0 0}
             .col-left .op-btn-wrap .btn{padding:9px 14px;font-size:0.85em}
-            .col-left .op-meta{font-size:0.6em}
             .col-left .com-row{font-size:0.95em;padding:5px 8px}
             .col-left .com-edit input{font-size:0.78em;width:32px}
             .col-left .toggle-header{padding:8px 10px}
@@ -190,7 +189,6 @@
             .r2-c1{font-size:0.74em;color:var(--c-text-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
             .r2-c2{font-size:0.74em;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
             /* Comisión: discreta también en desktop — reset de reglas mobile para encajar en la grid */
-            .r2-com{font-size:0.7em;color:var(--c-text-mute);white-space:nowrap;font-weight:500;letter-spacing:-0.2px;background:none;padding:0;margin:0;border-radius:0}
             .r2-banco{font-size:0.72em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
             .r2-fecha{font-size:0.68em;color:#b0b8c4;text-align:right;white-space:nowrap}
             .r2 span{font-size:inherit}
@@ -277,8 +275,6 @@
         .resumen-mes.collapsed .resumen-header{border-bottom:none}
         .resumen-mes.collapsed .resumen-ganancia-value{font-size:1.1em;margin-top:0}
         .resumen-mes.collapsed .resumen-ganancia-label{display:none}
-        .resumen-mes.collapsed .resumen-header-inline{display:flex;justify-content:space-between;align-items:center;gap:10px}
-        .resumen-header-inline{display:none}
         /* Mini chart card inside each month */
         .resumen-chart-card{margin-top:12px;padding:12px;background:var(--c-surface-2);border:1px solid var(--c-border-soft);border-radius:10px}
         .resumen-chart-title{font-size:0.64em;color:var(--c-text-mute);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
@@ -510,20 +506,11 @@
         .rec-linea .n{color:var(--c-text-soft)}
         .rec-linea .v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 
-        .rec-diff{background:var(--c-surface-2);border:1px solid var(--c-border);
-            border-radius:11px;padding:11px 13px;margin-bottom:8px}
-        .rec-diff .c{font-weight:750;margin-bottom:6px}
-        .rec-diff .fila{display:flex;justify-content:space-between;gap:10px;
-            font-size:0.84em;padding:2px 0}
-        .rec-diff .fila span:last-child{font-variant-numeric:tabular-nums;font-weight:600}
-        .rec-diff .delta{color:var(--c-danger)}
-
         .rec-acciones{display:flex;gap:9px;margin-top:15px}
         .rec-acciones button{flex:1;min-height:46px;border-radius:11px;border:none;
             font:inherit;font-weight:700;font-size:0.9em;cursor:pointer;touch-action:manipulation}
         .rec-acciones .sec{background:var(--c-border-soft);color:var(--c-text-soft)}
         .rec-acciones .pri{background:var(--c-brand);color:#fff}
-        .rec-nota{font-size:0.79em;color:var(--c-text-mute);margin-top:11px;line-height:1.45}
 
 
         /* Otras verificaciones, dentro de la misma pantalla (v5.8.1) */

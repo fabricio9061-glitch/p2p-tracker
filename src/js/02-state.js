@@ -1,27 +1,6 @@
+/* Últimas N versiones del registro de cambios, para el centro de novedades */
 function normalizarChangelog(){
-    /* Advertencia de mantenimiento — no rompe nada, solo avisa al dev */
-    if(CHANGELOG.length>CHANGELOG_MAX_ENTRIES&&!normalizarChangelog._warned){
-        normalizarChangelog._warned=true;
-        console.warn(`[P2P] CHANGELOG tiene ${CHANGELOG.length} entradas — retirar las más viejas para mantener solo las últimas ${CHANGELOG_MAX_ENTRIES}.`);
-    }
-    /* CAP defensivo: aunque el array crezca, solo se expone ventana N */
-    const capped=CHANGELOG.slice(0,CHANGELOG_MAX_ENTRIES);
-    /* Convierte entradas legacy con changes:[string] al formato {type,title,desc}.
-       Detecta type por keywords; default 'improve'. */
-    return capped.map(entry=>{
-        if(!entry.changes)return entry;
-        const norm=entry.changes.map(ch=>{
-            if(typeof ch==='object'&&ch.title)return ch;
-            const s=String(ch);
-            const lower=s.toLowerCase();
-            let type='improve';
-            if(/^(fix|bug|auditor[ií]a)\b/i.test(s)||lower.includes(' fix ')||lower.startsWith('fix:'))type='fix';
-            else if(/^(perf|cache|optim)/i.test(s)||lower.includes('perf:'))type='perf';
-            else if(/^(nuev[oa]|agreg|implement|edici[oó]n)/i.test(s)||lower.includes('feature'))type='feature';
-            return{type,title:s,desc:''};
-        });
-        return{...entry,changes:norm};
-    });
+    return CHANGELOG.slice(0,CHANGELOG_MAX_ENTRIES);
 }
 
 /* ═══════════════════════════════════════
@@ -32,7 +11,6 @@ const AppState = {
     datos: null,
     _localVersion: 0,
     _datosStale: false,
-    _postRestoreLockTs: 0,
     ui: { bancoEditando:null, tipoMovimiento:'ingreso', calendarDate:new Date(),
           loteEditandoId:null, paginaOp:1, paginaMov:1, paginaTrans:1, paginaConv:1,
           guardandoMovimiento:false, guardandoLote:false, guardandoOperacion:false, guardandoTransferencia:false,
@@ -59,8 +37,21 @@ const $ = id => document.getElementById(id);
 const setText = (id, t) => { const e=$(id); if(e) e.textContent=t; };
 const setHtml = (id, h) => { const e=$(id); if(e) e.innerHTML=h; };
 
-function abrirModal(id) { $(id)?.classList.add('active'); document.body.style.overflow='hidden'; }
-function cerrarModal(id) { $(id)?.classList.remove('active'); if(!document.querySelector('.modal.active'))document.body.style.overflow=''; }
+/* v7.3.0 — El último modal que se abre queda arriba. Antes el orden dependía
+   del lugar en la página: abrir una operación desde el libro de una cuenta la
+   dejaba escondida detrás del libro. */
+let _modalCapa=0;
+function abrirModal(id){
+    const m=$(id);if(!m)return;
+    if(!document.querySelector('.modal.active'))_modalCapa=0;
+    m.style.zIndex=String(1000+Math.min(40,++_modalCapa));
+    m.classList.add('active');
+    document.body.style.overflow='hidden';
+}
+function cerrarModal(id){
+    $(id)?.classList.remove('active');
+    if(!document.querySelector('.modal.active')){document.body.style.overflow='';_modalCapa=0}
+}
 
 /* ═══ Success confirmation overlay ═══ */
 let _successTimer=null;
@@ -133,10 +124,10 @@ function inicializarConectividad(){
            que quedó diferido por estar offline. El snapshot re-sincronizará el servidor. */
         if(AppState.ui.syncState==='offline')reconnectFirebase();
         /* Si quedó pending local por offline, re-disparar guardado con debounce */
-        if(_syncQueue.length>0||_localDirty>0)guardaOptimista('resync','pending','online');
+        if(_syncQueue.length>0)guardaOptimista('resync','pending','online');
         /* Reevaluar el estado del badge: si la red ya está OK, no debe quedar 
            "Error al reconectar" pegado de un evento viejo. */
-        if(typeof _syncLog==='function')_syncLog('connectivity:online',{queue:_syncQueue.length,dirty:_localDirty});
+        if(typeof _syncLog==='function')_syncLog('connectivity:online',{queue:_syncQueue.length});
         setTimeout(()=>{
             if(typeof repairOrphanPendingStates==='function')repairOrphanPendingStates();
             if(typeof reevaluarEstadoSync==='function')reevaluarEstadoSync();
@@ -178,8 +169,10 @@ async function verificarCambioMes(){
     const hoy=getUDate(),mesActual=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
     const ultimoMes=AppState.datos.ultimoMesProcesado||'';
     if(!ultimoMes){
+        /* v7.3.0 — Con guardaOptimista: guardarDatos() sin nada anotado no
+           escribía nada y el mes quedaba sin registrar. */
         AppState.datos.ultimoMesProcesado=mesActual;
-        await guardarDatos();return;
+        guardaOptimista('update','config','ultimoMesProcesado');return;
     }
     if(ultimoMes>=mesActual)return;
     try{
@@ -252,7 +245,7 @@ async function verificarCambioMes(){
         batch.set(userRef.collection('monthly_summaries').doc(ultimoMes),snapshot);
         batch.update(userRef,{ultimoMesProcesado:mesActual});
         await batch.commit();
-        CONFIG.BANCOS.forEach(b=>{if(AppState.datos.bancos[b.nombre])AppState.datos.bancos[b.nombre].limiteUsadoUSD=0});
+        /* El cupo diario no se toca: sale del recálculo (v7.0.0) */
         AppState.datos.ultimoMesProcesado=mesActual;
         console.log('[P2P] Resumen mensual guardado:',ultimoMes);
     }catch(e){console.error('[P2P] Error guardando resumen mensual:',e)}

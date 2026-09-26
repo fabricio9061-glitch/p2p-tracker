@@ -9,7 +9,7 @@
            alineados. Se aplica al contenedor y se hereda: una sola regla en vez
            de enumerar cada clase que muestra dinero, y fácil de revertir.
            No cambia ningún valor, solo cómo se dibujan los dígitos. */
-        .container,.modal,.op-card,.banco-card{font-variant-numeric:tabular-nums}
+        .container,.modal,.op-card{font-variant-numeric:tabular-nums}
 
         .container{max-width:1400px;margin:0 auto;padding:18px 16px 30px;padding-top:max(env(safe-area-inset-top,0px) + 12px,28px);padding-bottom:max(env(safe-area-inset-bottom,0px) + 18px,30px);width:100%}
 
@@ -80,7 +80,6 @@
         .news-version-num{font-size:0.95em;font-weight:800;color:var(--c-text);letter-spacing:0.3px}
         .news-version-date{font-size:0.7em;color:var(--c-text-mute);font-weight:600}
         .news-version-badge{font-size:0.6em;font-weight:700;background:var(--c-danger);color:white;padding:2px 7px;border-radius:8px;text-transform:uppercase;letter-spacing:0.5px;margin-left:auto}
-        .news-version-badge.seen{display:none}
         /* Dismiss (×) para ocultar una versión — persistente en Firebase */
         .news-dismiss{
             margin-left:6px;

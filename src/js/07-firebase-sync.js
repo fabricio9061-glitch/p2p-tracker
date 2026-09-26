@@ -14,7 +14,7 @@ function renderizarInventario(){
     const la=getLotesActivosFIFO();
     if(!la.length){setHtml('inventarioContent','<div style="text-align:center;padding:30px;color:#94a3b8"><div style="margin-bottom:8px"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></div><div>Sin USDT en inventario</div></div>');return}
     let tot=0,h='';
-    la.forEach((l,i)=>{tot=truncar(tot+l.disponible,2);const mon=l.moneda||'UYU',sy=getSym(mon),v=roundMoney(l.disponible*l.precioCompra,2);
+    la.forEach((l,i)=>{tot=roundMoney(tot+l.disponible);const mon=l.moneda||'UYU',sy=getSym(mon),v=roundMoney(l.disponible*l.precioCompra,2);
         const tag=l.manual?'<span style="display:inline-block;font-size:0.6em;background:#e0e7ff;color:#4338ca;padding:1px 5px;border-radius:4px;font-weight:600;vertical-align:middle;margin-left:4px;letter-spacing:0.3px">manual</span>':'';
         h+=`<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:13px 0;${i>0?'border-top:1px solid #f1f5f9':''}">
             <div style="min-width:0">
@@ -28,7 +28,7 @@ function renderizarInventario(){
                     <span>Valor: <b style="color:#475569">${sy}${fmtNum(v,2)}</b></span>
                 </div>
             </div>
-            ${l.manual?`<button class="btn-edit-small" style="padding:6px 10px;min-height:30px;flex-shrink:0" data-action="editar-lote" data-lote-id="${l.id}">✏️</button>`:''}
+            ${l.manual?`<button class="btn-edit-small" style="padding:6px 10px;min-height:34px;flex-shrink:0" data-action="editar-lote" data-lote-id="${escHtml(String(l.id))}" aria-label="Editar lote">${ICO_EDITAR}</button>`:''}
         </div>`});
     h+=`<div style="margin-top:14px;padding:13px 16px;background:#f0f9ff;border:1px solid #e0f2fe;border-radius:10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:0.78em;color:#64748b">Total inventario</span><span style="font-size:1.05em;font-weight:700;color:#2563eb">${fmtTrunc(tot,2)} USDT</span></div>`;
     setHtml('inventarioContent',h);
@@ -40,7 +40,7 @@ function renderizarInventario(){
 function userToEmail(u){return u.toLowerCase().trim()+CONFIG.EMAIL_DOMAIN}
 function emailToUser(e){return e.replace(CONFIG.EMAIL_DOMAIN,'')}
 
-let _guardando=false,_guardarPendiente=false,_syncPending=0,_syncErrors=0,_retryTimer=null,_retryDelay=2000,_localDirty=0;
+let _guardando=false,_guardarPendiente=false,_syncPending=0,_syncErrors=0,_retryTimer=null,_retryDelay=2000;
 
 /* ─── Sync queue: tracks what's pending ─── */
 const _syncQueue=[];/* [{type:'create'|'delete'|'update',entity:string,id:string,ts:number}] */
@@ -51,18 +51,20 @@ const _syncQueue=[];/* [{type:'create'|'delete'|'update',entity:string,id:string
    la pestaña en esa ventana, esa edición se perdía pese a la promesa de "backup
    inmediato". Con _mutSeq, cada mutación fuerza un backup nuevo. */
 let _mutSeq=0;
-const _SYNC_QUEUE_MAX=500;/* Cap defensivo: en escenarios offline largos, la queue 
-   podría crecer sin tope. 500 es 10x más de lo que un usuario real genera 
-   en una sesión típica — suficiente como red de seguridad sin perder casos reales. */
+/* ═══ v7.3.0 — Sin tope en la cola ═══
+   Había un tope de 500 que descartaba las entradas más viejas, con el argumento
+   de que la cola solo servía para el punto amarillo. Desde el modelo v2 no es
+   así: la cola es la lista de lo que hay que subir, y lo que se descartaba no
+   llegaba nunca al servidor (pasaba con muchos cambios sin conexión o al
+   fusionar una categoría muy usada). Una misma entrada repetida se guarda una
+   sola vez: la escritura toma siempre el estado actual del registro. */
 function enqueueSync(type,entity,id){
     _mutSeq++;
-    _syncQueue.push({type,entity,id,ts:Date.now(),_t:performance.now()});
-    /* Si excede el cap, descartar el más viejo (FIFO) — los entries antiguos solo
-       sirven para tracking visual del dot pulsante; el sync real de datos NO depende
-       del syncQueue (depende de _localDirty + _version). */
-    if(_syncQueue.length>_SYNC_QUEUE_MAX){
-        _syncQueue.splice(0,_syncQueue.length-_SYNC_QUEUE_MAX);
-    }
+    const ultima=_syncQueue[_syncQueue.length-1];
+    /* Nunca se fusiona con una entrada que ya está viajando: esa escritura
+       lleva el estado de antes y este cambio tiene que salir en la próxima. */
+    if(!(ultima&&!ultima.enVuelo&&ultima.type===type&&ultima.entity===entity&&String(ultima.id)===String(id)))
+        _syncQueue.push({type,entity,id,ts:Date.now(),_t:performance.now()});
     if(typeof _syncLog==='function')_syncLog('enqueue',{type,entity,id:safeIdTail(id,12),queueSize:_syncQueue.length});
     /* Marca la entidad como _syncState:'pending' — visible como dot sutil en la lista.
        'synced' es el default (no se setea para no inflar el doc en Firestore — la ausencia 
@@ -90,9 +92,8 @@ function enqueueSync(type,entity,id){
    
    Reglas para decidir si un pending es "huérfano":
    1. No hay entry en _syncQueue para ese id
-   2. _localDirty === 0
-   3. _localVersion === AppState.datos._version (sincronizados con server)
-   4. !_guardando && !_guardarPendiente (nada en flight ni encolado)
+   2. _localVersion === AppState.datos._version (sincronizados con server)
+   3. !_guardando && !_guardarPendiente (nada en flight ni encolado)
    
    Si TODAS las condiciones se cumplen, NO HAY RAZÓN para tener _syncState='pending'.
    El item ya está confirmado, el flag es solo "deuda visual" de un ciclo viejo.
@@ -104,7 +105,6 @@ function enqueueSync(type,entity,id){
 function repairOrphanPendingStates(){
     /* Salvavidas: si CUALQUIER condición de "no es seguro limpiar" se cumple, abortamos.
        Mejor dejar dots amarillos transitorios que limpiar pending real → datos perdidos. */
-    if(_localDirty>0)return 0;
     if(_guardando||_guardarPendiente)return 0;
     if(AppState._datosStale)return 0;
     const dataVersion=(AppState.datos&&AppState.datos._version)||0;
@@ -136,7 +136,7 @@ function repairOrphanPendingStates(){
    §STATE-RECOVERY — "Error al reconectar" no debe quedar pegado
    ═══════════════════════════════════════════════════════════════════
    Si el listener está activo, la versión local matchea con la del documento,
-   no hay nada en _syncQueue ni _localDirty, y el SDK no reporta recovery:
+   no hay nada en _syncQueue y el SDK no reporta recovery:
    el sistema YA está reconectado. Cualquier _syncErrors residual es ruido.
    Esta función verifica el estado real y baja el badge si corresponde. */
 function reevaluarEstadoSync(){
@@ -145,7 +145,7 @@ function reevaluarEstadoSync(){
     /* Síntomas de que en realidad estamos OK aunque el badge diga error */
     const listenerActivo=AppState.unsubscribe!==null&&AppState.unsubscribe!==undefined;
     const versionesMatch=AppState._localVersion===((AppState.datos&&AppState.datos._version)||0);
-    const sinPending=_syncQueue.length===0&&_localDirty===0;
+    const sinPending=_syncQueue.length===0;
     const sinFlight=!_guardando&&!_guardarPendiente;
     const online=navigator.onLine;
     if(listenerActivo&&versionesMatch&&sinPending&&sinFlight&&online&&_syncErrors>0){
@@ -177,77 +177,6 @@ function _syncLog(event,payload){
     }catch(e){/* no-op */}
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   §AUDIT-COMISION — Verificación de derivabilidad de comisionPlataforma
-   ═══════════════════════════════════════════════════════════════════
-   Objetivo: determinar si comisionPlataforma puede stripearse del payload
-   remoto sin perder trazabilidad financiera. Se considera "derivable" sí y
-   solo sí, para CADA operación, vale:
-     
-     comisionPlataforma guardada == truncar(usdtBase × comisionPct/100, 2)
-   
-   donde usdtBase = roundMoney(monto/tasa, 2) para compras
-                    truncar(monto/tasa, 2)    para ventas
-   
-   Esta es LA fórmula canónica que usa recalcularLotesYGanancias (línea ~3611).
-   
-   Categorías de discrepancia:
-     - exact:        100% coincidencia (centavo a centavo)
-     - tolerance:    discrepancia ≤0.01 USDT (redondeo aceptable)
-     - small:        0.01 < discrepancia ≤0.10 USDT (sospechoso pero menor)
-     - significant:  discrepancia >0.10 USDT (PRESERVAR comisionPlataforma)
-     - missing-pct:  op sin comisionPct (legacy, fórmula no aplicable)
-     - missing-cp:   op sin comisionPlataforma (campo ausente)
-     - invalid:      datos malformados (tasa<=0, monto<=0, etc)
-   
-   Verdict:
-     - SAFE-TO-STRIP: si todas las ops son exact o tolerance
-     - DO-NOT-STRIP:  si hay ANY small/significant/missing-pct */
-/* ════════════════════════════════════════════════════════════════
-   §AUDITORÍA SPLITS v4.7.59 — Detectar ops con split corrupto
-   ════════════════════════════════════════════════════════════════
-   Investiga si existen operaciones con aportes corruptos por el bug
-   de "fila de split con banco vacío" que pudo haberse disparado en
-   versiones anteriores. Detecta:
-     - ops con campo aportes presente pero algún aporte sin banco
-     - ops con campo aportes pero algún banco no existe en CONFIG
-     - ops sin aportes que parecen incoherentes (saldo banco insuficiente
-       en momento de la op vs monto, indicio de que faltó split)
-
-   Pura LECTURA — no muta nada. Devuelve un reporte para revisar.
-   Es herramienta de diagnóstico, no de fix automático. El usuario
-   decide qué hacer con las ops detectadas (editar manual o borrar+rehacer).
-   ════════════════════════════════════════════════════════════════ */
-/* ════════════════════════════════════════════════════════════════
-   §AUDITORÍA COMPRESIÓN WIRE v4.7.63
-   ════════════════════════════════════════════════════════════════
-   Verifica que cada operación en memoria puede comprimirse y
-   descomprimirse sin pérdida. Pura lectura — no modifica nada.
-   
-   Reporta:
-     - cuántas ops pasaron el round-trip exacto
-     - cuántas tienen diff en algún campo crítico (y cuál)
-     - ahorro proyectado de tamaño
-   ════════════════════════════════════════════════════════════════ */
-
-
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   §PAYLOAD-AUDIT — Análisis exhaustivo de qué pesa en el documento
-   ═══════════════════════════════════════════════════════════════════
-   Mide tamaños reales (no estimaciones) de cada sección del payload.
-   Útil para identificar campos inflados, datos derivados accidentalmente
-   persistidos, arrays repetidos, metadata UI persistida, etc.
-   
-   Costo: ~30-100ms en mobile (un JSON.stringify por sección). Se ejecuta
-   bajo demanda desde el panel de diagnóstico, no en cada save. */
-/* Botón "Forzar sync" seguro:
-   - Si hay debounce pendiente → flush ahora
-   - Si _guardando es true → no hacer nada (ya está corriendo)
-   - Si hay items en _syncQueue pero nada corriendo → disparar guardarDatos
-   No duplica writes, no fuerza estado vacío, no toca _localVersion. */
-/* hasPendingLocal() retirada en v5.2.5: quedó sin usos al retirar el modelo v1. */
 /* Debounce: agrupa cambios rápidos (typing, sliders) en una sola escritura a Firebase.
    Window de 400ms — si la última mutación fue hace <400ms, espera.
    Si se superan 2000ms acumulados, flushea igual (safety net contra keyboards lentos). */

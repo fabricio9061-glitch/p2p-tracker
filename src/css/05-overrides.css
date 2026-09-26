@@ -74,25 +74,7 @@
         .card-compra [id^=total],.card-venta [id^=total]{font-size:1.05em!important;
             font-weight:800;letter-spacing:-0.02em}
 
-        /* ── Mis Saldos: scroll horizontal ── */
-        .bancos-total-card{background:#fff;border:1px solid #e8edf3;border-radius:16px;
-            padding:15px 18px;display:flex;align-items:center;justify-content:space-between;
-            margin-bottom:12px;box-shadow:0 1px 3px rgba(15,23,42,0.04)}
-        .bancos-total-card .bt-label{font-size:0.92em;font-weight:650;color:#334155;
-            display:flex;align-items:center;gap:8px}
-        .bancos-total-card .bt-value{font-size:1.25em;font-weight:800;color:#15803d}
-        .bancos-scroll{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 8px;
-            scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
-        .bancos-scroll::-webkit-scrollbar{height:0}
-        .bancos-scroll>*{scroll-snap-align:start;flex:0 0 auto;min-width:150px}
-
         /* ── Formulario Nueva Operación: quick amounts ── */
-        .quick-amounts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-        .quick-amt-btn{flex:1;min-width:62px;background:#f8fafc;border:1px solid #e8edf3;
-            border-radius:11px;padding:10px 4px;font-size:0.86em;font-weight:650;
-            color:#475569;cursor:pointer;text-align:center;transition:all 0.15s}
-        .quick-amt-btn:active{transform:scale(0.96)}
-        .quick-amt-btn.sel{background:#dbeafe;border-color:#3b82f6;color:#1d4ed8}
 
         @media(min-width:640px){
             .card.main-card{grid-column:span 2}
@@ -267,13 +249,6 @@
         #monto:focus,#tasa:focus,#comisionBanco:focus{
             border-color:var(--c-accent)!important;
             box-shadow:var(--sh-glow-accent)!important;outline:none}
-        .quick-amt-btn{border-radius:var(--r-pill);background:var(--c-surface-2);
-            border:1px solid var(--c-border);font-weight:var(--fw-semi);
-            color:var(--c-text-soft);padding:10px 6px;
-            transition:all var(--dur-fast) var(--ease-out)}
-        .quick-amt-btn:active{transform:scale(0.95)}
-        .quick-amt-btn.sel{background:var(--c-accent-soft);
-            border-color:var(--c-accent);color:var(--c-accent-strong)}
 
         /* ── Microinteracción global suave en cards del home ── */
         .cards .card,.cards-actividad .card-compra,.cards-actividad .card-venta{
@@ -330,26 +305,12 @@
         .hc-flat{color:var(--c-text-mute)!important}
         .hc-arrow{font-weight:var(--fw-bold);font-size:0.92em}
 
-        /* Botón "Ver detalle ›" — compacto, alineado a la derecha del grid */
-        .hoy-detail-btn{background:transparent;border:none;
-            color:var(--c-brand-strong);font-size:var(--fs-xs);
-            font-weight:var(--fw-semi);font-family:inherit;
-            padding:6px 4px;cursor:pointer;white-space:nowrap;
-            display:flex;align-items:center;gap:2px;
-            transition:opacity var(--dur-fast) var(--ease-out)}
-        .hoy-detail-btn:active{opacity:0.6}
-        .card.main-card.negative .hoy-detail-btn{color:#b91c1c}
-        .hd-chev{font-size:1.15em;font-weight:var(--fw-bold);
-            line-height:0.8;margin-left:1px}
-
         /* En pantallas muy chicas (<360px), si las 3 cajas + botón no entran,
            el botón pasa abajo a la derecha en una fila propia */
         @media(max-width:359px){
             #cardGananciaHoy .hoy-cells{
                 grid-template-columns:repeat(3,minmax(0,1fr));
                 grid-template-rows:auto auto}
-            .hoy-detail-btn{grid-column:1/-1;justify-self:end;
-                padding:2px 4px}
         }
 
         /* ── Chevron › en tarjetas de saldo (cosmético, indica clickeable) ── */
@@ -557,7 +518,6 @@
             .op-summary{padding:7px 10px!important;margin-top:6px!important}
             .op-summary-row{padding:2px 0!important;font-size:0.78em!important}
             .op-summary-row.main{padding:3px 0!important;font-size:0.95em!important}
-            .op-meta{font-size:0.66em!important}
 
             /* — Help text del banco más chico — */
             #bancoHelp,#tasaHelp{font-size:0.68em!important;
@@ -619,3 +579,81 @@
         /* v5.6.1 — La leyenda del gráfico dejó de ser texto visible: ahora acompaña
            al propio gráfico como información al mantenerlo presionado. Ocupaba dos
            renglones dentro de la tarjeta y le restaba protagonismo al número. */
+
+        /* ════════════════════════════════════════════════════════════════
+           §v7.3.0 — Menú, libro de cuentas, edición de registros
+           ════════════════════════════════════════════════════════════════ */
+        /* ── Menú: cuatro accesos grandes y filas que son botones ── */
+        .menu-panel-header .menu-back{display:flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0}
+        .menu-back .ico{width:22px;height:22px}
+        .menu-accesos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+        .menu-acceso{display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-height:94px;
+            padding:14px;border:1px solid var(--c-border);border-radius:14px;background:var(--c-surface);
+            font:inherit;color:var(--c-text);text-align:left;cursor:pointer;touch-action:manipulation;
+            -webkit-tap-highlight-color:transparent;transition:transform .12s,background .15s}
+        .menu-acceso:active{transform:scale(0.97);background:var(--c-surface-2)}
+        .menu-acceso-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center}
+        .menu-acceso-ico .ico{width:20px;height:20px}
+        .menu-acceso:nth-child(1) .menu-acceso-ico{background:#fef3c7;color:#b45309}
+        .menu-acceso:nth-child(2) .menu-acceso-ico{background:#ede9fe;color:#6d28d9}
+        .menu-acceso:nth-child(3) .menu-acceso-ico{background:#dbeafe;color:#1d4ed8}
+        .menu-acceso:nth-child(4) .menu-acceso-ico{background:#dcfce7;color:#15803d}
+        .menu-acceso-txt{font-size:0.9em;font-weight:650;line-height:1.2}
+        .menu-acceso-dato{font-size:0.74em;color:var(--c-text-mute);font-weight:550;font-variant-numeric:tabular-nums;margin-top:-5px}
+        .menu-acceso-dato:empty{display:none}
+        button.menu-row{width:100%;border:none;border-top:1px solid var(--c-border-soft);background:transparent;
+            font:inherit;text-align:left;color:inherit;-webkit-tap-highlight-color:transparent}
+        button.menu-row:first-child{border-top:none}
+        .menu-group-peligro{margin-top:30px;border-color:#fecaca}
+        .menu-row.danger .menu-row-icon{color:var(--c-danger)}
+        .menu-row.danger .menu-row-icon .ico{opacity:0.85}
+        .menu-acceso:focus-visible,button.menu-row:focus-visible,.movc-row[data-action]:focus-visible{outline:2px solid var(--c-accent);outline-offset:-2px}
+
+        /* ── Libro de cuentas: cada línea abre su registro ── */
+        .movc-row .movc-i{flex:1}
+        .movc-row[data-action]{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s}
+        .movc-row[data-action]:active{background:var(--c-surface-2)}
+        .movc-ir{color:var(--c-text-faint);font-size:1.3em;line-height:1;margin-left:-3px}
+
+        /* ── Eliminar un registro desde su formulario ── */
+        .btn-eliminar-registro{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;
+            margin-top:14px;min-height:44px;border:none;border-radius:11px;background:transparent;
+            color:var(--c-danger);font:inherit;font-weight:650;font-size:0.88em;cursor:pointer;touch-action:manipulation}
+        .btn-eliminar-registro:active{background:var(--c-danger-bg)}
+        .btn-eliminar-registro .ico{width:17px;height:17px}
+
+        /* ── Cajas informativas y detalles ── */
+        .caja-info{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;
+            margin-bottom:12px;font-size:0.85em;color:#1e40af;line-height:1.45}
+        .caja-info .ico{width:1em;height:1em;vertical-align:-0.12em}
+        .editar-op-info{font-size:0.8em;color:var(--c-text-soft);margin-bottom:10px}
+        .opcional{font-weight:400;color:var(--c-text-mute)}
+        .tags-nota{background:var(--c-surface-2);border-radius:8px;padding:8px 10px;margin-top:10px;font-size:0.72em;color:var(--c-text-soft)}
+        .btn.btn-conv{background:#7c3aed}
+        #loteDisponibleInfo{display:block;margin-top:6px;color:var(--c-text-soft)}
+        .inv-buttons{grid-template-columns:1fr 1fr}
+
+        /* ── Lista de cuentas: primero las que usás ── */
+        .banco-list-grupo{font-size:0.66em;font-weight:700;color:var(--c-text-mute);text-transform:uppercase;letter-spacing:0.6px;margin:4px 2px 8px}
+        .banco-list-grupo:not(:first-child){margin-top:18px}
+        .banco-list-info{min-width:0}
+        .banco-list-nombre{font-weight:650;font-size:0.92em}
+        .banco-list-mon{color:var(--c-text-mute);font-weight:500;font-size:0.85em}
+        .banco-list-saldo{color:var(--c-text-soft);font-size:0.84em;font-variant-numeric:tabular-nums;margin-top:1px}
+        .banco-list-lim{color:var(--c-text-mute);font-size:0.74em;margin-top:2px}
+        .banco-list-item.inactiva{background:transparent}
+        .banco-list-item.inactiva .banco-list-nombre{opacity:0.7}
+        .banco-list-actions .btn-edit-small .ico{width:17px;height:17px}
+
+        /* ── Cajas dentro de los modales en el teléfono ──
+           En pantalla completa, los hijos directos de un modal reciben relleno
+           lateral para alinearse. Las cajas con fondo o borde quedaban pegadas a
+           los bordes de la pantalla (el relleno quedaba adentro de la caja): se
+           separan con margen, igual que los campos. */
+        @media (max-width:767px){
+            .modal-content > :is(.caja-info,.com-row,.saldo-actual-box,.saldo-diff-box,.inv-fifo-note,.inv-verificar,.tag-search,.tags-nota,.merge-source,.merge-confirm,.mov-resumen,#movFifoPreview){
+                margin-left:16px;margin-right:16px;width:calc(100% - 32px);
+                padding-left:12px;padding-right:12px;box-sizing:border-box}
+            #modalInventario .modal-content > :is(.inv-fifo-note,.inv-verificar){margin-left:22px;margin-right:22px;width:calc(100% - 44px)}
+            .modal-content > .btn-eliminar-registro{margin:10px 16px 24px;width:calc(100% - 32px);padding:0}
+        }

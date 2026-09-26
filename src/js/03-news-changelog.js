@@ -5,7 +5,11 @@ function _renderCompareDiff(aDoc,bDoc,mesesCortos){
     const metric=(label,a,b,opts)=>{
         opts=opts||{};
         const diff=roundMoney(b-a);
-        const pct=a!==0?Math.round(Math.abs(diff/a*100)):(b!==0?100:0);
+        /* v7.3.0 — El porcentaje solo tiene sentido con dos valores del mismo
+           signo: de −$7.640 a +$3.229 no hay "un 142 % más". Cuando cruza el
+           cero (o parte de cero) se muestra la diferencia sola. */
+        const conPct=a!==0&&(a>0)===(b>0)&&b!==0;
+        const pct=conPct?Math.round(Math.abs(diff/a*100)):0;
         const arrow=diff>0?'↑':(diff<0?'↓':'→');
         const sign=diff>=0?'+':'-';
         const fmt=opts.fmt||(v=>'$'+fmtNum(v,0));
@@ -19,7 +23,7 @@ function _renderCompareDiff(aDoc,bDoc,mesesCortos){
                 <div class="compare-diff-values">${fmt(a)} → ${fmt(b)}</div>
             </div>
             <div></div>
-            <span class="compare-diff-change ${cls}">${arrow} ${sign}${fmt(Math.abs(diff)).replace('$','$')}${a!==0?' · '+pct+'%':''}</span>
+            <span class="compare-diff-change ${cls}">${arrow} ${sign}${fmt(Math.abs(diff))}${conPct?' · '+pct+'%':''}</span>
         </div>`;
     };
     const gnA=roundMoney((aDoc.gananciaTotal||0)-(aDoc.totalEgresoUYU||0)-(aDoc.comisionBancariaTotal||0));
@@ -278,19 +282,20 @@ async function cargarHistorialMensual(){
                 const resultadoTotal=roundMoney(gananciaNeta+ingresosExternos);
                 const gc=gananciaNeta>=0?'positive':'negative',gs=gananciaNeta>=0?'+':'-';
 
-                /* Variation vs previous month */
+                /* ═══ v7.3.0 — Contra el mes anterior, con su valor real ═══
+                   Se mostraba la diferencia con un porcentaje: "+$250.818 (356%)
+                   vs Jun". Al pasar de pérdida a ganancia ese porcentaje no dice
+                   nada, y la diferencia no es plata que se haya ganado. Ahora se
+                   ve cuánto dio el mes anterior y la flecha dice si este fue
+                   mejor o peor: los dos números son reales. */
                 let varHtml='';
                 if(next){
-                    const prevOp=next.gananciaTotal||0,prevG=next.totalEgresoUYU||0,prevB=next.comisionBancariaTotal||0;
-                    const prevNeta=roundMoney(prevOp-prevG-prevB);
+                    const prevNeta=roundMoney((next.gananciaTotal||0)-(next.totalEgresoUYU||0)-(next.comisionBancariaTotal||0));
                     const diff=roundMoney(gananciaNeta-prevNeta);
-                    let pct='—';
-                    if(prevNeta!==0)pct=Math.abs(Math.round(diff/Math.abs(prevNeta)*100))+'%';
                     const cls=diff>0?'up':(diff<0?'down':'flat');
                     const arrow=diff>0?'↑':(diff<0?'↓':'→');
-                    const sign=diff>=0?'+':'-';
                     const prevName=mesesCortos[parseInt(next.mes.split('-')[1])-1];
-                    varHtml=`<div class="resumen-variation ${cls}">${arrow} ${sign}$${fmtNum(Math.abs(diff),0)} (${pct}) vs ${prevName}</div>`;
+                    varHtml=`<div class="resumen-variation ${cls}" title="Ganancia neta de ${prevName}">${arrow} ${prevName} ${prevNeta>=0?'+':'-'}$${fmtNum(Math.abs(prevNeta),0)}</div>`;
                 }
 
                 /* Rentability metrics */
@@ -420,53 +425,10 @@ async function cargarHistorialMensual(){
 }
 function ocultarLoading() { $('loadingOverlay')?.classList.add('hidden'); }
 
-/* ═══════════════════════════════════════════════════════════════════
-   §CLIENT-TERMINATED BANNER v4.7.42
-   ═══════════════════════════════════════════════════════════════════
-   Banner persistente cuando Firebase SDK queda en estado 'terminated'.
-   La app sigue 100% usable en modo local. El banner sirve para:
-     - informar al usuario que sus datos están guardados localmente
-     - ofrecer recarga inmediata (reinicializa el SDK desde cero)
-     - ofrecer seguir trabajando en modo local hasta que el usuario decida
-   
-   Idempotente: si ya está visible, no se duplica.
-   Cierre por usuario: oculta el banner PERO mantiene AppState._clientTerminated=true
-   para que ningún save remoto se ejecute hasta el reload. */
-function mostrarBannerClienteTerminado(){
-    if(document.getElementById('clientTerminatedBanner'))return;
-    const banner=document.createElement('div');
-    banner.id='clientTerminatedBanner';
-    banner.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#7c2d12;color:#fff;padding:14px 16px;box-shadow:0 -4px 12px rgba(0,0,0,0.3);font-size:0.92em;line-height:1.4;border-top:3px solid #f59e0b';
-    banner.innerHTML=
-        '<div style="max-width:600px;margin:0 auto">'+
-            '<div style="font-weight:600;margin-bottom:6px"><svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> Sincronización detenida</div>'+
-            '<div style="margin-bottom:10px;color:#fed7aa">Firebase quedó en estado interno inválido. Tus datos están guardados localmente. Recargá la app para reactivar la sincronización.</div>'+
-            '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-                '<button id="btnClientTermReload" style="flex:1;min-width:140px;background:#16a34a;color:#fff;border:none;padding:10px 14px;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.95em">🔄 Recargar ahora</button>'+
-                '<button id="btnClientTermDismiss" style="flex:1;min-width:140px;background:transparent;color:#fed7aa;border:1px solid #fed7aa;padding:10px 14px;border-radius:6px;font-weight:500;cursor:pointer;font-size:0.95em">Seguir en modo local</button>'+
-            '</div>'+
-        '</div>';
-    document.body.appendChild(banner);
-    const btnReload=document.getElementById('btnClientTermReload');
-    if(btnReload)btnReload.addEventListener('click',()=>{
-        try{if(typeof flushGuardaDebounce==='function')flushGuardaDebounce()}catch(_){}
-        try{if(typeof backupToLocal==='function')backupToLocal()}catch(_){}
-        setTimeout(()=>location.reload(),100);
-    });
-    const btnDismiss=document.getElementById('btnClientTermDismiss');
-    if(btnDismiss)btnDismiss.addEventListener('click',()=>{
-        banner.style.display='none';
-        /* IMPORTANTE: solo ocultamos visualmente. AppState._clientTerminated sigue true
-           para bloquear nuevos saves. Eso lo gestiona guardarDatos directamente. */
-    });
-}
 function activarCooldown() {
     AppState.ui.enCooldown=true;
     setTimeout(()=>{ AppState.ui.enCooldown=false; },CONFIG.COOLDOWN_MS);
 }
-
-/* ═══ Performance instrumentation ═══ */
-const _perf={enabled:false,log(name,ms){if(this.enabled||ms>100)console.log(`[PERF] ${name}: ${ms.toFixed(1)}ms`)}};
 
 /* ═══ Debounced actualizarVista ═══
    actualizarVistaDebounced agrupa múltiples llamadas en un solo frame.
