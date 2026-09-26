@@ -17,7 +17,6 @@
         /* ═══ Spread trend indicator ═══
            Pill discreto al lado del spread con flecha + % de variación respecto a ref reciente.
            Colores: verde=subió, rojo=bajó, gris=estable. */
-        .spread-wrap{display:inline-flex;align-items:center;gap:5px}
         .spread-trend{
             display:inline-flex;align-items:center;gap:2px;
             font-size:0.92em;font-weight:700;line-height:1;
@@ -203,7 +202,6 @@
         .op-summary-row.main{font-size:0.95em;font-weight:700;padding:3px 0}
         .op-summary-label{color:#64748b}
         .op-summary-value{color:var(--c-text);font-weight:600}
-        .op-summary-divider{border-top:1px solid rgba(0,0,0,0.06);margin:3px 0}
         /* Button — sticky on mobile */
         .op-btn-wrap{margin-top:10px;position:sticky;bottom:0;z-index:5;padding:6px 0 2px;background:white}
         .op-btn-compra{background:var(--c-brand)}
@@ -211,7 +209,6 @@
         .op-btn-venta{background:var(--c-danger)}
         .op-btn-venta:active{background:#b91c1c}
         .op-btn-wrap .btn{padding:12px 20px}
-        .op-meta{text-align:center;font-size:0.64em;color:var(--c-text-mute);margin-top:4px}
         /* Commission row */
         .com-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:6px 10px;background:var(--c-surface-2);border:1px solid #e2e8f0;border-radius:8px}
         .com-label{font-size:0.65em;color:var(--c-text-mute);font-weight:500;display:flex;align-items:center;gap:4px}
@@ -327,14 +324,6 @@
         @keyframes syncPulse{
             0%,100%{opacity:0.4;transform:scale(1)}
             50%{opacity:1;transform:scale(1.15)}
-        }
-        /* Comisión como peer inline — más discreta (color tenue, tamaño levemente menor) */
-        .r2-com{
-            color:var(--c-text-mute);
-            font-size:0.92em;      /* 0.92 × 0.65em ≈ 0.6em efectivo */
-            font-weight:500;
-            letter-spacing:-0.2px;
-            flex-shrink:0;
         }
         /* Banco: el único que puede truncarse cuando falta espacio */
         .r2-c3{
@@ -477,8 +466,7 @@
            siguiente, la pantalla se iba bajando sola. Declarar que estos
            elementos solo aceptan toques simples elimina esa espera.
            ═══════════════════════════════════════════════════════════════ */
-        button,[data-action],.op-toggle-btn,.tasa-step-btn,.tasa-pill,
-        .pagination button,.menu-row,.toggle-header,.banco-mini-card{
+        button,[data-action],.op-toggle-btn,.tasa-step-btn,.pagination button,.menu-row,.toggle-header,.banco-mini-card{
             touch-action:manipulation;
         }
 

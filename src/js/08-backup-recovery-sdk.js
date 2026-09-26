@@ -11,10 +11,7 @@ function esDatosVacios(d){
     if(ops>0||movs>0||trans>0||conv>0||lotes>0||bancosActivos>0)return false;
     return true;
 }
-/* Comparar cuál estado tiene más contenido (para decidir si un backup supera al remoto vacío) */
-/* v4.9.4 — Marker local de archivado: recuerda (fuera del doc) que este uid
-   ya archivó y desde qué mes. Permite decisiones correctas de backup ANTES de
-   que llegue el primer snapshot, y en dispositivos con estado viejo. */
+/* Cuánto contenido tiene un estado (para elegir el mejor respaldo) */
 function _puntajeDatos(d){
     if(!d)return -1;
     return (d.operaciones||[]).length*10
@@ -40,7 +37,7 @@ function backupToLocal(){
         /* v4.8.2: la firma incluye _mutSeq — sin él, dos updates in-place seguidos
            (misma versión, mismo length, mismo dirty) compartían firma y el segundo
            NO se respaldaba hasta el próximo save confirmado. */
-        const sig=curV+'|'+curLen+'|'+_localDirty+'|'+(typeof _mutSeq!=='undefined'?_mutSeq:0);
+        const sig=curV+'|'+curLen+'|'+(typeof _mutSeq!=='undefined'?_mutSeq:0);
         if(backupToLocal._lastSig===sig)return;
         backupToLocal._lastSig=sig;
         const prevKey=k+'_prev';
@@ -93,8 +90,6 @@ function restoreFromLocal(){
         return b;
     }catch(e){return null}
 }
-/* Clear backup solo cuando el estado actual es DEMOSTRABLEMENTE mayor o igual al backup.
-   Nunca borrar si el estado actual está vacío o tiene menos puntaje. */
 function updateSyncBadge(){
     const badge=$('syncBadge');if(!badge)return;
     const n=_syncPending+_syncErrors;
@@ -111,16 +106,6 @@ async function guardarDatos(forzar,opts){
         return;
     }
 
-    /* ═══ Guard contra cliente Firestore terminado (v4.7.42) ═══
-       Si en algún save anterior detectamos 'failed-precondition: client terminated',
-       no intentamos más writes. Cada call fallaría instantáneamente con el mismo error
-       y solo agregaría ruido al log + presión sobre el SDK ya inválido.
-       Los datos están a salvo localmente; al recargar la app se reinicializa todo. */
-    if(AppState._clientTerminated){
-        console.warn('[P2P] guardarDatos abortado: Firebase client terminated. Recargá la app.');
-        try{if(typeof mostrarBannerClienteTerminado==='function')mostrarBannerClienteTerminado()}catch(_){}
-        return;
-    }
     /* ═══ Guard contra recovery en progreso ═══
        Si iniciarRecuperacionFirestore está limpiando el SDK (terminate + clearPersistence),
        cualquier write nuevo sería sobre una instancia inválida → INTERNAL ASSERTION garantizado.
@@ -213,13 +198,19 @@ function cargarDatosUsuario(){
         }
         /* ═══ v5.2.0 — Camino único: modelo v2 ═══ */
         if(!doc.exists){
-            /* Cuenta nueva: sembrar el documento de estado ya en formato v2 */
+            /* Una caché vacía no dice nada: puede ser un dispositivo que todavía
+               no bajó el documento. Se espera la respuesta del servidor. */
+            if(doc.metadata.fromCache){setSyncStatus('syncing','Conectando…');return}
             if(AppState._localVersion===0&&esDatosVacios(AppState.datos)){
+                /* Cuenta nueva: se crea el documento de estado ya en formato v2 */
                 AppState.datos=crearDatosVacios();
-                AppState._schema=2;
                 inicializarBancos();actualizarVista();ocultarLoading();
-                setSyncStatus('online');
-                if(window._v2sync)window._v2sync.guardar(true);
+                if(window._v2sync)window._v2sync.cuentaNueva();
+            }else{
+                /* Hay datos en este dispositivo pero la nube está vacía: no se
+                   borra nada ni se sube a ciegas. Se ofrece restaurar. */
+                ocultarLoading();
+                setSyncStatus('offline','Sin datos en la nube — usá Restaurar respaldo');
             }
             return;
         }
@@ -248,14 +239,14 @@ function cargarDatosUsuario(){
                conserva todas sus verificaciones. */
             console.warn('[P2P] Documento en formato anterior: migrando automáticamente.');
             setSyncStatus('syncing','Actualizando formato…');
-            if(!cargarDatosUsuario._autoMigrando&&window.migracionAutomatica){
+            if(!cargarDatosUsuario._autoMigrando){
                 cargarDatosUsuario._autoMigrando=true;
                 AppState.datos={...crearDatosVacios(),...(_d||{})};
                 if(Array.isArray(_d.lotesManuales))AppState.datos.lotes=_d.lotesManuales.map(l=>({...l}));
                 delete AppState.datos.lotesManuales;
                 AppState._localVersion=_d._version||0;
                 try{recalcularLotesYGanancias()}catch(_){}
-                setTimeout(()=>window.migracionAutomatica(),300);
+                setTimeout(()=>migracionAutomatica(),300);
             }
             ocultarLoading();
             return;
@@ -519,5 +510,4 @@ function instalarErrorBoundary(){
         origConsoleError(...args);
     };
 }
-/* Exportar log + snapshot de estado mínimo para diagnóstico */
 

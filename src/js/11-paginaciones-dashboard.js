@@ -22,6 +22,8 @@ const ICO_EDITAR='<svg class="ico ico-accion" viewBox="0 0 24 24" fill="none" st
 const ICO_BORRAR='<svg class="ico ico-accion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>';
 const ICO_ETIQUETA='<svg class="ico ico-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L12 22l-9-9V3h10l7.6 7.6a2 2 0 010 2.8zM7.5 7.5h.01"/></svg>';
 const ICO_LISTA_VACIA='<svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>';
+/* Corrección de saldo: un control deslizante, distinto del lápiz de editar */
+const ICO_AJUSTE='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>';
 
 function renderizarCalendario(){
     const y=AppState.ui.calendarDate.getFullYear(),mo=AppState.ui.calendarDate.getMonth();
@@ -208,7 +210,7 @@ const pagOp=crearPaginacion({
             /* Comisión Binance: mostrar el % persistido (o fallback 0.14 para datos legacy) */
             /* v5.4.0 — La comisión salió de la fila (es casi siempre la misma) pero
                sigue disponible al tocar la operación y en el detalle FIFO. */
-            const cPct=op.comisionPct!==undefined?op.comisionPct:0.14;
+            const cPct=op.comisionPct!==undefined?op.comisionPct:comisionConfigurada(op.moneda);
 
             h+=`<div class="op-swipe-wrap">
                 <div class="op-swipe-bg edit">${ICO_EDITAR}</div>
@@ -639,8 +641,6 @@ function _detalleDelDia(total,compras,ventas,volumen){
 }
 
 function actualizarVista(){
-    /* v5.7.2 — Cada dibujado compara los saldos contra lo que deberían ser. Si
-       algo los cambió sin que haya una acción que lo explique, queda registrado. */
     const hoy=getUDate(),mesA=getMesActivo(),ops=opsMes();
     let tp=0,tr=0,stc=0,stv=0,cc=0,cv=0;
     ops.forEach(op=>{if(op.tipo==='compra'){tp=roundMoney(tp+op.monto+(op.comisionBanco||0));stc=roundMoney(stc+op.tasa);cc++}else{tr=roundMoney(tr+op.monto);stv=roundMoney(stv+op.tasa);cv++}});

@@ -1,3 +1,33 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   §14 — CONEXIÓN DE LA PANTALLA
+   ═══════════════════════════════════════════════════════════════════════════ */
+/* Cerrar sesión: se sube lo pendiente y se vacía todo lo del usuario saliente,
+   para que otra persona que entre en el mismo teléfono no vea nada suyo. */
+function cerrarSesion(){
+    if(!confirm('¿Cerrar sesión?'))return;
+    flushGuardaDebounce().finally(()=>{
+        if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}
+        try{if(window._v2sync)window._v2sync.detach()}catch(_){}
+        AppState._schema=undefined;AppState._localVersion=0;AppState._datosStale=false;
+        _guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;
+        backupToLocal._lastSig=null;clearTimeout(_retryTimer);
+        AppState.datos=crearDatosVacios();
+        AppState._restoredFrom=null;
+        AppState._uiHydratedFromCache=false;
+        _syncQueue.length=0;
+        AppState.auth.signOut();
+    });
+}
+
+/* Renovación del cupo mientras la app está abierta: recalcula y guarda */
+function revisarRenovacionCupos(){
+    if(verificarResetLimites()){
+        recalcularCuposDiarios();
+        guardaOptimista('update','bancos','renovacion-cupo');
+        actualizarVista();
+    }
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
     // Auth
     $('tabLogin').addEventListener('click',()=>{$('tabLogin').classList.add('active');$('tabRegister').classList.remove('active');$('loginForm').style.display='block';$('registerForm').style.display='none';$('authError').classList.remove('show')});
@@ -7,28 +37,38 @@ document.addEventListener('DOMContentLoaded',()=>{
         if(!/^[a-zA-Z0-9_-]{3,20}$/.test(u)){ae.textContent='Usuario inválido';ae.classList.add('show');return}if(p.length<6){ae.textContent='Mínimo 6 caracteres';ae.classList.add('show');return}if(p!==p2){ae.textContent='No coinciden';ae.classList.add('show');return}
         const b=$('registerBtn');b.disabled=true;b.textContent='Creando...';try{await AppState.auth.createUserWithEmailAndPassword(userToEmail(u),p)}catch(er){ae.textContent=er.code==='auth/email-already-in-use'?'Usuario ya existe':'Error';ae.classList.add('show');b.disabled=false;b.textContent='Crear Cuenta'}});
 
-    // Menu panel (full-screen)
+    /* ─── Menú (pantalla completa en el teléfono) ─── */
     function abrirMenuPanel(){
         $('menuPanel').classList.add('active');
         $('menuBackdrop').classList.add('active');
         $('menuBtn').classList.add('active');
+        $('menuBtn').setAttribute('aria-expanded','true');
         document.body.style.overflow='hidden';
-        /* Set avatar initial */
         const name=$('menuUserName').textContent||'U';
         $('menuUserAvatar').textContent=(name[0]||'U').toUpperCase();
+        _pintarResumenMenu();
     }
     function cerrarMenuPanel(){
         $('menuPanel').classList.remove('active');
         $('menuBackdrop').classList.remove('active');
         $('menuBtn').classList.remove('active');
+        $('menuBtn').setAttribute('aria-expanded','false');
         if(!document.querySelector('.modal.active'))document.body.style.overflow='';
+    }
+    /* Datos de un vistazo en el menú: cuántas cuentas en uso y el USDT */
+    function _pintarResumenMenu(){
+        const n=Object.values(AppState.datos.bancos||{}).filter(b=>b&&b.activo).length;
+        setText('menuDatoCuentas',n?n+' en uso':'');
+        setText('menuDatoLotes',fmtTrunc(Math.max(0,AppState.datos.saldoUsdt||0),2));
+        const arch=AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses&&Object.keys(AppState.datos._archivoIndex.meses).length;
+        const filaArch=$('menuFilaArchivo');if(filaArch)filaArch.style.display=arch?'':'none';
     }
     $('menuBtn').addEventListener('click',e=>{e.stopPropagation();if($('menuPanel').classList.contains('active'))cerrarMenuPanel();else abrirMenuPanel()});
     $('menuBack').addEventListener('click',cerrarMenuPanel);
     $('menuBackdrop').addEventListener('click',cerrarMenuPanel);
     setText('menuVersion',CONFIG.APP_VERSION);
 
-    // Mobile: tap modal header (back arrow) to close
+    // Móvil: tocar el encabezado (flecha de volver) cierra el modal
     document.addEventListener('click',e=>{
         if(window.innerWidth>=768)return;
         const header=e.target.closest('.modal.active .modal-header');
@@ -36,36 +76,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         const modal=header.closest('.modal');
         if(modal&&modal.id)cerrarModal(modal.id);
     });
-    $('menuPanel').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;cerrarMenuPanel();
-        const a=item.dataset.action;
-        if(a==='calendario'){AppState.ui.calendarDate=new Date();AppState.ui.calSelectedDay=null;renderizarCalendario();abrirModal('modalCalendario')}
-        else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
-        else if(a==='movimiento')abrirModalMovimiento();
-        else if(a==='bancos'){renderizarListaBancos();abrirModal('modalBancos')}
-        else if(a==='transferencia')abrirModalTransferencia();
-        else if(a==='gestion-tags'){renderizarGestionTags();abrirModal('modalGestionTags')}
-        else if(a==='historial-mensual')cargarHistorialMensual();
-        else if(a==='restaurar-respaldo')restaurarRespaldoManual();
-
-        else if(a==='exportar-datos')exportarDatos();
-        else if(a==='importar-datos')importarDatos();
-        else if(a==='borrar-todo')borrarTodo();
-        else if(a==='cerrar-sesion'){if(confirm('¿Cerrar sesión?')){flushGuardaDebounce().finally(()=>{if(AppState.unsubscribe){AppState.unsubscribe();AppState.unsubscribe=null}try{if(window._v2sync)window._v2sync.detach()}catch(_){}AppState._schema=undefined;AppState._localVersion=0;AppState._datosStale=false;AppState._legacyMigrado=false;_guardando=false;_guardarPendiente=false;_syncPending=0;_syncErrors=0;_localDirty=0;backupToLocal._lastSig=null;clearTimeout(_retryTimer);
-            /* v4.8.2 FIX: vaciar el estado en RAM y la sync queue al cerrar sesión.
-               Antes AppState.datos conservaba los datos del usuario saliente: si otra
-               persona iniciaba sesión en el mismo dispositivo, el watchdog de 3s podía
-               renderizar esos datos ajenos antes del primer snapshot, y las entradas
-               viejas de _syncQueue contaminaban el merge del usuario nuevo. */
-            AppState.datos=crearDatosVacios();
-            AppState._restoredFrom=null;
-            AppState._uiHydratedFromCache=false;
-            _syncQueue.length=0;
-            AppState.auth.signOut()})}}
-    });
 
     // Toggle sections
     document.querySelectorAll('.toggle-header').forEach(h=>h.addEventListener('click',e=>{
-        /* Si el click fue en el trigger de filtros, ignorar — lo maneja el dispatcher global */
         if(e.target.closest('.ops-filtros-trigger'))return;
         h.closest('.toggle-section')?.classList.toggle('open');
     }));
@@ -76,25 +89,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('opToggleVenta').addEventListener('click',()=>setTipoOp('venta'));
     $('tipo').addEventListener('change',()=>{AppState.ui.tasaManual=false;AppState.ui.ultimoMonedaBanco=null;AppState.ui.splitExtras=[];actualizarFormulario();actualizarColorSelect();renderSplitPanel()});
     $('monto').addEventListener('input',()=>{calcularPreview();renderSplitPanel()});
-    /* v4.7.44: botones de monto rápido. Setea el input y dispara el mismo
-       flujo que una escritura manual (calcularPreview + renderSplitPanel).
-       "Otro" limpia y enfoca el campo para entrada libre. */
-    /* v4.7.56: quick-amounts eliminados del HTML (decisión operativa del
-       usuario — no usa montos redondos en su flujo de 40 ops/día).
-       La función wireQuickAmounts y sus listeners se retiraron para no
-       dejar código muerto. La pieza que quita la "selección" al tipear
-       en #monto también se removió porque ya no hay selección que quitar. */
-    /* El botón "Ver detalle" del panel de hoy se retiró en v5.4.5; su conexión
-       quedó acá sin nada que conectar. Retirada en v6.9.0. */
-
-    $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview();/* v4.7.59: cambio de tasa puede activar/desactivar split */ renderSplitPanel();/* v4.7.62: re-evaluar pill activa */ renderizarTasasRecientes()});
+    $('tasa').addEventListener('input',()=>{AppState.ui.tasaManual=true;calcularPreview();renderSplitPanel();renderizarTasasRecientes()});
     $('banco').addEventListener('change',()=>{AppState.ui.splitExtras=[];mostrarSaldoBanco();actualizarFormulario();actualizarColorBancoSelect();renderSplitPanel();
-        /* v5.5.0 — Al elegir la cuenta hay que reevaluar el botón y sacar el
-           estado pendiente del campo, si no el aviso se queda pegado. */
-        if(typeof _marcarBancoPendiente==='function')_marcarBancoPendiente();
-        if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();});
+        _marcarBancoPendiente();_updateBtnGuardarState()});
     $('comisionBanco').addEventListener('input',()=>{calcularPreview();renderSplitPanel()});
-    /* Split pago: listeners delegados para select/input internos */
+    /* Pago dividido: selects e inputs internos */
     $('splitPanel').addEventListener('change',e=>{
         const el=e.target;const a=el.dataset?.action;
         if(a==='split-set-banco'){
@@ -109,28 +108,18 @@ document.addEventListener('DOMContentLoaded',()=>{
         if(a==='split-set-monto'){
             const idx=parseInt(el.dataset.idx);
             if(isNaN(idx)||!AppState.ui.splitExtras[idx])return;
-            /* Parse manteniendo formato es-UY (coma decimal, punto miles) */
-            const raw=el.value.toString().trim();
-            let v=0;
-            if(raw){
-                if(raw.includes(',')){v=parseFloat(raw.replace(/\./g,'').replace(',','.'))||0}
-                else if(raw.includes('.')){const parts=raw.split('.');v=parts.length===2&&parts[1].length<3?parseFloat(raw)||0:parseFloat(raw.replace(/\./g,''))||0}
-                else v=parseFloat(raw)||0;
-            }
-            AppState.ui.splitExtras[idx].monto=v;
-            /* No re-render completo para no perder foco del input; actualizar solo status */
-            _updateSplitStatus();
+            /* Formato es-UY (coma decimal, punto de miles), igual que el resto */
+            AppState.ui.splitExtras[idx].monto=parseMonto(el.value);
+            _updateSplitStatus();   /* sin redibujar todo, para no perder el foco */
         }
     });
     $('comisionPlataforma').addEventListener('input',guardarComisionYCalcular);
     $('comisionPlataforma').addEventListener('blur',()=>{
-        /* Al perder foco: si el valor quedó inválido, revertir al último guardado.
-           Si está vacío, poner el valor actual formateado. */
+        /* Si quedó inválido al salir, vuelve al último valor guardado (0 incluido) */
         const inp=$('comisionPlataforma');
         const v=parsearComisionPct(inp.value.replace(',','.').trim());
         if(v===null){
-            const cv=getMonedaBanco()==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;
-            inp.value=fmtNum(cv||0.14);
+            inp.value=fmtNum(comisionConfigurada(getMonedaBanco()));
             inp.classList.remove('error');
             calcularPreview();
         }
@@ -147,27 +136,31 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('btnPrevConv').addEventListener('click',()=>pagConv.cambiar(-1));
     $('btnNextConv').addEventListener('click',()=>pagConv.cambiar(1));
 
-    // Modales con botones fijos
+    // Ajuste externo
     $('tabIngreso').addEventListener('click',()=>setTipoMovimiento('ingreso'));
     $('tabEgreso').addEventListener('click',()=>setTipoMovimiento('egreso'));
     $('movTipoCuenta').addEventListener('change',()=>{actualizarCuentasMovimiento();actualizarMovResumen()});
     $('movBanco').addEventListener('change',()=>{const v=$('movBanco').value;$('movBanco').style.color=v?getBancoColor(v):'#1e293b';$('movBanco').style.fontWeight=v?'600':'400';actualizarMovResumen()});
     $('btnGuardarMov').addEventListener('click',guardarMovimiento);
     $('btnCancelMov').addEventListener('click',()=>{AppState.ui.movEditandoId=null;cerrarModal('modalMovimiento')});
-    $('btnCerrarBancos').addEventListener('click',()=>{cerrarModal('modalBancos');actualizarVista();guardaOptimista('update','bancos','close')});
+    $('btnEliminarMov').addEventListener('click',()=>{const id=AppState.ui.movEditandoId;if(!id)return;cerrarModal('modalMovimiento');AppState.ui.movEditandoId=null;eliminarMovimiento(id)});
+    $('movMonto').addEventListener('input',()=>{actualizarFifoPreview();actualizarMovResumen()});
+    $('movDescripcion').addEventListener('input',()=>{AppState.ui._tagShowAll=false;renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov')});
+
+    // Cuentas
+    $('btnCerrarBancos').addEventListener('click',()=>{cerrarModal('modalBancos');actualizarVista()});
+
+    // Transferencias
     $('bancoOrigen').addEventListener('change',()=>{const v=$('bancoOrigen').value;$('bancoOrigen').style.color=v?getBancoColor(v):'#1e293b';mostrarSaldoOrigen();actualizarTransfUI()});
     $('bancoDestino').addEventListener('change',()=>{const v=$('bancoDestino').value;$('bancoDestino').style.color=v?getBancoColor(v):'#1e293b';actualizarTransfUI()});
     $('montoTransferencia').addEventListener('input',actualizarTransfPreview);
     $('transfTasa').addEventListener('input',actualizarTransfPreview);
     $('btnTransferir').addEventListener('click',realizarTransferencia);
     $('btnCancelTransf').addEventListener('click',()=>{AppState.ui.transEditandoId=null;AppState.ui.transEditandoIsConv=false;cerrarModal('modalTransferencia')});
-    $('movMonto').addEventListener('input',()=>{actualizarFifoPreview();actualizarMovResumen()});
+    $('btnEliminarTransf').addEventListener('click',eliminarTransferenciaEnEdicion);
+
+    /* ─── Saldo y límite de una cuenta ─── */
     $('btnCancelSaldo').addEventListener('click',()=>{cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null});
-    /* ═══ v5.7.1 — Selector de días de renovación del límite ═══
-       Siete botones, uno por día. Los marcados renuevan el cupo; los que quedan
-       sin marcar siguen usando el del último día marcado. Siempre tiene que
-       quedar al menos uno: si no, el límite no se renovaría nunca. */
-    /* v6.1.0 — Abre el editor de saldo mostrando lo registrado y la diferencia */
     function _abrirEditarSaldo(banco){
         if(!banco||!AppState.datos.bancos[banco])return;
         AppState.ui.bancoEditando=banco;
@@ -198,15 +191,19 @@ document.addEventListener('DOMContentLoaded',()=>{
             val.textContent=(dif>0?'+':'-')+sym+fmtNum(Math.abs(dif),2);
             val.className=dif>0?'sube':'baja';
         }
+        $('btnGuardarSaldo').textContent=hay?'Registrar corrección':'Guardar';
     }
-    $('nuevoSaldoBanco')?.addEventListener('input',_actualizarDiferenciaSaldo);
+    $('nuevoSaldoBanco').addEventListener('input',_actualizarDiferenciaSaldo);
 
+    /* v5.7.1 — Días en que renueva el cupo. Los marcados renuevan; los que quedan
+       sin marcar siguen usando el del último día marcado. Siempre queda al menos
+       uno: si no, el límite no se renovaría nunca. */
     function _pintarDiasReset(banco){
         const cont=$('diasResetBanco');if(!cont)return;
         const grupo=$('diasResetGroup');
         const lim=AppState.datos.bancos[banco]?.limiteDiarioUSD||0;
         if(grupo)grupo.style.display=lim>0?'block':'none';
-        const activos=(typeof getDiasReset==='function')?getDiasReset(banco):[0,1,2,3,4,5,6];
+        const activos=getDiasReset(banco);
         cont.innerHTML=DIAS_SEMANA.map((d,i)=>
             `<button type="button" data-dia="${i}" class="${activos.includes(i)?'on':''}" `+
             `title="${DIAS_SEMANA_LARGO[i]}" aria-pressed="${activos.includes(i)}">${d}</button>`).join('');
@@ -216,56 +213,75 @@ document.addEventListener('DOMContentLoaded',()=>{
         const on=[...cont.querySelectorAll('button.on')].map(b=>parseInt(b.dataset.dia,10));
         return on.length?on.sort((a,b)=>a-b):[0,1,2,3,4,5,6];
     }
-    $('diasResetBanco')?.addEventListener('click',e=>{
+    $('diasResetBanco').addEventListener('click',e=>{
         const b=e.target.closest('button[data-dia]');if(!b)return;
         e.preventDefault();
-        const cont=$('diasResetBanco');
-        const marcados=cont.querySelectorAll('button.on').length;
-        if(b.classList.contains('on')&&marcados<=1)return;   /* al menos un día */
+        const marcados=$('diasResetBanco').querySelectorAll('button.on').length;
+        if(b.classList.contains('on')&&marcados<=1)return;
         b.classList.toggle('on');
         b.setAttribute('aria-pressed',b.classList.contains('on'));
     });
-    /* Mostrar u ocultar el selector según haya límite cargado */
-    $('limiteDiarioBanco')?.addEventListener('input',()=>{
+    $('limiteDiarioBanco').addEventListener('input',()=>{
         const g=$('diasResetGroup');if(g)g.style.display=pv('limiteDiarioBanco')>0?'block':'none';
     });
+    /* Guardar: el límite y los días van en la configuración de la cuenta; una
+       diferencia de saldo queda como corrección con su motivo. El saldo no se
+       pisa: lo recalcula el motor, así que operaciones, ganancias y estadísticas
+       quedan intactas. v7.3.0 — Y se recalcula en el momento. */
+    $('btnGuardarSaldo').addEventListener('click',()=>{
+        const n=AppState.ui.bancoEditando;
+        if(!n||!AppState.datos.bancos[n]){cerrarModal('modalEditarSaldo');return}
+        const bk=AppState.datos.bancos[n];
+        const lim=roundMoney(pv('limiteDiarioBanco'));
+        if(lim<0){alert('El límite no puede ser negativo');return}
+        bk.limiteDiarioUSD=lim;
+        bk.diasReset=_leerDiasReset();
+        const cambios=[{tipo:'update',entidad:'bancos',id:n}];
+        const aj=registrarAjusteSaldo(n,roundMoney(pv('nuevoSaldoBanco')),$('motivoAjuste').value);
+        if(aj)cambios.push({tipo:'create',entidad:'ajustesSaldo',id:aj.id});
+        cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;
+        confirmarCambios(cambios);
+        if($('modalBancos').classList.contains('active'))renderizarListaBancos();
+    });
 
-    $('btnGuardarSaldo').addEventListener('click',async()=>{const ns=roundMoney(pv('nuevoSaldoBanco')),n=AppState.ui.bancoEditando;if(n&&AppState.datos.bancos[n]){AppState.datos.bancos[n].limiteDiarioUSD=roundMoney(pv('limiteDiarioBanco'));AppState.datos.bancos[n].diasReset=_leerDiasReset();
-            /* v6.1.0 — La corrección queda como asiento con su motivo. El saldo no se
-               pisa: lo recalcula el motor sumando este ajuste a todo lo demás, así que
-               las operaciones, las ganancias y las estadísticas quedan intactas. */
-            if(typeof registrarAjusteSaldo==='function'){
-                const _aj=registrarAjusteSaldo(n,fixNeg(ns),$('motivoAjuste')?.value);
-                /* v6.7.0 — El ajuste se sube como registro propio, no dentro del estado */
-                if(_aj&&typeof guardaOptimista==='function')guardaOptimista('create','ajustesSaldo',_aj.id);
-            }
-            /* v5.8.0 — Fijar el saldo a mano establece un nuevo punto de partida:
-               de acá en adelante el saldo correcto es este más los eventos que
-               vengan después. */
-}
-actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppState.ui.bancoEditando=null;guardaOptimista('update','bancos',n||'saldo')});
+    /* ─── Corrección de saldo (editar o borrar desde el libro) ─── */
+    $('ajusteSaldoSuma').addEventListener('click',()=>{AppState.ui.ajusteSigno='suma';_pintarSignoAjuste()});
+    $('ajusteSaldoResta').addEventListener('click',()=>{AppState.ui.ajusteSigno='resta';_pintarSignoAjuste()});
+    $('btnGuardarAjusteSaldo').addEventListener('click',guardarAjusteSaldo);
+    $('btnCancelAjusteSaldo').addEventListener('click',()=>{cerrarModal('modalAjusteSaldo');AppState.ui.ajusteEditandoId=null});
+    $('btnEliminarAjusteSaldo').addEventListener('click',()=>{if(AppState.ui.ajusteEditandoId)eliminarAjusteSaldo(AppState.ui.ajusteEditandoId)});
+
+    // Lotes
     $('btnAgregarLote').addEventListener('click',()=>abrirEditarLote(null));
     $('btnCerrarInventario').addEventListener('click',()=>cerrarModal('modalInventario'));
     $('btnCancelLote').addEventListener('click',()=>{cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null});
     $('btnEliminarLote').addEventListener('click',eliminarLoteActual);
     $('btnGuardarLote').addEventListener('click',guardarLote);
+
+    // Categorías
     $('btnCerrarTags').addEventListener('click',()=>cerrarModal('modalGestionTags'));
-    /* Merge tag modal */
     $('btnCancelMerge').addEventListener('click',()=>cerrarModal('modalMergeTag'));
     $('btnConfirmMerge').addEventListener('click',confirmarFusion);
     $('mergeTabExisting').addEventListener('click',()=>setMergeTab('existing'));
     $('mergeTabNew').addEventListener('click',()=>setMergeTab('new'));
     $('mergeSearch').addEventListener('input',e=>renderMergeDestinations(e.target.value));
     $('mergeNewName').addEventListener('input',updateMergeConfirmBox);
+    $('tagSearch').addEventListener('input',renderizarGestionTags);
+
+    // Resumen, novedades, calendario
     $('btnCerrarHistorial').addEventListener('click',()=>cerrarModal('modalHistorial'));
-    /* Centro de novedades */
     $('newsBellBtn').addEventListener('click',e=>{e.stopPropagation();abrirCentroNoticias()});
     $('btnCerrarNoticias').addEventListener('click',()=>cerrarModal('modalNoticias'));
+    $('btnCalPrev').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()-1);AppState.ui.calSelectedDay=null;renderizarCalendario()});
+    $('btnCalNext').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()+1);AppState.ui.calSelectedDay=null;renderizarCalendario()});
+    $('btnCerrarCalendario').addEventListener('click',()=>cerrarModal('modalCalendario'));
+
+    // Editar operación
     $('btnCancelEditOp').addEventListener('click',()=>{cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null});
     $('btnGuardarEditOp').addEventListener('click',guardarEditarOperacion);
+    $('btnEliminarEditOp').addEventListener('click',()=>{const id=AppState.ui.opEditandoId;if(!id)return;cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null;eliminarOperacion(id)});
     $('editOpMonto').addEventListener('input',calcularEditOpPreview);
     $('editOpTasa').addEventListener('input',calcularEditOpPreview);
-    /* Comisión editable en modal de editar — live preview + blur validation */
     $('editOpComisionPct').addEventListener('input',()=>{
         const inp=$('editOpComisionPct'),raw=inp.value.replace(',','.').trim();
         if(raw===''||raw==='.'||raw.endsWith('.')){inp.classList.remove('error');calcularEditOpPreview();return}
@@ -279,64 +295,61 @@ actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppSta
         const inp=$('editOpComisionPct');
         const v=parsearComisionPct(inp.value.replace(',','.').trim());
         if(v===null){
-            /* Revertir al valor persistido o fallback */
-            const cv=op.comisionPct!==undefined?op.comisionPct:comisionConfigurada(op.moneda);
-            inp.value=fmtNum(cv);
+            inp.value=fmtNum(op.comisionPct!==undefined?op.comisionPct:comisionConfigurada(op.moneda));
             inp.classList.remove('error');
             calcularEditOpPreview();
         }
     });
     $('editOpBanco').addEventListener('change',()=>{const v=$('editOpBanco').value;$('editOpBanco').style.color=v?getBancoColor(v):'#1e293b';$('editOpBanco').style.fontWeight=v?'600':'400'});
-    $('tagSearch').addEventListener('input',renderizarGestionTags);
-    $('movDescripcion').addEventListener('input',()=>{AppState.ui._tagShowAll=false;renderizarTagsSugerencias('movDescripcion','tagSugerenciasMov')});
-    $('btnCalPrev').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()-1);AppState.ui.calSelectedDay=null;renderizarCalendario()});
-    $('btnCalNext').addEventListener('click',()=>{AppState.ui.calendarDate.setMonth(AppState.ui.calendarDate.getMonth()+1);AppState.ui.calSelectedDay=null;renderizarCalendario()});
-    $('btnCerrarCalendario').addEventListener('click',()=>cerrarModal('modalCalendario'));
 
-    // Delegación de eventos para contenido dinámico
-    document.addEventListener('click',e=>{
-        /* Tap en el borde derecho de una tarjeta con límite (últimos 16px) →
-           mostrar tip con el % sin abrir el modal de edición del banco */
-        const maybeCard=e.target.closest('.banco-mini-card.has-gauge');
-        if(maybeCard){
-            const rect=maybeCard.getBoundingClientRect();
-            const offsetX=e.clientX-rect.left;
-            if(offsetX>rect.width-16){
-                e.stopPropagation();
-                e.preventDefault();
-                document.querySelectorAll('.banco-mini-card.show-tip').forEach(c=>{
-                    if(c!==maybeCard)c.classList.remove('show-tip');
-                });
-                maybeCard.classList.add('show-tip');
-                clearTimeout(AppState.ui._gaugeTipTimer);
-                AppState.ui._gaugeTipTimer=setTimeout(()=>maybeCard.classList.remove('show-tip'),2200);
-                return;
-            }
-        }
-        const t=e.target.closest('[data-action]');if(!t)return;
-        const a=t.dataset.action,id=parseInt(t.dataset.id),banco=t.dataset.banco,loteId=parseInt(t.dataset.loteId);
-        if(a==='eliminar-op')eliminarOperacion(id);
-        else if(a==='editar-op')abrirEditarOperacion(id);
-        else if(a==='dismiss-news'){const v=t.dataset.version;if(v)descartarNovedad(v)}
-        else if(a==='eliminar-mov')eliminarMovimiento(id);
-        /* ═══ v5.8.3 — Verificar y reconciliar ═══
-           Estos manejadores estaban atados al panel del menú lateral, así que solo
-           respondían dentro de él: el botón de Lotes de USDT y todos los de la
-           pantalla de resultados —corregir, cerrar, comparar con el servidor,
-           recalcular arrastre— quedaban fuera de su alcance y no hacían nada al
-           tocarlos, sin ningún aviso. Acá los ve toda la pantalla. */
-        else if(a==='reconciliar'){
-            cerrarModal('modalInventario');
-            if(typeof reconciliarTodo==='function')setTimeout(()=>reconciliarTodo(),120);
-            else alert('No se pudo iniciar la verificación. Recargá la app e intentá de nuevo.');
-        }
-        else if(a==='cerrar-reconciliar')cerrarModal('modalReconciliar');
-        else if(a==='rec-imponer'){
-            /* v6.8.0 — Acción destructiva sobre la nube: se pide confirmación con
-               el detalle de lo que se va a subir, para que se pueda comprobar que
-               es el dispositivo correcto antes de aceptar. */
+    /* ═══ v7.3.0 — Una sola tabla de acciones para toda la pantalla ═══
+       Había dos escuchas: una solo para el menú y otra para el resto. Una acción
+       que existía en una no existía en la otra: el botón "Nuevo ajuste" que
+       aparece cuando la lista está vacía no hacía nada, porque su acción solo la
+       conocía el menú. Ahora todos los botones pasan por la misma tabla, y los
+       que están dentro del menú además lo cierran. */
+    const ACCIONES={
+        /* Menú */
+        'calendario':()=>{AppState.ui.calendarDate=new Date();AppState.ui.calSelectedDay=null;renderizarCalendario();abrirModal('modalCalendario')},
+        'inventario':()=>{renderizarInventario();abrirModal('modalInventario')},
+        'movimiento':()=>abrirModalMovimiento(),
+        'bancos':()=>{renderizarListaBancos();abrirModal('modalBancos')},
+        'transferencia':()=>abrirModalTransferencia(),
+        'gestion-tags':()=>{renderizarGestionTags();abrirModal('modalGestionTags')},
+        'historial-mensual':()=>cargarHistorialMensual(),
+        'restaurar-respaldo':()=>restaurarRespaldoManual(),
+        'exportar-datos':()=>exportarDatos(),
+        'importar-datos':()=>importarDatos(),
+        'archivar':()=>archivarDesdeMenu(),
+        'ver-archivo':()=>verArchivo(),
+        'borrar-todo':()=>borrarTodo(),
+        'cerrar-sesion':()=>cerrarSesion(),
+        'reconnect':()=>reconnectFirebase(),
+        /* Listas */
+        'eliminar-op':(t,id)=>eliminarOperacion(id),
+        'editar-op':(t,id)=>abrirEditarOperacion(id),
+        'eliminar-mov':(t,id)=>eliminarMovimiento(id),
+        'editar-mov':(t,id)=>abrirModalMovimiento(id),
+        'eliminar-trans':(t,id)=>eliminarTransferencia(id),
+        'editar-trans':(t,id)=>abrirModalTransferencia(id),
+        'eliminar-conv':(t,id)=>eliminarConversion(id),
+        'editar-conv':(t,id)=>abrirModalTransferencia(id),
+        'ir-nueva-operacion':()=>{
+            const sec=$('seccionNuevaOp');
+            if(sec&&!sec.classList.contains('open'))sec.classList.add('open');
+            const m=$('monto');
+            if(m){m.scrollIntoView({block:'center',behavior:'smooth'});setTimeout(()=>m.focus(),300)}
+        },
+        /* Novedades */
+        'dismiss-news':t=>{const v=t.dataset.version;if(v)descartarNovedad(v)},
+        /* Verificar y reconciliar (también se abre desde Lotes) */
+        'reconciliar':()=>{cerrarModal('modalInventario');setTimeout(()=>reconciliarTodo(),120)},
+        'cerrar-reconciliar':()=>cerrarModal('modalReconciliar'),
+        'rec-imponer':()=>{
+            /* v6.8.0 — Reemplaza lo de la nube con lo de este dispositivo. Se muestra
+               lo que se va a subir para comprobar que es el dispositivo correcto. */
             const d=AppState.datos||{};
-            const resumen=Object.keys(d.bancos||{}).map(n=>
+            const resumen=Object.keys(d.bancos||{}).filter(n=>(d.bancos[n]||{}).activo).map(n=>
                 '  '+n+': '+fmtNum((d.bancos[n]||{}).saldo||0,2)).join('\n');
             const n1=(d.operaciones||[]).length,n2=(d.movimientos||[]).length,
                   n3=(d.transferencias||[]).length,n4=(d.ajustesSaldo||[]).length;
@@ -347,204 +360,157 @@ actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppSta
                 'Los otros dispositivos van a quedar con estos datos al recargar.\n'+
                 'Comprobá que los saldos de arriba sean los correctos antes de continuar.'))return;
             cerrarModal('modalReconciliar');
-            const fn=(window._v2sync&&window._v2sync.subirTodo)||window.v2SubirTodo;
-            if(typeof fn!=='function'){alert('No se pudo iniciar la subida. Recargá la app e intentá de nuevo.');return}
-            Promise.resolve(fn({motivo:'imponer-dispositivo'}))
+            Promise.resolve(window._v2sync.subirTodo({motivo:'imponer-dispositivo'}))
                 .then(()=>alert('Listo. Se subieron los datos de este dispositivo.\n\nAbrí el otro dispositivo y recargá la página para que tome estos valores.'))
                 .catch(e=>alert('No se pudo completar la subida.\n\n'+(e&&e.message||e)));
-        }
-        else if(a==='rec-servidor'){
-            cerrarModal('modalReconciliar');
-            if(typeof verificarIntegridad==='function')setTimeout(()=>verificarIntegridad(),120);
-        }
-        else if(a==='rec-arrastre'){
-            cerrarModal('modalReconciliar');
-            if(typeof repararCarryover==='function')setTimeout(()=>repararCarryover(),120);
-        }
-
-        else if(a==='rec-borrar-dup'){
-            /* v5.8.2 — Borra el registro repetido usando la misma función que el
-               botón de la lista, así el reverso de saldos y lotes es idéntico.
-               Después vuelve a verificar para mostrar cómo quedó todo. */
+        },
+        'rec-servidor':()=>{cerrarModal('modalReconciliar');setTimeout(()=>verificarIntegridad(),120)},
+        'rec-arrastre':()=>{cerrarModal('modalReconciliar');setTimeout(()=>repararCarryover(),120)},
+        'rec-borrar-dup':(t,id)=>{
+            /* Se borra con la misma función que el botón de la lista (que pide
+               confirmación), y después se vuelve a verificar. */
             const tipo=t.dataset.tipo;
-            if(!confirm('¿Borrar este registro repetido?\n\nSe va a revertir su efecto sobre los saldos y los lotes.'))return;
-            const alTerminar=()=>{if(typeof reconciliarTodo==='function')setTimeout(()=>reconciliarTodo(),350)};
-            if(tipo==='movimientos'&&typeof eliminarMovimiento==='function'){eliminarMovimiento(id);alTerminar()}
-            else if(tipo==='operaciones'&&typeof eliminarOperacion==='function'){eliminarOperacion(id);alTerminar()}
-            else if(tipo==='transferencias'&&typeof eliminarTransferencia==='function'){eliminarTransferencia(id);alTerminar()}
-            else if(tipo==='conversiones'&&typeof eliminarConversion==='function'){eliminarConversion(id);alTerminar()}
-            else alert('No se pudo borrar desde acá. Buscalo en su lista y borralo con el botón de la fila.');
-        }
-
-        else if(a==='eliminar-trans')eliminarTransferencia(id);
-        else if(a==='eliminar-conv')eliminarConversion(id);
-        else if(a==='editar-mov')abrirModalMovimiento(id);
-        else if(a==='editar-trans')abrirModalTransferencia(id);
-        else if(a==='editar-conv')abrirModalTransferencia(id);
-        else if(a==='resumen-view'){
-            AppState.ui._resumenView=t.dataset.view||'months';
-            cargarHistorialMensual();
-        }
-        else if(a==='resumen-toggle'){
-            /* Click on month header → toggle collapse. Persist state + update DOM without full re-render. */
+            const borrar={movimientos:eliminarMovimiento,operaciones:eliminarOperacion,transferencias:eliminarTransferencia,
+                          conversiones:eliminarConversion,ajustesSaldo:eliminarAjusteSaldo}[tipo];
+            if(!borrar){alert('No se pudo borrar desde acá. Buscalo en su lista y borralo con el botón de la fila.');return}
+            Promise.resolve(borrar(id)).then(()=>setTimeout(()=>reconciliarTodo(),350));
+        },
+        /* Resumen mensual */
+        'resumen-view':t=>{AppState.ui._resumenView=t.dataset.view||'months';cargarHistorialMensual()},
+        'resumen-toggle':t=>{
             const mes=t.closest('.resumen-mes')?.dataset.mes;if(!mes)return;
             AppState.ui._collapsedMonths=AppState.ui._collapsedMonths||{};
             const mesEl=document.querySelector(`.resumen-mes[data-mes="${mes}"]`);
-            if(mesEl){
-                mesEl.classList.toggle('collapsed');
-                AppState.ui._collapsedMonths[mes]=mesEl.classList.contains('collapsed');
-            }
-        }
-        else if(a==='resumen-chart'){
-            /* Chart tabs live in .resumen-body (sibling of .resumen-header), no bubbling conflict */
+            if(mesEl){mesEl.classList.toggle('collapsed');AppState.ui._collapsedMonths[mes]=mesEl.classList.contains('collapsed')}
+        },
+        'resumen-chart':t=>{
             const mes=t.dataset.mes,chart=t.dataset.chart;if(!mes||!chart)return;
             AppState.ui._chartTypes=AppState.ui._chartTypes||{};
             AppState.ui._chartTypes[mes]=chart;
-            /* Re-render: cheap, preserves collapse state via _collapsedMonths */
             cargarHistorialMensual();
-        }
-        /* v6.1.0 — Tocar una cuenta muestra sus movimientos. El saldo se corrige
-           desde ahí, para no editar a ciegas sin ver de dónde sale el número. */
-        else if(a==='movs-usdt'){
-            cerrarModal('modalInventario');
-            if(typeof abrirMovimientosCuenta==='function')setTimeout(()=>abrirMovimientosCuenta('USDT'),120);
-        }
-        else if(a==='movs-cuenta-todo'){_movsCuentaTodo=true;_pintarMovimientosCuenta()}
-        else if(a==='cerrar-movs-cuenta')cerrarModal('modalMovsCuenta');
-        else if(a==='corregir-saldo'){cerrarModal('modalMovsCuenta');setTimeout(()=>_abrirEditarSaldo(_movsCuentaActual),120)}
-        else if(a==='editar-saldo'){if(banco==='USDT'){renderizarInventario();abrirModal('modalInventario')}
-            else if(typeof abrirMovimientosCuenta==='function'){abrirMovimientosCuenta(banco)}
-            else{AppState.ui.bancoEditando=banco;$('editarSaldoHeader').innerHTML='Editar '+colorBanco(banco);$('nuevoSaldoBanco').value=fmtNum(AppState.datos.bancos[banco]?.saldo||0);$('limiteDiarioGroup').style.display='block';$('limiteDiarioBanco').value=fmtNum(AppState.datos.bancos[banco]?.limiteDiarioUSD||0,0);_pintarDiasReset(banco);abrirModal('modalEditarSaldo')}}
-        else if(a==='toggle-banco'){const n=t.dataset.banco;if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;renderizarListaBancos();actualizarVista();guardaOptimista('update','bancos',n)}
-        else if(a==='inventario'){renderizarInventario();abrirModal('modalInventario')}
-        else if(a==='editar-lote')abrirEditarLote(loteId);
-        else if(a==='usar-tag'){
+        },
+        /* Libro de cada cuenta */
+        'editar-saldo':t=>{const b=t.dataset.banco;if(b==='USDT'){renderizarInventario();abrirModal('modalInventario')}else abrirMovimientosCuenta(b)},
+        'movs-usdt':()=>{cerrarModal('modalInventario');setTimeout(()=>abrirMovimientosCuenta('USDT'),120)},
+        'movs-cuenta-todo':()=>{_movsCuentaTodo=true;_pintarMovimientosCuenta()},
+        'cerrar-movs-cuenta':()=>cerrarModal('modalMovsCuenta'),
+        'movc-abrir':t=>abrirRegistroDelLibro(t.dataset.tipo,t.dataset.id),
+        'corregir-saldo':t=>{
+            const b=t.dataset.banco||_movsCuentaActual;
+            if(!t.dataset.banco)cerrarModal('modalMovsCuenta');
+            setTimeout(()=>_abrirEditarSaldo(b),t.dataset.banco?0:120);
+        },
+        'toggle-banco':t=>{
+            const n=t.dataset.banco;
+            if(!AppState.datos.bancos[n])AppState.datos.bancos[n]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0};
+            AppState.datos.bancos[n].activo=!AppState.datos.bancos[n].activo;
+            confirmarCambios([{tipo:'update',entidad:'bancos',id:n}]);
+            renderizarListaBancos();
+        },
+        'editar-lote':t=>abrirEditarLote(t.dataset.loteId),
+        /* Categorías */
+        'usar-tag':t=>{
             const tag=t.dataset.tag,target=t.dataset.target;
-            if(tag&&target){const inp=$(target);if(inp){
-                /* Toggle: deselect if already selected */
-                inp.value=(tagKey(inp.value.trim())===tagKey(tag))?'':tag;
-                inp.focus();renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'');
-            }}
-        }
-        else if(a==='tag-crear'){
-            const tag=t.dataset.tag,target=t.dataset.target;
-            if(tag){agregarTag(tag);const inp=$(target);if(inp){inp.value=tag;inp.focus();renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'')}}
-        }
-        else if(a==='tag-ver-mas'){
-            const target=t.dataset.target;
-            AppState.ui._tagShowAll=true;
-            if(target)renderizarTagsSugerencias(target,target==='movDescripcion'?'tagSugerenciasMov':'');
-        }
-        else if(a==='toggle-ops-filters'){
-            toggleOpsFilters();
-        }
-        else if(a==='ops-filter'){
-            const filter=t.dataset.filter,val=t.dataset.val;
-            if(filter&&val)setOpsFilter(filter,val);
-        }
-        else if(a==='ops-filter-clear'){
-            clearOpsFilters();
-        }
-        else if(a==='ir-nueva-operacion'){
-            /* v5.5.0 — Desde el estado vacío de Operaciones: abre el formulario
-               si está plegado y lleva el foco al monto, que es el primer dato. */
-            const sec=$('seccionNuevaOp');
-            if(sec&&!sec.classList.contains('open'))sec.classList.add('open');
-            const m=$('monto');
-            if(m){m.scrollIntoView({block:'center',behavior:'smooth'});setTimeout(()=>m.focus(),300)}
-        }
-        else if(a==='toggle-mov-filters'){toggleMovsFilters()}
-        else if(a==='movs-filter'){
-            const filter=t.dataset.filter,val=t.dataset.val;
-            if(filter&&val)setMovsFilter(filter,val);
-        }
-        else if(a==='movs-filter-clear'){clearMovsFilters()}
-        else if(a==='toggle-trans-filters'){toggleTransFilters()}
-        else if(a==='trans-filter'){
-            const filter=t.dataset.filter,val=t.dataset.val;
-            if(filter&&val)setTransFilter(filter,val);
-        }
-        else if(a==='trans-filter-clear'){clearTransFilters()}
-        else if(a==='split-add'){
-            AppState.ui.splitExtras=AppState.ui.splitExtras||[];
-            AppState.ui.splitExtras.push({banco:'',monto:0});
-            renderSplitPanel();
-        }
-        else if(a==='split-remove'){
-            const idx=parseInt(t.dataset.idx);
-            if(isNaN(idx))return;
-            AppState.ui.splitExtras.splice(idx,1);
-            renderSplitPanel();
-        }
-        else if(a==='usar-tasa'){
-            const v=t.dataset.valor;if(v){$('tasa').value=fmtTasa(parseFloat(v),getMonedaBanco());AppState.ui.tasaManual=true;calcularPreview();/* v4.7.59: re-evaluar split tras cambio de tasa */ renderSplitPanel();/* v4.7.62: re-evaluar pill activa */ renderizarTasasRecientes()}
-        }
-        else if(a==='tasa-step'){
-            const mon=getMonedaBanco();
-            const STEP=0.01;
+            const inp=tag&&target?$(target):null;if(!inp)return;
+            inp.value=(tagKey(inp.value.trim())===tagKey(tag))?'':tag;   /* tocar de nuevo la quita */
+            inp.focus();renderizarTagsSugerencias(target,'tagSugerenciasMov');
+        },
+        'tag-crear':t=>{
+            const tag=t.dataset.tag,target=t.dataset.target;if(!tag)return;
+            agregarTag(tag);
+            const inp=$(target);if(inp){inp.value=tag;inp.focus();renderizarTagsSugerencias(target,'tagSugerenciasMov')}
+        },
+        'tag-ver-mas':t=>{AppState.ui._tagShowAll=true;const target=t.dataset.target;if(target)renderizarTagsSugerencias(target,'tagSugerenciasMov')},
+        'editar-tag':t=>{
+            const oldTag=t.dataset.tag;if(!oldTag)return;
+            const nuevoNombre=prompt('Nuevo nombre de la categoría:',oldTag);
+            if(nuevoNombre===null)return;
+            if(editarTag(oldTag,nuevoNombre))renderizarGestionTags();
+            else alert('Nombre inválido o ya existe');
+        },
+        'merge-tag':t=>{const srcTag=t.dataset.tag;if(srcTag)abrirModalMergeTag(srcTag)},
+        'merge-select-dest':t=>{AppState.ui.mergeSelectedDest=t.dataset.tag||null;renderMergeDestinations($('mergeSearch').value||'');updateMergeConfirmBox()},
+        'eliminar-tag':t=>{
+            const tag=t.dataset.tag;if(!tag)return;
+            if(confirm(`¿Eliminar la categoría "${tag}"?\n\nLos ajustes que la usan no se borran y conservan su descripción.`)){eliminarTag(tag);renderizarGestionTags()}
+        },
+        'tag-periodo':t=>{AppState.ui.tagPeriodo=t.dataset.periodo||'total';renderizarGestionTags()},
+        'tag-view':t=>{AppState.ui.tagView=t.dataset.view||'dona';renderizarGestionTags()},
+        /* Filtros */
+        'toggle-ops-filters':()=>toggleOpsFilters(),
+        'ops-filter':t=>{const f=t.dataset.filter,v=t.dataset.val;if(f&&v)setOpsFilter(f,v)},
+        'ops-filter-clear':()=>clearOpsFilters(),
+        'toggle-mov-filters':()=>toggleMovsFilters(),
+        'movs-filter':t=>{const f=t.dataset.filter,v=t.dataset.val;if(f&&v)setMovsFilter(f,v)},
+        'movs-filter-clear':()=>clearMovsFilters(),
+        'toggle-trans-filters':()=>toggleTransFilters(),
+        'trans-filter':t=>{const f=t.dataset.filter,v=t.dataset.val;if(f&&v)setTransFilter(f,v)},
+        'trans-filter-clear':()=>clearTransFilters(),
+        /* Pago dividido y tasa */
+        'split-add':()=>{AppState.ui.splitExtras=AppState.ui.splitExtras||[];AppState.ui.splitExtras.push({banco:'',monto:0});renderSplitPanel()},
+        'split-remove':t=>{const idx=parseInt(t.dataset.idx);if(isNaN(idx))return;AppState.ui.splitExtras.splice(idx,1);renderSplitPanel()},
+        'usar-tasa':t=>{
+            const v=t.dataset.valor;if(!v)return;
+            $('tasa').value=fmtTasa(parseFloat(v),getMonedaBanco());AppState.ui.tasaManual=true;
+            calcularPreview();renderSplitPanel();renderizarTasasRecientes();
+        },
+        'tasa-step':t=>{
             const dir=t.dataset.dir==='down'?-1:1;
             const cur=parsearTasa($('tasa').value)||0;
-            /* Integer-cent math to avoid floating-point drift */
-            const cents=Math.round(cur*100)+dir;
-            const nuevo=Math.max(0,cents/100);
-            $('tasa').value=fmtTasa(nuevo,mon);
+            const nuevo=Math.max(0,(Math.round(cur*100)+dir)/100);   /* en centésimos, sin error de coma flotante */
+            $('tasa').value=fmtTasa(nuevo,getMonedaBanco());
             AppState.ui.tasaManual=true;
-            calcularPreview();
-            /* v4.7.59: re-evaluar split tras cambio de tasa */
-            renderSplitPanel();
-            /* v4.7.62: re-evaluar pill activa */
-            renderizarTasasRecientes();
+            calcularPreview();renderSplitPanel();renderizarTasasRecientes();
+        },
+        /* Calendario */
+        'cal-day':t=>{const ds=t.dataset.date;if(!ds)return;if(AppState.ui.calSelectedDay===ds)cerrarDetalleDia();else mostrarDetalleDia(ds)},
+        'cal-day-close':()=>cerrarDetalleDia()
+    };
+    document.addEventListener('click',e=>{
+        /* Tap en el borde derecho de una tarjeta con límite (últimos 16px) →
+           mostrar el porcentaje usado sin abrir la cuenta */
+        const maybeCard=e.target.closest('.banco-mini-card.has-gauge');
+        if(maybeCard){
+            const rect=maybeCard.getBoundingClientRect();
+            if(e.clientX-rect.left>rect.width-16){
+                e.stopPropagation();e.preventDefault();
+                document.querySelectorAll('.banco-mini-card.show-tip').forEach(c=>{if(c!==maybeCard)c.classList.remove('show-tip')});
+                maybeCard.classList.add('show-tip');
+                clearTimeout(AppState.ui._gaugeTipTimer);
+                AppState.ui._gaugeTipTimer=setTimeout(()=>maybeCard.classList.remove('show-tip'),2200);
+                return;
+            }
         }
-        else if(a==='editar-tag'){
-            const oldTag=t.dataset.tag;if(!oldTag)return;
-            const nuevoNombre=prompt('Editar categoría:',oldTag);
-            if(nuevoNombre!==null){if(editarTag(oldTag,nuevoNombre)){guardarDatos();renderizarGestionTags()}else{alert('Nombre inválido o ya existe')}}
-        }
-        else if(a==='merge-tag'){
-            const srcTag=t.dataset.tag;if(!srcTag)return;
-            abrirModalMergeTag(srcTag);
-        }
-        else if(a==='merge-select-dest'){
-            AppState.ui.mergeSelectedDest=t.dataset.tag||null;
-            renderMergeDestinations($('mergeSearch').value||'');
-            updateMergeConfirmBox();
-        }
-        else if(a==='eliminar-tag'){
-            const tag=t.dataset.tag;if(!tag)return;
-            if(confirm(`¿Eliminar la categoría "${tag}"?`)){eliminarTag(tag);guardarDatos();renderizarGestionTags()}
-        }
-        else if(a==='tag-periodo'){
-            AppState.ui.tagPeriodo=t.dataset.periodo||'total';renderizarGestionTags();
-        }
-        else if(a==='tag-view'){
-            AppState.ui.tagView=t.dataset.view||'dona';renderizarGestionTags();
-        }
-        else if(a==='cal-day'){
-            const ds=t.dataset.date;if(!ds)return;
-            if(AppState.ui.calSelectedDay===ds)cerrarDetalleDia();
-            else mostrarDetalleDia(ds);
-        }
-        else if(a==='cal-day-close'){
-            cerrarDetalleDia();
-        }
-        else if(a==='reconnect')reconnectFirebase();
+        const t=e.target.closest('[data-action]');if(!t)return;
+        const fn=ACCIONES[t.dataset.action];if(!fn)return;
+        if(t.closest('#menuPanel'))cerrarMenuPanel();
+        fn(t,parseInt(t.dataset.id),e);
+    });
+    /* Accesible con teclado: Enter o espacio sobre una fila con acción */
+    document.addEventListener('keydown',e=>{
+        if(e.key!=='Enter'&&e.key!==' ')return;
+        const t=e.target.closest&&e.target.closest('[data-action][role="button"],.menu-row[data-action]');
+        if(!t||/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName))return;
+        e.preventDefault();t.click();
     });
 
-    // Escape cierra modales
-    document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.modal.active').forEach(m=>m.classList.remove('active'));document.body.style.overflow='';$('menuPanel')?.classList.remove('active');$('menuBackdrop')?.classList.remove('active');$('menuBtn')?.classList.remove('active')}});
+    // Escape cierra modales y menú
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.modal.active').forEach(m=>cerrarModal(m.id));cerrarMenuPanel()}});
 
-    // Init
+    // Inicio
     actualizarFormulario();actualizarColorSelect();instalarErrorBoundary();inicializarFirebase();
-    /* Scheduler horario — corre cada 60s pero SOLO cuando la pestaña está visible.
-       Evita wake-ups de CPU con app en background (crítico en Android WebView). */
+    /* Revisión cada minuto, SOLO con la pestaña visible (no despierta el teléfono
+       en segundo plano): renovación del cupo y cambio de día. */
     (function installHourlyTick(){
         let _tickInterval=null;
-        let _lastTickDay='';  /* guarda fecha del último tick para evitar trabajo redundante */
+        let _lastTickDay='';
         function tick(){
             if(!AppState.currentUser)return;
-            if(document.hidden)return;  /* no hacer nada si la pestaña está oculta */
-            verificarResetLimites();
-            /* actualizarVista solo si cambió el día — evita re-render a cada minuto */
+            if(document.hidden)return;
+            /* v7.3.0 — La renovación de las 0:30 cambiaba la fecha pero no
+               recalculaba el consumo ni se guardaba: el cupo viejo seguía
+               bloqueando compras hasta el próximo cambio. */
+            revisarRenovacionCupos();
             const hoyStr=getUDateStr();
             if(hoyStr!==_lastTickDay){
                 _lastTickDay=hoyStr;
@@ -557,44 +523,18 @@ actualizarVista();renderizarListaBancos();cerrarModal('modalEditarSaldo');AppSta
         start();
         document.addEventListener('visibilitychange',()=>{
             if(document.hidden)stop();
-            else{start();tick()}  /* al volver, hacer un tick inmediato */
+            else{start();tick()}  /* al volver, revisar enseguida */
         });
     })();
 });
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   §RECOVERY-WRITE v4.7.64 — Migración controlada legacy → comprimido
-   ═══════════════════════════════════════════════════════════════════════════════
-   PROBLEMA QUE RESUELVE:
-   El doc remoto quedó en estado degradado (~951 KB legacy) después de múltiples
-   resource-exhausted/timeouts. v4.7.63 implementó compresión wire que reduce el
-   payload a ~537 KB, pero el flujo normal de sync no logra completar el primer
-   write comprimido encima del doc legacy gigante (Firestore aplica throttling).
-   
-   ESTRATEGIA:
-   1. Detectar al cargar: doc remoto sin _wireFormat + memoria con ops → recovery
-   2. Bloquear TODOS los writes (queue, listener, telemetry, config, banners)
-   3. Hacer UN write dedicado, sin transaction, sin metadata extra, sin queue
-   4. Timeout 90s + retries 3x con backoff 5s/15s/30s
-   5. Verificar leyendo el doc post-write: _wireFormat, count, sumas
-   6. Si OK: forzar reload limpio (cache reset + listener re-subscribe)
-   7. Si falla: modo seguro con UI de restauración manual
-   
-   NO se llama solo (excepto detección automática inicial). El usuario también
-   puede dispararlo manualmente desde Diagnóstico.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-(function setupRecoveryWrite(){
+/* ═══════════════════════════════════════════════════════════════════════════
+   CARTEL DE PROGRESO — lo usan el archivado (15), la migración y la subida
+   total (16): bloquea la pantalla mientras corre un proceso largo y muestra en
+   qué fase está.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
 'use strict';
-
-const RECOVERY_LOG=(ev,data)=>{
-    /* Log dedicado con prefijo "recovery:" para que sea fácilmente filtrable en
-       el diagnóstico. Reusa _syncLog para que aparezca en el mismo buffer. */
-    try{
-        if(typeof _syncLog==='function')_syncLog('recovery:'+ev,data||{});
-        else console.log('[P2P recovery]',ev,data||{});
-    }catch(_){}
-};
 
 /* ─── UI Overlay bloqueante ───────────────────────────────────────────────────
    Overlay full-screen con z-index máximo. Mientras está visible, el usuario no
@@ -610,9 +550,9 @@ function _ensureRecoveryOverlay(){
     el.innerHTML=
         '<div style="max-width:380px;width:100%;background:#1e293b;border-radius:14px;'+
         'padding:24px;box-shadow:0 25px 50px rgba(0,0,0,0.5);text-align:center">'+
-            '<div id="recoveryIcon" style="font-size:48px;margin-bottom:8px">⚠️</div>'+
+            '<div id="recoveryIcon" style="margin-bottom:8px;color:#fbbf24"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5"/></svg></div>'+
             '<div style="font-size:1.15em;font-weight:700;color:#fbbf24;margin-bottom:12px;'+
-                'line-height:1.3">Optimización crítica de base de datos en progreso</div>'+
+                'line-height:1.3">Procesando tus datos</div>'+
             '<div style="font-size:0.68em;color:#475569;margin:-8px 0 10px">v'+CONFIG.APP_VERSION+'</div>'+
             '<div id="recoverySubtitle" style="font-size:0.9em;color:#cbd5e1;margin-bottom:18px;line-height:1.45">'+
                 'No cierres la app ni cambies de pestaña. La operación puede tardar hasta un minuto.</div>'+
@@ -687,27 +627,6 @@ function _setRecoveryError(title,desc,actions){
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   RETIRADO EN v5.1.0 — maquinaria del documento único
-   ═══════════════════════════════════════════════════════════════════════════
-   Acá vivían recoveryWrite, el payload guard, el modo seguro y sus auxiliares:
-   ~500 líneas cuyo único propósito era mantener UN documento gigante por debajo
-   del límite de 1 MiB de Firestore (recomprimir, verificar tamaño, bloquear
-   escrituras preventivamente, reintentar).
-
-   En el modelo v2 el documento de estado pesa menos de 1 KB y no crece con la
-   historia: nada de esto puede activarse ni tiene qué reparar. Se conserva solo
-   el overlay de progreso (_recoveryUI), que reutilizan el archivado (15), la
-   migración y la subida total (16).
-
-   Marcha atrás: si hiciera falta volver al documento único, revertir en git a
-   la v5.0.1 (que trae esta maquinaria y revertirAV1) y ejecutar revertirAV1().
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* ─── Exposición pública ─────────────────────────────────────────────────────
-   Para que el botón de Diagnóstico pueda dispararlo manualmente. */
-/* Hooks del overlay de progreso — los usan el archivado (15), la migración y la
-   subida total (16). Es lo único que sobrevive de este módulo. */
 window._recoveryUI={
     ensure:_ensureRecoveryOverlay,
     hide:_hideRecoveryOverlay,

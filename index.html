@@ -17,12 +17,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <link rel="stylesheet" href="src/css/00-tokens.css?v=7.2.1">
-    <link rel="stylesheet" href="src/css/01-base.css?v=7.2.1">
-    <link rel="stylesheet" href="src/css/02-components.css?v=7.2.1">
-    <link rel="stylesheet" href="src/css/03-modals.css?v=7.2.1">
-    <link rel="stylesheet" href="src/css/04-views.css?v=7.2.1">
-    <link rel="stylesheet" href="src/css/05-overrides.css?v=7.2.1">
+    <link rel="stylesheet" href="src/css/00-tokens.css?v=7.3.0">
+    <link rel="stylesheet" href="src/css/01-base.css?v=7.3.0">
+    <link rel="stylesheet" href="src/css/02-components.css?v=7.3.0">
+    <link rel="stylesheet" href="src/css/03-modals.css?v=7.3.0">
+    <link rel="stylesheet" href="src/css/04-views.css?v=7.3.0">
+    <link rel="stylesheet" href="src/css/05-overrides.css?v=7.3.0">
 </head>
 <body>
     <!-- ═══ OVERLAYS ═══ -->
@@ -71,23 +71,26 @@
             <div class="header">
                 <div class="header-left">
                     <h1><svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/><path d="M12 2v3M12 19v3"/></svg> Registro P2P</h1>
-                    <div class="sync-status offline" id="syncStatus" data-action="reconnect"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
+                    <div class="sync-status offline" id="syncStatus" data-action="reconnect" role="button" tabindex="0" title="Tocá para reconectar"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
                 </div>
                 <div class="menu-container">
                     <button class="news-bell" id="newsBellBtn" aria-label="Centro de novedades">
                         <span class="news-bell-icon"><svg class="news-bell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg></span>
                         <span class="news-bell-badge hidden" id="newsBellBadge">0</span>
                     </button>
-                    <button class="menu-btn" id="menuBtn"><span></span><span></span><span></span></button>
+                    <button class="menu-btn" id="menuBtn" aria-label="Abrir menú" aria-expanded="false" aria-controls="menuPanel"><span></span><span></span><span></span></button>
                 </div>
             </div>
 
-            <!-- Full-screen menu panel -->
+            <!-- ═══ Menú (v7.3.0) ═══
+                 Lo más usado arriba, en cuatro accesos grandes. Después análisis y
+                 datos; cerrar sesión aparte; y borrar todo al final, separado,
+                 para que no se toque sin querer. -->
             <div class="menu-backdrop" id="menuBackdrop"></div>
-            <div class="menu-panel" id="menuPanel">
+            <div class="menu-panel" id="menuPanel" role="dialog" aria-label="Menú">
                 <div class="menu-panel-header">
-                    <button class="menu-back" id="menuBack" aria-label="Volver">←</button>
-                    <div class="menu-panel-title">Configuración y herramientas</div>
+                    <button type="button" class="menu-back" id="menuBack" aria-label="Cerrar menú"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+                    <div class="menu-panel-title">Menú</div>
                 </div>
                 <div class="menu-panel-body">
                     <div class="menu-panel-user">
@@ -98,33 +101,36 @@
                         </div>
                     </div>
 
-                    <div class="menu-group-title">Operaciones</div>
-                    <div class="menu-group">
-                        <div class="menu-row" data-action="movimiento"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span class="menu-row-label">Ajustes de saldo</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row" data-action="transferencia"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg></span><span class="menu-row-label">Transferencias entre cuentas</span><span class="menu-row-chevron">›</span></div>
-                    </div>
-
-                    <div class="menu-group-title">Cuentas</div>
-                    <div class="menu-group">
-                        <div class="menu-row" data-action="bancos"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18"/></svg></span><span class="menu-row-label">Cuentas bancarias y billeteras</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row" data-action="inventario"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="menu-row-label">Lotes USDT</span><span class="menu-row-chevron">›</span></div>
+                    <div class="menu-accesos">
+                        <button type="button" class="menu-acceso" data-action="movimiento"><span class="menu-acceso-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span class="menu-acceso-txt">Ajuste externo</span></button>
+                        <button type="button" class="menu-acceso" data-action="transferencia"><span class="menu-acceso-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg></span><span class="menu-acceso-txt">Transferencia</span></button>
+                        <button type="button" class="menu-acceso" data-action="bancos"><span class="menu-acceso-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18"/></svg></span><span class="menu-acceso-txt">Cuentas</span><small class="menu-acceso-dato" id="menuDatoCuentas"></small></button>
+                        <button type="button" class="menu-acceso" data-action="inventario"><span class="menu-acceso-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="menu-acceso-txt">Lotes USDT</span><small class="menu-acceso-dato" id="menuDatoLotes"></small></button>
                     </div>
 
                     <div class="menu-group-title">Análisis</div>
                     <div class="menu-group">
-                        <div class="menu-row" data-action="gestion-tags"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15.5A9 9 0 118.5 3v9h9a9 9 0 013.5 3.5z"/><path d="M20.9 9.5A9 9 0 0014.5 3.1V9.5h6.4z"/></svg></span><span class="menu-row-label">Análisis de gastos</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row" data-action="calendario"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6a2 2 0 012-2h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V6zm0 4h18M8 2v4M16 2v4"/></svg></span><span class="menu-row-label">Calendario de operaciones</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row" data-action="historial-mensual"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg></span><span class="menu-row-label">Resumen mensual</span><span class="menu-row-chevron">›</span></div>
+                        <button type="button" class="menu-row" data-action="historial-mensual"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg></span><span class="menu-row-label">Resumen mensual</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
+                        <button type="button" class="menu-row" data-action="calendario"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6a2 2 0 012-2h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V6zm0 4h18M8 2v4M16 2v4"/></svg></span><span class="menu-row-label">Calendario</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
+                        <button type="button" class="menu-row" data-action="gestion-tags"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15.5A9 9 0 118.5 3v9h9a9 9 0 013.5 3.5z"/><path d="M20.9 9.5A9 9 0 0014.5 3.1V9.5h6.4z"/></svg></span><span class="menu-row-label">Análisis de gastos</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
+                        <button type="button" class="menu-row" data-action="ver-archivo" id="menuFilaArchivo"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8zm0 0l9 5 9-5M12 13v8"/></svg></span><span class="menu-row-label">Historial archivado</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
                     </div>
 
-                    <div class="menu-group-title">Sistema</div>
+                    <div class="menu-group-title">Tus datos</div>
                     <div class="menu-group">
-                        <div class="menu-row" data-action="reconciliar"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="menu-row-label">Verificar y reconciliar</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row" data-action="restaurar-respaldo"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v11a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5zM7 3v6h9M8 17h8"/></svg></span><span class="menu-row-label">Restaurar último respaldo</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row" data-action="exportar-datos"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v13M7 8l5-5 5 5"/></svg></span><span class="menu-row-label">Exportar datos (.json)</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row" data-action="importar-datos"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg></span><span class="menu-row-label">Importar datos (.json)</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg></span><span class="menu-row-label">Resetear aplicación</span><span class="menu-row-chevron">›</span></div>
-                        <div class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg></span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron">›</span></div>
+                        <button type="button" class="menu-row" data-action="reconciliar"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4"/></svg></span><span class="menu-row-label">Verificar y reconciliar</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
+                        <button type="button" class="menu-row" data-action="exportar-datos"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v13M7 8l5-5 5 5"/></svg></span><span class="menu-row-label">Exportar copia (.json)</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
+                        <button type="button" class="menu-row" data-action="importar-datos"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg></span><span class="menu-row-label">Importar copia (.json)</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
+                        <button type="button" class="menu-row" data-action="restaurar-respaldo"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v11a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5zM7 3v6h9M8 17h8"/></svg></span><span class="menu-row-label">Restaurar último respaldo</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
+                        <button type="button" class="menu-row" data-action="archivar"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg></span><span class="menu-row-label">Archivar meses anteriores</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
+                    </div>
+
+                    <div class="menu-group">
+                        <button type="button" class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg></span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
+                    </div>
+
+                    <div class="menu-group menu-group-peligro">
+                        <button type="button" class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg></span><span class="menu-row-label">Borrar todos los datos</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
                     </div>
 
                     <div class="menu-version"><span class="menu-version-label">Versión</span> <span id="menuVersion">—</span></div>
@@ -219,7 +225,7 @@
 
                         <div class="op-btn-wrap">
                             <div class="com-row">
-                                <div><div class="com-label">Comisión Binance</div><div class="com-info"><span id="comisionPlataformaInfo"></span><span id="saldoBancoInfo"></span></div></div>
+                                <div class="com-label">Comisión Binance</div>
                                 <label class="com-edit" title="Comisión Binance editable (0% a 10%). Se aplica a compras y ventas." aria-label="Editar comisión de Binance en porcentaje"><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal" maxlength="6" aria-label="Porcentaje de comisión"><span>%</span></label>
                             </div>
                             <button class="btn op-btn-compra" id="btnAgregarOp"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg> Comprar USDT</button>
@@ -299,9 +305,19 @@
                              desplegarla, el teléfono muestra su propio selector con el texto. -->
                         <div class="select-con-icono"><span class="select-icono" id="movTipoIcono"></span>
                         <select id="movTipoCuenta" class="select-tipo"><option value="banco">Banco</option><option value="usdt">USDT</option></select></div></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco" class="select-banco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="text" inputmode="decimal" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group mov-monto-group"><label id="movMontoLabel">Monto</label><input type="text" inputmode="decimal" id="movMonto" class="mov-monto-input" placeholder="0"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción</label><textarea id="movDescripcion" rows="1" placeholder="Ej: Almuerzo, Uber, etc."></textarea><div id="tagSugerenciasMov"></div></div><div id="movResumen" class="mov-resumen" style="display:none"></div>
-                <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div></div></div>
+                <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div>
+                <button type="button" class="btn-eliminar-registro" id="btnEliminarMov" style="display:none"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg> Eliminar</button></div></div>
     <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18"/></svg> Cuentas Bancarias</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
-    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader">↔️ Transferencia entre Bancos</div><div class="form-group"><label>Banco origen</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div><div class="form-group"><label>Banco destino</label><select id="bancoDestino"></select></div><div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div><div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia"></div><div id="transfConvPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div><div class="form-group"><label>Comisión (opcional)</label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div></div></div>
+    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg> Transferencia entre cuentas</div>
+        <div class="form-group"><label>Desde</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div>
+        <div class="form-group"><label>Hacia</label><select id="bancoDestino"></select></div>
+        <div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div>
+        <div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia" placeholder="0"></div>
+        <div id="transfConvPreview" class="caja-info" style="display:none"></div>
+        <div class="form-group" id="comisionTransfGroup"><label>Comisión <span class="opcional">(opcional)</span></label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div>
+        <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div>
+        <button type="button" class="btn-eliminar-registro" id="btnEliminarTransf" style="display:none"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg> Eliminar</button>
+    </div></div>
     <!-- v6.1.0 — Movimientos de una cuenta, derivados de los asientos existentes -->
     <div id="modalMovsCuenta" class="modal"><div class="modal-content" style="max-width:560px">
         <div class="modal-header" data-action="cerrar-movs-cuenta" id="movsCuentaHeader">Movimientos</div>
@@ -332,7 +348,7 @@
             <button class="inv-verificar" data-action="movs-usdt" type="button"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg> Ver movimientos</button>
             <button class="inv-verificar" data-action="reconciliar" type="button"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> Verificar y reconciliar</button>
             <div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
-    <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad disponible (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
+    <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad del lote (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"><small id="loteDisponibleInfo" style="display:none"></small></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
     <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15.5A9 9 0 118.5 3v9h9a9 9 0 013.5 3.5z"/><path d="M20.9 9.5A9 9 0 0014.5 3.1V9.5h6.4z"/></svg> Análisis de Gastos</div>
         <div id="tagAnalytics" style="margin-bottom:14px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
@@ -341,7 +357,7 @@
         </div>
         <input class="tag-search" type="text" id="tagSearch" placeholder="Buscar categoría…">
         <div id="tagsList" style="max-height:40vh;overflow-y:auto"></div>
-        <div style="background:#f1f5f9;padding:8px 10px;border-radius:8px;margin-top:10px"><div style="font-size:0.7em;color:#64748b">Las categorías se generan automáticamente desde las descripciones de tus ajustes. Fusionarlas ayuda a mantener el análisis más limpio y preciso. Usá el botón de fusionar.</div></div>
+        <div class="tags-nota">Fusionar une dos categorías en una: sus gastos pasan a la que elijas.</div>
         <div class="modal-buttons"><button class="btn" id="btnCerrarTags">Cerrar</button></div>
     </div></div>
 
@@ -388,7 +404,8 @@
     </div>
     <div id="modalEditarOp" class="modal"><div class="modal-content">
         <div class="modal-header" id="editarOpHeader"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Editar Operación</div>
-        <div id="editarOpInfo" style="font-size:0.8em;color:#64748b;margin-bottom:10px"></div>
+        <div id="editarOpInfo" class="editar-op-info"></div>
+        <div id="editOpNota" class="caja-info" style="display:none"></div>
         <div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div>
         <div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div>
         <div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div>
@@ -396,8 +413,20 @@
             <div><div class="com-label">Comisión Binance</div><div class="com-info"><strong id="editOpComisionInfo">0 USDT</strong></div></div>
             <label class="com-edit" title="Comisión Binance de esta operación (0% a 10%)" aria-label="Editar comisión Binance"><input type="text" id="editOpComisionPct" value="0,14" placeholder="0,14" inputmode="decimal" maxlength="6" aria-label="Porcentaje de comisión"><span>%</span></label>
         </div>
-        <div id="editOpPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#1e40af"></div>
+        <div id="editOpPreview" class="caja-info" style="display:none"></div>
         <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div>
+        <button type="button" class="btn-eliminar-registro" id="btnEliminarEditOp"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg> Eliminar operación</button>
+    </div></div>
+
+    <!-- v7.3.0 — Corrección de saldo: se edita o se borra como cualquier registro -->
+    <div id="modalAjusteSaldo" class="modal"><div class="modal-content">
+        <div class="modal-header" id="ajusteSaldoHeader">Corrección de saldo</div>
+        <div class="editar-op-info" id="ajusteSaldoCuando"></div>
+        <div class="tabs"><button type="button" class="tab tab-ingreso active" id="ajusteSaldoSuma">Suma</button><button type="button" class="tab tab-egreso" id="ajusteSaldoResta">Resta</button></div>
+        <div class="form-group"><label>Diferencia (<span id="ajusteSaldoSym">$</span>)</label><input type="text" inputmode="decimal" id="ajusteSaldoMonto" placeholder="0"></div>
+        <div class="form-group"><label>Motivo <span class="opcional">(opcional)</span></label><input type="text" id="ajusteSaldoMotivo" maxlength="120" placeholder="Ej: comisión no registrada"></div>
+        <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelAjusteSaldo">Cancelar</button><button class="btn" id="btnGuardarAjusteSaldo">Guardar</button></div>
+        <button type="button" class="btn-eliminar-registro" id="btnEliminarAjusteSaldo"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg> Borrar corrección</button>
     </div></div>
 
     <!-- ═══ SUCCESS OVERLAY ═══ -->
@@ -415,21 +444,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <script src="src/js/01-config.js?v=7.2.1"></script>
-    <script src="src/js/02-state.js?v=7.2.1"></script>
-    <script src="src/js/03-news-changelog.js?v=7.2.1"></script>
-    <script src="src/js/04-utils-filtros.js?v=7.2.1"></script>
-    <script src="src/js/05-integridad.js?v=7.2.1"></script>
-    <script src="src/js/06-paginacion-bancos-fifo.js?v=7.2.1"></script>
-    <script src="src/js/07-firebase-sync.js?v=7.2.1"></script>
-    <script src="src/js/08-backup-recovery-sdk.js?v=7.2.1"></script>
-    <script src="src/js/09-form-split.js?v=7.2.1"></script>
-    <script src="src/js/10-mov-transf-calendario.js?v=7.2.1"></script>
-    <script src="src/js/11-paginaciones-dashboard.js?v=7.2.1"></script>
-    <script src="src/js/12-lotes-reset-importexport.js?v=7.2.1"></script>
-    <script src="src/js/13-eventos.js?v=7.2.1"></script>
-    <script src="src/js/14-recovery-write.js?v=7.2.1"></script>
-    <script src="src/js/15-archivo.js?v=7.2.1"></script>
-    <script src="src/js/16-store-v2.js?v=7.2.1"></script>
+    <script src="src/js/01-config.js?v=7.3.0"></script>
+    <script src="src/js/02-state.js?v=7.3.0"></script>
+    <script src="src/js/03-news-changelog.js?v=7.3.0"></script>
+    <script src="src/js/04-utils-filtros.js?v=7.3.0"></script>
+    <script src="src/js/05-integridad.js?v=7.3.0"></script>
+    <script src="src/js/06-paginacion-bancos-fifo.js?v=7.3.0"></script>
+    <script src="src/js/07-firebase-sync.js?v=7.3.0"></script>
+    <script src="src/js/08-backup-recovery-sdk.js?v=7.3.0"></script>
+    <script src="src/js/09-form-split.js?v=7.3.0"></script>
+    <script src="src/js/10-mov-transf-calendario.js?v=7.3.0"></script>
+    <script src="src/js/11-paginaciones-dashboard.js?v=7.3.0"></script>
+    <script src="src/js/12-lotes-reset-importexport.js?v=7.3.0"></script>
+    <script src="src/js/13-eventos.js?v=7.3.0"></script>
+    <script src="src/js/14-recovery-write.js?v=7.3.0"></script>
+    <script src="src/js/15-archivo.js?v=7.3.0"></script>
+    <script src="src/js/16-store-v2.js?v=7.3.0"></script>
 </body>
 </html>

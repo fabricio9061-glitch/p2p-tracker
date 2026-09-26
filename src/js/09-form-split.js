@@ -71,7 +71,7 @@ function actualizarFormulario(){
         if(monedaCambiada)AppState.ui.tasaManual=false;
     }
     setText('tasaHelp','');$('tasaHelp').style.display='none';
-    const ci=$('comisionPlataforma');if(document.activeElement!==ci){const cv=isU?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;ci.value=fmtNum(cv);setText('comisionPctLabel',fmtNum(cv))}
+    const ci=$('comisionPlataforma');if(document.activeElement!==ci){ci.value=fmtNum(comisionConfigurada(mon))}
     calcularPreview();renderizarTasasRecientes();
 }
 
@@ -163,7 +163,6 @@ function guardarComisionYCalcular(){
     }
     inp.classList.remove('error');
     if(getMonedaBanco()==='USD')AppState.datos.comisionUSD=v;else AppState.datos.comisionPlataforma=v;
-    setText('comisionPctLabel',fmtNum(v));
     clearTimeout(AppState.ui.comisionDebounce);
     AppState.ui.comisionDebounce=setTimeout(()=>guardaOptimista('update','settings','comision'),1200);
     calcularPreview();
@@ -179,7 +178,7 @@ const SPLIT_EPSILON=0.005;
 function _initSplitState(){
     if(!AppState.ui.splitExtras)AppState.ui.splitExtras=[];
 }
-function _splitDisponible(bancoNombre,excluirBanco){
+function _splitDisponible(bancoNombre){
     const bk=AppState.datos.bancos[bancoNombre];
     if(!bk)return 0;
     return Math.max(0,bk.saldo);
@@ -295,12 +294,12 @@ function renderSplitPanel(){
         h+=`<div class="${rowCls}">
             <select data-action="split-set-banco" data-idx="${idx}" aria-invalid="${filaInvalida?'true':'false'}">${selOpts}</select>
             <input type="text" inputmode="decimal" data-action="split-set-monto" data-idx="${idx}" value="${ex.monto?_splitMonto(ex.monto):''}" placeholder="${sy}0" />
-            <button type="button" class="split-remove" data-action="split-remove" data-idx="${idx}" aria-label="Quitar">✕</button>
+            <button type="button" class="split-remove" data-action="split-remove" data-idx="${idx}" aria-label="Quitar"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>`;
         if(filaInvalida){
             h+=`<div class="split-row-hint-err"><svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> Falta seleccionar un banco para esta fila</div>`;
         }else if(ex.banco&&disp<(ex.monto||0)-SPLIT_EPSILON){
-            h+=`<div style="font-size:0.68em;color:#b91c1c;margin:-2px 4px 6px">⚠ ${escHtml(ex.banco)} solo tiene ${sy}${_splitMonto(disp)}</div>`;
+            h+=`<div class="split-row-hint-err">${escHtml(ex.banco)} solo tiene ${sy}${_splitMonto(disp)}</div>`;
         }
     });
     /* Botón agregar cuenta — solo si hay faltante real (>= EPSILON) */
@@ -471,7 +470,7 @@ function validarAportes(){
        banco vacío, NO se puede crear la operación. Esta es la segunda red de
        seguridad (la primera es el botón deshabilitado en UI). */
     if(aportes._hasEmptyBank){
-        return{ok:false,msg:'Hay una fila de pago sin banco seleccionado. Seleccioná un banco en cada fila o eliminala con la ✕ para continuar.'};
+        return{ok:false,msg:'Hay una fila de pago sin banco seleccionado. Seleccioná un banco en cada fila o quitala para continuar.'};
     }
     const state=_computeSplitState();
     if(!state||!state.aplicaSplit)return{ok:true};
@@ -516,11 +515,6 @@ async function agregarOperacion(){
            cuentas, la app rechazaba la operación diciendo que faltaba cupo cuando
            en realidad a cada cuenta le sobraba: a ninguna se le pedía el total.
            Ahora cada aporte se compara contra el cupo de su propia cuenta. */
-        const _cupoDisponible=nombre=>{
-            const bkx=AppState.datos.bancos[nombre];
-            if(!bkx||!(bkx.limiteDiarioUSD>0))return Infinity;
-            return roundMoney(bkx.limiteDiarioUSD-(bkx.limiteUsadoUSD||0));
-        };
         const _requerido=(nombre,monto)=>{
             const bi=getBancoInfo(nombre);
             if(bi?.moneda==='USD')return roundMoney(monto);
@@ -530,7 +524,7 @@ async function agregarOperacion(){
             ? aportes.map(a=>({banco:a.banco,monto:a.monto}))
             : [{banco:b,monto:m}];
         for(const p of _porCuenta){
-            const disp=_cupoDisponible(p.banco);
+            const disp=cupoDisponibleUSD(p.banco,null);
             if(disp===Infinity)continue;
             const req=_requerido(p.banco,p.monto);
             if(req>disp){
@@ -538,119 +532,79 @@ async function agregarOperacion(){
                 return;
             }
         }
-        /* INTEGRIDAD: validación dura — no se permite saldo negativo bajo ninguna circunstancia */
-        if(isSplit){
-            const valI=validarDeltas({aportes});
-            if(!valI.ok){alert('🚫 No se puede guardar:\n\n'+valI.reason);return}
-        }else{
-            const valI=validarDeltas({bancos:{[b]:-(m+cb)}});
-            if(!valI.ok){alert('🚫 No se puede comprar:\n\n'+valI.reason);return}
-        }
+        /* INTEGRIDAD: una compra nueva no puede dejar ninguna cuenta en negativo.
+           v7.3.0 — Se valida con el mismo efecto que después usa el libro de cada
+           cuenta, así la validación y el saldo no pueden discrepar. */
+        const candidata={tipo:'compra',monto:m,banco:b,comisionBanco:cb,...(isSplit?{aportes}:{})};
+        const valI=validarDeltas({bancos:efectoEnBancos('operaciones',candidata)});
+        if(!valI.ok){alert('No se puede comprar:\n\n'+valI.reason);return}
     }else{
         /* INTEGRIDAD: no se puede vender más USDT del disponible en lotes activos de la moneda */
         const un=usdtNeto(u,cpl,t);
         const valI=validarDeltas({usdt:-un,usdtMoneda:mon||'UYU'});
-        if(!valI.ok){alert('🚫 No se puede vender:\n\n'+valI.reason);return}
+        if(!valI.ok){alert('No se puede vender:\n\n'+valI.reason);return}
     }
     AppState.ui.guardandoOperacion=true;btn.disabled=true;btn.textContent='Guardando...';
     try{
         const opId=uid();
-        if(t==='compra'){
-            /* ═══ v6.4.0 — El cupo diario se reparte entre las cuentas que pagaron ═══
-               Antes se cargaba entero a la cuenta principal, incluso cuando el pago
-               se dividía entre varias. El resultado: una cuenta consumía cupo que
-               nunca usó y las otras quedaban con el suyo intacto, así que los dos
-               números estaban mal. Cada cuenta descuenta ahora exactamente lo que
-               aportó. */
-            /* v7.0.0 — El cupo ya no se descuenta acá: se recalcula solo sumando
-               las compras desde la última renovación. Un punto menos que mantener. */
-            const deltas={bancos:{}};
-            if(isSplit){
-                aportes.forEach(a=>{
-                    deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)-a.monto;
-                });
-                /* La comisión bancaria la cobra la cuenta principal */
-                if(cb>0)deltas.bancos[b]=roundMoney((deltas.bancos[b]||0)-cb);
-            }else{
-                deltas.bancos[b]=-(m+cb);
-            }
-            aplicarDeltas(deltas);
-        }else{
-            aplicarDeltas({bancos:{[b]:m}});
-        }
+        /* v7.3.0 — Los saldos, los lotes y el cupo no se tocan acá: salen del
+           recálculo, igual que al editar o borrar. */
         const opRecord={id:opId,tipo:t,monto:m,tasa:ta,usdt:u,banco:b,moneda:mon,comisionBanco:t==='compra'?cb:0,comisionPlataforma:cpl,comisionPct:cpv,fecha:f,hora:h,ganancia:0,timestamp:new Date().toISOString()};
         /* Persistir aportes para trazabilidad y reverso correcto en delete/edit */
         if(isSplit)opRecord.aportes=aportes;
         AppState.datos.operaciones.unshift(opRecord);
-        recalcularLotesYGanancias();
-        agregarTasaReciente(ta,t,mon);
         $('monto').value='';$('comisionBanco').value='0';$('previewBox').style.display='none';$('opSummary').style.display='none';AppState.ui.paginaOp=1;AppState.ui.tasaManual=false;
         /* Reset banco selection — prevents accidental reuse of prior bank on next op */
         $('banco').value='';
         $('bancoHelp').textContent='';
-        $('saldoBancoInfo').textContent='';
         AppState.ui.splitExtras=[];
+        confirmarCambios([{tipo:'create',entidad:'operaciones',id:opId}]);
         renderSplitPanel();
         actualizarColorBancoSelect();
-        actualizarVista();actualizarColorSelect();activarCooldown();
-        guardaOptimista('create','operaciones',opId);
+        actualizarColorSelect();activarCooldown();
+        renderizarTasasRecientes();
         const sy2=getSym(mon);
         const subMsg=isSplit?`Pago dividido entre ${aportes.length} cuentas`:'Tasa: '+fmtTasaMon(ta,mon)+' · '+b;
         showSuccess({amount:sy2+fmtNum(m),message:(t==='compra'?'Comprados ':'Vendidos ')+fmtTrunc(u,2)+' USDT con éxito',sub:subMsg});
     }catch(e){console.error('[P2P] Error guardando operación:',e)}finally{AppState.ui.guardandoOperacion=false;btn.disabled=false;actualizarColorSelect();/* v4.7.59: re-evaluar split por si el usuario agregó fila inválida durante el guardado */ if(typeof _updateBtnGuardarState==='function')_updateBtnGuardarState();}
 }
 
-/* v7.0.0 — Los ajustes manuales del cupo se retiraron: se recalcula solo
-   sumando las compras y transferencias vigentes, así que revertirlo a mano era
-   redundante y era justo donde se olvidaba un caso. */
+/* Borrar una operación. Saldos, lotes, ganancias y cupo se reconstruyen sin
+   ella. Si deja una cuenta en negativo, o si sus USDT ya se vendieron, se avisa
+   y se pide confirmación: corregir un registro equivocado no se bloquea. */
 async function eliminarOperacion(id){
     const op=AppState.datos.operaciones.find(o=>o.id===id);if(!op)return;
-    /* INTEGRIDAD: pre-validar que el rollback no deje saldos negativos */
-    /* v7.0.0 — El cupo se devuelve solo: al desaparecer la compra deja de sumarse
-       en el recálculo. Antes había que acordarse de revertirlo a mano acá. */
-    const deltas={bancos:{}};
+    const sy=getSym(op.moneda);
+    if(!confirm('¿Eliminar '+(op.tipo==='compra'?'la compra':'la venta')+' de '+sy+fmtNum(op.monto)+' a '+fmtTasaMon(op.tasa,op.moneda)+'?\n\nSe recalculan saldos, lotes y ganancias.'))return;
+    const deltas=diferenciaDeEfecto('operaciones',op,null);
     if(op.tipo==='compra'){
-        if(esPagoDividido(op)){
-            aportesDe(op).forEach(a=>{
-                deltas.bancos[a.banco]=(deltas.bancos[a.banco]||0)+a.monto;
-            });
-            if(op.comisionBanco>0)deltas.bancos[op.banco]=roundMoney((deltas.bancos[op.banco]||0)+op.comisionBanco);
-        }else if(op.banco){
-            deltas.bancos[op.banco]=roundMoney(op.monto+(op.comisionBanco||0));
-        }
-    }else{
-        /* Venta: revertir suma positiva al banco → restar. Si banco ya gastó esos UYU, queda negativo. */
-        if(op.banco)deltas.bancos[op.banco]=-op.monto;
+        deltas.usdt=-usdtNeto(op.usdt||0,op.comisionPlataforma||0,'compra');
+        deltas.usdtMoneda=op.moneda||'UYU';
     }
-    const valI=validarDeltas(deltas);
-    if(!valI.ok){
-        alert('🚫 No se puede eliminar esta operación:\n\n'+valI.reason+'\n\nProbablemente ya gastaste los fondos generados. Eliminá primero las operaciones posteriores que los consumen.');
-        return;
-    }
-    if(!confirm('¿Eliminar operación? Se recalcularán los lotes y ganancias.'))return;
+    if(!confirmarSiQuedaNegativo(deltas,op.tipo==='compra'
+        ?'Borrar esta compra deja algo en negativo. Si sus USDT ya se vendieron, esas ventas quedan sin lote de origen.'
+        :'Borrar esta venta deja una cuenta en negativo: probablemente ese dinero ya se usó.'))return;
     try{
-        /* v7.2.0 — Acá se revertían los saldos y el cupo a mano. Ya no hace
-           falta: al sacar la operación de la lista, el recálculo los reconstruye
-           sin ella. El bloque quedaba vacío. */
         AppState.datos.operaciones=AppState.datos.operaciones.filter(o=>o.id!==id);
-        recalcularLotesYGanancias();actualizarVista();
-        verificarIntegridadGlobal();
-        guardaOptimista('delete','operaciones',id);
+        confirmarCambios([{tipo:'delete',entidad:'operaciones',id}]);
     }catch(e){console.error('[P2P] Error eliminando operación:',e)}
 }
 
 function abrirEditarOperacion(id){
     const op=AppState.datos.operaciones.find(o=>o.id===id);if(!op)return;
-    /* Cualquier operación con aportes (split pago) no puede editarse directamente — 
-       hay que eliminar y recrear para mantener la coherencia de los saldos por banco */
-    if(esPagoDividido(op)){
-        alert('Esta operación se pagó con múltiples cuentas. Por ahora no se puede editar directamente — eliminala y recreala si necesitás cambiarla.');
-        return;
-    }
     AppState.ui.opEditandoId=id;
     const sy=getSym(op.moneda),td=op.moneda==='USD'?3:2;
-    const badge=op.tipo==='compra'?'📥 Compra':'📤 Venta';
-    {const _h=$('editarOpHeader');if(_h)_h.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'+' Editar '+badge;}
+    {const _h=$('editarOpHeader');if(_h)_h.innerHTML=(op.tipo==='compra'?_ICO_COMPRA+' Editar compra':_ICO_VENTA+' Editar venta');}
+    /* v7.3.0 — Con pago dividido se pueden corregir la tasa y la comisión. El
+       monto y las cuentas quedan fijos: cambiarlos obliga a repartir de nuevo,
+       y para eso está borrarla y cargarla otra vez. */
+    const dividida=esPagoDividido(op);
+    $('editOpMonto').disabled=dividida;$('editOpBanco').disabled=dividida;
+    const nota=$('editOpNota');
+    if(nota){
+        nota.style.display=dividida?'block':'none';
+        if(dividida)nota.textContent='Pagada entre '+aportesDe(op).map(a=>a.banco+' '+sy+fmtNum(a.monto,0)).join(' + ')+'. Podés corregir la tasa y la comisión; para cambiar el monto o las cuentas, borrala y cargala de nuevo.';
+    }
     setText('editOpMontoLabel',op.tipo==='compra'?`Monto pagado (${op.moneda||'UYU'})`:`Monto recibido (${op.moneda||'UYU'})`);
     $('editOpMonto').value=fmtNum(op.monto);
     $('editOpTasa').value=fmtTasa(op.tasa,op.moneda||'UYU');
@@ -689,7 +643,7 @@ function calcularEditOpPreview(){
         setText('editOpComisionInfo',fmtTrunc(c,2)+' USDT');
         pbox.innerHTML=op.tipo==='compra'
             ?`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg> Recibís <b>${fmtNum(neto,2)} USDT</b> <span style="color:#64748b;font-size:0.85em">(base: ${fmtNum(u,2)})</span>`
-            :`📤 Entregás <b>${fmtNum(neto,2)} USDT</b>`;
+            :`${_ICO_VENTA} Entregás <b>${fmtNum(neto,2)} USDT</b>`;
         pbox.style.display='block';
     }else{
         setText('editOpComisionInfo','0 USDT');

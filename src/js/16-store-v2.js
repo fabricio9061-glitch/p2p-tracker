@@ -107,7 +107,10 @@ function v2FromDoc(data){
 function v2ExtraerEstado(datos,version){
     const d=datos||{};
     /* v6.7.0 — ajustesSaldo sale del estado: ahora tiene documento por registro */
-    const{operaciones,movimientos,transferencias,conversiones,ajustesSaldo,lotes,saldoUsdt,...resto}=d;
+    /* v7.3.0 — _impuestoPor/_impuestoTs no se heredan: los agrega solo la
+       subida forzada. Si viajaban en cada guardado normal, el otro dispositivo
+       seguía aceptando cualquier estado sin mirar la versión, para siempre. */
+    const{operaciones,movimientos,transferencias,conversiones,ajustesSaldo,lotes,saldoUsdt,_impuestoPor,_impuestoTs,...resto}=d;
     const estado={...resto};
     /* v5.0.1 — sin los de arrastre: su declaración va en _archivoCarryover, que
        viaja intacta dentro de `resto` */
@@ -236,19 +239,6 @@ async function migrarAV2(opts){
     if(!AppState.currentUser||!AppState.db){alert('Sin sesión activa.');return{ok:false,motivo:'sin-sesion'}}
     if(!navigator.onLine){alert('Necesitás conexión para migrar.');return{ok:false,motivo:'offline'}}
     if(AppState._schema===V2_SCHEMA)return{ok:false,motivo:'ya-migrado'};
-    /* ═══ CERROJO DE FASE ═══
-       Migrar sin el camino de lectura/escritura v2 conectado dejaría el documento
-       de estado SIN los arrays, y el código v1 lo interpretaría como "datos
-       vacíos": se dispararía la protección anti-borrado y volvería a subir el
-       formato viejo, deshaciendo la migración. El cableado (listener de la
-       subcolección + escritura incremental) declara window._v2WiringReady=true.
-       Hasta entonces, esto no corre ni desde la consola. */
-    if(!window._v2WiringReady){
-        const msj='La migración todavía no está habilitada: falta conectar el camino de lectura y escritura del nuevo formato (fase 2).\n\nEsta versión solo incluye el motor de migración y sus verificaciones, sin activarlo. La app sigue funcionando igual que hasta ahora.';
-        console.warn('[P2P][v2] '+msj);
-        alert(msj);
-        return{ok:false,motivo:'wiring-pendiente'};
-    }
     if(!opts.sinConfirmar){
         const n=(AppState.datos.operaciones||[]).length+(AppState.datos.movimientos||[]).length+
                 (AppState.datos.transferencias||[]).length+(AppState.datos.conversiones||[]).length;
@@ -368,7 +358,7 @@ async function migrarAV2(opts){
             return{ok:true,eventos:pendientes.length,estadoKB:kb};
         }
         setTimeout(()=>{
-            alert('✅ Formato rápido activado.\n\n'+
+            alert('Formato rápido activado.\n\n'+
                   'Eventos migrados: '+pendientes.length+'\n'+
                   'Documento de estado: ~'+kb+' KB\n\n'+
                   'A partir de ahora, cargar una operación escribe solo su documento.\n'+
@@ -384,7 +374,7 @@ async function migrarAV2(opts){
             '\n\nNo se perdió nada: el documento principal sigue en el formato anterior y la app funciona normalmente. Los documentos ya escritos se reutilizan al reintentar.';
         if(window._recoveryUI&&window._recoveryUI.error){
             window._recoveryUI.error('Migración interrumpida',msg,[
-                {label:'🔄 Reintentar migración',color:'#3b82f6',onClick:()=>{window._recoveryUI.hide&&window._recoveryUI.hide();setTimeout(()=>migrarAV2(opts),300)}},
+                {label:'Reintentar',color:'#3b82f6',onClick:()=>{window._recoveryUI.hide&&window._recoveryUI.hide();setTimeout(()=>migrarAV2(opts),300)}},
                 {label:'Cerrar',color:'#64748b',onClick:()=>{window._recoveryUI.hide&&window._recoveryUI.hide()}}
             ]);
         }else alert(msg);
@@ -398,35 +388,6 @@ async function migrarAV2(opts){
    función pasó a ser una trampa en vez de una salida. La marcha atrás real es
    revertir en git a la v5.1.0 (que conserva ambos caminos y la función) y
    ejecutarla desde ahí. */
-
-/* ─── Diagnóstico comparativo ─────────────────────────────────────────────── */
-function v2Diagnostico(){
-    const d=AppState.datos||{};
-    const kbEstado=Math.round(JSON.stringify(v2ExtraerEstado(d,1)).length/1024*10)/10;
-    const nEv=(d.operaciones||[]).length+(d.movimientos||[]).length+(d.transferencias||[]).length+(d.conversiones||[]).length;
-    /* v1 real = lo que guardarDatos sube hoy: derivables stripeados + wire */
-    let kbV1=0;
-    try{
-        const strip=a=>(a||[]).map(x=>{const{_syncState,consumedLots,ganancia,comisionPlataforma,...r}=x;return r});
-        const sim={...d,operaciones:strip(d.operaciones)};
-        delete sim.lotes;delete sim.saldoUsdt;
-        if(!window._wireCompressionBroken&&typeof _compressOpsArrayForWire==='function')
-            sim.operaciones=_compressOpsArrayForWire(sim.operaciones);
-        kbV1=Math.round(JSON.stringify(sim).length/1024);
-    }catch(_){}
-    const muestra=(d.operaciones||[])[0];
-    const kbEvento=muestra?Math.round(JSON.stringify(v2ToDoc('operaciones',muestra)).length/1024*100)/100:0;
-    const r={
-        esquemaActual:AppState._schema===V2_SCHEMA?'v2 (rápido)':'v1 (documento único)',
-        eventos:nEv,
-        v1_porOperacionKB:kbV1,
-        v2_porOperacionKB:Math.round((kbEstado+kbEvento)*10)/10,
-        v2_documentoEstadoKB:kbEstado,
-        v2_documentoEventoKB:kbEvento,
-        mejora:kbV1>0?Math.round(kbV1/Math.max(0.1,kbEstado+kbEvento))+'× menos por operación':'—'
-    };
-    console.log(r);return r;
-}
 
 /* ════════════════════════════════════════════════════════════════════════════
    FASE 2 — CABLEADO DE LECTURA Y ESCRITURA
@@ -447,7 +408,7 @@ function v2Diagnostico(){
    escritura atómica de Firestore.
    ════════════════════════════════════════════════════════════════════════════ */
 
-let _v2EventosUnsub=null,_v2EstadoOk=false,_v2EventosOk=false,_v2RenderTimer=null,_v2Guardando=false,_v2FromCache=false,_v2EsperandoServidor=false;
+let _v2EventosUnsub=null,_v2EstadoOk=false,_v2EventosOk=false,_v2RenderTimer=null,_v2Guardando=false,_v2FromCache=false,_v2EsperandoServidor=false,_v2CrearEstado=false;
 
 function _v2UserRef(){return AppState.db.collection('users').doc(AppState.currentUser.uid)}
 function _v2EvRef(){return _v2UserRef().collection('eventos')}
@@ -478,9 +439,7 @@ function _v2Programar(){
             try{
                 const ci=$('comisionPlataforma');
                 if(ci&&document.activeElement!==ci&&typeof getMonedaBanco==='function'){
-                    const mon=getMonedaBanco();
-                    const cv=mon==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma;
-                    ci.value=fmtNum(cv);setText('comisionPctLabel',fmtNum(cv));
+                    ci.value=fmtNum(comisionConfigurada(getMonedaBanco()));
                 }
             }catch(_){}
             if(typeof actualizarFormulario==='function')actualizarFormulario();
@@ -530,7 +489,7 @@ function v2OnEstadoSnapshot(doc){
             if(bk&&isFinite(bk.saldoApertura))_aperturas[n]={v:bk.saldoApertura,ts:bk.saldoAperturaTs};
         });
         Object.keys(d).forEach(k=>{
-            if(k==='lotesManuales'||k==='ultimaActualizacion')return;
+            if(k==='lotesManuales'||k==='ultimaActualizacion'||k==='_impuestoPor'||k==='_impuestoTs')return;
             AppState.datos[k]=d[k];
         });
         Object.keys(_aperturas).forEach(n=>{
@@ -650,8 +609,16 @@ function v2AttachEventos(){
             AppState.datos[e]=nuevos[e];
         });
         if(!desdeCache)_v2CountSet(total);
+        const primeraVez=!_v2EventosOk;
         _v2EventosOk=true;
         _v2Programar();
+        /* v7.3.0 — Lo que se pidió guardar mientras se cargaban los eventos
+           quedaba esperando hasta el próximo cambio: ahora sale apenas están. */
+        if(primeraVez&&(_guardarPendiente||_syncQueue.length||_v2CrearEstado)&&!_v2Guardando){
+            const forzar=_v2CrearEstado;
+            _guardarPendiente=false;_v2CrearEstado=false;
+            setTimeout(()=>v2Guardar(forzar),0);
+        }
     },err=>{
         console.error('[P2P][v2] listener eventos:',err);
         const permiso=/permission|insufficient/i.test(String(err&&err.message||err));
@@ -659,9 +626,23 @@ function v2AttachEventos(){
         if(permiso)console.error('[P2P][v2] Las reglas de Firestore no permiten leer users/{uid}/eventos.');
     });
 }
+/* ─── Cuenta nueva (v7.3.0) ────────────────────────────────────────────────
+   Todavía no existe el documento de estado. Antes se intentaba guardar en el
+   acto, pero el guardado espera a que estén cargados los eventos, y la escucha
+   de eventos solo se conectaba al recibir el documento de estado, que no
+   existía: quien se registraba quedaba para siempre en "Esperando datos del
+   servidor…" y nunca se guardaba nada en la nube. Ahora se conecta la escucha y
+   el documento se crea apenas confirma. */
+function v2IniciarCuentaNueva(){
+    AppState._schema=V2_SCHEMA;
+    try{localStorage.setItem('p2p_schema_'+AppState.currentUser.uid,String(V2_SCHEMA))}catch(_){}
+    _v2EstadoOk=true;
+    _v2CrearEstado=true;
+    v2AttachEventos();
+}
 function v2DetachEventos(){
     if(_v2EventosUnsub){try{_v2EventosUnsub()}catch(_){}_v2EventosUnsub=null}
-    _v2EstadoOk=false;_v2EventosOk=false;_v2EsperandoServidor=false;
+    _v2EstadoOk=false;_v2EventosOk=false;_v2EsperandoServidor=false;_v2CrearEstado=false;
 }
 
 /* ─── ESCRITURA incremental ──────────────────────────────────────────────── */
@@ -682,13 +663,21 @@ async function v2Guardar(forzar){
            badge quedaría en "N pendientes" para siempre y los puntos amarillos
            nunca se apagarían. */
         if(_syncQueue.length){
-            _syncQueue.length=0;_localDirty=0;
+            _syncQueue.length=0;
             if(typeof repairOrphanPendingStates==='function')try{repairOrphanPendingStates()}catch(_){}
         }
         setSyncStatus('online');updateSyncBadge();return;
     }
     _v2Guardando=true;_guardando=true;_syncPending++;updateSyncBadge();
-    const idsSnapshot=_syncQueue.map(a=>({entity:a.entity,id:a.id,type:a.type}));
+    /* ═══ v7.3.0 — Se confirman exactamente las entradas que viajaron ═══
+       Antes se borraban de la cola por id: si mientras la escritura estaba en
+       camino se editaba el mismo registro, la edición nueva tenía el mismo id y
+       también se borraba, aunque no había viajado. La pantalla mostraba el valor
+       nuevo, pero en el servidor quedaba el viejo, y al recargar o en el otro
+       dispositivo "volvía el saldo anterior". Ahora se recuerdan las entradas
+       mismas y solo esas se dan por guardadas. */
+    const enVuelo=_syncQueue.slice();
+    enVuelo.forEach(a=>{a.enVuelo=true});
     const indicador=setTimeout(()=>{if(_v2Guardando)setSyncStatus('syncing','Sincronizando…')},800);
     try{
         if(!navigator.onLine){setSyncStatus('offline','Sin conexión');throw{code:'offline-deferred'}}
@@ -713,22 +702,25 @@ async function v2Guardar(forzar){
         AppState._localVersion=nueva;AppState.datos._version=nueva;
         _syncLog&&_syncLog('v2:write-end',{ms:Math.round(performance.now()-t0)});
         /* Drenar exactamente lo confirmado */
-        const conf=new Set(idsSnapshot.map(x=>String(x.id)));
-        for(let i=_syncQueue.length-1;i>=0;i--)if(conf.has(String(_syncQueue[i].id)))_syncQueue.splice(i,1);
-        idsSnapshot.forEach(x=>{
+        const conf=new Set(enVuelo);
+        for(let i=_syncQueue.length-1;i>=0;i--)if(conf.has(_syncQueue[i]))_syncQueue.splice(i,1);
+        const siguenPendientes=new Set(_syncQueue.map(a=>a.entity+':'+String(a.id)));
+        enVuelo.forEach(x=>{
+            if(siguenPendientes.has(x.entity+':'+String(x.id)))return;
             const arr=AppState.datos[x.entity];
             if(Array.isArray(arr)){const it=arr.find(y=>String(y.id)===String(x.id));if(it)delete it._syncState}
         });
-        _syncPending=Math.max(0,_syncPending-1);_syncErrors=0;_localDirty=0;
+        _syncPending=Math.max(0,_syncPending-1);_syncErrors=0;
         if(_syncQueue.length===0)setSyncStatus('online');
         updateSyncBadge();
     }catch(e){
         _syncPending=Math.max(0,_syncPending-1);
+        enVuelo.forEach(a=>{delete a.enVuelo});
         if(e&&e.code==='offline-deferred'){_syncLog&&_syncLog('v2:offline-deferred',{})}
         else{
             _syncErrors++;
             console.error('[P2P][v2] guardar:',e);
-            setSyncStatus('offline',_syncErrors>=3?'⚠ Sync bloqueado — abrí Diagnóstico':'Reintentando…');
+            setSyncStatus('offline',_syncErrors>=3?'Sin sincronizar · tocá para reintentar':'Reintentando…');
             if(_syncErrors<3){clearTimeout(_retryTimer);_retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();v2Guardar(true)},Math.min(_retryDelay,30000));_retryDelay=Math.min(_retryDelay*1.5,30000)}
         }
         updateSyncBadge();
@@ -828,7 +820,7 @@ async function v2SubirTodo(opts){
         estado.ultimaActualizacion=firebase.firestore.FieldValue.serverTimestamp();
         await _v2ConTimeout(_v2UserRef().set(estado),V2_WRITE_TIMEOUT,'documento de estado');
         AppState._localVersion=nueva;AppState.datos._version=nueva;
-        _syncQueue.length=0;_localDirty=0;_syncErrors=0;
+        _syncQueue.length=0;_syncErrors=0;
         setSyncStatus('online');updateSyncBadge();
         _v2CountSet(enMemoria.length);
         console.log('[P2P][v2] subida total:',enMemoria.length,'eventos ·',aBorrar.length,'retirados');
@@ -880,7 +872,6 @@ async function migracionAutomatica(){
         _v2AutoMigrando=false;
     }
 }
-window.migracionAutomatica=migracionAutomatica;
 
 /* ─── VERIFICACIÓN DE INTEGRIDAD ───────────────────────────────────────────
    Compara, sin modificar nada, lo que hay en Firestore contra lo que la app
@@ -914,7 +905,9 @@ async function verificarIntegridad(opts){
 
         setPhase('Leyendo eventos…');
         const evSnap=await _v2ConTimeout(_v2EvRef().get({source:'server'}),60000,'lectura de eventos');
-        const servidor={operaciones:new Map(),movimientos:new Map(),transferencias:new Map(),conversiones:new Map()};
+        /* v7.3.0 — Desde la tabla de entidades: faltaban las correcciones de saldo */
+        const servidor={};
+        Object.values(V2_ENTIDAD).forEach(e=>{servidor[e]=new Map()});
         let repetidos=0,ilegibles=0;
         evSnap.forEach(d=>{
             const r=v2FromDoc(d.data());
@@ -942,7 +935,7 @@ async function verificarIntegridad(opts){
         setPhase('Recalculando desde el servidor…');
         const desdeServidor=v2EnsamblarDatos(est,evSnap.docs?evSnap.docs.map(d=>d.data()):[]);
         const diffs=v2VerificarEquivalencia(AppState.datos,desdeServidor)
-            .filter(d=>!/^(operaciones|movimientos|transferencias|conversiones):/.test(d));
+            .filter(d=>!/^(operaciones|movimientos|transferencias|conversiones|ajustesSaldo):/.test(d));
         diffs.forEach(d=>problemas.push('Los números no coinciden con el servidor → '+d));
 
         /* Lotes de arrastre contra el archivo histórico */
@@ -976,7 +969,7 @@ async function verificarIntegridad(opts){
                     : a=>a.reduce((s,l)=>Math.round((s+(l.cantidad||0))*100)/100,0);
                 arrastre={enApp:{lotes:carry.length,suma:sum(carry)},segunArchivo:{lotes:esperado.length,suma:sum(esperado)}};
                 if(Math.abs(sum(carry)-sum(esperado))>0.02)
-                    problemas.push('Los lotes de arrastre no coinciden con el archivo histórico ('+sum(carry).toFixed(2)+' vs '+sum(esperado).toFixed(2)+'). Corregilo con repararCarryover().');
+                    problemas.push('Los lotes de arrastre no coinciden con el archivo histórico ('+sum(carry).toFixed(2)+' vs '+sum(esperado).toFixed(2)+'). Se corrige con "Recalcular lotes de arrastre" en Verificar y reconciliar.');
             }
         }else if(carry.length&&!meses.length){
             problemas.push('Hay '+carry.length+' lote(s) de arrastre pero no hay historial archivado que los respalde.');
@@ -989,15 +982,14 @@ async function verificarIntegridad(opts){
         const informe={ok:problemas.length===0,esquema:est._schema,versionServidor:vRemota,versionLocal:vLocal,
                        eventosServidor:totalServidor,detalle,arrastre,problemas,avisos};
         if(ui.hide)ui.hide();
-        console.log('%c[Verificación de integridad]',problemas.length?'color:#b91c1c;font-weight:bold':'color:#15803d;font-weight:bold',informe);
-        console.table(detalle);
-        alert((problemas.length?'⚠️ Se encontraron '+problemas.length+' problema(s):\n\n• '+problemas.join('\n• ')
-                               :'✅ Todo coincide con el servidor.')+
+        console.log('[Verificación de integridad]',informe);
+        alert((problemas.length?'Se encontraron '+problemas.length+' problema(s):\n\n• '+problemas.join('\n• ')
+                               :'Todo coincide con el servidor.')+
               '\n\nEventos: '+totalServidor+' en el servidor'+
               '\nOperaciones: '+detalle.operaciones.memoria+' en pantalla / '+detalle.operaciones.servidor+' en el servidor'+
               (arrastre?'\nLotes de arrastre: '+arrastre.enApp.suma.toFixed(2)+' USDT (archivo dice '+arrastre.segunArchivo.suma.toFixed(2)+')':'')+
               (avisos.length?'\n\nAvisos:\n• '+avisos.join('\n• '):'')+
-              '\n\nEl detalle completo quedó en la consola. Esta verificación no modificó nada.');
+              '\n\nEsta verificación no modificó nada.');
         return informe;
     }catch(e){
         console.error('[P2P] verificarIntegridad:',e);
@@ -1006,7 +998,6 @@ async function verificarIntegridad(opts){
         return null;
     }
 }
-window.verificarIntegridad=verificarIntegridad;
 
 /* ─── Borrado de eventos archivados (lo usa el archivado en v2) ──────────── */
 async function v2BorrarEventosArchivados(cutoffMes){
@@ -1023,16 +1014,11 @@ async function v2BorrarEventosArchivados(cutoffMes){
 
 window._v2sync={
     onEstado:v2OnEstadoSnapshot,
+    cuentaNueva:v2IniciarCuentaNueva,
     guardar:v2Guardar,
     detach:v2DetachEventos,
     borrarEventosArchivados:v2BorrarEventosArchivados,
     subirTodo:v2SubirTodo,
     esV2:()=>AppState._schema===V2_SCHEMA
 };
-/* Señal para el cerrojo de la migración: el camino v2 está conectado */
-window._v2WiringReady=true;
 
-window.migrarAV2=migrarAV2;
-window.v2Diagnostico=v2Diagnostico;
-window._v2={docId:v2DocId,toDoc:v2ToDoc,fromDoc:v2FromDoc,extraerEstado:v2ExtraerEstado,
-            ensamblar:v2EnsamblarDatos,planDelta:v2PlanDelta,verificar:v2VerificarEquivalencia,SCHEMA:V2_SCHEMA};

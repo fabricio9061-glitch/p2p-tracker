@@ -43,6 +43,8 @@ const rep = (sev, cat, det) => hallazgos.push({ sev, cat, det });
 const accHtml = new Set([...html.matchAll(/data-action="([^"$]+)"/g)].map(m => m[1]));
 [...todoJS.matchAll(/data-action="([a-z-]+)"/g)].forEach(m => accHtml.add(m[1]));
 const accJs = new Set([...todoJS.matchAll(/a===['"]([^'"]+)['"]/g)].map(m => m[1]));
+/* v7.3.0 — La tabla de acciones de 14: { 'accion': (t,id)=>… } */
+[...todoJS.matchAll(/['"]([a-z][a-z0-9-]*)['"]\s*:\s*(?:\(|[a-z]\s*=>)/g)].forEach(m => accJs.add(m[1]));
 [...accHtml].forEach(a => {
     if (!accJs.has(a)) rep('ALTA', 'Botón sin manejador',
         `data-action="${a}" está en la pantalla pero ningún código responde`);

@@ -177,23 +177,28 @@ function textoDiasReset(nombreBanco){
         : ` (${ab(seq[0])} a ${ab(seq[seq.length-1])} = 1 cupo)`;
 }
 
+/* Devuelve true si alguna cuenta renovó su cupo: quien llama tiene que
+   recalcular el consumo y guardar, porque la fecha de renovación cambió. */
+/* Anota la última renovación del cupo de cada cuenta. Devuelve true si alguna
+   renovó desde la última vez, para recalcular y guardar. La fecha sale de
+   _cupoDesde (días marcados + las 0:30); acá solo se deja registrada. */
 function verificarResetLimites(){
-    const ah=getUDate(),hr=0.5,ha=ah.getHours()+ah.getMinutes()/60,hoy=getUDateStr();
-    const ds=ah.getDay();
+    let renovo=false;
     CONFIG.BANCOS.forEach(b=>{
         const bk=AppState.datos.bancos[b.nombre];if(!bk)return;
-        if(ha<hr)return;                       /* antes de las 0:30 todavía no renueva */
-        if(bk.ultimoResetLimite===hoy)return;  /* ya renovó hoy */
-        if(!getDiasReset(b.nombre).includes(ds))return;
-        /* v7.0.0 — Renovar ya no es poner el contador en cero: solo mueve la
-           fecha desde la cual cuentan las compras. El consumo se recalcula. */
-        bk.ultimoResetLimite=hoy;
+        const desde=_cupoDesde(b.nombre);
+        if(bk.ultimoResetLimite===desde)return;
+        bk.ultimoResetLimite=desde;
+        renovo=true;
     });
+    return renovo;
 }
 
 function getMonedaBanco(){const b=$('banco')?.value;if(!b)return'UYU';return getBancoInfo(b)?.moneda||'UYU'}
-function getComisionActual(){return getMonedaBanco()==='USD'?AppState.datos.comisionUSD:AppState.datos.comisionPlataforma}
-function getComisionDec(){return(getComisionActual()||0.14)/100}
+/* v7.3.0 — Con comisionConfigurada, que respeta el 0 %. La vista previa usaba
+   `||0.14` y mostraba una comisión que la operación después no cobraba. */
+function getComisionActual(){return comisionConfigurada(getMonedaBanco())}
+function getComisionDec(){return getComisionActual()/100}
 /* ═══ v4.9.5 — Orden por saldo: más plata primero, cuentas vacías al final ═══
    Se agrupa por moneda antes de comparar (UYU y luego USD, según el orden de
    CONFIG): mezclar $24.000 con US$500 en un mismo ranking no tiene sentido.
@@ -239,13 +244,12 @@ function actualizarSelectBancos(){
     s.value=v;actualizarColorBancoSelect();
 }
 
+/* Al elegir cuenta se limpia el aviso de "Seleccioná un banco". El saldo ya
+   figura en el desplegable y en el resumen del pie. */
 function mostrarSaldoBanco(){
-    const b=$('banco').value,i=$('saldoBancoInfo'),h=$('bancoHelp');
+    const h=$('bancoHelp');
     if(h){h.textContent='';h.className=''}
-    /* v5.6.2 — El saldo salió de acá: ahora está en el propio desplegable de
-       cuentas y en el resumen del pie, con el efecto de la operación incluido.
-       Repetirlo una tercera vez solo agregaba ruido. */
-    i.textContent='';
+    $('banco').classList.remove('error');
 }
 
 function actualizarBancosGrid(){
@@ -314,13 +318,19 @@ function _gaugeColor(pct){
     return `rgb(${r},${g},${bl})`;
 }
 
+/* Lista de cuentas: primero las que usás. "Editar" abre directamente el saldo
+   y el límite; el historial se consulta tocando la tarjeta en Mis Saldos. */
 function renderizarListaBancos(){
+    const activos=CONFIG.BANCOS.filter(b=>AppState.datos.bancos[b.nombre]?.activo);
+    const inactivos=CONFIG.BANCOS.filter(b=>!AppState.datos.bancos[b.nombre]?.activo);
+    const fila=b=>{
+        const bk=AppState.datos.bancos[b.nombre]||{},a=!!bk.activo,s=bk.saldo||0,lim=bk.limiteDiarioUSD||0;
+        const li=lim>0?`<div class="banco-list-lim">Límite US$${fmtNum(lim,0)}/día${escHtml(textoDiasReset(b.nombre))}</div>`:'';
+        return `<div class="banco-list-item${a?'':' inactiva'}"><div class="banco-list-info"><div class="banco-list-nombre"><span style="color:${b.color||'#1e293b'}">${escHtml(b.nombre)}</span> <span class="banco-list-mon">${b.moneda}</span></div><div class="banco-list-saldo">${getSym(b.moneda)}${fmtNum(s)}</div>${li}</div><div class="banco-list-actions">${a?`<button class="btn-edit-small" data-action="corregir-saldo" data-banco="${escHtml(b.nombre)}" aria-label="Editar ${escHtml(b.nombre)}">${ICO_EDITAR}</button>`:''}<label class="toggle-switch" aria-label="${a?'Desactivar':'Activar'} ${escHtml(b.nombre)}"><input type="checkbox" ${a?'checked':''} data-action="toggle-banco" data-banco="${escHtml(b.nombre)}"><span class="toggle-slider"></span></label></div></div>`;
+    };
     let h='';
-    CONFIG.BANCOS.forEach(b=>{
-        const a=AppState.datos.bancos[b.nombre]?.activo||false,s=AppState.datos.bancos[b.nombre]?.saldo||0,lim=AppState.datos.bancos[b.nombre]?.limiteDiarioUSD||0;
-        let li=lim>0?` | Límite: US$${fmtNum(lim,0)}/día`+textoDiasReset(b.nombre):'';
-        h+=`<div class="banco-list-item"><div><div style="font-weight:600;font-size:0.9em"><span style="color:${b.color||'#1e293b'}">${b.nombre}</span> <span style="color:#94a3b8">(${b.moneda})</span></div><div style="color:#64748b;font-size:0.8em">${getSym(b.moneda)}${fmtNum(s)}${li}</div></div><div class="banco-list-actions"><button class="btn-edit-small" data-action="editar-saldo" data-banco="${b.nombre}">Editar</button><label class="toggle-switch"><input type="checkbox" ${a?'checked':''} data-action="toggle-banco" data-banco="${b.nombre}"><span class="toggle-slider"></span></label></div></div>`;
-    });
+    if(activos.length)h+='<div class="banco-list-grupo">En uso</div>'+activos.map(fila).join('');
+    if(inactivos.length)h+='<div class="banco-list-grupo">Sin usar</div>'+inactivos.map(fila).join('');
     setHtml('listaBancos',h);
 }
 
@@ -347,7 +357,10 @@ function agregarLote(id,fecha,hora,precio,cant,moneda){
        muta acá no se persiste nunca como declaración. Entre 4.9.0 y 5.0.0 sí se
        persistía, y el saldo USDT se inflaba de forma acumulativa en cada ciclo. */
     const ex=AppState.datos.lotes.find(l=>(!l.manual||l.carryover)&&l.precioCompra===precio&&l.disponible>0&&(l.moneda||'UYU')===moneda);
-    if(ex){ex.cantidad=truncUsdt(ex.cantidad+cant);ex.disponible=truncUsdt(ex.disponible+cant)}
+    /* v7.3.0 — Sumas y restas entre cantidades que ya están en centésimos se
+       redondean, no se truncan: en coma flotante 800 − 501,92 da 298,0799999…
+       y truncar eso perdía un centavo en cada paso del inventario. */
+    if(ex){ex.cantidad=roundMoney(ex.cantidad+cant);ex.disponible=roundMoney(ex.disponible+cant)}
     else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant,moneda});
 }
 
@@ -358,11 +371,11 @@ function consumirFIFO(cant,precioVenta,monedaVenta){
     const monedaTarget=monedaVenta||'UYU';
     const lotes=getLotesActivosFIFO().filter(l=>(l.moneda||'UYU')===monedaTarget);
     const consumed=[];
-    for(const l of lotes){if(rest<=0)break;const c=truncUsdt(Math.min(l.disponible,rest));
+    for(const l of lotes){if(rest<=0)break;const c=roundMoney(Math.min(l.disponible,rest));
         costo=roundMoney(costo+roundMoney(c*l.precioCompra));
         if(precioVenta!==undefined)gan=roundMoney(gan+roundMoney(c*(precioVenta-l.precioCompra)));
         consumed.push({lotId:l.id,amount:c,precio:l.precioCompra});
-        l.disponible=truncUsdt(l.disponible-c);if(l.disponible<0.005)l.disponible=0;rest=truncUsdt(rest-c);if(rest<0.005)rest=0}
+        l.disponible=roundMoney(l.disponible-c);if(l.disponible<0.005)l.disponible=0;rest=roundMoney(rest-c);if(rest<0.005)rest=0}
     return{ganancia:gan,costo,consumed};
 }
 function previewFIFO(cant,moneda){
@@ -370,8 +383,8 @@ function previewFIFO(cant,moneda){
     const monedaTarget=moneda||'UYU';
     const lotes=getLotesActivosFIFO().filter(l=>(l.moneda||'UYU')===monedaTarget);
     const res=[];
-    for(const l of lotes){if(rest<=0)break;const c=truncUsdt(Math.min(l.disponible,rest));
-        res.push({precio:l.precioCompra,cantidad:c,subtotal:roundMoney(c*l.precioCompra)});rest=truncUsdt(rest-c);if(rest<0.005)rest=0}
+    for(const l of lotes){if(rest<=0)break;const c=roundMoney(Math.min(l.disponible,rest));
+        res.push({precio:l.precioCompra,cantidad:c,subtotal:roundMoney(c*l.precioCompra)});rest=roundMoney(rest-c);if(rest<0.005)rest=0}
     return res;
 }
 
@@ -400,7 +413,15 @@ function recalcularLotesYGanancias(){
         ev.push({tipo:m.tipoMovimiento==='ingreso'?'mi':'me',fecha:m.fecha,hora:m.hora||'00:00',data:m})});
     /* Insertar lotes manuales como eventos para que participen en FIFO cronológicamente */
     lotesManual.forEach(l=>{ev.push({tipo:'lm',fecha:l.fecha||'2000-01-01',hora:l.hora||'00:00',data:l})});
-    ev.sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')));
+    /* ═══ v7.3.0 — Orden cronológico real, también dentro del mismo minuto ═══
+       Se ordenaba solo por fecha y hora, que tienen resolución de un minuto.
+       Cuando dos registros caían en el mismo minuto quedaban en el orden de la
+       lista, que es de la más nueva a la más vieja: una compra y la venta que
+       le siguió se procesaban al revés. La venta no encontraba el lote, el USDT
+       quedaba sin descontar y el inventario aparecía inflado. Ahora el empate se
+       resuelve por el id, que crece con el tiempo en el que se creó el registro. */
+    ev.forEach(e=>{e.k=(e.fecha||'')+(e.hora||'00:00');e.n=Number(e.data&&e.data.id)||0});
+    ev.sort((a,b)=>a.k<b.k?-1:a.k>b.k?1:a.n-b.n);
     /* v4.9.0 — Si hay historial archivado, los trackers arrancan desde los
        seeds capturados al corte (datos._archivoSeeds). Sin archivo: desde 0,
        idéntico a siempre. Sin esto, archivar rompería la ganancia de compras

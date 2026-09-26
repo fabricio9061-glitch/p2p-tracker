@@ -68,7 +68,10 @@ function comisionConfigurada(moneda){
 }
 /* Binance-matching: compra=round, venta=truncar para la base USDT (monto/tasa) */
 function usdtBase(n,tipo){return tipo==='compra'?roundMoney(n,2):truncar(n,2)}
-function usdtNeto(base,com,tipo){return tipo==='compra'?roundMoney(base-com,2):truncar(base+com,2)}
+/* v7.3.0 — La suma de la venta se redondea a centésimos. Base y comisión ya
+   vienen en centésimos exactos, pero la suma de dos decimales en coma flotante
+   a veces da 398,58999…: truncar eso perdía un centavo que nunca existió. */
+function usdtNeto(base,com,tipo){return tipo==='compra'?roundMoney(base-com,2):roundMoney(base+com,2)}
 /* v5.3.1 — Se convierte a número ANTES de validar. isFinite(null) devuelve
    verdadero en JavaScript (porque null equivale a 0), así que un null se colaba
    por el guardián y hacía fallar el formateo con una excepción; una cadena vacía
@@ -84,7 +87,11 @@ function parsearComisionPct(v){if(!v&&v!==0)return null;const l=v.toString().rep
    Sin coma: dot+3dígitos al final (50.000) → miles; dot+1-2dígitos (42.50) → decimal. */
 function pv(id){
     const el=$(id);if(!el)return 0;
-    const v=el.value.toString().trim();if(!v)return 0;
+    return parseMonto(el.value);
+}
+/* Mismo criterio aplicado a un texto (lo usa también el pago dividido) */
+function parseMonto(texto){
+    const v=String(texto??'').trim();if(!v)return 0;
     if(v.includes(',')){
         /* Coma presente → dots=miles, comma=decimal */
         const cleaned=v.replace(/\./g,'').replace(',','.');
@@ -345,7 +352,7 @@ function renderMovsFilters(){
     const cuentas=_bancosEnMovs().filter(b=>AppState.datos.bancos[b]?.activo);
     if(cuentas.length){h+=sep;cuentas.forEach(b=>{h+=chip('cuenta',b,b,f.cuenta)});h+=chip('cuenta','__usdt','USDT',f.cuenta)}
     const tags=_tagsEnMovs();
-    if(tags.length){h+=sep;tags.forEach(t=>{h+=chip('tag',t,'🏷️ '+t,f.tag)})}
+    if(tags.length){h+=sep;tags.forEach(t=>{h+=chip('tag',t,ICO_ETIQUETA+' '+escHtml(t),f.tag)})}
     h+=sep;
     h+=chip('fecha','hoy','Hoy',f.fecha);
     h+=chip('fecha','ayer','Ayer',f.fecha);

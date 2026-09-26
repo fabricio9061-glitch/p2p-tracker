@@ -6,92 +6,116 @@ function _invalidateListCache(key){
 /* ═══════════════════════════════════════
    §15 — LOTES MODAL
    ═══════════════════════════════════════ */
+/* ═══ v7.3.0 — Se edita la cantidad del lote, no lo que queda ═══
+   El formulario mostraba lo que quedaba disponible y al guardar lo tomaba como
+   la cantidad original del lote. Como el recálculo vuelve a descontar las
+   ventas desde la cantidad original, editar solo el precio de un lote que ya
+   se había vendido en parte hacía perder esos USDT otra vez. Ahora el campo es
+   la cantidad cargada (para los de arrastre, la que quedó al archivar) y lo
+   disponible se muestra como dato. */
+function _declaracionLote(l){
+    if(l&&l.carryover&&Array.isArray(AppState.datos._archivoCarryover))
+        return AppState.datos._archivoCarryover.find(x=>String(x.id)===String(l.id))||null;
+    return l;
+}
 function abrirEditarLote(id){
-    AppState.ui.loteEditandoId=id;const l=id?AppState.datos.lotes.find(x=>x.id===id):null;
+    AppState.ui.loteEditandoId=id;const l=id?AppState.datos.lotes.find(x=>String(x.id)===String(id)):null;
     /* INTEGRIDAD: solo lotes manuales son editables. Los automáticos provienen de
-       compras reales y editarlos rompería trazabilidad y FIFO. */
+       compras reales: se corrigen editando o borrando la compra. */
     if(l&&!l.manual){
-        alert('🔒 Este lote fue generado automáticamente por una operación de compra. No se puede editar para preservar la trazabilidad y la consistencia FIFO.\n\nPara modificarlo, editá o eliminá la operación que lo originó.');
+        alert('Este lote viene de una compra. Para modificarlo, editá o borrá esa compra.');
         AppState.ui.loteEditandoId=null;
         return;
     }
-    if(l){{const _h=$('editarLoteHeader');if(_h)_h.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'+' Editar Lote';}$('lotePrecio').value=fmtNum(l.precioCompra,l.moneda==='USD'?3:2);$('loteDisponible').value=fmtNum(l.disponible);$('loteFecha').value=l.fecha||'';$('btnEliminarLote').style.display='';$('loteButtons').style.gridTemplateColumns='1fr 1fr 1fr'}
-    else{{const _h=$('editarLoteHeader');if(_h)_h.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'+' Agregar Lote';}$('lotePrecio').value=AppState.datos.ultimaTasaCompra?fmtNum(AppState.datos.ultimaTasaCompra):'';$('loteDisponible').value='';$('loteFecha').value=getUDateStr();$('btnEliminarLote').style.display='none';$('loteButtons').style.gridTemplateColumns='1fr 1fr'}
+    const hd=$('editarLoteHeader'),info=$('loteDisponibleInfo');
+    if(l){
+        const decl=_declaracionLote(l)||l;
+        if(hd)hd.innerHTML=ICO_EDITAR+' Editar lote';
+        $('lotePrecio').value=fmtNum(decl.precioCompra,l.moneda==='USD'?3:2);
+        $('loteDisponible').value=fmtNum(decl.cantidad);
+        $('loteFecha').value=decl.fecha||'';
+        if(info){info.style.display='block';info.textContent='Quedan '+fmtTrunc(l.disponible,2)+' USDT sin vender'+(l.carryover?' · lote de arrastre del archivo':'');}
+        $('btnEliminarLote').style.display='';$('loteButtons').style.gridTemplateColumns='1fr 1fr 1fr';
+    }else{
+        if(hd)hd.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Agregar lote';
+        $('lotePrecio').value=AppState.datos.ultimaTasaCompra?fmtNum(AppState.datos.ultimaTasaCompra):'';
+        $('loteDisponible').value='';$('loteFecha').value=getUDateStr();
+        if(info)info.style.display='none';
+        $('btnEliminarLote').style.display='none';$('loteButtons').style.gridTemplateColumns='1fr 1fr';
+    }
     abrirModal('modalEditarLote');
 }
 async function guardarLote(){
     if(AppState.ui.guardandoLote)return;
     const btn=$('btnGuardarLote');if(btn.disabled)return;
     const p=pvTasa('lotePrecio'),d=pv('loteDisponible');const f=$('loteFecha').value||getUDateStr();
-    if(!p||p<=0||isNaN(p)){alert('Ingresá un precio válido');return}if(d===undefined||d<0||isNaN(d)){alert('Ingresá una cantidad válida');return}
-    /* INTEGRIDAD: re-validar al guardar — defensa en profundidad contra DOM forzado */
-    if(AppState.ui.loteEditandoId){
-        const lExist=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);
-        if(lExist&&!lExist.manual){
-            alert('🔒 Este lote fue generado automáticamente. No se puede modificar.');
-            cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
-            return;
-        }
+    if(!p||p<=0||isNaN(p)){alert('Ingresá un precio válido');return}if(!(d>0)){alert('Ingresá una cantidad mayor que cero');return}
+    const editId=AppState.ui.loteEditandoId;
+    const l=editId?AppState.datos.lotes.find(x=>String(x.id)===String(editId)):null;
+    if(editId&&(!l||!l.manual)){
+        alert('Este lote viene de una compra y no se puede modificar acá.');
+        cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
+        return;
     }
-    AppState.ui.guardandoLote=true;btn.disabled=true;btn.textContent='⏳ Guardando';
+    AppState.ui.guardandoLote=true;btn.disabled=true;btn.textContent='Guardando…';
     try{
-        let loteId=AppState.ui.loteEditandoId;
-        if(loteId){
-            const l=AppState.datos.lotes.find(x=>x.id===loteId);
-            if(l&&l.manual){
-                l.precioCompra=roundMoney(p,3);l.disponible=truncUsdt(d);l.cantidad=truncUsdt(d);l.fecha=f;
-                /* ═══ v5.9.0 — Los lotes de arrastre también se guardan ═══
-                   Desde que la declaración del arrastre vive en su propio campo, el
-                   editor cambiaba solo la copia calculada: el próximo recálculo la
-                   reconstruía desde la declaración original y el cambio desaparecía
-                   sin ningún aviso. Se veía como que los lotes de arrastre no se
-                   pueden modificar. Ahora se actualiza la declaración, que es lo
-                   único que el recálculo respeta. */
-                if(l.carryover&&Array.isArray(AppState.datos._archivoCarryover)){
-                    const decl=AppState.datos._archivoCarryover.find(x=>String(x.id)===String(loteId));
-                    if(decl){decl.precioCompra=l.precioCompra;decl.cantidad=l.cantidad;decl.disponible=l.disponible;decl.fecha=l.fecha}
-                }
-            }
+        let loteId=editId;
+        const cantidad=truncUsdt(d),precio=roundMoney(p,3);
+        if(l){
+            const decl=_declaracionLote(l);
+            /* El lote calculado y su declaración: el recálculo solo respeta la
+               declaración (la de arrastre vive en _archivoCarryover). */
+            [l,decl].forEach(x=>{if(x){x.precioCompra=precio;x.cantidad=cantidad;x.disponible=cantidad;x.fecha=f}});
+        }else{
+            loteId=uid();
+            AppState.datos.lotes.push({id:loteId,fecha:f,hora:getUTimeStr(),precioCompra:precio,cantidad,disponible:cantidad,moneda:'UYU',manual:true});
         }
-        else{loteId=uid();AppState.datos.lotes.push({id:loteId,fecha:f,hora:getUTimeStr(),precioCompra:roundMoney(p,3),cantidad:truncUsdt(d),disponible:truncUsdt(d),moneda:'UYU',manual:true})}
-        const isEdit=!!AppState.ui.loteEditandoId;
-        recalcularLotesYGanancias();actualizarVista();renderizarInventario();cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
-        guardaOptimista(isEdit?'update':'create','lotes',loteId);
+        cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
+        confirmarCambios([{tipo:l?'update':'create',entidad:'lotes',id:loteId}]);
+        renderizarInventario();
     }catch(e){console.error('[P2P] Error guardando lote:',e)}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Guardar'}
 }
 async function eliminarLoteActual(){
     if(!AppState.ui.loteEditandoId||AppState.ui.guardandoLote)return;
-    /* INTEGRIDAD: solo se pueden eliminar lotes manuales */
-    const lExist=AppState.datos.lotes.find(x=>x.id===AppState.ui.loteEditandoId);
-    if(lExist&&!lExist.manual){
-        alert('🔒 No se puede eliminar un lote generado automáticamente.');
-        return;
-    }
+    const delLoteId=AppState.ui.loteEditandoId;
+    const lExist=AppState.datos.lotes.find(x=>String(x.id)===String(delLoteId));
+    if(lExist&&!lExist.manual){alert('Este lote viene de una compra: se borra borrando la compra.');return}
     if(!confirm('¿Eliminar este lote del inventario?'))return;
-    AppState.ui.guardandoLote=true;const btn=$('btnEliminarLote');btn.disabled=true;btn.textContent='⏳ Eliminando';
+    AppState.ui.guardandoLote=true;const btn=$('btnEliminarLote');btn.disabled=true;btn.textContent='Eliminando…';
     try{
-        const delLoteId=AppState.ui.loteEditandoId;
         /* v5.9.0 — Si es de arrastre, se saca también de la declaración: si no,
            el recálculo lo vuelve a crear y parece que el borrado no funcionó. */
         if(lExist&&lExist.carryover&&Array.isArray(AppState.datos._archivoCarryover)){
             AppState.datos._archivoCarryover=AppState.datos._archivoCarryover.filter(x=>String(x.id)!==String(delLoteId));
         }
-        AppState.datos.lotes=AppState.datos.lotes.filter(l=>l.id!==delLoteId);
-        recalcularLotesYGanancias();actualizarVista();renderizarInventario();
-        guardaOptimista('delete','lotes',delLoteId);
+        AppState.datos.lotes=AppState.datos.lotes.filter(l=>String(l.id)!==String(delLoteId));
         cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
+        confirmarCambios([{tipo:'delete',entidad:'lotes',id:delLoteId}]);
+        renderizarInventario();
     }catch(e){console.error('[P2P] Error eliminando lote:',e)}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Eliminar'}
 }
 
 /* ═══════════════════════════════════════
    §16 — REINICIAR DATOS
    ═══════════════════════════════════════ */
+/* Borra en tandas todos los documentos de una subcolección del usuario */
+async function _vaciarSubcoleccion(nombre){
+    const ref=AppState.db.collection('users').doc(AppState.currentUser.uid).collection(nombre);
+    const snap=await ref.get();
+    const ids=[];snap.forEach(d=>ids.push(d.id));
+    for(let i=0;i<ids.length;i+=400){
+        const b=AppState.db.batch();
+        ids.slice(i,i+400).forEach(id=>b.delete(ref.doc(id)));
+        await b.commit();
+    }
+    return ids.length;
+}
 async function borrarTodo(){
-    if(confirm('⚠️ ¿Reiniciar todos los datos?')&&confirm('Esta acción no se puede deshacer. ¿Continuar?')){
+    if(confirm('¿Borrar TODOS tus datos?\n\nOperaciones, ajustes, transferencias, saldos, lotes, historial archivado y resúmenes mensuales.')&&confirm('Esta acción no se puede deshacer. Si querés conservar algo, exportá tus datos antes.\n\n¿Borrar todo?')){
         try{
             AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
             inicializarBancos();AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
-            $('comisionPlataforma').value='0,14';setText('comisionPctLabel','0,14');
+            $('comisionPlataforma').value=fmtNum(comisionConfigurada('UYU'));
             /* v4.7.65 FIX (B1): limpiar el backup local ANTES de guardar. Sin esto, el
                blindaje anti-wipe de guardarDatos aborta el write (estado vacío + backup con
                datos) y el próximo snapshot restaura los datos viejos por Branch 1 → el reset
@@ -119,6 +143,13 @@ async function borrarTodo(){
                 /* forzar=true → saltea el guard anti-wipe SOLO en esta acción explícita y doble-confirmada */
                 await guardarDatos(true);
             }
+            /* v7.3.0 — El historial archivado y los resúmenes también se borran. Si
+               quedaban, el índice del archivo se reconstruía desde ellos y la
+               historia vieja volvía a aparecer después de resetear. */
+            try{await _vaciarSubcoleccion('archivo');await _vaciarSubcoleccion('monthly_summaries')}
+            catch(e){console.warn('[P2P] No se pudo borrar el archivo:',e&&e.message)}
+            try{localStorage.removeItem('p2p_archivo_'+AppState.currentUser.uid)}catch(_){}
+            recalcularLotesYGanancias();
             actualizarVista();
         }catch(e){console.error('[P2P] Error reiniciando datos:',e)}
     }
@@ -127,15 +158,18 @@ async function borrarTodo(){
 /* ═══════════════════════════════════════
    §17B — RESTAURACIÓN MANUAL + EXPORT/IMPORT JSON
    ═══════════════════════════════════════ */
-/* Busca TODOS los respaldos posibles en localStorage — incluye claves huérfanas de
-   sesiones anteriores, cambios de uid, formatos viejos. Devuelve array ordenado por
-   puntaje (mejor primero). */
+/* Respaldos locales de la cuenta actual, el mejor primero.
+   ═══ v7.3.0 — Solo los de esta cuenta ═══
+   Se buscaban todas las claves de respaldo del teléfono, incluidas las de otros
+   usuarios que hubieran iniciado sesión en él. Si la cuenta actual no tenía
+   respaldo propio, se ofrecía restaurar el de otra persona y sus datos quedaban
+   cargados en esta cuenta. Cada usuario ve solo lo suyo. */
 function _buscarTodosLosRespaldos(){
     const encontrados=[];
+    if(!AppState.currentUser)return encontrados;
+    const propias=['p2p_backup_'+AppState.currentUser.uid,'p2p_backup_'+AppState.currentUser.uid+'_prev'];
     try{
-        for(let i=0;i<localStorage.length;i++){
-            const k=localStorage.key(i);
-            if(!k||!k.startsWith('p2p_backup_'))continue;
+        for(const k of propias){
             try{
                 const raw=localStorage.getItem(k);
                 if(!raw)continue;
@@ -144,17 +178,12 @@ function _buscarTodosLosRespaldos(){
                 const score=_puntajeDatos(b.datos);
                 if(score<=0)continue;
                 const isPrev=k.endsWith('_prev');
-                const isCurrent=AppState.currentUser&&(k==='p2p_backup_'+AppState.currentUser.uid||k==='p2p_backup_'+AppState.currentUser.uid+'_prev');
-                encontrados.push({key:k,score,ts:b.ts||0,v:b.v||0,datos:b.datos,isPrev,isCurrent});
+                encontrados.push({key:k,score,ts:b.ts||0,v:b.v||0,datos:b.datos,isPrev,isCurrent:true});
             }catch(e){/* key corrupto — ignorar */}
         }
     }catch(e){console.warn('[P2P] Error escaneando localStorage:',e.message)}
-    /* Orden: primero los del uid actual, luego por puntaje descendente, luego por timestamp */
-    encontrados.sort((a,b)=>{
-        if(a.isCurrent!==b.isCurrent)return a.isCurrent?-1:1;
-        if(a.score!==b.score)return b.score-a.score;
-        return b.ts-a.ts;
-    });
+    /* Orden: por puntaje descendente, luego por fecha */
+    encontrados.sort((a,b)=>a.score!==b.score?b.score-a.score:b.ts-a.ts);
     return encontrados;
 }
 
@@ -164,24 +193,15 @@ async function restaurarRespaldoManual(){
     const todos=_buscarTodosLosRespaldos();
     if(!todos.length){
         /* Sin respaldos — dar al usuario TODAS las opciones restantes */
-        alert('📭 No se encontraron respaldos locales con datos útiles.\n\n'
-            +'═══ OPCIONES DE RECUPERACIÓN ═══\n\n'
-            +'1️⃣ IMPORTAR DESDE ARCHIVO\n'
-            +'Si tenés un archivo .json de respaldo manual (exportado previamente o desde otro dispositivo), usá "Importar datos" en este mismo menú.\n\n'
-            +'2️⃣ OTRO DISPOSITIVO/NAVEGADOR\n'
-            +'Si abriste la app en otro navegador o dispositivo antes del problema, abrí la app allí e inmediatamente usá "Exportar datos". Luego importá acá.\n\n'
-            +'3️⃣ FIREBASE CONSOLE (admin)\n'
-            +'Si tenés acceso a la consola de Firebase y el proyecto tiene Point-in-Time Recovery o backups programados, podés restaurar el documento del usuario desde allí (ventana de 7 días para PITR).\n\n'
-            +'4️⃣ PREVENCIÓN A FUTURO\n'
-            +'Usá "Exportar datos" regularmente para tener un archivo propio de respaldo que no depende de la caché del navegador.');
+        alert('No hay respaldos de esta cuenta en este dispositivo.\n\n'
+            +'Si tenés un archivo .json exportado, usá "Importar datos".\n'
+            +'Si otro dispositivo tiene los datos bien, abrí la app allí y usá "Exportar datos", o "Verificar y reconciliar" → "Este dispositivo tiene los datos correctos".');
         return;
     }
     /* 2. Elegir el mejor respaldo — el primero del array ordenado */
     const best=todos[0];
     const backup={v:best.v,ts:best.ts,datos:best.datos};
-    let origen='respaldo principal';
-    if(best.isPrev)origen='respaldo previo (rotado)';
-    if(!best.isCurrent)origen='respaldo de sesión anterior';
+    const origen=best.isPrev?'respaldo previo':'respaldo principal';
     /* 3. Mostrar resumen al usuario */
     const d=backup.datos;
     const ts=backup.ts?new Date(backup.ts):null;
@@ -192,16 +212,16 @@ async function restaurarRespaldoManual(){
                   edad<1440?`hace ${Math.floor(edad/60)} h`:
                   `hace ${Math.floor(edad/1440)} días`;
     let resumen=`¿Restaurar este respaldo?\n\n`
-        +`📅 Origen: ${origen}\n`
-        +`⏱️ Guardado: ${edadTxt}\n`
-        +`📊 Contenido:\n`
+        +`Origen: ${origen}\n`
+        +`Guardado: ${edadTxt}\n`
+        +`Contenido:\n`
         +`  • ${(d.operaciones||[]).length} operaciones\n`
         +`  • ${(d.movimientos||[]).length} ajustes\n`
         +`  • ${(d.transferencias||[]).length} transferencias\n`
         +`  • ${(d.conversiones||[]).length} conversiones\n`
         +`  • ${(d.lotes||[]).length} lotes USDT\n`
         +`  • ${Object.values(d.bancos||{}).filter(b=>b&&b.activo).length} bancos activos\n`;
-    if(todos.length>1)resumen+=`\n📦 Hay ${todos.length} respaldos totales. Se usa el mejor disponible.\n`;
+    if(todos.length>1)resumen+=`\nHay ${todos.length} respaldos; se usa el más completo.\n`;
     resumen+=`\nEsta acción reemplazará los datos actuales de la app con los del respaldo.\n`
         +`Los datos actuales se guardarán como respaldo previo antes de aplicar.`;
     if(!confirm(resumen))return;
@@ -221,17 +241,6 @@ async function _aplicarRespaldo(datos,origen){
         AppState._localVersion=0;
         AppState._restoredFrom=origen.includes('importado')?'manual-import':'manual-backup';
         AppState._datosStale=false;
-        /* ═══ Post-restore lock ═══
-           Durante los próximos N segundos después de un restore manual, los snapshots de 
-           Firebase deben ignorarse para reconcile/merge. Razón: con _localVersion=0, 
-           cualquier snapshot remoto (incluso el echo de nuestro propio guardarDatos(true)) 
-           cae en Branch 2 → mergeRemoteState → recalcularLotesYGanancias → ~300-400ms 
-           extra de "Reconciliando…" innecesario. Los datos locales son authoritative justo 
-           después de un restore manual. El lock se libera automáticamente cuando 
-           guardarDatos(true) confirma el push y _localVersion se sincroniza.
-           
-           Window de 6s es defensivo: cubre red lenta + retries + echo del propio write. */
-        AppState._postRestoreLockTs=Date.now()+6000;
         inicializarBancos();
         /* ═══ Recalcular diferido ═══
            El backup ya contiene op.ganancia y lotes consistentes (fueron persistidos así).
@@ -264,16 +273,14 @@ async function _aplicarRespaldo(datos,origen){
         }else{
             await guardarDatos(true);
         }
-        /* Liberar el lock apenas el push confirma exitosamente — ya no hay necesidad de bloquear */
-        AppState._postRestoreLockTs=0;
-        alert(`✅ Datos restaurados correctamente.\n\n`
+        alert(`Datos restaurados.\n\n`
             +`Origen: ${origen}\n`
             +`Operaciones: ${(datos.operaciones||[]).length}\n`
             +`Bancos activos: ${Object.values(datos.bancos||{}).filter(b=>b&&b.activo).length}\n\n`
             +`Los datos fueron sincronizados con Firebase.`);
     }catch(e){
         console.error('[P2P] Error aplicando respaldo:',e);
-        alert('❌ Error al restaurar: '+(e.message||e.code||'desconocido'));
+        alert('No se pudo restaurar: '+(e.message||e.code||'error desconocido'));
     }
 }
 
@@ -281,7 +288,7 @@ async function _aplicarRespaldo(datos,origen){
 function exportarDatos(){
     if(!AppState.currentUser){alert('No hay usuario activo');return}
     if(esDatosVacios(AppState.datos)){
-        if(!confirm('⚠️ Los datos actuales están vacíos. ¿Exportar de todos modos?\n\nSi acabás de ser víctima del bug de wipe en Android, NO exportes ahora — usá "Restaurar último respaldo" primero.'))return;
+        if(!confirm('No hay datos para exportar. ¿Exportar igual un archivo vacío?'))return;
     }
     try{
         const uname=emailToUser(AppState.currentUser.email);
@@ -311,7 +318,7 @@ function exportarDatos(){
         a.href=url;a.download=`p2p-backup-${uname}-${fechaStr}.json`;
         document.body.appendChild(a);a.click();document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        setTimeout(()=>alert(`✅ Respaldo exportado.\n\n`
+        setTimeout(()=>alert(`Respaldo exportado.\n\n`
             +`Archivo: p2p-backup-${uname}-${fechaStr}.json\n`
             +`Operaciones: ${payload._meta.counts.operaciones}\n`
             +`Movimientos: ${payload._meta.counts.movimientos}\n\n`
@@ -319,7 +326,7 @@ function exportarDatos(){
             +`Podrás importarlo cuando lo necesites con "Importar datos".`),100);
     }catch(e){
         console.error('[P2P] Error exportando:',e);
-        alert('❌ Error al exportar: '+(e.message||'desconocido'));
+        alert('No se pudo exportar: '+(e.message||'error desconocido'));
     }
 }
 

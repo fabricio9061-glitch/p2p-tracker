@@ -1,9 +1,10 @@
 function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=roundMoney(AppState.datos.lotes.reduce((s,l)=>roundMoney(s+l.disponible),0))}
 
 /* ═══════════════════════════════════════════════════════════════════════
-   §IG — INTEGRIDAD FINANCIERA (capa central de validación)
-   Reglas duras: ningún saldo bancario o lote puede quedar negativo.
-   Toda mutación de saldo debe pasar por aplicarDeltaBanco() para garantía.
+   §IG — INTEGRIDAD FINANCIERA
+   Los saldos, los lotes y el cupo NO se modifican a mano en ningún lado: se
+   reconstruyen desde los registros (recalcularLotesYGanancias). Acá viven las
+   reglas que dicen cuánto mueve cada registro y la validación previa.
    ═══════════════════════════════════════════════════════════════════════ */
 const INTEG_EPSILON=0.005; /* tolerancia uniforme para comparaciones de saldo */
 
@@ -57,25 +58,27 @@ function validarDeltas(deltas){
     return errs.length?{ok:false,reason:errs[0],all:errs}:{ok:true};
 }
 
-/* Verifica integridad post-mutación: ningún banco/lote quedó negativo.
-   Llamado al final de operaciones críticas como red de seguridad. */
-function verificarIntegridadGlobal(){
-    const errs=[];
-    Object.entries(AppState.datos.bancos||{}).forEach(([n,bk])=>{
-        if(bk&&bk.saldo<-INTEG_EPSILON)errs.push(`${n}: ${fmtNum(bk.saldo,2)}`);
-    });
-    (AppState.datos.lotes||[]).forEach(l=>{
-        if(l.disponible<-INTEG_EPSILON)errs.push(`Lote ${l.id}: ${fmtTrunc(l.disponible,2)} USDT`);
-    });
-    if(errs.length)console.error('[INTEGRIDAD] Saldos negativos detectados tras mutación:',errs);
-    return errs;
+/* v7.3.0 — Antes de borrar o editar algo del pasado. Crear una operación nueva
+   sin fondos se sigue bloqueando, pero corregir un registro equivocado no: si
+   se bloqueara, un error viejo quedaría atrapado para siempre. Se avisa qué
+   saldo queda en negativo y la persona decide. */
+function confirmarSiQuedaNegativo(deltas,accion){
+    const v=validarDeltas(deltas);
+    if(v.ok)return true;
+    return confirm(accion+'\n\n'+(v.all||[v.reason]).join('\n')+'\n\n¿Continuar igual?');
 }
 
-/* Aplica los deltas a los saldos. Asume que ya pasaron validarDeltas().
-   Tras aplicar, fixNeg() es safety net contra -0 epsilon.
-   deltas.bancos: {nombre: deltaSaldo}
-   deltas.limitesUSD: {nombre: deltaLimiteUsado}  (opcional, + aumenta uso, - lo reduce)
-*/
+/* Diferencia de saldos entre dos versiones de un registro (null = no existe) */
+function diferenciaDeEfecto(tipo,antes,despues){
+    const d={};
+    const a=antes?efectoEnBancos(tipo,antes):{},b=despues?efectoEnBancos(tipo,despues):{};
+    new Set([...Object.keys(a),...Object.keys(b)]).forEach(c=>{
+        const x=roundMoney((b[c]||0)-(a[c]||0));
+        if(Math.abs(x)>=0.005)d[c]=x;
+    });
+    return{bancos:d};
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    EFECTO DE CADA EVENTO SOBRE LOS SALDOS (v5.8.0)
    ═══════════════════════════════════════════════════════════════════════════
@@ -105,11 +108,23 @@ function efectoEnBancos(tipo,ev){
         sumar(ev.cuenta,ev.delta||0);
     }else if(tipo==='operaciones'){
         if(ev.tipo==='compra'){
-            /* Pago dividido: cada cuenta aporta su parte. La comisión bancaria
-               la cobra siempre la cuenta principal. */
-            /* v7.2.0 — Una sola forma de saber quién pagó cuánto */
-            aportesDe(ev).forEach(a=>sumar(a.banco,-a.monto));
-            sumar(ev.banco,-(ev.comisionBanco||0));
+            /* Sale el monto más la comisión del banco. */
+            const total=roundMoney((Number(ev.monto)||0)+(Number(ev.comisionBanco)||0));
+            if(esPagoDividido(ev)){
+                /* ═══ v7.3.0 — La comisión del banco se cobra una sola vez ═══
+                   El panel de pago dividido exige que los aportes cubran el monto
+                   MÁS la comisión, así que la comisión ya viene adentro de los
+                   aportes. Se restaba además aparte, y en un pago dividido con
+                   comisión la cuenta principal la pagaba dos veces. Si los aportes
+                   no llegan al total —registros viejos que no la incluían—, lo que
+                   falta lo paga la cuenta principal. */
+                let cubierto=0;
+                aportesDe(ev).forEach(a=>{sumar(a.banco,-a.monto);cubierto=roundMoney(cubierto+a.monto)});
+                const resto=roundMoney(total-cubierto);
+                if(resto>=0.005)sumar(ev.banco,-resto);
+            }else{
+                sumar(ev.banco,-total);
+            }
         }else{
             sumar(ev.banco,ev.monto||0);
         }
@@ -150,13 +165,25 @@ function efectoEnBancos(tipo,ev){
    El punto de partida es el último saldo que fijaste a mano. Tiene que existir,
    porque la app no conoce tu historia anterior a ella: la primera vez se adopta
    el saldo actual, sin cambiar ningún número.                                 */
-/* Marca de tiempo comparable de un registro. Si no tiene una propia, se arma
-   con su fecha y hora, que están en hora local: convertirla evita comparar hora
-   local contra hora universal, que son tres horas de diferencia. */
-function _marcaEvento(ev){
-    if(ev&&ev.timestamp)return String(ev.timestamp);
-    const d=new Date(String((ev&&ev.fecha)||'')+'T'+String((ev&&ev.hora)||'00:00')+':00');
+/* Marca de tiempo comparable de un registro, siempre en hora universal.
+   ═══ v7.3.0 — Las horas sin zona son de Uruguay ═══
+   Las operaciones que vuelven del servidor traen una marca armada con su fecha
+   y hora locales ("2026-09-26T10:20:00"), mientras que los ajustes y las
+   transferencias guardan la hora universal ("…T13:20:00.000Z"). Compararlas
+   como texto mezclaba las dos escalas, con tres horas de diferencia: el libro
+   de cada cuenta salía desordenado. Ahora toda marca se lleva a hora universal
+   antes de comparar. Uruguay no tiene horario de verano desde 2015, igual que
+   asume getUDate(). */
+function _aIso(texto){
+    let s=String(texto||'');
+    if(!s)return '';
+    if(!/[zZ]$|[+-]\d\d:?\d\d$/.test(s))s+=(s.length<=16?':00':'')+'-03:00';
+    const d=new Date(s);
     return isFinite(d.getTime())?d.toISOString():'';
+}
+function _marcaEvento(ev){
+    if(!ev)return '';
+    return (ev.timestamp&&_aIso(ev.timestamp))||_aIso(String(ev.fecha||'')+'T'+String(ev.hora||'00:00'));
 }
 
 function recalcularSaldosBancos(){
@@ -233,34 +260,43 @@ function recalcularSaldosBancos(){
    misma: el cupo consumido no es un dato que haya que mantener, es el resultado
    de sumar las compras hechas desde la última renovación. Se recalcula solo, y
    un error deja de ser permanente.                                            */
+/* Fecha desde la cual cuentan las compras para el cupo: el último día de
+   renovación ya cumplido (renueva a las 0:30, hora de Uruguay).
+   v7.3.0 — Se calcula con los días marcados, sin depender de que la app haya
+   estado abierta ese día. Antes se usaba la fecha anotada la última vez que la
+   app vio una renovación: si no la abrías el día que renovaba, el cupo seguía
+   sumando compras de días anteriores y frenaba compras que el banco permitía;
+   y con un límite recién puesto contaba toda la historia. */
 function _cupoDesde(nombre){
-    /* Fecha desde la cual cuentan las compras: la última renovación registrada */
-    const bk=AppState.datos.bancos[nombre];
-    return (bk&&bk.ultimoResetLimite)||'';
+    const dias=getDiasReset(nombre);
+    const d=getUDate();
+    if(d.getHours()*60+d.getMinutes()<30)d.setDate(d.getDate()-1);   /* antes de las 0:30 sigue el día anterior */
+    for(let i=0;i<6&&!dias.includes(d.getDay());i++)d.setDate(d.getDate()-1);
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-function recalcularCuposDiarios(){
-    if(!AppState.datos||!AppState.datos.bancos)return;
+/* Consumo de cupo de cada cuenta con límite, sumando compras y transferencias
+   salientes desde su última renovación. `excluir` ({tipo,id}) deja afuera un
+   registro: sirve para validar una edición sin contar el valor viejo. */
+function _consumoDeCupos(excluir){
     const usado={};
     Object.keys(AppState.datos.bancos).forEach(n=>{
         const bk=AppState.datos.bancos[n];
         usado[n]=(bk&&bk.limiteDiarioUSD>0)?0:null;   /* null = sin límite, no se calcula */
     });
-
+    const excluido=(tipo,ev)=>excluir&&excluir.tipo===tipo&&String(excluir.id)===String(ev.id);
     /* Las transferencias salientes también consumen cupo de la cuenta de origen:
-       es dinero que sale igual que en una compra. Faltaba contemplarlas y habría
-       dejado el cupo corto. */
+       es dinero que sale igual que en una compra. */
     (AppState.datos.transferencias||[]).forEach(tr=>{
-        if(!tr||!tr.origen)return;
+        if(!tr||!tr.origen||excluido('transferencias',tr))return;
         if(usado[tr.origen]===undefined||usado[tr.origen]===null)return;
         const desde=_cupoDesde(tr.origen);
         if(desde&&String(tr.fecha||'')<String(desde))return;
         const u=_montoEnUSDLimite(tr.origen,(tr.monto||0)+(tr.comision||0));
         if(u>0)usado[tr.origen]=roundMoney(usado[tr.origen]+u);
     });
-
     (AppState.datos.operaciones||[]).forEach(op=>{
-        if(!op||op.tipo!=='compra')return;
+        if(!op||op.tipo!=='compra'||excluido('operaciones',op))return;
         /* Cada cuenta que aportó consume su parte; sin pago dividido, todo el monto */
         aportesDe(op).forEach(p=>{
             if(usado[p.banco]===undefined||usado[p.banco]===null)return;
@@ -270,11 +306,22 @@ function recalcularCuposDiarios(){
             if(u>0)usado[p.banco]=roundMoney(usado[p.banco]+u);
         });
     });
-
+    return usado;
+}
+function recalcularCuposDiarios(){
+    if(!AppState.datos||!AppState.datos.bancos)return;
+    const usado=_consumoDeCupos(null);
     Object.keys(usado).forEach(n=>{
         if(usado[n]===null)return;
         AppState.datos.bancos[n].limiteUsadoUSD=usado[n];
     });
+}
+/* Cupo que le queda a una cuenta, en dólares. Infinity si no tiene límite. */
+function cupoDisponibleUSD(nombre,excluir){
+    const bk=AppState.datos.bancos[nombre];
+    if(!bk||!(bk.limiteDiarioUSD>0))return Infinity;
+    const usado=_consumoDeCupos(excluir)[nombre]||0;
+    return roundMoney(bk.limiteDiarioUSD-usado);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -283,7 +330,16 @@ function recalcularCuposDiarios(){
    libro leyendo los mismos registros de los que ya sale el inventario.       */
 function efectoEnUsdt(tipo,ev){
     if(!ev)return 0;
-    if(tipo==='operaciones')return ev.tipo==='compra'?truncUsdt(ev.usdt||0):-truncUsdt(ev.usdt||0);
+    if(tipo==='operaciones'){
+        /* ═══ v7.3.0 — Con la comisión de Binance incluida ═══
+           Se tomaba la cantidad base: en una compra entra la base MENOS la
+           comisión y en una venta sale la base MÁS la comisión. Con 0,14 % la
+           diferencia es chica por operación pero se acumula: el libro de la
+           billetera no terminaba en el inventario real y la verificación
+           marcaba "USDT de menos" a todos los que operan con comisión. */
+        const neto=usdtNeto(Number(ev.usdt)||0,Number(ev.comisionPlataforma)||0,ev.tipo);
+        return ev.tipo==='compra'?neto:-neto;
+    }
     if(tipo==='movimientos'&&ev.tipoCuenta==='usdt')
         return ev.tipoMovimiento==='ingreso'?truncUsdt(ev.monto||0):-truncUsdt(ev.monto||0);
     return 0;
@@ -299,6 +355,12 @@ function efectoEnUsdt(tipo,ev){
 
    Cada línea trae el saldo antes, la variación y el saldo después, para poder
    seguir la cuenta paso a paso hasta el número que muestra la tarjeta.        */
+/* Orden cronológico de dos líneas del libro: por momento y, si coinciden, por
+   id (los ids crecen con el tiempo), para que el orden no dependa de la lista. */
+function _ordenLinea(a,b){
+    if(a.ts!==b.ts)return a.ts<b.ts?-1:1;
+    return (Number(a.id)||0)-(Number(b.id)||0);
+}
 function historialCuenta(nombre,limite){
     if(nombre==='USDT')return _historialUsdt(limite);   /* v6.5.0 */
     const bk=AppState.datos&&AppState.datos.bancos&&AppState.datos.bancos[nombre];
@@ -318,7 +380,7 @@ function historialCuenta(nombre,limite){
         });
     });
 
-    lineas.sort((a,b)=>a.ts<b.ts?-1:a.ts>b.ts?1:0);
+    lineas.sort(_ordenLinea);
 
     /* Encadenar desde el saldo de apertura. Sin corte por fecha: cada registro
        de esta cuenta aparece, y la suma tiene que dar exactamente el saldo. */
@@ -339,9 +401,19 @@ function historialCuenta(nombre,limite){
 
 /* Libro de la billetera. Su apertura son los lotes declarados a mano y los de
    arrastre: lo que existe sin venir de una operación. */
+/* USDT que existe sin venir de una operación: lotes cargados a mano y lotes de
+   arrastre del archivado. Se leen las DECLARACIONES: el lote de arrastre ya
+   calculado absorbe las compras a su mismo precio, y sumarlo contaba esas
+   compras dos veces. */
+function _aperturaUsdt(){
+    const d=AppState.datos||{};
+    const carry=(d._archivoCarryover||[]).reduce((a,l)=>a+(Number(l&&l.cantidad)||0),0);
+    const man=(d.lotes||[]).filter(l=>l&&l.manual&&!l.carryover).reduce((a,l)=>a+(Number(l.cantidad)||0),0);
+    return roundMoney(carry+man);
+}
 function _historialUsdt(limite){
     const d=AppState.datos||{};
-    const apertura=truncUsdt((d.lotes||[]).filter(l=>l&&l.manual).reduce((a,l)=>a+(l.cantidad||0),0));
+    const apertura=_aperturaUsdt();
     const lineas=[];
     ['operaciones','movimientos'].forEach(tipo=>{
         (d[tipo]||[]).forEach(ev=>{
@@ -352,10 +424,10 @@ function _historialUsdt(limite){
                          clase:_claseMovimiento(tipo,ev,v)});
         });
     });
-    lineas.sort((a,b)=>a.ts<b.ts?-1:a.ts>b.ts?1:0);
+    lineas.sort(_ordenLinea);
     let corriente=apertura;
     const base={ts:'',tipo:'inicial',clase:'inicial',variacion:0,anterior:corriente,resultante:corriente};
-    lineas.forEach(l=>{l.anterior=corriente;corriente=truncUsdt(corriente+l.variacion);l.resultante=corriente});
+    lineas.forEach(l=>{l.anterior=corriente;corriente=roundMoney(corriente+l.variacion);l.resultante=corriente});
     const todo=[base,...lineas];todo.reverse();
     return limite>0?todo.slice(0,limite):todo;
 }
@@ -375,8 +447,21 @@ const _ETIQUETA_MOV={
     'conv-entra':'Conversión recibida','conv-sale':'Conversión enviada'
 };
 
+/* Cuándo pasó, en palabras: "Hoy 13:00", "Ayer 18:10" o "24/09 10:00".
+   Se usa la fecha y la hora que registró la persona, que son locales: la marca
+   universal sirve para ordenar, no para mostrar. */
+function _cuandoLegible(ev){
+    if(!ev)return '';
+    const hoy=getUDateStr();
+    const ayer=(()=>{const d=getUDate();d.setDate(d.getDate()-1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`})();
+    const hora=ev.hora||'';
+    if(ev.fecha===hoy)return 'Hoy'+(hora?' '+hora:'');
+    if(ev.fecha===ayer)return 'Ayer'+(hora?' '+hora:'');
+    return fmtFechaHora(ev.fecha,ev.hora,ev.timestamp);
+}
+
 /* Dibuja los movimientos de una cuenta. Empieza mostrando los últimos cinco,
-   como pediste, con la opción de ver todo el historial. */
+   con la opción de ver el último mes. */
 let _movsCuentaActual=null,_movsCuentaTodo=false;
 function abrirMovimientosCuenta(nombre){
     _movsCuentaActual=nombre;_movsCuentaTodo=false;
@@ -386,18 +471,13 @@ function abrirMovimientosCuenta(nombre){
 function _pintarMovimientosCuenta(){
     const nombre=_movsCuentaActual;
     const cont=$('movsCuentaBody');if(!cont||!nombre)return;
-    /* v6.5.0 — La billetera se dibuja con la misma pantalla que las cuentas */
     const esUsdt=nombre==='USDT';
     const bk=esUsdt?{saldo:AppState.datos.saldoUsdt||0}:AppState.datos.bancos[nombre];
     if(!bk)return;
     const hd=$('movsCuentaHeader');
     if(hd)hd.innerHTML=escHtml(esUsdt?'Movimientos de USDT':nombre);
     /* ═══ v6.3.1 — El listado completo se limita al último mes ═══
-       Con miles de movimientos, mostrarlos todos no sirve para nada: no se puede
-       recorrer con el dedo y el teléfono tarda en dibujarlos. El último mes es
-       lo que se consulta de verdad; lo anterior está en la lista de operaciones
-       y en el archivo histórico. El saldo sigue calculándose con TODO: acá solo
-       se recorta lo que se muestra. */
+       El saldo se calcula con TODO; acá solo se recorta lo que se muestra. */
     const todas=historialCuenta(nombre);
     const desde=Date.now()-30*24*60*60*1000;
     const delMes=todas.filter(l=>l.tipo!=='inicial'&&Date.parse(l.ts||'')>=desde);
@@ -418,57 +498,144 @@ function _pintarMovimientosCuenta(){
         lista.forEach(l=>{
             const entra=l.variacion>0, esInicial=l.tipo==='inicial', esAjuste=l.clase==='ajuste';
             const cls=esInicial?'inicial':esAjuste?'ajuste':(entra?'entra':'sale');
-            const cuando=String(l.ts||'').replace('T',' ').slice(0,16);
             let detalle='';
             if(esAjuste&&l.ev&&l.ev.motivo)detalle=' · '+escHtml(l.ev.motivo);
             else if(l.tipo==='operaciones'&&l.ev)detalle=' · '+fmtTasaMon(l.ev.tasa,l.ev.moneda);
             else if(l.tipo==='movimientos'&&l.ev&&l.ev.descripcion)detalle=' · '+escHtml(l.ev.descripcion);
             else if(l.tipo==='transferencias'&&l.ev)detalle=' · '+escHtml(entra?l.ev.origen:l.ev.destino);
-            h+='<div class="movc-row '+cls+'"><div class="movc-i">'+
+            else if(l.tipo==='conversiones'&&l.ev)detalle=' · '+escHtml(entra?l.ev.origen:l.ev.destino);
+            /* ═══ v7.3.0 — Cada línea abre su registro ═══
+               Tocar un movimiento abre la operación, el ajuste, la transferencia
+               o la corrección que lo originó, para editarlo o borrarlo desde ahí.
+               Al guardar, el saldo y este mismo libro se recalculan solos. */
+            const accion=esInicial?'':' data-action="movc-abrir" data-tipo="'+l.tipo+'" data-id="'+escHtml(String(l.id))+'" role="button" tabindex="0"';
+            h+='<div class="movc-row '+cls+'"'+accion+'><div class="movc-i">'+
                '<div class="t">'+(_ETIQUETA_MOV[l.clase]||'Movimiento')+detalle+'</div>'+
-               '<div class="m">'+escHtml(cuando)+'</div></div>'+
+               '<div class="m">'+(esInicial?'Antes del primer registro':escHtml(_cuandoLegible(l.ev)))+'</div></div>'+
                '<div class="movc-d">'+
                (esInicial?'':'<div class="v '+(entra?'entra':'sale')+'">'+(entra?'+':'-')+dinero(l.variacion)+'</div>')+
-               '<div class="s">'+sym+fmtNum(l.resultante,2)+suf+'</div></div></div>';
+               '<div class="s">'+sym+fmtNum(l.resultante,2)+suf+'</div></div>'+
+               (esInicial?'':'<span class="movc-ir" aria-hidden="true">›</span>')+'</div>';
         });
         h+='</div>';
-        if(!_movsCuentaTodo&&todas.length>5){
-            h+='<button class="movc-mas" data-action="movs-cuenta-todo">'+
-               (delMes.length?'Ver el último mes ('+delMes.length+')':'Ver más')+'</button>';
+        /* Solo si el último mes tiene más de lo que ya se ve: si no, el botón
+           mostraba las mismas líneas */
+        if(!_movsCuentaTodo&&delMes.length>lista.filter(l=>l.tipo!=='inicial').length){
+            h+='<button class="movc-mas" data-action="movs-cuenta-todo">Ver el último mes ('+delMes.length+')</button>';
         }
-        h+='<div class="movc-nota">'+(esUsdt
-             ? 'Cada línea muestra cuánto entró o salió y el inventario que quedó. Las compras suman, las ventas restan. '
-             : 'Cada línea muestra la variación y el saldo que quedó. ')+
-           (_movsCuentaTodo
-             ? (recortado
-                 ? 'Se muestran los '+TOPE+' más recientes de los '+delMes.length+' del último mes. '
-                 : 'Se muestra el último mes. ')+
-               'Lo anterior está en la lista de operaciones y en el historial archivado.'
-             : 'El saldo actual es el resultado de sumarlas todas desde el saldo inicial.')+'</div>';
+        h+='<div class="movc-nota">Tocá un movimiento para editarlo o borrarlo.'+
+           (_movsCuentaTodo&&recortado?' Se muestran los '+TOPE+' más recientes del último mes.':'')+'</div>';
     }
-    if(!esUsdt)h+='<button class="movc-mas" data-action="corregir-saldo">Corregir saldo o límites</button>';
+    if(!esUsdt)h+='<button class="movc-mas" data-action="corregir-saldo">Corregir saldo o límite</button>';
     cont.innerHTML=h;
 }
-window.abrirMovimientosCuenta=abrirMovimientosCuenta;
 
-/* Registra una corrección manual como un asiento más */
+/* Abre el registro que originó una línea del libro */
+function abrirRegistroDelLibro(tipo,id){
+    const buscar=arr=>(arr||[]).find(x=>String(x.id)===String(id));
+    if(tipo==='operaciones'){const op=buscar(AppState.datos.operaciones);if(op)abrirEditarOperacion(op.id)}
+    else if(tipo==='movimientos'){const m=buscar(AppState.datos.movimientos);if(m)abrirModalMovimiento(m.id)}
+    else if(tipo==='transferencias'||tipo==='conversiones'){const t=buscar(AppState.datos[tipo]);if(t)abrirModalTransferencia(t.id)}
+    else if(tipo==='ajustesSaldo'){const a=buscar(AppState.datos.ajustesSaldo);if(a)abrirAjusteSaldo(a.id)}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CORRECCIONES DE SALDO (v6.1.0, editables desde v7.3.0)
+   Una corrección es un asiento más: dice cuánto había de diferencia entre lo
+   que calculaba la app y lo que había de verdad en el banco. No toca
+   operaciones, ganancias ni estadísticas. Se puede editar o borrar como
+   cualquier otro registro, y el saldo se recalcula solo.
+   ═══════════════════════════════════════════════════════════════════════════ */
 function registrarAjusteSaldo(cuenta,nuevoSaldo,motivo){
     if(!AppState.datos.bancos[cuenta])return null;
     if(!Array.isArray(AppState.datos.ajustesSaldo))AppState.datos.ajustesSaldo=[];
     const actual=roundMoney(AppState.datos.bancos[cuenta].saldo||0);
     const delta=roundMoney(nuevoSaldo-actual);
     if(Math.abs(delta)<0.005)return null;
-    const aj={id:(typeof uid==='function'?uid():Date.now()),cuenta,delta,
-              motivo:String(motivo||'').slice(0,120),
-              fecha:(typeof getUDateStr==='function'?getUDateStr():''),
-              hora:(typeof getUTimeStr==='function'?getUTimeStr():''),
+    const aj={id:uid(),cuenta,delta,
+              motivo:String(motivo||'').trim().slice(0,120),
+              fecha:getUDateStr(),hora:getUTimeStr(),
               timestamp:new Date().toISOString()};
-    AppState.datos.ajustesSaldo.push(aj);
-    /* Se conservan los últimos 200 por cuenta para no engordar el documento */
-    if(AppState.datos.ajustesSaldo.length>200)AppState.datos.ajustesSaldo.shift();
+    /* v7.3.0 — Sin tope. Con 200 se descartaba el más viejo en silencio, y como
+       el saldo es la suma de las correcciones, el saldo cambiaba solo. Cada
+       corrección es un documento propio, así que no engorda nada. */
+    AppState.datos.ajustesSaldo.unshift(aj);
     return aj;
 }
-window.registrarAjusteSaldo=registrarAjusteSaldo;
+
+function abrirAjusteSaldo(id){
+    const aj=(AppState.datos.ajustesSaldo||[]).find(a=>String(a.id)===String(id));
+    if(!aj)return;
+    AppState.ui.ajusteEditandoId=aj.id;
+    AppState.ui.ajusteSigno=aj.delta<0?'resta':'suma';
+    const sym=getSym(getBancoInfo(aj.cuenta)&&getBancoInfo(aj.cuenta).moneda);
+    const hd=$('ajusteSaldoHeader');
+    if(hd)hd.innerHTML=ICO_AJUSTE+' Corrección · '+escHtml(aj.cuenta);
+    setText('ajusteSaldoCuando',_cuandoLegible(aj)+(aj.editadoEn?' · editada':''));
+    $('ajusteSaldoMonto').value=fmtNum(Math.abs(aj.delta));
+    $('ajusteSaldoMotivo').value=aj.motivo||'';
+    setText('ajusteSaldoSym',sym);
+    _pintarSignoAjuste();
+    abrirModal('modalAjusteSaldo');
+}
+function _pintarSignoAjuste(){
+    const suma=AppState.ui.ajusteSigno!=='resta';
+    const a=$('ajusteSaldoSuma'),b=$('ajusteSaldoResta');
+    if(a)a.className='tab tab-ingreso'+(suma?' active':'');
+    if(b)b.className='tab tab-egreso'+(suma?'':' active');
+}
+function guardarAjusteSaldo(){
+    const aj=(AppState.datos.ajustesSaldo||[]).find(a=>String(a.id)===String(AppState.ui.ajusteEditandoId));
+    if(!aj){cerrarModal('modalAjusteSaldo');return}
+    const monto=roundMoney(pv('ajusteSaldoMonto'));
+    if(!(monto>0)){alert('Ingresá la diferencia (mayor que cero). Para quitar la corrección, usá Borrar.');return}
+    const nuevo=roundMoney((AppState.ui.ajusteSigno==='resta'?-1:1)*monto);
+    const despues={...aj,delta:nuevo};
+    if(!confirmarSiQuedaNegativo(diferenciaDeEfecto('ajustesSaldo',aj,despues),'Con este cambio la cuenta queda en negativo.'))return;
+    aj.delta=nuevo;
+    aj.motivo=String($('ajusteSaldoMotivo').value||'').trim().slice(0,120);
+    aj.editadoEn=new Date().toISOString();
+    cerrarModal('modalAjusteSaldo');
+    AppState.ui.ajusteEditandoId=null;
+    confirmarCambios([{tipo:'update',entidad:'ajustesSaldo',id:aj.id}]);
+}
+function eliminarAjusteSaldo(id,opts){
+    const aj=(AppState.datos.ajustesSaldo||[]).find(a=>String(a.id)===String(id));
+    if(!aj)return false;
+    const sym=getSym(getBancoInfo(aj.cuenta)&&getBancoInfo(aj.cuenta).moneda);
+    if(!(opts&&opts.sinConfirmar)){
+        if(!confirm('¿Borrar la corrección de '+(aj.delta>0?'+':'-')+sym+fmtNum(Math.abs(aj.delta))+' en '+aj.cuenta+'?'))return false;
+        if(!confirmarSiQuedaNegativo(diferenciaDeEfecto('ajustesSaldo',aj,null),'Sin esta corrección la cuenta queda en negativo.'))return false;
+    }
+    AppState.datos.ajustesSaldo=(AppState.datos.ajustesSaldo||[]).filter(a=>String(a.id)!==String(id));
+    cerrarModal('modalAjusteSaldo');
+    AppState.ui.ajusteEditandoId=null;
+    confirmarCambios([{tipo:'delete',entidad:'ajustesSaldo',id:aj.id}]);
+    return true;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UN SOLO CAMINO PARA CONFIRMAR UN CAMBIO (v7.3.0)
+   ═══════════════════════════════════════════════════════════════════════════
+   Crear, editar o borrar cualquier registro termina acá. Antes cada pantalla lo
+   resolvía por su cuenta y varias se olvidaban de recalcular: un ajuste externo
+   en un banco, una transferencia editada o una corrección de saldo quedaban
+   guardados, pero la pantalla seguía mostrando el saldo viejo hasta que
+   respondía el servidor —y sin conexión, hasta recargar—.
+
+   Orden fijo: se reconstruyen lotes, saldos y cupos desde los registros, se
+   anota qué hay que subir y se redibuja. Si el libro de una cuenta está
+   abierto, también se actualiza. */
+function confirmarCambios(cambios){
+    const lista=(cambios||[]).filter(c=>c&&c.tipo&&c.entidad&&c.id!==undefined&&c.id!==null);
+    recalcularLotesYGanancias();
+    lista.slice(0,-1).forEach(c=>enqueueSync(c.tipo,c.entidad,c.id));
+    const ultimo=lista[lista.length-1];
+    if(ultimo)guardaOptimista(ultimo.tipo,ultimo.entidad,ultimo.id);else guardaOptimista();
+    actualizarVista();
+    const libro=$('modalMovsCuenta');
+    if(libro&&libro.classList.contains('active'))_pintarMovimientosCuenta();
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    RECONCILIACIÓN GENERAL (v5.8.0)
@@ -491,8 +658,6 @@ window.registrarAjusteSaldo=registrarAjusteSaldo;
 function reconciliarTodo(opts){
     opts=opts||{};
     if(!AppState.datos)return null;
-    const ahora=new Date().toISOString();
-    /* v6.3.0 — Sin corte por fecha: se recorren todos los registros. */
 
     /* 1 ── Lotes, ganancias y saldo USDT: ya se reconstruyen solos */
     const usdtAntes=AppState.datos.saldoUsdt;
@@ -530,18 +695,17 @@ function reconciliarTodo(opts){
        borrar una compra vieja que ventas posteriores ya habían consumido: esas
        ventas quedan sin de dónde restar y el USDT sube en vez de bajar. Era
        completamente invisible; ahora se informa cuánto se perdió. */
+    /* v7.3.0 — Lo que debería haber sale del mismo libro que la billetera: la
+       apertura declarada más lo que movió cada operación y cada ajuste, con la
+       comisión de Binance incluida. Antes se usaba la cantidad base y a todos
+       los que operan con comisión les marcaba "USDT de menos" sin serlo. */
     let usdtSinCubrir=0;
     {
-        const compras=(AppState.datos.operaciones||[]).filter(o=>o&&o.tipo==='compra')
-            .reduce((a,o)=>a+truncUsdt(o.usdt||0),0);
-        const ventas=(AppState.datos.operaciones||[]).filter(o=>o&&o.tipo==='venta')
-            .reduce((a,o)=>a+truncUsdt(o.usdt||0),0);
-        const manuales=(AppState.datos.lotes||[]).filter(l=>l&&l.manual)
-            .reduce((a,l)=>a+(l.cantidad||0),0);
-        const ajustes=(AppState.datos.movimientos||[]).filter(m=>m&&m.tipoCuenta==='usdt')
-            .reduce((a,m)=>a+(m.tipoMovimiento==='ingreso'?truncUsdt(m.monto||0):-truncUsdt(m.monto||0)),0);
-        const teorico=truncUsdt(manuales+compras-ventas+ajustes);
-        usdtSinCubrir=truncUsdt((AppState.datos.saldoUsdt||0)-teorico);
+        let teorico=_aperturaUsdt();
+        ['operaciones','movimientos'].forEach(t=>(AppState.datos[t]||[]).forEach(ev=>{
+            if(ev)teorico=roundMoney(teorico+efectoEnUsdt(t,ev));
+        }));
+        usdtSinCubrir=roundMoney((AppState.datos.saldoUsdt||0)-teorico);
     }
 
     /* ═══ 4 ── Estados que no pueden darse ═══
@@ -637,9 +801,10 @@ function _pintarReconciliacion(inf){
         if(c)h+='<div class="rec-linea"><span class="n" style="padding-left:12px;opacity:0.8">'+et+'</span>'+
                '<span class="v" style="font-weight:600">'+c+'</span></div>';
     });
+    /* Apertura solo de las cuentas en uso: las inactivas en cero son ruido */
     Object.keys(AppState.datos.bancos||{}).forEach(n=>{
         const bk=AppState.datos.bancos[n];
-        if(bk&&isFinite(bk.saldoApertura))
+        if(bk&&isFinite(bk.saldoApertura)&&(bk.activo||Math.abs(bk.saldoApertura)>=0.005))
             h+='<div class="rec-linea"><span class="n" style="padding-left:12px;opacity:0.8">Apertura '+escHtml(n)+'</span>'+
                '<span class="v" style="font-weight:600">'+fmtNum(bk.saldoApertura,2)+'</span></div>';
     });
@@ -657,6 +822,7 @@ function _pintarReconciliacion(inf){
                 (ev.tipoCuenta==='usdt'?fmtTrunc(ev.monto,2)+' USDT':fmtMonto(ev.monto))+
                 (ev.descripcion?' · '+escHtml(ev.descripcion):'');
             else if(d.tipo==='transferencias')desc=fmtMonto(ev.monto)+' · '+escHtml(ev.origen||'')+' → '+escHtml(ev.destino||'');
+            else if(d.tipo==='ajustesSaldo')desc='Corrección '+(ev.delta>0?'+':'-')+fmtMonto(Math.abs(ev.delta||0))+' · '+escHtml(ev.cuenta||'');
             else desc='Conversión '+fmtMonto(ev.montoOrigen);
             h+='<div class="rec-dup"><div class="rec-dup-i">'+
                '<div class="d">'+desc+'</div>'+
@@ -708,45 +874,6 @@ function _recHerramientas(){
 
 
 
-/* v6.0.0 — Se retiró la corrección manual de saldos: dejaron de poder desviarse
-   cuando pasaron a recalcularse desde los eventos, así que no había nada que
-   corregir. */
-
-
-window.reconciliarTodo=reconciliarTodo;
-
-/* La auditoría de saldos se retiró en v6.0.0: vigilaba que el saldo guardado no
-   se desviara del esperado, y eso dejó de tener sentido cuando el saldo pasó a
-   recalcularse desde los eventos en cada actualización. No hay nada que vigilar
-   si el número se reconstruye solo. */
-
-function aplicarDeltas(deltas){
-    deltas=deltas||{};
-    if(deltas.bancos){
-        for(const [nombre,delta] of Object.entries(deltas.bancos)){
-            const bk=AppState.datos.bancos[nombre];
-            if(!bk)continue;
-            bk.saldo=fixNeg(roundMoney(bk.saldo+delta));
-            /* ═══ v5.7.2 — Sin esto el descuento se perdía ═══
-               El saldo de cada cuenta no se recalcula nunca: se le suma y se le
-               resta. Al cargar una operación se anotaba como pendiente la
-               operación, pero NO el cambio de saldo, así que el guardián que
-               protege lo local no lo veía. Si en esa ventana llegaba una foto del
-               servidor —el eco de un guardado anterior, u otro dispositivo— el
-               saldo remoto pisaba al recién descontado y la resta desaparecía
-               para siempre, porque nadie la vuelve a calcular. */
-            if(typeof enqueueSync==='function')enqueueSync('update','bancos',nombre);
-        }
-    }
-    if(deltas.limitesUSD){
-        for(const [nombre,delta] of Object.entries(deltas.limitesUSD)){
-            const bk=AppState.datos.bancos[nombre];
-            if(!bk||!(bk.limiteDiarioUSD>0))continue;
-            const nuevo=roundMoney((bk.limiteUsadoUSD||0)+delta);
-            bk.limiteUsadoUSD=Math.max(0,Math.min(bk.limiteDiarioUSD,nuevo));
-        }
-    }
-}
 
 /* Helper: convierte monto en UYU (o USD) a su equivalente en USD para tracking de límite diario.
    Si el banco es USD, el monto ya está en USD. Si es UYU, divide por ultimaTasaCompra. 
@@ -820,21 +947,36 @@ function agregarTag(texto){
     const t=stripAccents(raw).toLowerCase();
     const key=tagKey(t);
     const existe=AppState.datos.tags.find(x=>tagKey(x)===key);
-    if(!existe){AppState.datos.tags.push(t);AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'))}
+    if(!existe){AppState.datos.tags.push(t);AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'));_guardarCambioDeCategorias([])}
 }
-function eliminarTag(texto){AppState.datos.tags=AppState.datos.tags.filter(t=>tagKey(t)!==tagKey(texto))}
+/* ═══ v7.3.0 — Cambiar una categoría se guarda de verdad ═══
+   Las categorías viven en el documento de configuración, pero el nombre que
+   usa cada ajuste vive en el documento de ese ajuste. Renombrar o fusionar
+   cambiaba ambos en pantalla y solo pedía subir la configuración —y renombrar
+   ni siquiera eso—: al llegar la siguiente foto del servidor, los ajustes
+   volvían al nombre viejo. Ahora cada ajuste tocado se anota para subir. */
+function _guardarCambioDeCategorias(idsAjustes){
+    (idsAjustes||[]).forEach(id=>enqueueSync('update','movimientos',id));
+    guardaOptimista('update','tags','categorias');
+}
+function eliminarTag(texto){
+    AppState.datos.tags=AppState.datos.tags.filter(t=>tagKey(t)!==tagKey(texto));
+    _guardarCambioDeCategorias([]);
+}
 function editarTag(viejo,nuevo){
     const nv=normalizarTag(nuevo);if(!nv||nv.length<2)return false;
     const nvKey=tagKey(nv),vjKey=tagKey(viejo);
     const dup=AppState.datos.tags.find(t=>tagKey(t)===nvKey&&tagKey(t)!==vjKey);
     if(dup)return false;
     const idx=AppState.datos.tags.findIndex(t=>tagKey(t)===vjKey);
+    const tocados=[];
     if(idx>=0){
         AppState.datos.tags[idx]=nv;AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'));
         AppState.datos.movimientos.forEach(m=>{
-            if(m.descripcion&&tagKey(m.descripcion)===vjKey)m.descripcion=nv;
+            if(m.descripcion&&tagKey(m.descripcion)===vjKey){m.descripcion=nv;tocados.push(m.id)}
         });
     }
+    _guardarCambioDeCategorias(tocados);
     return true;
 }
 function mergeTag(origen,destino){
@@ -842,12 +984,13 @@ function mergeTag(origen,destino){
     const orKey=tagKey(origen),dsKey=tagKey(destino);
     if(orKey===dsKey)return false;
     if(!AppState.datos.tags.some(t=>tagKey(t)===dsKey))return false;
+    const tocados=[];
+    const nombre=AppState.datos.tags.find(t=>tagKey(t)===dsKey)||destino;
     AppState.datos.movimientos.forEach(m=>{
-        if(m.descripcion&&tagKey(m.descripcion)===orKey){
-            m.descripcion=AppState.datos.tags.find(t=>tagKey(t)===dsKey)||destino;
-        }
+        if(m.descripcion&&tagKey(m.descripcion)===orKey){m.descripcion=nombre;tocados.push(m.id)}
     });
     AppState.datos.tags=AppState.datos.tags.filter(t=>tagKey(t)!==orKey);
+    _guardarCambioDeCategorias(tocados);
     return true;
 }
 
@@ -974,7 +1117,6 @@ function confirmarFusion(){
         AppState.ui.mergeSrcTag=null;AppState.ui.mergeSelectedDest=null;
         cerrarModal('modalMergeTag');
         renderizarGestionTags();
-        guardaOptimista('update','tags',dest);
     }
 }
 /* Conteo de usos y tipo dominante por tag */
@@ -1221,35 +1363,38 @@ function renderizarGestionTags(){
     });
     cont.innerHTML=h;
 }
-function agregarTasaReciente(valor,tipo,moneda){
-    const arr=AppState.datos.tasasRecientes;
-    /* Eliminar duplicado exacto (mismo valor+tipo+moneda) */
-    const idx=arr.findIndex(t=>t.valor===valor&&t.tipo===tipo&&t.moneda===moneda);
-    if(idx!==-1)arr.splice(idx,1);
-    arr.unshift({valor,tipo,moneda});
-    /* Mantener máx 5 por combo tipo+moneda, máx 30 total */
-    const count={};AppState.datos.tasasRecientes=arr.filter(t=>{const k=t.tipo+'_'+t.moneda;count[k]=(count[k]||0)+1;return count[k]<=5}).slice(0,30);
+/* ═══ v7.3.0 — Tasas rápidas desde las operaciones reales ═══
+   Se guardaba una lista aparte, a la que se agregaba cada tasa al cargar una
+   operación. Esa lista no se enteraba si la operación después se editaba o se
+   borraba, y cada dispositivo la armaba en su propio orden. Ahora salen de las
+   operaciones mismas: las últimas cinco tasas distintas del mismo tipo y la
+   misma moneda, de la más nueva a la más vieja por fecha y hora reales. */
+function tasasRecientesDe(tipo,moneda,cantidad){
+    const n=cantidad||5,vistas=new Set(),res=[];
+    const ops=(AppState.datos&&AppState.datos.operaciones)||[];
+    /* La lista ya está ordenada de la más nueva a la más vieja */
+    for(const op of ops){
+        if(!op||op.tipo!==tipo||(op.moneda||'UYU')!==moneda||!(op.tasa>0))continue;
+        const clave=Math.round(op.tasa*1000);
+        if(vistas.has(clave))continue;
+        vistas.add(clave);res.push(op.tasa);
+        if(res.length>=n)break;
+    }
+    return res;
 }
 function renderizarTasasRecientes(){
     const cont=$('tasaTagsContainer');if(!cont)return;
     const tipo=$('tipo').value,mon=getMonedaBanco();
-    const recientes=(AppState.datos.tasasRecientes||[]).filter(t=>t.tipo===tipo&&t.moneda===mon).slice(0,5);
+    const recientes=tasasRecientesDe(tipo,mon,5);
     if(!recientes.length){cont.innerHTML='';return}
-    /* v4.7.62 — marcar como "activa" la pill cuyo valor coincide con el input
-       actual de tasa, NO la primera por posición. Antes el CSS usaba :first-child
-       y esa pill siempre se veía azul aunque el usuario tocara otra. Ahora la
-       pill activa es la que refleja el valor real del input. */
+    /* v4.7.62 — la pill activa es la que coincide con el valor del campo */
     const tasaActualNum=parsearTasa($('tasa').value);
     const epsilon=mon==='USD'?0.0005:0.005;
-    /* v5.6.0 — Son las cinco tasas más recientes, pero no había forma de saber
-       cuál usaste último: se marca la primera, que es la más nueva. */
-    cont.innerHTML=recientes.map((t,idx)=>{
-        /* v4.8.2: parsearTasa devuelve null para input vacío/inválido, e isFinite(null)
-           es true (coerciona a 0) — comparaba contra 0 en vez de "sin tasa". */
-        const isActive=tasaActualNum!==null&&Math.abs(t.valor-tasaActualNum)<epsilon;
+    cont.innerHTML=recientes.map((valor,idx)=>{
+        const isActive=tasaActualNum!==null&&Math.abs(valor-tasaActualNum)<epsilon;
         const cls='tag-pill'+(isActive?' tag-pill-active':'')+(idx===0?' tag-pill-ultima':'');
         const tit=idx===0?' title="La última tasa que usaste"':'';
-        return `<span class="${cls}"${tit} data-action="usar-tasa" data-valor="${t.valor}" style="font-size:0.72em;padding:3px 9px;flex-shrink:0">${fmtTasa(t.valor,mon)}</span>`;
+        return `<span class="${cls}"${tit} data-action="usar-tasa" data-valor="${valor}" style="font-size:0.72em;padding:3px 9px;flex-shrink:0">${fmtTasa(valor,mon)}</span>`;
     }).join('');
 }
 

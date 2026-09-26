@@ -1,48 +1,31 @@
 async function guardarEditarOperacion(){
     const op=AppState.datos.operaciones.find(o=>o.id===AppState.ui.opEditandoId);if(!op)return;
     const btn=$('btnGuardarEditOp');if(btn.disabled)return;
-    const newM=pv('editOpMonto'),newTa=parsearTasa($('editOpTasa').value),newB=$('editOpBanco').value;
+    const dividida=esPagoDividido(op);
+    /* Con pago dividido, el monto y las cuentas no se editan (ver abrirEditarOperacion) */
+    const newM=dividida?op.monto:pv('editOpMonto'),newTa=parsearTasa($('editOpTasa').value),newB=dividida?op.banco:$('editOpBanco').value;
     if(!newM||newM<=0){alert('Monto inválido');return}
     if(!newTa){alert('Tasa inválida');return}
     if(!newB){alert('Seleccioná un banco');return}
-    /* Guard: no permitir cambio de banco a una moneda distinta — rompería la coherencia de op.moneda/tasa/FIFO */
+    /* No se puede pasar a una cuenta de otra moneda: cambiaría la moneda de la
+       operación, su tasa y los lotes que consume. */
     const newBi=getBancoInfo(newB),opMon=op.moneda||'UYU',newMon=newBi?.moneda||'UYU';
     if(newMon!==opMon){alert(`No podés cambiar el banco a una cuenta ${newMon} cuando la operación está en ${opMon}. Eliminá y recreá la operación.`);return}
-    /* INTEGRIDAD: validar deltas netos (revertir original + aplicar nuevo) */
-    const oldB=op.banco,oldM=op.monto,oldCb=op.comisionBanco||0;
-    const deltas={bancos:{}};
-    if(op.tipo==='compra'){
-        if(oldB)deltas.bancos[oldB]=(deltas.bancos[oldB]||0)+roundMoney(oldM+oldCb);
-        deltas.bancos[newB]=(deltas.bancos[newB]||0)-roundMoney(newM+oldCb);
-    }else{
-        if(oldB)deltas.bancos[oldB]=(deltas.bancos[oldB]||0)-oldM;
-        deltas.bancos[newB]=(deltas.bancos[newB]||0)+newM;
-    }
-    const valI=validarDeltas(deltas);
-    if(!valI.ok){alert('🚫 No se puede guardar este cambio:\n\n'+valI.reason);return}
+    const newCpct=_editOpComisionPctLeida(op);
+    /* v7.3.0 — Se compara el efecto de la versión vieja con el de la nueva, con la
+       misma regla que arma el libro de cada cuenta. */
+    const despues={...op,monto:roundMoney(newM),banco:newB};
+    if(!confirmarSiQuedaNegativo(diferenciaDeEfecto('operaciones',op,despues),'Con este cambio una cuenta queda en negativo.'))return;
     btn.disabled=true;btn.textContent='Guardando...';
     try{
-        /* 1. Revertir impacto bancario de la operación original */
-        if(oldB&&AppState.datos.bancos[oldB]){
-            
-        }
-        /* 2. Aplicar nuevos valores */
         op.monto=roundMoney(newM);op.tasa=newTa;op.banco=newB;
-        /* Comisión editable: persistir el % específico y recalcular derivados */
-        const newCpct=_editOpComisionPctLeida(op);
         op.comisionPct=newCpct;
         op.usdt=usdtBase(op.monto/op.tasa,op.tipo);
         op.comisionPlataforma=truncar(op.usdt*(newCpct/100),2);
         op.updatedAt=new Date().toISOString();
-        /* 3. Aplicar nuevo impacto bancario */
-        if(newB&&AppState.datos.bancos[newB]){
-            
-        }
-        /* 4. Recalcular FIFO determinístico + guardar */
-        recalcularLotesYGanancias();
-        actualizarVista();cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null;
-        guardaOptimista('update','operaciones',op.id);
-        showSuccess({amount:fmtMonto(newM,op.moneda),message:'Operación actualizada con éxito',sub:op.tipo==='compra'?'Compra editada':'Venta editada'});
+        cerrarModal('modalEditarOp');AppState.ui.opEditandoId=null;
+        confirmarCambios([{tipo:'update',entidad:'operaciones',id:op.id}]);
+        showSuccess({amount:fmtMonto(op.monto,op.moneda),message:'Operación actualizada',sub:op.tipo==='compra'?'Compra editada':'Venta editada'});
     }catch(e){console.error('[P2P] Error editando operación:',e)}finally{btn.disabled=false;btn.textContent='Guardar'}
 }
 
@@ -62,6 +45,7 @@ function abrirModalMovimiento(editId){
     if(header)header.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'+(editing?' Editar ajuste':' Ajuste Externo');
     $('btnGuardarMov').textContent=editing?'Guardar cambios':'Guardar';
     $('btnGuardarMov').disabled=false;
+    $('btnEliminarMov').style.display=editing?'':'none';
     /* Populate fields */
     if(editing){
         AppState.ui.tipoMovimiento=existing.tipoMovimiento;
@@ -144,94 +128,56 @@ async function guardarMovimiento(){
     const editing=!!editId;
     const original=editing?AppState.datos.movimientos.find(m=>m.id===editId):null;
     if(editing&&!original){AppState.ui.movEditandoId=null;return}
-    const tc=$('movTipoCuenta').value,b=$('movBanco').value,m=pv('movMonto'),desc=$('movDescripcion').value,tRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?pvTasa('movTasaRef'):0;
+    const tc=$('movTipoCuenta').value,b=$('movBanco').value,m=pv('movMonto'),desc=$('movDescripcion').value.trim(),tRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?pvTasa('movTasaRef'):0;
     if(!m||m<=0)return alert('Monto inválido');if(tc==='banco'&&!b)return alert('Seleccioná un banco');
     if(tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'&&(!tRef||tRef<=0))return alert('Ingresá una tasa de referencia válida');
-    /* INTEGRIDAD: validación dura previa.
-       Para edits, los deltas se computan netos (revirtiendo el efecto original primero). */
     const mR=tc==='usdt'?truncUsdt(m):roundMoney(m);
     const isIngreso=AppState.ui.tipoMovimiento==='ingreso';
-    const deltas={bancos:{}};
-    /* Revertir efecto del original (si edit) */
+    const nuevo={tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:mR,
+                 tasaRef:tc==='usdt'&&isIngreso?tRef:0,descripcion:desc};
+    /* INTEGRIDAD — v7.3.0: la validación usa la misma regla que el saldo.
+       Un gasto nuevo no puede dejar la cuenta en negativo; al editar uno viejo
+       se avisa y se deja decidir. */
+    const deltas=diferenciaDeEfecto('movimientos',original,{...(original||{}),...nuevo});
+    const usdtAntes=original?efectoEnUsdt('movimientos',original):0;
+    const usdtDespues=efectoEnUsdt('movimientos',nuevo);
+    if(Math.abs(usdtDespues-usdtAntes)>=0.005){deltas.usdt=roundMoney(usdtDespues-usdtAntes);if(deltas.usdt<0)deltas.usdtMoneda='UYU'}
     if(editing){
-        if(original.tipoCuenta==='banco'&&original.banco){
-            deltas.bancos[original.banco]=(deltas.bancos[original.banco]||0)+(original.tipoMovimiento==='ingreso'?-original.monto:original.monto);
-        }else if(original.tipoCuenta==='usdt'){
-            deltas.usdt=(deltas.usdt||0)+(original.tipoMovimiento==='ingreso'?-original.monto:original.monto);
-        }
-    }
-    /* Aplicar nuevo efecto */
-    if(tc==='banco'){
-        deltas.bancos[b]=(deltas.bancos[b]||0)+(isIngreso?mR:-mR);
+        if(!confirmarSiQuedaNegativo(deltas,'Con este cambio algo queda en negativo.'))return;
     }else{
-        deltas.usdt=(deltas.usdt||0)+(isIngreso?mR:-mR);
-        /* Egreso USDT: validar también que haya inventario en alguna moneda */
-        if(!isIngreso)deltas.usdtMoneda='UYU'; /* movs USDT van contra lotes UYU por convención */
+        const valI=validarDeltas(deltas);
+        if(!valI.ok){alert('No se puede guardar este ajuste:\n\n'+valI.reason);return}
     }
-    const valI=validarDeltas(deltas);
-    if(!valI.ok){alert('🚫 No se puede guardar este ajuste:\n\n'+valI.reason);return}
-    AppState.ui.guardandoMovimiento=true;btn.disabled=true;btn.textContent=editing?'Guardando...':'Guardando...';
+    AppState.ui.guardandoMovimiento=true;btn.disabled=true;btn.textContent='Guardando...';
     try{
+        let id;
         if(editing){
-            /* Capture pre-mutation state for decisions that depend on it */
-            const wasUsdt=original.tipoCuenta==='usdt';
-            /* 1. Revertir impacto bancario del movimiento original (si era banco) */
-            if(original.tipoCuenta==='banco'&&original.banco&&AppState.datos.bancos[original.banco]){}
-            /* 2. Mutar el movimiento en su posición (preserva fecha/hora/timestamp/id) */
-            original.tipoMovimiento=AppState.ui.tipoMovimiento;
-            original.tipoCuenta=tc;
-            original.banco=tc==='banco'?b:null;
-            original.monto=mR;
-            original.tasaRef=tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0;
-            original.descripcion=desc;
-            original.updatedAt=new Date().toISOString();
-            /* valorUYU: siempre 0 antes del replay FIFO — se recalcula solo para egresos USDT.
-               Si el tc cambió de usdt→banco, el valor viejo queda irrelevante (igual 0). */
-            original.valorUYU=0;
-            /* 3. Aplicar nuevo impacto bancario */
-            if(tc==='banco'&&AppState.datos.bancos[b]){}
-            /* 4. Recalcular FIFO si toca USDT (antes O ahora) */
-            if(tc==='usdt'||wasUsdt)recalcularLotesYGanancias();
-            actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
-            AppState.ui.movEditandoId=null;
-            guardaOptimista('update','movimientos',editId);
-            const movSy=tc==='usdt'?'':tc==='banco'?getSym(getBancoInfo(b)?.moneda||'UYU'):'';
-            showSuccess({amount:tc==='usdt'?fmtTrunc(mR,2)+' USDT':movSy+fmtNum(mR),message:'Ajuste actualizado con éxito',sub:(AppState.ui.tipoMovimiento==='ingreso'?'Ingreso':'Egreso')+(tc==='banco'?' · '+b:'')});
+            /* Se modifica en su lugar: conserva id, fecha, hora y marca de tiempo */
+            Object.assign(original,nuevo,{updatedAt:new Date().toISOString(),valorUYU:0});
+            id=editId;
         }else{
-            const mId=uid();
-            /* Actualizar saldo bancario (no FIFO) */
-            if(tc==='banco'){}
-            /* Insertar movimiento (valorUYU se calcula en recalcular para egresos USDT) */
-            const md={id:mId,tipoMovimiento:AppState.ui.tipoMovimiento,tipoCuenta:tc,banco:tc==='banco'?b:null,monto:mR,valorUYU:0,tasaRef:tc==='usdt'&&AppState.ui.tipoMovimiento==='ingreso'?tRef:0,descripcion:desc,fecha:getUDateStr(),hora:getUTimeStr(),timestamp:new Date().toISOString()};
-            AppState.datos.movimientos.unshift(md);
-            if(tc==='usdt')recalcularLotesYGanancias();
-            actualizarVista();cerrarModal('modalMovimiento');activarCooldown();
-            guardaOptimista('create','movimientos',mId);
-            const movSy=tc==='usdt'?'':tc==='banco'?getSym(getBancoInfo(b)?.moneda||'UYU'):'';showSuccess({amount:tc==='usdt'?fmtTrunc(mR,2)+' USDT':movSy+fmtNum(mR),message:'Ajuste guardado con éxito',sub:(AppState.ui.tipoMovimiento==='ingreso'?'Ingreso':'Egreso')+(tc==='banco'?' · '+b:'')});
+            id=uid();
+            AppState.datos.movimientos.unshift({id,...nuevo,valorUYU:0,fecha:getUDateStr(),hora:getUTimeStr(),timestamp:new Date().toISOString()});
         }
+        cerrarModal('modalMovimiento');activarCooldown();
+        AppState.ui.movEditandoId=null;
+        confirmarCambios([{tipo:editing?'update':'create',entidad:'movimientos',id}]);
+        const movSy=tc==='usdt'?'':getSym(getBancoInfo(b)?.moneda||'UYU');
+        showSuccess({amount:tc==='usdt'?fmtTrunc(mR,2)+' USDT':movSy+fmtNum(mR),message:editing?'Ajuste actualizado':'Ajuste guardado',sub:(isIngreso?'Ingreso':'Egreso')+(tc==='banco'?' · '+b:' · USDT')});
     }catch(e){console.error('[P2P] Error guardando movimiento:',e)}finally{AppState.ui.guardandoMovimiento=false;btn.disabled=false;btn.textContent=AppState.ui.movEditandoId?'Guardar cambios':'Guardar'}
 }
 
 async function eliminarMovimiento(id){
     const mv=AppState.datos.movimientos.find(m=>m.id===id);if(!mv)return;
-    /* INTEGRIDAD: pre-validar que el rollback no deje saldos negativos */
-    const deltas={bancos:{}};
-    if(mv.tipoCuenta==='banco'&&mv.banco){
-        deltas.bancos[mv.banco]=mv.tipoMovimiento==='ingreso'?-mv.monto:mv.monto;
-    }else if(mv.tipoCuenta==='usdt'){
-        /* Revertir USDT: si era egreso → suma al inventario (siempre OK); si era ingreso → resta */
-        deltas.usdt=mv.tipoMovimiento==='ingreso'?-mv.monto:mv.monto;
-    }
-    const valI=validarDeltas(deltas);
-    if(!valI.ok){alert('🚫 No se puede eliminar este ajuste:\n\n'+valI.reason);return}
-    if(!confirm('¿Eliminar?'))return;
+    const txt=(mv.tipoMovimiento==='ingreso'?'el ingreso':'el egreso')+' de '+(mv.tipoCuenta==='usdt'?fmtTrunc(mv.monto,2)+' USDT':fmtMonto(mv.monto,getBancoInfo(mv.banco)?.moneda))+(mv.descripcion?' ('+mv.descripcion+')':'');
+    if(!confirm('¿Eliminar '+txt+'?'))return;
+    const deltas=diferenciaDeEfecto('movimientos',mv,null);
+    const u=-efectoEnUsdt('movimientos',mv);
+    if(Math.abs(u)>=0.005){deltas.usdt=u;if(u<0)deltas.usdtMoneda='UYU'}
+    if(!confirmarSiQuedaNegativo(deltas,'Sin este ajuste algo queda en negativo.'))return;
     try{
-        if(mv.tipoCuenta==='banco'&&mv.banco&&AppState.datos.bancos[mv.banco]){}
         AppState.datos.movimientos=AppState.datos.movimientos.filter(m=>m.id!==id);
-        recalcularLotesYGanancias();
-        verificarIntegridadGlobal();
-        actualizarVista();
-        guardaOptimista('delete','movimientos',id);
+        confirmarCambios([{tipo:'delete',entidad:'movimientos',id}]);
     }catch(e){console.error('[P2P] Error eliminando movimiento:',e)}
 }
 
@@ -247,11 +193,25 @@ function esCrossMoneda(){
     return oi&&di&&oi.moneda!==di.moneda;
 }
 
+const _ICO_TRANSF='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg>';
+const _ICO_CONV='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5H6l3-3M9 19h9l-3 3M4 12a8 8 0 018-8M20 12a8 8 0 01-8 8"/></svg>';
+/* v7.3.0 — El encabezado se escribía con textContent y un dibujo adentro: en
+   pantalla aparecía el código del ícono como texto. */
 function actualizarTransfUI(){
     const cross=esCrossMoneda(),tg=$('transfTasaGroup'),pvEl=$('transfConvPreview'),hd=$('transfHeader');
+    const editando=!!AppState.ui.transEditandoId;
     tg.style.display=cross?'block':'none';
-    if(cross){hd.textContent='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg> Conversión entre monedas';$('btnTransferir').textContent='Convertir';$('btnTransferir').style.background='#7c3aed'}
-    else{hd.textContent='↔️ Transferencia entre Bancos';$('btnTransferir').textContent='Transferir';$('btnTransferir').style.background='#2563eb';pvEl.style.display='none'}
+    const btn=$('btnTransferir');
+    if(cross){
+        hd.innerHTML=_ICO_CONV+(editando?' Editar conversión':' Conversión entre monedas');
+        btn.textContent=editando?'Guardar cambios':'Convertir';btn.classList.add('btn-conv');
+    }else{
+        hd.innerHTML=_ICO_TRANSF+(editando?' Editar transferencia':' Transferencia entre cuentas');
+        btn.textContent=editando?'Guardar cambios':'Transferir';btn.classList.remove('btn-conv');
+        pvEl.style.display='none';
+    }
+    $('comisionTransfGroup').style.display=cross?'none':'block';
+    const del=$('btnEliminarTransf');if(del)del.style.display=editando?'':'none';
     actualizarTransfPreview();
 }
 
@@ -301,14 +261,18 @@ function abrirModalTransferencia(editId){
         $('montoTransferencia').value='';$('comisionTransferencia').value='0';$('transfTasa').value='';$('transfConvPreview').style.display='none';
     }
     $('saldoOrigenInfo').textContent='';$('btnTransferir').disabled=false;
+    ['bancoOrigen','bancoDestino'].forEach(i=>{const v=$(i).value;$(i).style.color=v?getBancoColor(v):'';});
     actualizarTransfUI();
-    /* Override button label in edit mode (after actualizarTransfUI sets default) */
-    if(editing){
-        $('btnTransferir').textContent='Guardar cambios';
-    }
+    if(editing)mostrarSaldoOrigen();
     abrirModal('modalTransferencia');
 }
 
+/* Crear o editar una transferencia entre cuentas propias, o una conversión
+   entre monedas. v7.3.0 — Los saldos y el cupo ya no se tocan a mano en ningún
+   camino: se valida con la misma regla del libro y se confirma con
+   confirmarCambios, que recalcula todo. Antes, editar revertía el registro
+   viejo a mano pero no aplicaba el nuevo, y crear no recalculaba: la pantalla
+   mostraba saldos equivocados hasta que respondía el servidor. */
 async function realizarTransferencia(){
     if(AppState.ui.enCooldown||AppState.ui.guardandoTransferencia)return;const btn=$('btnTransferir');if(btn.disabled)return;
     const editId=AppState.ui.transEditandoId;
@@ -316,168 +280,98 @@ async function realizarTransferencia(){
     const origIsConv=AppState.ui.transEditandoIsConv;
     const original=editing?(origIsConv?AppState.datos.conversiones.find(c=>c.id===editId):AppState.datos.transferencias.find(t=>t.id===editId)):null;
     if(editing&&!original){AppState.ui.transEditandoId=null;return}
-    const o=$('bancoOrigen').value,d=$('bancoDestino').value,m=pv('montoTransferencia'),c=roundMoney(pv('comisionTransferencia')),f=getUDateStr();
-    if(!o||!d||o===d)return alert('Seleccioná bancos diferentes');if(!m||m<=0)return alert('Monto inválido');
-    const cross=esCrossMoneda();
+    const o=$('bancoOrigen').value,d=$('bancoDestino').value,m=roundMoney(pv('montoTransferencia')),cross=esCrossMoneda();
+    const c=cross?0:roundMoney(pv('comisionTransferencia'));
+    if(!o||!d||o===d)return alert('Seleccioná dos cuentas distintas');if(!m||m<=0)return alert('Monto inválido');
+    if(c<0)return alert('La comisión no puede ser negativa');
+    const t=cross?pvTasa('transfTasa'):0;
+    if(cross&&(!t||t<=0))return alert('Ingresá una tasa de conversión válida');
+    const oi=getBancoInfo(o),di=getBancoInfo(d);
+    const montoRecibido=cross?(oi.moneda==='UYU'&&di.moneda==='USD'?roundMoney(m/t):roundMoney(m*t)):m;
+    const nuevaEntidad=cross?'conversiones':'transferencias';
+    const nuevo=cross
+        ?{origen:o,destino:d,montoOrigen:m,montoDestino:montoRecibido,tasa:t,monedaOrigen:oi.moneda,monedaDestino:di.moneda}
+        :{origen:o,destino:d,monto:m,comision:c};
+    /* Validación de saldos: el efecto nuevo menos el del registro original */
+    const deltas={bancos:{}};
+    const sumarDif=dif=>Object.entries(dif.bancos).forEach(([k,v])=>{deltas.bancos[k]=roundMoney((deltas.bancos[k]||0)+v)});
+    sumarDif(diferenciaDeEfecto(nuevaEntidad,null,nuevo));
+    if(editing)sumarDif(diferenciaDeEfecto(origIsConv?'conversiones':'transferencias',original,null));
     if(editing){
-        const t=cross?pvTasa('transfTasa'):0;
-        if(cross&&(!t||t<=0))return alert('Ingresá una tasa de conversión válida');
-        /* INTEGRIDAD: calcular deltas netos (revertir + aplicar) y validar ANTES de mutar.
-           Esto evita el bug de dejar el estado revertido si el nuevo impacto excede límite. */
-        const netoDeltas={bancos:{}};
-        /* Revertir impacto original (suma a deltas) */
-        if(origIsConv){
-            netoDeltas.bancos[original.origen]=(netoDeltas.bancos[original.origen]||0)+original.montoOrigen;
-            netoDeltas.bancos[original.destino]=(netoDeltas.bancos[original.destino]||0)-original.montoDestino;
-        }else{
-            netoDeltas.bancos[original.origen]=(netoDeltas.bancos[original.origen]||0)+(original.monto+(original.comision||0));
-            netoDeltas.bancos[original.destino]=(netoDeltas.bancos[original.destino]||0)-original.monto;
-        }
-        /* Aplicar nuevo impacto */
-        if(cross){
-            const oi2=getBancoInfo(o),di2=getBancoInfo(d);
-            const montoRecibido2=oi2.moneda==='UYU'&&di2.moneda==='USD'?roundMoney(m/t):roundMoney(m*t);
-            netoDeltas.bancos[o]=(netoDeltas.bancos[o]||0)-m;
-            netoDeltas.bancos[d]=(netoDeltas.bancos[d]||0)+montoRecibido2;
-        }else{
-            netoDeltas.bancos[o]=(netoDeltas.bancos[o]||0)-(m+c);
-            netoDeltas.bancos[d]=(netoDeltas.bancos[d]||0)+m;
-        }
-        const valEdit=validarDeltas(netoDeltas);
-        if(!valEdit.ok){alert('🚫 No se puede guardar este cambio:\n\n'+valEdit.reason);return}
-        /* Validar límite diario nuevo (si corresponde) ANTES de tocar nada */
-        if(!cross&&AppState.datos.bancos[o].limiteDiarioUSD>0){
-            const bi=getBancoInfo(o);
-            let mU=0;
-            if(bi?.moneda==='USD')mU=m+c;
-            else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);
-            /* Calcular uso "efectivo" tras revertir el original: si el original era del mismo banco origen, se descuenta su uso */
-            let usoActual=AppState.datos.bancos[o].limiteUsadoUSD||0;
-            if(!origIsConv&&original.origen===o&&AppState.datos.ultimaTasaCompra>0){
-                const biOrig=getBancoInfo(original.origen);
-                let mUorig=0;
-                if(biOrig?.moneda==='USD')mUorig=original.monto+(original.comision||0);
-                else mUorig=roundMoney((original.monto+(original.comision||0))/AppState.datos.ultimaTasaCompra);
-                usoActual=Math.max(0,usoActual-mUorig);
-            }
-            const dU=roundMoney(AppState.datos.bancos[o].limiteDiarioUSD-usoActual);
-            if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}
-        }
-        btn.disabled=true;btn.textContent='Guardando...';AppState.ui.guardandoTransferencia=true;
-        try{
-            /* 1. Revertir impacto del registro original */
-            if(origIsConv){
-                const bo=AppState.datos.bancos[original.origen],bd=AppState.datos.bancos[original.destino];
-                if(bo)bo.saldo=fixNeg(bo.saldo+original.montoOrigen);
-                if(bd)bd.saldo=fixNeg(bd.saldo-original.montoDestino);
-            }else{
-                const bo=AppState.datos.bancos[original.origen],bd=AppState.datos.bancos[original.destino];
-                if(bo)bo.saldo=fixNeg(bo.saldo+(original.monto+(original.comision||0)));
-                if(bd)bd.saldo=fixNeg(bd.saldo-original.monto);
-                if(bo&&bo.limiteDiarioUSD>0){const bi=getBancoInfo(original.origen);let mU=0;if(bi?.moneda==='USD')mU=original.monto+(original.comision||0);else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((original.monto+(original.comision||0))/AppState.datos.ultimaTasaCompra);if(mU>0)bo.limiteUsadoUSD=Math.max(0,roundMoney((bo.limiteUsadoUSD||0)-mU))}
-            }
-            /* 2. Determinar tipo nuevo y aplicar */
-            if(cross){
-                const oi=getBancoInfo(o),di=getBancoInfo(d);
-                const montoRecibido=oi.moneda==='UYU'&&di.moneda==='USD'?roundMoney(m/t):roundMoney(m*t);
-                /* Si era transferencia → remover de transferencias, agregar a conversiones (preservando id/fecha) */
-                if(!origIsConv){
-                    AppState.datos.transferencias=AppState.datos.transferencias.filter(x=>x.id!==editId);
-                    AppState.datos.conversiones.unshift({id:editId,origen:o,destino:d,montoOrigen:m,montoDestino:montoRecibido,tasa:t,monedaOrigen:oi.moneda,monedaDestino:di.moneda,fecha:original.fecha,hora:original.hora,timestamp:original.timestamp,updatedAt:new Date().toISOString()});
-                }else{
-                    original.origen=o;original.destino=d;original.montoOrigen=m;original.montoDestino=montoRecibido;original.tasa=t;original.monedaOrigen=oi.moneda;original.monedaDestino=di.moneda;original.updatedAt=new Date().toISOString();
-                }
-                actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
-                AppState.ui.transEditandoId=null;AppState.ui.transEditandoIsConv=false;
-                guardaOptimista('update','conversiones',editId);
-                if(!origIsConv)guardaOptimista('delete','transferencias',editId);
-                showSuccess({amount:getSym(di.moneda)+fmtNum(montoRecibido),message:'Conversión actualizada con éxito',sub:o+' → '+d});
-            }else{
-                /* Si era conversión → remover de conversiones, agregar a transferencias */
-                if(origIsConv){
-                    AppState.datos.conversiones=AppState.datos.conversiones.filter(x=>x.id!==editId);
-                    AppState.datos.transferencias.unshift({id:editId,origen:o,destino:d,monto:m,comision:c,fecha:original.fecha,hora:original.hora,timestamp:original.timestamp,updatedAt:new Date().toISOString()});
-                }else{
-                    original.origen=o;original.destino=d;original.monto=m;original.comision=c;original.updatedAt=new Date().toISOString();
-                }
-                if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,roundMoney((AppState.datos.bancos[o].limiteUsadoUSD||0)+mU))}
-                actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
-                AppState.ui.transEditandoId=null;AppState.ui.transEditandoIsConv=false;
-                guardaOptimista('update','transferencias',editId);
-                if(origIsConv)guardaOptimista('delete','conversiones',editId);
-                const tSy=getSym(getBancoInfo(o)?.moneda||'UYU');showSuccess({amount:tSy+fmtNum(m),message:'Transferencia actualizada con éxito',sub:o+' → '+d});
-            }
-        }catch(e){console.error('[P2P] Error editando transferencia:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent=AppState.ui.transEditandoId?'Guardar cambios':(esCrossMoneda()?'Convertir':'Transferir')}
-        return;
-    }
-    if(cross){
-        const t=pvTasa('transfTasa');
-        if(!t||t<=0)return alert('Ingresá una tasa de conversión válida');
-        const oi=getBancoInfo(o),di=getBancoInfo(d);
-        let montoRecibido;
-        if(oi.moneda==='UYU'&&di.moneda==='USD')montoRecibido=roundMoney(m/t);
-        else montoRecibido=roundMoney(m*t);
-        /* INTEGRIDAD: el banco origen debe poder cubrir el monto a convertir */
-        const valI=validarDeltas({bancos:{[o]:-m,[d]:montoRecibido}});
-        if(!valI.ok){alert('🚫 No se puede convertir:\n\n'+valI.reason);return}
-        btn.disabled=true;btn.textContent='Convirtiendo...';AppState.ui.guardandoTransferencia=true;
-        try{
-            const convId=uid();
-            AppState.datos.conversiones.unshift({id:convId,origen:o,destino:d,montoOrigen:m,montoDestino:montoRecibido,tasa:t,monedaOrigen:oi.moneda,monedaDestino:di.moneda,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
-            actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
-            guardaOptimista('create','conversiones',convId);
-            showSuccess({amount:getSym(di.moneda)+fmtNum(montoRecibido),message:'Conversión realizada con éxito',sub:o+' → '+d});
-        }catch(e){console.error('[P2P] Error en conversión:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Convertir'}
+        if(!confirmarSiQuedaNegativo(deltas,'Con este cambio una cuenta queda en negativo.'))return;
     }else{
-        if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);const dU=roundMoney(AppState.datos.bancos[o].limiteDiarioUSD-(AppState.datos.bancos[o].limiteUsadoUSD||0));if(mU>dU){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(dU,0)} (necesitás US$${fmtNum(mU,0)})`);return}}
-        /* INTEGRIDAD: el banco origen debe poder cubrir monto + comisión */
-        const valI=validarDeltas({bancos:{[o]:-(m+c),[d]:m}});
-        if(!valI.ok){alert('🚫 No se puede transferir:\n\n'+valI.reason);return}
-        btn.disabled=true;btn.textContent='Transfiriendo...';AppState.ui.guardandoTransferencia=true;
-        try{
-            const trId=uid();
-            AppState.datos.transferencias.unshift({id:trId,origen:o,destino:d,monto:m,comision:c,fecha:f,hora:getUTimeStr(),timestamp:new Date().toISOString()});
-            if(AppState.datos.bancos[o].limiteDiarioUSD>0){const bi=getBancoInfo(o);let mU=0;if(bi?.moneda==='USD')mU=m+c;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((m+c)/AppState.datos.ultimaTasaCompra);if(mU>0)AppState.datos.bancos[o].limiteUsadoUSD=Math.min(AppState.datos.bancos[o].limiteDiarioUSD,roundMoney((AppState.datos.bancos[o].limiteUsadoUSD||0)+mU))}
-            actualizarVista();cerrarModal('modalTransferencia');activarCooldown();
-            guardaOptimista('create','transferencias',trId);
-            const tSy=getSym(getBancoInfo(o)?.moneda||'UYU');showSuccess({amount:tSy+fmtNum(m),message:'Transferencia realizada con éxito',sub:o+' → '+d});
-        }catch(e){console.error('[P2P] Error en transferencia:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;btn.textContent='Transferir'}
+        const valI=validarDeltas(deltas);
+        if(!valI.ok){alert('No se puede '+(cross?'convertir':'transferir')+':\n\n'+valI.reason);return}
     }
+    /* Cupo diario de la cuenta de origen (solo transferencias en la misma moneda).
+       Una transferencia de antes de la última renovación ya no cuenta para el
+       cupo de hoy, así que corregirla no se frena por el cupo. */
+    const fechaTr=editing?String(original.fecha||''):getUDateStr();
+    if(!cross&&fechaTr>=String(_cupoDesde(o)||'')){
+        const disp=cupoDisponibleUSD(o,editing&&!origIsConv?{tipo:'transferencias',id:editId}:null);
+        const req=_montoEnUSDLimite(o,m+c);
+        if(disp!==Infinity&&req>disp+0.005){alert(`Excede el límite diario de ${o}. Disponible: US$${fmtNum(Math.max(0,disp),0)} (necesitás US$${fmtNum(req,0)})`);return}
+    }
+    btn.disabled=true;btn.textContent='Guardando...';AppState.ui.guardandoTransferencia=true;
+    try{
+        const cambios=[];
+        let id;
+        if(editing){
+            id=editId;
+            const eraEntidad=origIsConv?'conversiones':'transferencias';
+            const base={fecha:original.fecha,hora:original.hora,timestamp:original.timestamp,updatedAt:new Date().toISOString()};
+            if(eraEntidad===nuevaEntidad){
+                /* Mismo tipo: se modifica en su lugar */
+                if(!cross)delete original.tasa;
+                Object.assign(original,nuevo,{updatedAt:base.updatedAt});
+                cambios.push({tipo:'update',entidad:nuevaEntidad,id});
+            }else{
+                /* Pasó de transferencia a conversión o al revés: cambia de lista,
+                   conserva el id y la fecha */
+                AppState.datos[eraEntidad]=AppState.datos[eraEntidad].filter(x=>x.id!==id);
+                AppState.datos[nuevaEntidad].unshift({id,...nuevo,...base});
+                cambios.push({tipo:'delete',entidad:eraEntidad,id},{tipo:'update',entidad:nuevaEntidad,id});
+            }
+        }else{
+            id=uid();
+            AppState.datos[nuevaEntidad].unshift({id,...nuevo,fecha:getUDateStr(),hora:getUTimeStr(),timestamp:new Date().toISOString()});
+            cambios.push({tipo:'create',entidad:nuevaEntidad,id});
+        }
+        cerrarModal('modalTransferencia');activarCooldown();
+        AppState.ui.transEditandoId=null;AppState.ui.transEditandoIsConv=false;
+        confirmarCambios(cambios);
+        showSuccess(cross
+            ?{amount:getSym(di.moneda)+fmtNum(montoRecibido),message:editing?'Conversión actualizada':'Conversión realizada',sub:o+' → '+d}
+            :{amount:getSym(oi.moneda)+fmtNum(m),message:editing?'Transferencia actualizada':'Transferencia realizada',sub:o+' → '+d});
+    }catch(e){console.error('[P2P] Error en transferencia:',e)}finally{AppState.ui.guardandoTransferencia=false;btn.disabled=false;actualizarTransfUI()}
 }
 
 async function eliminarTransferencia(id){
     const t=AppState.datos.transferencias.find(x=>x.id===id);if(!t)return;
-    /* INTEGRIDAD: rollback de transfer suma a origen, resta de destino → puede dejar destino negativo */
-    const deltas={bancos:{}};
-    deltas.bancos[t.origen]=t.monto+(t.comision||0);
-    deltas.bancos[t.destino]=-t.monto;
-    const valI=validarDeltas(deltas);
-    if(!valI.ok){alert('🚫 No se puede eliminar esta transferencia:\n\n'+valI.reason+'\n\nProbablemente ya gastaste los fondos transferidos al destino.');return}
-    if(!confirm('¿Eliminar?'))return;
+    const sy=getSym(getBancoInfo(t.origen)?.moneda);
+    if(!confirm('¿Eliminar la transferencia de '+sy+fmtNum(t.monto)+' de '+t.origen+' a '+t.destino+'?'))return;
+    if(!confirmarSiQuedaNegativo(diferenciaDeEfecto('transferencias',t,null),'Sin esta transferencia una cuenta queda en negativo: probablemente ese dinero ya se usó.'))return;
     try{
-        const bo=AppState.datos.bancos[t.origen],bd=AppState.datos.bancos[t.destino];
-        if(bo)bo.saldo=fixNeg(bo.saldo+(t.monto+t.comision));
-        if(bd)bd.saldo=fixNeg(bd.saldo-t.monto);
-        if(bo&&bo.limiteDiarioUSD>0){const bi=getBancoInfo(t.origen);let mU=0;if(bi?.moneda==='USD')mU=t.monto+t.comision;else if(AppState.datos.ultimaTasaCompra>0)mU=roundMoney((t.monto+t.comision)/AppState.datos.ultimaTasaCompra);if(mU>0)bo.limiteUsadoUSD=Math.max(0,roundMoney((bo.limiteUsadoUSD||0)-mU))}
         AppState.datos.transferencias=AppState.datos.transferencias.filter(x=>x.id!==id);
-        verificarIntegridadGlobal();actualizarVista();
-        guardaOptimista('delete','transferencias',id);
+        cerrarModal('modalTransferencia');AppState.ui.transEditandoId=null;
+        confirmarCambios([{tipo:'delete',entidad:'transferencias',id}]);
     }catch(e){console.error('[P2P] Error eliminando transferencia:',e)}
 }
 
 async function eliminarConversion(id){
     const c=AppState.datos.conversiones.find(x=>x.id===id);if(!c)return;
-    const deltas={bancos:{}};
-    deltas.bancos[c.origen]=c.montoOrigen;
-    deltas.bancos[c.destino]=-c.montoDestino;
-    const valI=validarDeltas(deltas);
-    if(!valI.ok){alert('🚫 No se puede eliminar esta conversión:\n\n'+valI.reason);return}
-    if(!confirm('¿Eliminar conversión?'))return;
+    if(!confirm('¿Eliminar la conversión de '+getSym(c.monedaOrigen)+fmtNum(c.montoOrigen)+' de '+c.origen+' a '+c.destino+'?'))return;
+    if(!confirmarSiQuedaNegativo(diferenciaDeEfecto('conversiones',c,null),'Sin esta conversión una cuenta queda en negativo.'))return;
     try{
-        const bo=AppState.datos.bancos[c.origen],bd=AppState.datos.bancos[c.destino];if(bo)bo.saldo=fixNeg(bo.saldo+c.montoOrigen);if(bd)bd.saldo=fixNeg(bd.saldo-c.montoDestino);
-        AppState.datos.conversiones=AppState.datos.conversiones.filter(x=>x.id!==id);actualizarVista();
-        guardaOptimista('delete','conversiones',id);
+        AppState.datos.conversiones=AppState.datos.conversiones.filter(x=>x.id!==id);
+        cerrarModal('modalTransferencia');AppState.ui.transEditandoId=null;
+        confirmarCambios([{tipo:'delete',entidad:'conversiones',id}]);
     }catch(e){console.error('[P2P] Error eliminando conversión:',e)}
+}
+/* Botón Eliminar dentro del formulario de edición */
+function eliminarTransferenciaEnEdicion(){
+    const id=AppState.ui.transEditandoId;if(!id)return;
+    if(AppState.ui.transEditandoIsConv)eliminarConversion(id);else eliminarTransferencia(id);
 }
 
 /* ═══════════════════════════════════════
