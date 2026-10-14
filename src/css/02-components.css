@@ -1,548 +1,268 @@
-        /* ═══ Cards ═══ */
-        .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
-        .card{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px}
-        /* v5.4.1 — El fondo era verde parejo de punta a punta y competía con la cifra,
-   que es lo único que importa en esta tarjeta. Ahora el color arranca arriba a la
-   izquierda —donde está el rótulo— y se apaga hacia el blanco: la ganancia queda
-   sobre fondo claro y resalta sola. El borde baja de 2px a 1px por el mismo motivo. */
-.card.main-card{grid-column:span 2;background:linear-gradient(158deg,var(--c-brand-soft) 0%,var(--c-brand-softer) 46%,#ffffff 100%);border:1px solid var(--c-brand-soft)}
-        .card.main-card.negative{background:linear-gradient(135deg,#fef2f2 0%,var(--c-danger-bg) 100%);border-color:var(--c-danger)}
-        .card-title{color:#64748b;font-size:0.7em;font-weight:600;text-transform:uppercase;margin-bottom:4px}
-        .card-value{font-size:1.4em;font-weight:bold}
-        .card-subtitle{color:var(--c-text-mute);font-size:0.65em;margin-top:2px}
-        .positive{color:var(--c-brand)}.negative{color:var(--c-danger)}
-        .card-compra{border-left:3px solid var(--c-brand)}
-        .card-venta{border-left:3px solid var(--c-danger)}
+/* ═══════════════════════════════════════════════════════════════════════════
+   §2 — PIEZAS: lo que se repite en varias pantallas
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-        /* ═══ Spread trend indicator ═══
-           Pill discreto al lado del spread con flecha + % de variación respecto a ref reciente.
-           Colores: verde=subió, rojo=bajó, gris=estable. */
-        .spread-trend{
-            display:inline-flex;align-items:center;gap:2px;
-            font-size:0.92em;font-weight:700;line-height:1;
-            padding:1px 5px;
-            border-radius:5px;
-            letter-spacing:-0.2px;
-        }
-        .spread-trend.up{background:var(--c-brand-soft);color:var(--c-brand-strong)}
-        .spread-trend.down{background:var(--c-danger-bg);color:#b91c1c}
-        .spread-trend.flat{background:var(--c-border-soft);color:#64748b}
-        .spread-trend .arr{font-size:0.85em;line-height:1}
+/* ─── Armazón ──────────────────────────────────────────────────────────── */
+.app{display:none;position:relative;max-width:var(--ancho-max);margin:0 auto;min-height:100vh;min-height:100dvh}
+.app.active{display:block}
+.tab-pantalla{padding:calc(var(--seg-arriba) + 16px) 20px calc(var(--tabs-alto) + var(--seg-abajo) + 32px)}
+.tab-pantalla[hidden]{display:none}
+.titulo-tab{font-size:32px;font-weight:760;font-stretch:80%;line-height:1.1}
+.cab-tab{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
 
-        /* ═══ Desktop Columns ═══ */
-        .desktop-columns{}
-        .col-left,.col-right{}
+/* ─── Barra de abajo ───────────────────────────────────────────────────── */
+.tabs{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    height:calc(var(--tabs-alto) + var(--seg-abajo));padding:8px 0 var(--seg-abajo);
+    background:var(--blanco);border-top:1px solid var(--borde);
+    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:start;
+}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:48px;padding:4px 0 0;border:none;background:none;color:var(--tenue-2);font-size:11.5px;font-weight:550}
+.tab .i{width:23px;height:23px}
+.tab[aria-current="page"]{color:var(--tinta);font-weight:700}
+.tab-mas{justify-self:center;margin-top:-26px;width:60px;height:60px;border-radius:50%;border:none;background:var(--tinta);color:var(--blanco);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 6px var(--papel)}
+.tab-mas .i{width:26px;height:26px;stroke-width:2.4}
+@media (min-width:561px){.tabs{left:50%;right:auto;width:var(--ancho-max);transform:translateX(-50%);border-left:1px solid var(--borde);border-right:1px solid var(--borde)}}
 
-        /* ═══ Section ═══ */
-        .section-title{color:var(--c-text);font-size:1em;font-weight:600;margin-bottom:12px}
+/* ─── Capas: hojas que suben, vistas a pantalla completa, diálogos ─────── */
+.capa{position:fixed;inset:0;z-index:40}
+.capa .fondo{position:absolute;inset:0;background:var(--fondo-capa);animation:aparece .2s ease-out}
+.hoja{
+    position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:var(--ancho-max);
+    max-height:calc(100% - var(--seg-arriba) - 12px);
+    display:flex;flex-direction:column;
+    background:var(--blanco);border-radius:var(--r-hoja) var(--r-hoja) 0 0;
+    animation:sube-hoja .26s cubic-bezier(.2,.8,.2,1);
+}
+.hoja.alta{height:calc(100% - var(--seg-arriba) - 12px)}
+.hoja-cab{flex:none;padding:10px 20px 0}
+.manija{width:40px;height:5px;border-radius:3px;background:var(--manija);margin:0 auto}
+.hoja-titulo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;min-height:44px}
+.hoja-titulo h2{font-size:24px;font-weight:740;font-stretch:85%;line-height:1.15}
+.hoja-titulo h2.chico{font-size:18px;font-weight:700;font-stretch:100%}
+.hoja-cuerpo{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:18px 20px 22px}
+.hoja-pie{flex:none;padding:12px 20px calc(18px + var(--seg-abajo));background:var(--blanco);box-shadow:0 -1px 0 var(--linea)}
+.hoja-pie .nota-pie{font-size:12.5px;color:var(--tenue);text-align:center;margin-top:9px}
+.cerrar{flex:none;width:44px;height:44px;border-radius:50%;border:none;background:var(--papel);color:var(--tinta);display:flex;align-items:center;justify-content:center}
+.cerrar .i{width:20px;height:20px;stroke-width:2.2}
 
-        /* ═══ Bancos Grid ═══ */
-        .bancos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
-        .banco-mini-card{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
-        /* Barra compacta: total bancario */
-        .saldos-hero{background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
-        .saldos-hero-label{font-size:0.78em;color:#64748b;font-weight:600}
-        .saldos-hero-value{font-size:1.1em;font-weight:800;line-height:1.2}
-        /* Grid de actividad operativa (compras/ventas) */
-        .cards-actividad{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
-        .banco-nombre{font-weight:600;color:var(--c-text);font-size:0.8em;margin-bottom:2px}
-        .banco-saldo{font-size:1.1em;font-weight:bold;color:var(--c-brand)}
-        .banco-moneda{font-size:0.65em;color:var(--c-text-mute)}
-        .banco-limite-txt{font-size:0.58em;color:#64748b;margin-top:3px;line-height:1.2}
-        /* ═══ Línea lateral derecha — pegada al borde derecho del card ═══
-           
-           Compras/Ventas: border-left:3px solid color → pegado al borde izquierdo
-           Bancos:         track + fill en right:0 → pegado al borde derecho
-           
-           Track y fill viven DENTRO del card (right:0 = al borde derecho del padding-box).
-           El card tiene overflow:hidden + border-radius:8px, así el track hereda las 
-           esquinas redondeadas del card automáticamente — se ve perfectamente integrado.
-           
-           Track y fill comparten exactamente el mismo rectángulo de referencia:
-           - right:0 (al borde derecho interno del card)
-           - top:0 / bottom:0 (altura completa del padding-box)  
-           - width:3px (mismo grosor que card-compra/card-venta)
-           
-           La única diferencia entre track y fill: el fill tiene altura variable y está
-           anclado al bottom para crecer hacia arriba. */
-        .banco-mini-card.has-gauge{
-            padding-right:11px;  /* 3px de barra + 8px de respiro para el contenido */
-        }
-        /* ═══ v5.7.1 — La barra usa su propio elemento ═══
-           Antes se dibujaba con los pseudo-elementos de la tarjeta, y el chevron
-           de "tocá para editar" usaba el mismo `::after`. Como las dos reglas
-           viven en hojas distintas, la del chevron —que carga después— le pisaba
-           la posición a la barra: quedaba colgando desde arriba en vez de crecer
-           desde abajo, y encima el chevron desaparecía justo en las tarjetas con
-           límite. Con un elemento propio cada cosa manda sobre lo suyo. */
-        .banco-gauge{
-            position:absolute;right:0;top:0;bottom:0;width:3px;
-            background:#e2e8f0;pointer-events:none;border-radius:0 8px 8px 0;
-            overflow:hidden;
-        }
-        .banco-gauge::after{
-            content:'';position:absolute;left:0;right:0;bottom:0;
-            height:var(--gauge-h,0%);
-            background:var(--gauge-color,transparent);
-            transition:height .4s cubic-bezier(.4,0,.2,1),background-color .4s ease;
-        }
-        @media(prefers-reduced-motion:reduce){.banco-gauge::after{transition:none}}
+.vista{position:absolute;inset:0;margin:0 auto;max-width:var(--ancho-max);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--papel);padding:calc(var(--seg-arriba) + 12px) 0 calc(var(--seg-abajo) + 40px);animation:entra-vista .22s ease-out}
+.capa-vista{background:var(--papel)}
+.vista-cab{display:flex;align-items:center;gap:6px;padding:0 12px;min-height:44px}
+.vista-cab h1{font-size:22px;font-weight:740;font-stretch:85%;line-height:1.15;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vista-cuerpo{padding:16px 20px 0}
+.atras{flex:none;width:44px;height:44px;border:none;background:none;color:var(--tinta);display:flex;align-items:center;justify-content:center;border-radius:50%}
+.atras .i{width:22px;height:22px;stroke-width:2.2}
 
-        /* Tip on-demand */
-        .banco-gauge-tip{
-            position:absolute;
-            right:10px;top:5px;
-            font-size:0.58em;
-            font-weight:700;
-            padding:2px 6px;
-            border-radius:4px;
-            background:rgba(30,41,59,0.94);
-            color:white;
-            opacity:0;
-            pointer-events:none;
-            transition:opacity 0.2s;
-            white-space:nowrap;
-            line-height:1.3;
-            z-index:2;
-        }
-        .banco-mini-card.show-tip .banco-gauge-tip{opacity:1}
-        @media(hover:hover){
-            .banco-mini-card.has-gauge:hover .banco-gauge-tip{opacity:1}
-        }
-        .usdt-card{background:linear-gradient(135deg,#eff6ff 0%,var(--c-accent-soft) 100%);border-color:#93c5fd}
-        .usdt-card .banco-saldo{color:#2563eb}
+.dialogo{position:absolute;left:20px;right:20px;top:50%;transform:translateY(-50%);margin:0 auto;max-width:400px;background:var(--blanco);border-radius:22px;padding:22px 20px 16px;animation:entra-dialogo .2s ease-out}
+.dialogo h2{font-size:20px;font-weight:720;font-stretch:90%;line-height:1.2}
+.dialogo p{font-size:15px;color:var(--tinta-2);margin-top:8px;white-space:pre-line}
+.dialogo .botones{display:grid;gap:8px;margin-top:20px}
 
-        /* ═══ Filtros — trigger en header + franja inline ═══ */
-        .ops-filtros-trigger{display:inline-flex;align-items:center;gap:5px;background:var(--c-surface-2);border:1px solid #e2e8f0;border-radius:7px;padding:4px 9px;font-size:0.72em;font-weight:600;color:#64748b;cursor:pointer;transition:all 0.15s;user-select:none;line-height:1}
-        .ops-filtros-trigger:active{transform:scale(0.96);background:var(--c-border-soft)}
-        .ops-filtros-trigger .filter-icon{font-size:0.95em;line-height:1}
-        .ops-filtros-trigger.open{background:var(--c-text);color:white;border-color:var(--c-text)}
-        .ops-filtros-trigger.has-active{border-color:#2563eb;color:#2563eb}
-        .ops-filtros-trigger.open.has-active{border-color:var(--c-text);color:white}
-        .ops-filtros-trigger-label{font-weight:600}
-        @media(max-width:400px){
-            /* En pantallas muy chicas, ocultar el texto dejando solo el ícono + badge */
-            .ops-filtros-trigger-label{display:none}
-        }
-        .ops-filtros-badge{min-width:16px;height:16px;border-radius:8px;background:#2563eb;color:white;font-size:0.65em;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;line-height:1}
-        .ops-filtros-badge.hidden{display:none}
-        .ops-filtros-trigger.open .ops-filtros-badge{background:white;color:var(--c-text)}
-        /* Franja inline de chips — extensión del header */
-        .ops-filtros-strip{overflow:hidden;max-height:0;opacity:0;transition:max-height 0.28s ease,opacity 0.2s ease,margin 0.2s ease,padding 0.2s ease;margin:0 -15px 0;padding:0 15px;border-bottom:0 solid transparent}
-        .ops-filtros-strip.open{max-height:60px;opacity:1;margin-bottom:12px;padding-top:10px;padding-bottom:10px;border-bottom:1px solid var(--c-border-soft);background:#fafbfc}
-        @media(min-width:768px){
-            .ops-filtros-strip{margin:0 -10px}
-            .ops-filtros-strip.open{padding:10px}
-        }
-        .ops-filtros-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;align-items:center}
-        .ops-filtros-chips::-webkit-scrollbar{display:none}
-        .ops-filtros-sep{width:1px;height:14px;background:#e2e8f0;flex-shrink:0;margin:0 3px}
-        .ops-fchip{flex-shrink:0;background:white;border:1.5px solid #e2e8f0;border-radius:999px;padding:5px 11px;font-size:0.7em;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;user-select:none;transition:all 0.15s;line-height:1}
-        .ops-fchip:active{transform:scale(0.96)}
-        .ops-fchip.active{background:var(--c-text);border-color:var(--c-text);color:white}
-        .ops-fchip.active.compra{background:var(--c-brand);border-color:var(--c-brand)}
-        .ops-fchip.active.venta{background:var(--c-danger);border-color:var(--c-danger)}
-        .ops-fchip.active.ganancia{background:var(--c-brand);border-color:var(--c-brand)}
-        .ops-fchip.active.perdida{background:var(--c-danger);border-color:var(--c-danger)}
-        .ops-fchip.active.neutro{background:#64748b;border-color:#64748b}
-        .ops-fchip-clear{flex-shrink:0;background:transparent;border:1.5px solid #e2e8f0;border-radius:999px;padding:5px 11px;font-size:0.7em;font-weight:600;color:var(--c-text-mute);cursor:pointer;white-space:nowrap;line-height:1;transition:all 0.15s}
-        .ops-fchip-clear:active{background:var(--c-danger-bg);color:var(--c-danger);border-color:#fecaca}
-        /* Drawer reusable para movs/trans — más compacto que el strip de ops, vive dentro del toggle-content */
-        .ops-filtros-drawer{padding:10px 15px;background:#fafbfc;border-bottom:1px solid var(--c-border-soft)}
-        .ops-filtros-drawer .ops-filtros-chips{flex-wrap:wrap;gap:5px}
-        .ops-fgroup-label{font-size:0.62em;font-weight:700;color:var(--c-text-mute);text-transform:uppercase;letter-spacing:0.5px;align-self:center;flex-shrink:0;padding:0 4px}
+/* ─── Aviso de abajo (con deshacer) ────────────────────────────────────── */
+.aviso{
+    position:fixed;left:16px;right:16px;z-index:70;margin:0 auto;max-width:520px;
+    bottom:calc(var(--tabs-alto) + var(--seg-abajo) + 12px);
+    display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 6px 6px 16px;
+    background:var(--tinta);color:var(--blanco);border-radius:14px;font-size:14.5px;line-height:1.3;
+    opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .18s,transform .18s;
+}
+.aviso.ver{opacity:1;transform:none;pointer-events:auto}
+.aviso.error{background:var(--baja)}
+.aviso span{flex:1;padding:6px 0}
+.aviso button{flex:none;height:40px;padding:0 12px;border:none;border-radius:10px;background:none;color:var(--aviso-ok);font-weight:700}
+html.con-capa .aviso{bottom:calc(var(--seg-abajo) + 16px)}
 
-        /* ═══ Toggle Sections ═══ */
-        .toggle-section{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:15px;overflow:hidden}
-        /* v5.4.1 — Faltaba separación: en Operaciones, que tiene tres controles a la
-   derecha, el título quedaba pegado al botón de Filtros. El título puede encogerse
-   y recortarse; los controles nunca, porque son objetivos táctiles. */
-.toggle-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 15px;cursor:pointer;user-select:none}
-        .toggle-header:active{background:var(--c-surface-2)}
-        .toggle-title{font-size:0.95em;font-weight:600;color:var(--c-text);display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .toggle-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
-        .toggle-badge{background:#e2e8f0;color:#64748b;font-size:0.75em;padding:2px 8px;border-radius:10px;font-weight:500}
-        .toggle-arrow{font-size:0.8em;color:var(--c-text-mute);transition:transform 0.2s}
-        .toggle-section.open .toggle-arrow{transform:rotate(180deg)}
-        .toggle-content{display:none;border-top:1px solid #e2e8f0}
-        .toggle-section.open .toggle-content{display:block}
+/* ─── Botones ──────────────────────────────────────────────────────────── */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:56px;padding:0 16px;border:none;border-radius:var(--r-boton);background:var(--tinta);color:var(--blanco);font-size:16.5px;font-weight:700;text-align:center}
+.btn .i{width:19px;height:19px;stroke-width:2}
+.btn.verde{background:var(--sube)}
+.btn.rojo{background:var(--baja)}
+.btn.claro{background:var(--blanco);color:var(--tinta);border:1.5px solid var(--borde)}
+.btn.gris{background:var(--papel);color:var(--tinta)}
+.btn.peligro{background:var(--blanco);color:var(--baja);border:1.5px solid var(--baja-borde)}
+.btn.chico{height:48px;font-size:15px;font-weight:650;border-radius:var(--r-campo)}
+.btn:disabled{opacity:.45}
+.btn-texto{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0;border:none;background:none;font-size:14px;font-weight:600;color:var(--tinta-2)}
+.btn-texto .i{width:16px;height:16px;stroke-width:2.2}
+.botones-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 
-        /* ═══ Forms ═══ */
-        .form-content{padding:10px 12px}
-        .form-group{margin-bottom:8px}
-        .form-group label{display:block;color:#64748b;font-size:0.7em;margin-bottom:3px;font-weight:500}
-        .form-group input,.form-group select,.form-group textarea{width:100%;background:var(--c-surface-2);border:1px solid #e2e8f0;border-radius:8px;padding:10px;color:var(--c-text);font-size:16px;font-family:inherit;max-width:100%;box-sizing:border-box}
-        .form-group input[type="date"]{-webkit-appearance:none;-moz-appearance:none;appearance:none;min-height:42px;line-height:normal}
-        .form-group input:focus,.form-group select:focus{outline:none;border-color:#2563eb}
-        .form-group input.error,.form-group select.error{border-color:var(--c-danger);background:#fef2f2}
-        .form-group small{display:block;color:var(--c-text-mute);font-size:0.7em;margin-top:2px}
-        .form-group small.error-text{color:var(--c-danger)}
-        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-        #tipo{position:absolute;opacity:0;pointer-events:none;height:0}
-        #banco{font-weight:600}
-        /* Op Toggle — compact switch */
-        .op-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:8px;overflow:hidden;border:2px solid #e2e8f0;margin-bottom:10px}
-        .op-toggle-btn{padding:9px 4px;text-align:center;font-weight:700;font-size:0.82em;cursor:pointer;transition:all 0.15s;color:var(--c-text-mute);background:white;user-select:none}
-        .op-toggle-btn:active{opacity:0.8}
-        .op-toggle-btn.active-compra{background:var(--c-brand);color:white}
-        .op-toggle-btn.active-venta{background:var(--c-danger);color:white}
-        /* Tasa block */
-        .tasa-block{background:var(--c-surface-2);border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-bottom:8px;text-align:center}
-        .tasa-block label{display:block;font-size:0.65em;color:var(--c-text-mute);font-weight:500;margin-bottom:2px}
-        .tasa-block input{border:none;background:transparent;font-size:22px;font-weight:700;text-align:center;color:var(--c-text);width:100%;padding:2px 0;outline:none;letter-spacing:0.5px;min-width:0}
-        .tasa-block .tasa-input-row{display:flex;align-items:center;gap:8px}
-        .tasa-block .tasa-step-btn{flex-shrink:0;width:36px;height:36px;border-radius:8px;border:1px solid #e2e8f0;background:white;color:var(--c-text-soft);font-size:1.25em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;transition:all 0.12s;-webkit-tap-highlight-color:transparent;user-select:none}
-        .tasa-block .tasa-step-btn:active{background:var(--c-border-soft);transform:scale(0.94);border-color:var(--c-text-faint)}
-        .tasa-block .tasa-tags{display:flex;gap:5px;justify-content:center;margin-top:6px;flex-wrap:wrap;row-gap:5px}
-        /* Summary card — compact */
-        .op-summary{border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-top:8px;transition:all 0.2s}
-        .op-summary.modo-compra{background:linear-gradient(135deg,#f7fdf7,var(--c-brand-softer));border-color:#bbf7d0}
-        .op-summary.modo-venta{background:linear-gradient(135deg,#fdf7f7,#fef2f2);border-color:#fecaca}
-        .op-summary-row{display:flex;justify-content:space-between;align-items:center;padding:2px 0;font-size:0.75em}
-        .op-summary-row.main{font-size:0.95em;font-weight:700;padding:3px 0}
-        .op-summary-label{color:#64748b}
-        .op-summary-value{color:var(--c-text);font-weight:600}
-        /* Button — sticky on mobile */
-        .op-btn-wrap{margin-top:10px;position:sticky;bottom:0;z-index:5;padding:6px 0 2px;background:white}
-        .op-btn-compra{background:var(--c-brand)}
-        .op-btn-compra:active{background:var(--c-brand-strong)}
-        .op-btn-venta{background:var(--c-danger)}
-        .op-btn-venta:active{background:#b91c1c}
-        .op-btn-wrap .btn{padding:12px 20px}
-        /* Commission row */
-        .com-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:6px 10px;background:var(--c-surface-2);border:1px solid #e2e8f0;border-radius:8px}
-        .com-label{font-size:0.65em;color:var(--c-text-mute);font-weight:500;display:flex;align-items:center;gap:4px}
-        /* Wrapper pill-shaped para el input de comisión — visualmente claramente editable.
-           Border completo + fondo blanco para que se lea como campo de texto, no como etiqueta. */
-        .com-edit{
-            display:inline-flex;align-items:center;gap:3px;
-            background:white;
-            border:1.5px solid var(--c-text-faint);
-            border-radius:7px;
-            padding:3px 8px 3px 7px;
-            transition:border-color 0.15s,box-shadow 0.15s,background 0.15s;
-            cursor:text;
-        }
-        .com-edit:hover{border-color:var(--c-text-mute);background:#fafbfc}
-        .com-edit:focus-within{
-            border-color:#2563eb;
-            background:white;
-            box-shadow:0 0 0 3px rgba(37,99,235,0.1);
-        }
-        .com-edit:has(input.error){border-color:var(--c-danger);background:#fef2f2}
-        .com-edit:has(input.error)::before{color:var(--c-danger)}
-        .com-edit input{
-            width:36px;border:none;background:transparent;
-            text-align:right;
-            font-size:0.82em;font-weight:700;color:var(--c-text);
-            padding:0;outline:none;
-            font-variant-numeric:tabular-nums;
-        }
-        .com-edit input::placeholder{color:var(--c-text-faint);font-weight:500}
-        .com-edit span{font-size:0.72em;color:#64748b;font-weight:600}
-        /* Ícono sutil a la izquierda del input para reforzar editabilidad */
-        .com-edit::before{
-            content:'✎';
-            font-size:0.7em;
-            color:var(--c-text-mute);
-            margin-right:2px;
-            transition:color 0.15s;
-        }
-        .com-edit:focus-within::before{color:#2563eb}
-        .com-info{display:flex;align-items:center;gap:6px;font-size:0.65em;color:var(--c-text-mute)}
+/* ─── Campos ───────────────────────────────────────────────────────────── */
+.rotulo{display:block;font-size:13.5px;font-weight:620;color:var(--tinta-2);margin-bottom:7px}
+.grupo-campos{display:flex;flex-direction:column;gap:18px}
+.campo{display:block;width:100%;height:50px;padding:0 14px;border:none;border-radius:var(--r-campo);background:var(--papel);font-size:16px;color:var(--tinta)}
+.campo::placeholder{color:var(--apagado)}
+.campo:focus{box-shadow:0 0 0 2px var(--tinta)}
+.campo:focus-visible,.monto-grande input:focus-visible,.paso-tasa input:focus-visible{outline:none}
+button.campo{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;font-weight:550}
+button.campo .i{width:16px;height:16px;stroke-width:2.2;color:var(--tenue)}
+select.campo{-webkit-appearance:none;appearance:none;font-weight:600}
+.campo-sufijo{position:relative}
+.campo-sufijo .campo{padding-right:44px}
+.campo-sufijo span{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--tenue);font-weight:600;pointer-events:none}
+.dos-campos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.campo-con-error .campo,.campo-con-error.monto-grande{box-shadow:0 0 0 2px var(--baja)}
 
-        /* ═══ Buttons ═══ */
-        .btn{background:#2563eb;color:white;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.95em;width:100%}
-        .btn:active{background:var(--c-accent-strong)}
-        .btn:disabled{background:var(--c-text-mute);cursor:not-allowed}
-        .btn-delete{background:#fef2f2;color:var(--c-danger);border:1px solid #fecaca;cursor:pointer;font-size:0.7em;padding:6px 10px;border-radius:6px;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
-        .btn-delete:active{background:var(--c-danger-bg)}
-        .btn-cancel{background:#e5e7eb;color:#4b5563}
-        .btn-edit-small{padding:6px 10px;font-size:0.7em;background:var(--c-border-soft);color:var(--c-text-soft);border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:500;min-height:32px;display:inline-flex;align-items:center;gap:3px}
-        .btn-edit-small:active{background:#e2e8f0}
+.monto-grande{display:flex;align-items:center;gap:8px;height:68px;padding:0 16px;border-radius:var(--r-tile);background:var(--papel)}
+.monto-grande:focus-within{box-shadow:0 0 0 2px var(--tinta)}
+.monto-grande .sim{font-size:34px;font-weight:600;font-stretch:72%;color:var(--tenue)}
+.monto-grande input{flex:1;min-width:0;height:100%;padding:0;border:none;background:transparent;font-size:44px;font-weight:760;font-stretch:72%;font-variant-numeric:tabular-nums;color:var(--tinta)}
+.monto-grande input::placeholder{color:#B4BCC8}
+.monto-grande .mon{font-size:14px;font-weight:600;color:var(--tenue)}
 
-        /* ═══ Operation Cards ═══ */
-        .op-cards{display:flex;flex-direction:column;gap:0;padding:0;max-width:540px;margin:0 auto;width:100%}
-        .op-card{border-radius:0;border:none;border-bottom:1px solid #eef0f3;overflow:hidden;box-shadow:none}
-        .op-card.compra{border-left:2px solid var(--c-brand);background:transparent}
-        .op-card.venta{border-left:2px solid var(--c-danger);background:transparent}
-        .op-card.transfer{border-left:2px solid var(--c-accent);background:transparent}
-        .op-card.conversion{border-left:2px solid #7c3aed;background:transparent}
-        .op-card-body{padding:0;line-height:1}
-        /* ═══ Universal 2-row table: all sections ═══ */
-        .r1,.r2{display:grid;align-items:center;padding:0 10px;white-space:nowrap;overflow:hidden}
-        /* Row 1: monto + G/P — fixed 20px */
-        .r1{grid-template-columns:1fr auto;height:20px;line-height:20px;padding-top:3px;column-gap:8px}
-        .r1-monto{font-size:0.88em;font-weight:700;color:var(--c-text);overflow:hidden;text-overflow:ellipsis}
-        .r1-gp{font-size:0.88em;font-weight:800;text-align:right;white-space:nowrap}
-        /* Row 2: flex con · separadores — tasa · USDT · 0,14% · banco · fecha.
-           Reglas shrink: tasa/USDT/% nunca se truncan. Banco es el único con ellipsis.
-           Fecha a la derecha, min-width fijo. Mantiene la altura de 17px. */
-        .r2{
-            display:flex;
-            align-items:center;
-            gap:9px;
-            height:17px;
-            line-height:17px;
-            padding:0 10px 3px 10px;
-            white-space:nowrap;
-            overflow:hidden;
-        }
-        /* v5.4.0 — La línea de detalle era lo más leído de la app y lo más chico:
-           0.65em son unos 10px. Sube a 0.73em, que sigue siendo secundaria pero
-           se lee sin esfuerzo. Cabe porque de la fila salieron la comisión y los
-           puntos separadores. */
-        .r2 span{font-size:0.73em;white-space:nowrap}
-        /* Separador dot entre peers — margen a cada lado asegura spacing parejo */
-        /* v5.4.3 — Los puntos separadores se ocultan por completo y la separación
-           la da el `gap` de la fila. En 5.4.0 se los había dejado visibles pero
-           transparentes, con una regla de especificidad 0,2,0 que le ganaba a la
-           de escritorio (0,1,0) incluso dentro de su media query: allá seguían
-           contando como elementos de la cuadrícula, y con dos de más la fecha y
-           los botones caían a una segunda fila que quedaba recortada. Ocultarlos
-           de verdad elimina el conflicto en las dos pantallas. */
-        .r2 .r2-sep{display:none}
-        /* Contraste: var(--c-text-mute) sobre blanco queda por debajo del mínimo legible
-           para texto chico. #64748b lo cumple sin dejar de ser secundario. */
-        .r2-c1{color:#64748b;flex-shrink:0}
-        .r2-c2{color:var(--c-text-soft);flex-shrink:0;font-weight:600}
-        /* ═══ Indicador per-record de sync pendiente ═══
-           Dot pequeño que aparece a la izquierda del monto cuando la operación
-           todavía no se confirmó en Firebase. Desaparece automáticamente al syncear.
-           Sutil pero visible — afirma al usuario que su acción se registró.
-           Animación suave para no agredir visualmente. */
-        .sync-dot{
-            display:inline-block;
-            width:6px;height:6px;
-            border-radius:50%;
-            background:#fbbf24;
-            margin-right:5px;
-            vertical-align:middle;
-            animation:syncPulse 1.6s ease-in-out infinite;
-            flex-shrink:0;
-        }
-        @keyframes syncPulse{
-            0%,100%{opacity:0.4;transform:scale(1)}
-            50%{opacity:1;transform:scale(1.15)}
-        }
-        /* Banco: el único que puede truncarse cuando falta espacio */
-        .r2-c3{
-            display:flex;
-            align-items:center;
-            flex:1 1 auto;
-            min-width:0;
-            gap:6px;
-            overflow:hidden;
-        }
-        .r2-banco{
-            font-weight:500;
-            overflow:hidden;
-            text-overflow:ellipsis;
-            white-space:nowrap;
-            min-width:0;
-            flex:1 1 auto;
-        }
-        .r2-fecha{color:#b0b8c4;text-align:right;min-width:64px;flex-shrink:0}
-        /* Movimientos (ajustes): mantienen el layout grid original — no tienen comisión */
-        [data-mov-id] .r2{display:grid;grid-template-columns:minmax(72px,auto) minmax(0,1fr) minmax(60px,auto) auto;column-gap:8px;overflow:visible}
-        [data-mov-id] .r2-c1{color:var(--c-text-soft);font-weight:600}
-        /* Transfer/Conversion: flexible columns for bank names */
-        .op-card.transfer .r2,.op-card.conversion .r2{grid-template-columns:auto 16px 1fr auto;column-gap:6px}
-        .op-card.transfer .r2-c2,.op-card.conversion .r2-c2{text-align:center;color:var(--c-text-mute)}
-        /* Zebra */
-        .op-swipe-wrap:nth-child(even) .op-card{background:#fafbfc}
-        /* Swipe infrastructure */
-        .op-swipe-wrap{position:relative;overflow:hidden;border-radius:0}
-        .op-swipe-bg{position:absolute;top:0;bottom:0;width:56px;display:flex;align-items:center;justify-content:center;font-size:0.65em;font-weight:600;color:white;opacity:0;transition:opacity 0.15s}
-        .op-swipe-bg.edit{left:0;background:var(--c-accent)}
-        .op-swipe-bg.delete{right:0;background:var(--c-danger)}
-        .op-swipe-wrap.swiping .op-swipe-bg{opacity:1}
-        .op-swipe-content{position:relative;z-index:1;background:white;will-change:transform}
-        .op-swipe-wrap:nth-child(even) .op-swipe-content{background:#fafbfc}
-        .op-swipe-content.animate{transition:transform 0.25s ease}
-        /* Desktop-only actions (hidden on mobile, swipe handles it) */
-        .dk-actions{display:none}
-        /* Summary strip */
-        .ops-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;padding:4px 6px;background:var(--c-surface-2);border-bottom:1px solid #e8eaed;font-size:0.62em;max-width:540px;margin:0 auto;width:100%}
-        .ops-summary-item{text-align:center}
-        .ops-summary-item .val{font-weight:700;font-size:1em;color:var(--c-text)}
-        .ops-summary-item .lbl{color:var(--c-text-mute);margin-top:0}
+.paso-tasa{display:flex;align-items:center;gap:10px}
+.paso-tasa button{flex:none;width:52px;height:52px;border:none;border-radius:var(--r-campo);background:var(--papel);font-size:24px;color:var(--tinta)}
+.paso-tasa input{flex:1;min-width:0;height:52px;border:none;border-radius:var(--r-campo);background:var(--papel);text-align:center;font-size:26px;font-weight:720;font-stretch:78%;font-variant-numeric:tabular-nums;color:var(--tinta)}
+.paso-tasa input:focus{box-shadow:0 0 0 2px var(--tinta)}
 
-        /* ═══ Tables (inventory) ═══ */
-        table{width:100%;border-collapse:collapse}
-        th{background:var(--c-surface-2);color:#64748b;font-size:0.68em;font-weight:600;padding:10px 8px;text-align:left;text-transform:uppercase;border-bottom:2px solid #e2e8f0}
-        td{padding:10px 8px;color:var(--c-text);border-top:1px solid #e2e8f0;font-size:0.8em}
-        tr:hover td{background:var(--c-surface-2)}
+.error-form{display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;padding:10px 12px;border-radius:12px;background:var(--baja-fondo);color:var(--baja);font-size:14px;font-weight:550;white-space:pre-line}
+.error-form .i{width:18px;height:18px;margin-top:1px;stroke-width:2.2}
 
-        /* ═══ Empty & Pagination ═══ */
-        .empty-state{text-align:center;padding:30px;color:var(--c-text-mute)}
-        .empty-state-icon{font-size:2em;margin-bottom:8px}
-        /* v5.4.6 — El rango completo ("1–25 de 286") necesita más lugar que el
-           "1 / 29" anterior, así que los botones se van a los extremos y el texto
-           queda centrado. Los botones suben a 44px de alto, la medida mínima
-           recomendada para tocar con el dedo: antes medían 33. */
-        .pagination{display:flex;justify-content:space-between;align-items:center;
-            gap:10px;padding:12px 14px;border-top:1px solid var(--c-border)}
-        .pagination button{background:var(--c-surface);border:1px solid var(--c-border);
-            padding:0 16px;min-height:44px;border-radius:10px;font-size:0.85em;
-            font-weight:600;cursor:pointer;color:var(--c-text-soft);white-space:nowrap}
-        .pagination button:not(:disabled):active{background:var(--c-border-soft)}
-        .pagination button:disabled{opacity:0.35;cursor:not-allowed}
-        .pagination-info{font-size:0.82em;color:var(--c-text-mute);
-            font-variant-numeric:tabular-nums;text-align:center;
-            flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ─── Selector de tipo (Comprar / Vender, Ingreso / Egreso) ────────────── */
+.segmento{display:flex;padding:4px;border-radius:var(--r-campo);background:var(--papel)}
+.segmento button{height:40px;padding:0 18px;border:none;border-radius:11px;background:transparent;font-size:15px;font-weight:600;color:var(--tenue)}
+.segmento button[aria-selected="true"]{background:var(--blanco);color:var(--tinta);font-weight:700;box-shadow:0 1px 2px rgba(23,32,51,.12)}
+.segmento button.compra[aria-selected="true"]{color:var(--sube)}
+.segmento button.venta[aria-selected="true"]{color:var(--baja)}
+.segmento button:disabled:not([aria-selected="true"]){opacity:.4}
 
+/* ─── Cuentas para elegir ──────────────────────────────────────────────── */
+.cuentas-sel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cuenta{display:block;width:100%;min-height:58px;padding:10px 12px;border:1.5px solid var(--borde);border-radius:var(--r-campo);background:var(--blanco);text-align:left;color:var(--tinta)}
+.cuenta[aria-pressed="true"]{border:2px solid var(--tinta);padding:9.5px 11.5px}
+.cuenta:disabled{opacity:.55}
+.cuenta .c-n{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:650;min-width:0}
+.cuenta .c-n b{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cuenta .c-n .i{width:17px;height:17px;stroke-width:2.6;margin-left:auto}
+.cuenta .c-s{display:block;margin-top:4px;font-size:19px;font-weight:700;font-stretch:72%;font-variant-numeric:tabular-nums}
+.cuenta .c-x{display:block;font-size:11.5px;color:var(--tenue);font-variant-numeric:tabular-nums}
 
-        /* ═══════════════════════════════════════════════════════════════
-           ÍCONOS (v5.4.0)
-           Reemplazan a los emojis de los rótulos. Un emoji lo dibuja cada
-           sistema a su manera —se veían distintos en iPhone, Android y
-           Windows— y trae su propio color, que chocaba con la paleta.
-           Estos son trazos que heredan el color del texto y miden siempre
-           lo mismo. Se ocultan a los lectores de pantalla porque el rótulo
-           de al lado ya dice lo que significan.
-           ═══════════════════════════════════════════════════════════════ */
-        .ico{
-            width:1.05em;height:1.05em;
-            vertical-align:-0.16em;
-            flex-shrink:0;
-            opacity:0.62;
-        }
-        .toggle-title .ico,.section-title .ico{opacity:0.5}
-        .filter-icon .ico{width:0.95em;height:0.95em;opacity:0.7}
-        .menu-row-icon .ico{width:1.15em;height:1.15em;opacity:0.55}
-        .modal-header .ico{opacity:0.55}
+/* ─── Pastillas y filtros ──────────────────────────────────────────────── */
+.pastillas{display:flex;flex-wrap:wrap;gap:8px}
+.pastilla{height:38px;padding:0 14px;border:1.5px solid var(--borde);border-radius:19px;background:var(--blanco);font-size:14px;font-weight:600;color:var(--tinta);font-variant-numeric:tabular-nums}
+.pastilla[aria-pressed="true"]{border-color:var(--tinta);background:var(--tinta);color:var(--blanco)}
+.pastilla.nueva{border-style:dashed;color:var(--tinta-2)}
+.pastilla.chica{height:36px;border-radius:18px}
+.tasas-rapidas{display:flex;align-items:center;gap:8px;margin-top:9px;flex-wrap:wrap}
+.tasas-rapidas>span{font-size:13px;color:var(--tenue)}
 
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:38px;padding:0 15px;border:1.5px solid var(--borde-2);border-radius:19px;background:var(--blanco);font-size:14px;font-weight:600;color:var(--tinta)}
+.chip[aria-pressed="true"]{border-color:var(--tinta);background:var(--tinta);color:var(--blanco)}
+.selector{display:inline-flex;align-items:center;gap:6px;height:40px;max-width:100%;padding:0 12px 0 14px;border:none;border-radius:12px;background:var(--blanco);font-size:14px;font-weight:600;color:var(--tinta);white-space:nowrap}
+.selector .i{width:15px;height:15px;stroke-width:2.2;color:var(--tenue)}
+.selector span{overflow:hidden;text-overflow:ellipsis}
 
-        /* Marca, campana y estado vacío (v5.4.2) */
-        .logo-svg{width:1em;height:1em;vertical-align:-0.1em;color:var(--c-accent);stroke-width:2.2}
-        .logo-svg-auth{width:2.2em;height:2.2em;color:var(--c-accent)}
-        .news-bell-svg{width:1.25em;height:1.25em;vertical-align:-0.2em;color:var(--c-text-soft)}
-        .empty-svg{width:2em;height:2em;color:var(--c-border);stroke-width:1.5}
+/* ─── Bloques y filas ──────────────────────────────────────────────────── */
+.bloque{background:var(--blanco);border-radius:var(--r-bloque)}
+.seccion{margin-top:30px}
+.seccion-cab{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.seccion-cab h2{font-size:19px;font-weight:720;font-stretch:90%}
+.seccion-cab .ir{min-height:44px;padding:0 0 0 12px;border:none;background:none;font-size:14px;font-weight:600;color:var(--tinta-2)}
+.h3{font-size:16px;font-weight:720;font-stretch:90%}
 
+.mono{flex:none;display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:5px;color:var(--blanco);font-size:9.5px;font-weight:760;letter-spacing:.02em;line-height:1}
+.mono.usdt{background:var(--usdt);font-size:12px}
+.mono.m{width:26px;height:26px;border-radius:7px;font-size:11px}
+.mono.m.usdt{font-size:15px}
 
-        /* ═══ Campo obligatorio (v5.4.3) ═══
-           La cuenta de origen es obligatoria pero se veía igual que un campo
-           opcional: el aviso llegaba recién al tocar el botón. Ahora el rótulo
-           lleva una marca y el campo queda en ámbar mientras esté sin elegir.
-           Ámbar y no rojo a propósito: todavía no es un error, es algo que falta. */
-        label .oblig{color:var(--c-danger);font-weight:700;margin-left:1px}
-        select.pendiente{border-color:#fcd34d;background:#fffbeb}
-        select.pendiente:focus-visible{border-color:#f59e0b}
+.fila{display:grid;grid-template-columns:44px minmax(0,1fr) auto;column-gap:8px;width:100%;padding:13px 16px 13px 14px;border:none;background:none;text-align:left;color:var(--tinta)}
+.fila+.fila{border-top:1px solid var(--linea)}
+.fila .hora{grid-column:1;grid-row:1;padding-top:2px;font-size:13px;color:var(--tenue);font-variant-numeric:tabular-nums}
+.fila .fila-t{grid-column:2;grid-row:1;min-width:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila .fila-m{grid-column:3;grid-row:1;text-align:right;font-size:16.5px;font-weight:660;font-stretch:84%;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fila .fila-s{grid-column:2;grid-row:2;display:flex;align-items:center;gap:6px;min-width:0;margin-top:4px;font-size:13px;color:var(--tenue)}
+.fila .fila-s>span:not(.mono):not(.marca){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fila .fila-s .i{width:14px;height:14px;stroke-width:2.2}
+.fila .fila-ms{grid-column:3;grid-row:2;margin-top:4px;text-align:right;font-size:13px;color:var(--tenue);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fila .fila-ms.sube{color:var(--sube)}
+.fila .fila-ms.baja{color:var(--baja)}
+.fila.sin-hora{grid-template-columns:minmax(0,1fr) auto}
+.fila.sin-hora .fila-t,.fila.sin-hora .fila-s{grid-column:1}
+.fila.sin-hora .fila-m,.fila.sin-hora .fila-ms{grid-column:2}
+.marca{flex:none;display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:10px;background:var(--papel);font-size:11.5px;font-weight:600;color:var(--tinta-2)}
+.fila .fila-s .marca .i,.marca .i{width:11px;height:11px;stroke-width:2.4}
+.fila .fila-s{font-stretch:94%}
 
-        /* ═══ Foco visible para teclado (v5.4.3) ═══
-           No existía ninguna regla de foco en toda la app: al recorrer el
-           formulario con el tabulador no había forma de saber dónde estabas.
-           Se usa :focus-visible, así que el aro sale con teclado y no al tocar
-           con el dedo, que es cuando molesta. */
-        input:focus-visible,select:focus-visible,textarea:focus-visible,
-        button:focus-visible,[data-action]:focus-visible,[tabindex]:focus-visible{
-            outline:2px solid var(--c-accent);
-            outline-offset:2px;
-            border-radius:6px;
-        }
+.dia{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:22px 4px 8px;font-size:14px}
+.dia b{font-weight:700}
+.dia span{font-weight:600;font-variant-numeric:tabular-nums}
 
+.dato{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;padding:9px 0;font-size:15px}
+.dato>span{color:var(--tinta-2)}
+.dato>b{font-weight:640;text-align:right;font-variant-numeric:tabular-nums}
+.dato small{display:block;font-size:12.5px;font-weight:450;color:var(--tenue)}
+.dato>b small{text-align:right}
+.datos-linea .dato+.dato{border-top:1px solid var(--linea)}
+.corte{border-top:2px dashed var(--borde-2);margin:20px 0 6px}
 
-        /* Etiqueta de categoría e íconos de deslizar (v5.4.4) */
-        .ico-tag{width:0.92em;height:0.92em;vertical-align:-0.13em;opacity:0.75;margin-right:1px}
-        .op-swipe-bg .ico-accion{width:20px;height:20px;color:#fff;opacity:1}
+/* Filas de menú (Más y listas de opciones) */
+.opc{display:flex;align-items:center;gap:13px;width:100%;min-height:54px;padding:0 14px 0 16px;border:none;background:none;text-align:left;font-size:15.5px;font-weight:550;color:var(--tinta)}
+.opc+.opc{border-top:1px solid var(--linea)}
+.opc>.i{width:21px;height:21px;color:var(--tinta-2)}
+.opc .v{margin-left:auto;font-size:14px;font-weight:500;color:var(--tenue);font-variant-numeric:tabular-nums;white-space:nowrap}
+.opc .ch{width:16px;height:16px;stroke-width:2.4;color:var(--apagado)}
+.opc .v+.ch{margin-left:0}
+.opc>span.t{min-width:0;flex:1}
+.opc>span.t small{display:block;font-size:12.5px;font-weight:450;color:var(--tenue);margin-top:1px}
+.opc.peligro,.opc.peligro>.i{color:var(--baja)}
+.opc[aria-checked="true"]>.marca-ok{visibility:visible}
+.opc .marca-ok{visibility:hidden;margin-left:auto;width:20px;height:20px;stroke-width:2.6;color:var(--tinta)}
+.grupo{padding:24px 4px 8px;font-size:14px;font-weight:700;color:var(--tinta-2)}
+.punto{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--sube)}
+.punto.mal{background:var(--baja)}
 
+/* Interruptor */
+.interruptor{position:relative;flex:none;width:46px;height:28px;margin-left:auto;border-radius:14px;background:var(--borde-2);transition:background .15s}
+.interruptor::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--blanco);box-shadow:0 1px 2px rgba(23,32,51,.25);transition:transform .15s}
+[aria-checked="true"]>.interruptor{background:var(--sube)}
+[aria-checked="true"]>.interruptor::after{transform:translateX(18px)}
 
-        /* ═══ Campo de monto (v5.4.5) ═══
-           Es el primer dato de cada operación y el que más se escribe, pero se
-           veía igual que cualquier otro campo. Ahora la cifra es más grande y
-           arranca en 0,00 en vez de un ejemplo que parecía un valor ya cargado. */
-        #monto{font-size:1.25rem;font-weight:650;letter-spacing:-0.01em}
-        #monto::placeholder{font-weight:500;color:var(--c-text-mute);opacity:1}
+/* Barra de cupo */
+.barra{height:4px;border-radius:2px;background:var(--linea)}
+.barra>i{display:block;height:4px;border-radius:2px;background:var(--tinta)}
+.barra.lleno>i{background:var(--baja)}
 
+/* Vacío: siempre dice qué hacer */
+.vacio{padding:28px 18px;text-align:center}
+.vacio b{display:block;font-size:16px;font-weight:680}
+.vacio p{font-size:14px;color:var(--tenue);margin-top:6px}
+.vacio .btn{margin-top:16px}
+.ver-mas{display:flex;align-items:center;justify-content:center;width:100%;height:48px;margin-top:8px;border:none;background:none;font-size:14.5px;font-weight:600;color:var(--tinta-2)}
 
-        /* ═══════════════════════════════════════════════════════════════
-           TOQUES SIN RETARDO (v5.4.6)
-           Al tocar dos veces seguidas un botón, el navegador del teléfono
-           espera unos milisegundos para decidir si fue un doble toque para
-           ampliar. Durante esa espera puede interpretar el movimiento del
-           dedo como un desplazamiento, y por eso al apretar varias veces
-           seguidas los botones de subir y bajar la tasa, o el de página
-           siguiente, la pantalla se iba bajando sola. Declarar que estos
-           elementos solo aceptan toques simples elimina esa espera.
-           ═══════════════════════════════════════════════════════════════ */
-        button,[data-action],.op-toggle-btn,.tasa-step-btn,.pagination button,.menu-row,.toggle-header,.banco-mini-card{
-            touch-action:manipulation;
-        }
+/* ─── Pantalla de carga ────────────────────────────────────────────────── */
+.cargando{position:fixed;inset:0;z-index:90;background:var(--papel);padding:calc(var(--seg-arriba) + 20px) 20px 0;transition:opacity .2s}
+.cargando.hidden{display:none}
+.cargando .esq{border-radius:8px;background:var(--papel-2);animation:late 1.4s ease-in-out infinite}
+.cargando .esq-col{display:flex;flex-direction:column;gap:10px;max-width:var(--ancho-max);margin:0 auto}
 
+/* ─── Entrada (usuario y contraseña) ───────────────────────────────────── */
+.acceso{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;max-width:420px;margin:0 auto;padding:calc(var(--seg-arriba) + 32px) 24px calc(var(--seg-abajo) + 32px)}
+.acceso.hidden{display:none}
+.acceso-marca{font-size:44px;font-weight:780;font-stretch:72%;line-height:1;letter-spacing:-0.01em}
+.acceso-marca span{color:var(--sube)}
+.acceso-sub{font-size:15px;color:var(--tinta-2);margin-top:10px}
+.acceso .segmento{margin-top:28px;align-self:flex-start;background:var(--papel-2)}
+.acceso form{display:flex;flex-direction:column;gap:16px;margin-top:20px}
+.acceso form small{display:block;font-size:12.5px;color:var(--tenue);margin-top:6px}
+.acceso .campo{background:var(--blanco)}
+.auth-error{display:none;padding:10px 12px;border-radius:12px;background:var(--baja-fondo);color:var(--baja);font-size:14px;font-weight:550;margin-top:16px}
+.auth-error.show{display:block}
 
-        /* ═══ Esqueleto de carga (v5.5.0) ═══ */
-        .esqueleto{width:100%;max-width:520px;padding:0 16px}
-        .esq-hero{background:var(--c-surface);border:1px solid var(--c-border);
-            border-radius:16px;padding:16px;margin-bottom:14px}
-        .esq-fila{background:var(--c-surface);border:1px solid var(--c-border);
-            border-radius:12px;padding:12px 14px;margin-bottom:8px}
-        .esq-l{border-radius:6px;
-            background:linear-gradient(90deg,var(--c-surface-2) 25%,var(--c-border) 37%,var(--c-surface-2) 63%);
-            background-size:400% 100%;animation:esqBrillo 1.4s ease infinite}
-        @keyframes esqBrillo{0%{background-position:100% 50%}100%{background-position:0 50%}}
-        @media(prefers-reduced-motion:reduce){.esq-l{animation:none}}
+/* ─── Proceso largo (archivar, importar, restaurar) ────────────────────── */
+.proceso{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(23,32,51,.86)}
+.proceso-caja{width:100%;max-width:380px;padding:24px 20px 20px;border-radius:22px;background:var(--blanco);text-align:center}
+.proceso-caja h2{font-size:20px;font-weight:720;font-stretch:90%}
+.proceso-caja .sub{font-size:14px;color:var(--tinta-2);margin-top:8px;line-height:1.4}
+.proceso-caja .rueda{width:40px;height:40px;margin:18px auto 14px;border:4px solid var(--linea);border-top-color:var(--tinta);border-radius:50%;animation:gira .9s linear infinite}
+.proceso-caja .fase{min-height:44px;display:flex;align-items:center;justify-content:center;padding:10px 12px;border-radius:12px;background:var(--papel);font-size:14px;color:var(--tinta-2)}
+.proceso-caja .meta{font-size:12px;color:var(--tenue);margin-top:8px}
+.proceso-caja .acciones{display:grid;gap:8px;margin-top:16px}
+.proceso.con-error .rueda{display:none}
+.proceso.con-error .fase{background:var(--baja-fondo);color:var(--baja);white-space:pre-line;text-align:left}
 
-        /* ═══ Estados vacíos con acción (v5.5.0) ═══ */
-        .empty-state-title{font-weight:700;font-size:0.98em;color:var(--c-text);margin-bottom:4px}
-        .empty-state-sub{font-size:0.85em;color:var(--c-text-soft);line-height:1.45;
-            max-width:38ch;margin:0 auto 14px}
-        .empty-state-btn{background:var(--c-brand);color:#fff;border:none;border-radius:10px;
-            padding:0 20px;min-height:44px;font:inherit;font-weight:650;font-size:0.88em;
-            cursor:pointer;touch-action:manipulation}
-        .empty-state-btn:active{filter:brightness(0.93)}
-
-        /* ═══ Objetivos táctiles (v5.5.0) ═══
-           Editar y borrar de cada fila medían 32px de alto y están pegados uno al
-           otro: 12px menos que el mínimo recomendado, en dos botones vecinos donde
-           uno corrige y el otro destruye. Sube el área que responde al toque; el
-           dibujo queda igual. */
-        .btn-delete,.btn-edit-small{min-height:44px;min-width:44px;
-            justify-content:center;touch-action:manipulation}
-
-
-        /* Botón principal bloqueado por dato faltante (v5.5.0) */
-        .btn-split-invalid{background:var(--c-border)!important;color:var(--c-text-mute)!important;
-            cursor:not-allowed;box-shadow:none!important}
-
-
-        /* ═══ Tasa más reciente (v5.6.0) ═══
-           Las cinco son las últimas usadas, pero no había forma de distinguir
-           cuál fue la última. Un punto arriba a la derecha alcanza: no ocupa
-           lugar ni compite con el número. */
-        .tag-pill-ultima{position:relative}
-        .tag-pill-ultima::after{
-            content:'';position:absolute;top:-2px;right:-2px;
-            width:6px;height:6px;border-radius:50%;
-            background:var(--c-accent);border:1.5px solid var(--c-surface);
-        }
-
-        /* ═══ Resultado en vivo bajo el monto (v5.6.0) ═══
-           Los USDT que recibís son la razón de la operación, pero aparecían al
-           final, después de la tasa, la cuenta y las comisiones. Ahora se ven
-           mientras escribís, como en una calculadora. */
-        .eco-resultado{
-            display:flex;justify-content:space-between;align-items:baseline;gap:10px;
-            background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;
-            padding:9px 12px;margin-top:7px;
-        }
-        .eco-resultado.venta{background:#eff6ff;border-color:#bfdbfe}
-        .eco-resultado .eco-t{font-size:0.78em;color:var(--c-text-soft);line-height:1.3}
-        .eco-resultado .eco-t small{display:block;font-size:0.86em;color:var(--c-text-mute);margin-top:1px}
-        .eco-resultado .eco-n{font-size:1.08em;font-weight:750;color:var(--c-brand-strong);
-            white-space:nowrap;font-variant-numeric:tabular-nums}
-        .eco-resultado.venta .eco-n{color:var(--c-accent-strong)}
-        .eco-resultado.oculto{display:none}
-
-
-        /* ═══ Selector con ícono (v5.6.3) ═══
-           Las opciones de una lista desplegable solo aceptan texto, así que el
-           dibujo se coloca encima del campo y acompaña a la opción elegida. */
-        .select-con-icono{position:relative}
-        .select-con-icono .select-tipo{padding-left:38px}
-        .select-icono{
-            position:absolute;left:12px;top:50%;transform:translateY(-50%);
-            pointer-events:none;display:flex;align-items:center;
-            color:var(--c-text-soft);z-index:1;
-        }
-        .select-icono .ico{width:1.15em;height:1.15em;opacity:0.75}
+/* Cartel fijo arriba (reinicio de la base local) */
+.aviso-fijo{position:fixed;top:0;left:0;right:0;z-index:99998;padding:calc(var(--seg-arriba) + 12px) 18px 12px;background:var(--tinta);color:var(--blanco);font-size:14px;text-align:center;line-height:1.4}
+.aviso-fijo b{display:block;font-weight:700}
+.aviso-fijo span{opacity:.85}

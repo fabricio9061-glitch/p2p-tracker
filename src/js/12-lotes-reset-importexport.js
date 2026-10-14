@@ -1,100 +1,3 @@
-function _invalidateListCache(key){
-    if(key)delete _renderFingerprints[key];
-    else Object.keys(_renderFingerprints).forEach(k=>delete _renderFingerprints[k]);
-}
-
-/* ═══════════════════════════════════════
-   §15 — LOTES MODAL
-   ═══════════════════════════════════════ */
-/* ═══ v7.3.0 — Se edita la cantidad del lote, no lo que queda ═══
-   El formulario mostraba lo que quedaba disponible y al guardar lo tomaba como
-   la cantidad original del lote. Como el recálculo vuelve a descontar las
-   ventas desde la cantidad original, editar solo el precio de un lote que ya
-   se había vendido en parte hacía perder esos USDT otra vez. Ahora el campo es
-   la cantidad cargada (para los de arrastre, la que quedó al archivar) y lo
-   disponible se muestra como dato. */
-function _declaracionLote(l){
-    if(l&&l.carryover&&Array.isArray(AppState.datos._archivoCarryover))
-        return AppState.datos._archivoCarryover.find(x=>String(x.id)===String(l.id))||null;
-    return l;
-}
-function abrirEditarLote(id){
-    AppState.ui.loteEditandoId=id;const l=id?AppState.datos.lotes.find(x=>String(x.id)===String(id)):null;
-    /* INTEGRIDAD: solo lotes manuales son editables. Los automáticos provienen de
-       compras reales: se corrigen editando o borrando la compra. */
-    if(l&&!l.manual){
-        alert('Este lote viene de una compra. Para modificarlo, editá o borrá esa compra.');
-        AppState.ui.loteEditandoId=null;
-        return;
-    }
-    const hd=$('editarLoteHeader'),info=$('loteDisponibleInfo');
-    if(l){
-        const decl=_declaracionLote(l)||l;
-        if(hd)hd.innerHTML=ICO_EDITAR+' Editar lote';
-        $('lotePrecio').value=fmtNum(decl.precioCompra,l.moneda==='USD'?3:2);
-        $('loteDisponible').value=fmtNum(decl.cantidad);
-        $('loteFecha').value=decl.fecha||'';
-        if(info){info.style.display='block';info.textContent='Quedan '+fmtTrunc(l.disponible,2)+' USDT sin vender'+(l.carryover?' · lote de arrastre del archivo':'');}
-        $('btnEliminarLote').style.display='';$('loteButtons').style.gridTemplateColumns='1fr 1fr 1fr';
-    }else{
-        if(hd)hd.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Agregar lote';
-        $('lotePrecio').value=AppState.datos.ultimaTasaCompra?fmtNum(AppState.datos.ultimaTasaCompra):'';
-        $('loteDisponible').value='';$('loteFecha').value=getUDateStr();
-        if(info)info.style.display='none';
-        $('btnEliminarLote').style.display='none';$('loteButtons').style.gridTemplateColumns='1fr 1fr';
-    }
-    abrirModal('modalEditarLote');
-}
-async function guardarLote(){
-    if(AppState.ui.guardandoLote)return;
-    const btn=$('btnGuardarLote');if(btn.disabled)return;
-    const p=pvTasa('lotePrecio'),d=pv('loteDisponible');const f=$('loteFecha').value||getUDateStr();
-    if(!p||p<=0||isNaN(p)){alert('Ingresá un precio válido');return}if(!(d>0)){alert('Ingresá una cantidad mayor que cero');return}
-    const editId=AppState.ui.loteEditandoId;
-    const l=editId?AppState.datos.lotes.find(x=>String(x.id)===String(editId)):null;
-    if(editId&&(!l||!l.manual)){
-        alert('Este lote viene de una compra y no se puede modificar acá.');
-        cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
-        return;
-    }
-    AppState.ui.guardandoLote=true;btn.disabled=true;btn.textContent='Guardando…';
-    try{
-        let loteId=editId;
-        const cantidad=truncUsdt(d),precio=roundMoney(p,3);
-        if(l){
-            const decl=_declaracionLote(l);
-            /* El lote calculado y su declaración: el recálculo solo respeta la
-               declaración (la de arrastre vive en _archivoCarryover). */
-            [l,decl].forEach(x=>{if(x){x.precioCompra=precio;x.cantidad=cantidad;x.disponible=cantidad;x.fecha=f}});
-        }else{
-            loteId=uid();
-            AppState.datos.lotes.push({id:loteId,fecha:f,hora:getUTimeStr(),precioCompra:precio,cantidad,disponible:cantidad,moneda:'UYU',manual:true});
-        }
-        cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
-        confirmarCambios([{tipo:l?'update':'create',entidad:'lotes',id:loteId}]);
-        renderizarInventario();
-    }catch(e){console.error('[P2P] Error guardando lote:',e)}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Guardar'}
-}
-async function eliminarLoteActual(){
-    if(!AppState.ui.loteEditandoId||AppState.ui.guardandoLote)return;
-    const delLoteId=AppState.ui.loteEditandoId;
-    const lExist=AppState.datos.lotes.find(x=>String(x.id)===String(delLoteId));
-    if(lExist&&!lExist.manual){alert('Este lote viene de una compra: se borra borrando la compra.');return}
-    if(!confirm('¿Eliminar este lote del inventario?'))return;
-    AppState.ui.guardandoLote=true;const btn=$('btnEliminarLote');btn.disabled=true;btn.textContent='Eliminando…';
-    try{
-        /* v5.9.0 — Si es de arrastre, se saca también de la declaración: si no,
-           el recálculo lo vuelve a crear y parece que el borrado no funcionó. */
-        if(lExist&&lExist.carryover&&Array.isArray(AppState.datos._archivoCarryover)){
-            AppState.datos._archivoCarryover=AppState.datos._archivoCarryover.filter(x=>String(x.id)!==String(delLoteId));
-        }
-        AppState.datos.lotes=AppState.datos.lotes.filter(l=>String(l.id)!==String(delLoteId));
-        cerrarModal('modalEditarLote');AppState.ui.loteEditandoId=null;
-        confirmarCambios([{tipo:'delete',entidad:'lotes',id:delLoteId}]);
-        renderizarInventario();
-    }catch(e){console.error('[P2P] Error eliminando lote:',e)}finally{AppState.ui.guardandoLote=false;btn.disabled=false;btn.textContent='Eliminar'}
-}
-
 /* ═══════════════════════════════════════
    §16 — REINICIAR DATOS
    ═══════════════════════════════════════ */
@@ -110,12 +13,12 @@ async function _vaciarSubcoleccion(nombre){
     }
     return ids.length;
 }
+/* Borra todo lo de la cuenta. La pantalla pide la confirmación antes (dos veces). */
 async function borrarTodo(){
-    if(confirm('¿Borrar TODOS tus datos?\n\nOperaciones, ajustes, transferencias, saldos, lotes, historial archivado y resúmenes mensuales.')&&confirm('Esta acción no se puede deshacer. Si querés conservar algo, exportá tus datos antes.\n\n¿Borrar todo?')){
+    {
         try{
             AppState.datos=crearDatosVacios();AppState._localVersion=0;AppState._datosStale=false;
-            inicializarBancos();AppState.ui.paginaOp=1;AppState.ui.paginaMov=1;AppState.ui.paginaTrans=1;AppState.ui.paginaConv=1;
-            $('comisionPlataforma').value=fmtNum(comisionConfigurada('UYU'));
+            inicializarBancos();
             /* v4.7.65 FIX (B1): limpiar el backup local ANTES de guardar. Sin esto, el
                blindaje anti-wipe de guardarDatos aborta el write (estado vacío + backup con
                datos) y el próximo snapshot restaura los datos viejos por Branch 1 → el reset
@@ -151,7 +54,8 @@ async function borrarTodo(){
             try{localStorage.removeItem('p2p_archivo_'+AppState.currentUser.uid)}catch(_){}
             recalcularLotesYGanancias();
             actualizarVista();
-        }catch(e){console.error('[P2P] Error reiniciando datos:',e)}
+            return true;
+        }catch(e){console.error('[P2P] Error reiniciando datos:',e);return false}
     }
 }
 

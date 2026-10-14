@@ -1,34 +1,17 @@
 /* ╔═══════════════════════════════════════════════════════════╗
-   ║  REGISTRO P2P — Código refactorizado                     ║
-   ║  • Estado centralizado (AppState)                        ║
-   ║  • Sin eventos inline (event delegation)                 ║
-   ║  • Funciones de DOM centralizadas                        ║
-   ║  • Paginación genérica reutilizable                      ║
-   ║  • FIFO encapsulado                                      ║
+   ║  REGISTRO P2P                                             ║
+   ║  Compras y ventas de USDT, saldos y ganancias.            ║
+   ║  Los archivos se cargan en orden (ver index.html) y       ║
+   ║  comparten el mismo ámbito global.                        ║
    ╚═══════════════════════════════════════════════════════════╝ */
-'use strict';
 
 /* ═══════════════════════════════════════
    §1 — CONFIGURACIÓN
    ═══════════════════════════════════════ */
-/* ═══ Logos embebidos (base64) v4.7.51 — sin dependencia externa ═══
-   v7.3.0: reducidos a 60px (se muestran a 20px; alcanza para pantallas 3x) —
-   pesaban 24 KB y ahora 6 KB. Reemplazan emojis/texto plano en tarjetas de saldo.
-   Robustez: no dependen de Wikimedia ni de ninguna CDN. */
-const LOGO_USDT='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAMAAAANIilAAAAAkFBMVEVMaXEWoHkVonkVk28VoHgVpHwVg2QGjm8UonoUonoVn3gUonoVlG8WiWUWmnQVn3cVcVYWmnQVnXYVo3v///8WpX3+//4Jn3QQoXgVq4EWroMDnHATo3sapn78/v3r9/QhqILU7udWvKAtrIma18VkwqdLuJk8spH1+/lyx6/g8+6r3c+R08DY8OmEzbm+5dpe2QlVAAAAE3RSTlMAss9IweggAvz+pfNUKn79FWqPd4tNzgAAAAlwSFlzAAALEwAACxMBAJqcGAAAA6NJREFUeNqdlwt3qjAMgEHAUp9z0EFBhIGAqNv+/7+7SUEoWEBvjp6DlY88SJtE04ZCCHyXm52+sPZ0v18v9N1mSer1aRHkdmdaPOCcMcdhjMOlZe62BP4kMyzZ6HbAmW3blDoglMIV48FaN8ikdni0seCBA6TTE1wIuGnALeNqtzrndAA2Qm3Ko9VyRDmsHtaBrUYb/YF1UNJE+1gFbAIV2hn/JM+mE21pBjZ1ZoTagfkxpIFdBLYzL0AvBjSy/BUWPX+iP8zgRRZpU/abaKvXWaQ/Oxje0Tss0HzzoCE31qyN83FC2qgxa9kq1t9TjIavatVE27SBZl56/R6Tn7/MZw+aGYImpHtLUZi7J1ctX24swdxEGBW3DjOEx0SGHRoJ1UTv0oO9qvnh9VYKloC/GnlAjQw0H9db8Hknhfpln1H1AWBTSmrm5Zf4IZca6hZ+ejCETNtaTNqIxyh5iH9GI05u7rRLve2FibLp76aj38gxbOA0pO1aL1Eg3p9P2cVQosh7wF4UiaWnLNtp+mAfwz2+74E8NBch/vJ9Z4DbfKX1XGYMOJpkZZHm6R/CX+4dLosyS+AfX+ZtvtCkDQXB9rI0r3K8u0xuTcCSEp9VVXmRhB6TI6btpQB6xfk3zSJhtd8FrP6dlOnvvQy7NGFrTTLaP8cl3EXriCGMeQUBE9E6wjPSuOpeNdt3MPNK95qF4FjUwuhzDQPue2FxihO/VbbvmX0/nW5p4odhiGbfRW5dCjQblvws/3MvlS+bLQUMfL7F7uX79ptDeKOslgSDn99v3xf3ei49JgfM6kU7jIrf2zW+4P6N6/NDXF/in1tVOmEvuRf9JMH3DDZHWZFW1Tc4DJ9bVaVFFuE67b1n2NHD9IRwOXWG3cWhUmcYJBgk6VN6bhRlRkRbym1FZqPPxmBLOtK50MJMWfHE2W2qK9wcLA6D3jH0DiyOoa26WszAcABixSG60u4ZuD56e4f+G5qjpt4oQzYNN+UGvsZ/wE2hGymxk3BbYrG4KxJFwJieClgq7uq2QjoM2ERbUTc0+2F+h/f4ChIXHptqaETEn3RD5YlQnvUGeq+FVDaAVFFj6jZM0QI+tZ5MUWUU7aNoel9pXKFr1j9UbS+ZbZmdkZa5btat6WadBtZmZFAAeinGBDo2JvDRMaE23TDVAwqdGVCa0cjQ1zAa0WY2ouICR6PVzGgkhiNpKDt2Q9lhq80NZd04aOA4uIZp0FqsdsbIOPgPiErtvOa+o6EAAAAASUVORK5CYII=';
-const LOGO_ITAU='data:image/png;base64,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';
-const LOGO_MP='data:image/png;base64,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';
-const _BANK_LOGOS={'Itau':LOGO_ITAU,'Itaú':LOGO_ITAU,'Mercado Pago':LOGO_MP,'MercadoPago':LOGO_MP};
-function _bancoLogoImg(nombre,size){
-    const src=_BANK_LOGOS[nombre];
-    if(!src)return '';
-    return `<img src="${src}" alt="" class="banco-logo-img" style="width:${size||20}px;height:${size||20}px;object-fit:contain;border-radius:5px;vertical-align:middle;flex:0 0 auto" loading="lazy" onerror="this.style.display='none'">`;
-}
-
 const CONFIG = {
     firebase: {apiKey:"AIzaSyC5GPlXKziT4XdGpcdUR_gtnQE5RIrricw",authDomain:"binancp2p-f831f.firebaseapp.com",projectId:"binancp2p-f831f",storageBucket:"binancp2p-f831f.firebasestorage.app",messagingSenderId:"118313786206",appId:"1:118313786206:web:a964400f85dac298a78dcf"},
     /* ═══════════════════════════════════════════════════════════════════════
-     * 📌 VERSION BUMP POLICY — REGLA OBLIGATORIA
+     * REGLA DE VERSIONES
      * ═══════════════════════════════════════════════════════════════════════
      * Toda modificación visible, funcional o estructural DEBE incrementar
      * APP_VERSION siguiendo semantic versioning (MAJOR.MINOR.PATCH):
@@ -40,28 +23,28 @@ const CONFIG = {
      *   MAJOR (+1.0.0) → cambios que rompen datos/estructura en Firebase,
      *                    migraciones no retrocompatibles, redesign integral.
      *
-     * ⚠️ ANTES DE CADA COMMIT: bumpear APP_VERSION y agregar entrada en CHANGELOG.
-     * ⚠️ NO DEJAR la versión desactualizada — la ve el usuario en "Configuración".
+     * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
+     * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '7.3.0',
-    /* v5.4.6 — Eran 10: con 286 operaciones daban 29 páginas y llegar a una del
-       medio pedía una docena de toques. Con 25 quedan 12 y la lista sigue liviana. */
-    POR_PAGINA: 25,
+    APP_VERSION: '8.0.0',
     EMAIL_DOMAIN: '@p2p-tracker.app',
-    COOLDOWN_MS: 300,
+    /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color, sin logos
+       (pesaban y solo tres cuentas tenían). Los colores se oscurecieron lo
+       justo para que la sigla blanca se lea bien. El ORDEN no se toca nunca:
+       la posición es el código con que viaja cada operación. */
     BANCOS: [
-        {nombre:'Santander',moneda:'UYU',color:'#ec0000'},
-        {nombre:'BBVA',moneda:'UYU',color:'#004481'},
-        {nombre:'Itau',moneda:'UYU',especial:'itau',color:'#ef6c00'},
-        {nombre:'Scotiabank',moneda:'UYU',color:'#ec111a'},
-        {nombre:'BROU',moneda:'UYU',color:'#003087'},
-        {nombre:'Prex',moneda:'UYU',color:'#6d28d9'},
-        {nombre:'OCA',moneda:'UYU',color:'#005baa'},
-        {nombre:'Mercado Pago',moneda:'UYU',color:'#009ee3'},
-        {nombre:'Midinero',moneda:'UYU',color:'#00b460'},
-        {nombre:'Zelle',moneda:'USD',color:'#6c1cd3'},
-        {nombre:'Zinli',moneda:'USD',color:'#00c28e'},
-        {nombre:'Skrill',moneda:'USD',color:'#862165'}
+        {nombre:'Santander',moneda:'UYU',color:'#c40000',sigla:'SA'},
+        {nombre:'BBVA',moneda:'UYU',color:'#004481',sigla:'BB'},
+        {nombre:'Itau',etiqueta:'Itaú',moneda:'UYU',especial:'itau',color:'#c25100',sigla:'IT'},
+        {nombre:'Scotiabank',moneda:'UYU',color:'#c8101a',sigla:'SC'},
+        {nombre:'BROU',moneda:'UYU',color:'#003087',sigla:'BR'},
+        {nombre:'Prex',moneda:'UYU',color:'#6d28d9',sigla:'PX'},
+        {nombre:'OCA',moneda:'UYU',color:'#005baa',sigla:'OC'},
+        {nombre:'Mercado Pago',moneda:'UYU',color:'#0076b0',sigla:'MP'},
+        {nombre:'Midinero',moneda:'UYU',color:'#00804a',sigla:'MD'},
+        {nombre:'Zelle',moneda:'USD',color:'#6c1cd3',sigla:'ZE'},
+        {nombre:'Zinli',moneda:'USD',color:'#00805e',sigla:'ZI'},
+        {nombre:'Skrill',moneda:'USD',color:'#862165',sigla:'SK'}
     ]
 };
 
@@ -191,7 +174,7 @@ function _compressOpForWire(op){
     Object.keys(op).forEach(k=>{
         if(['id','fecha','hora','tipo','banco','moneda','monto','tasa','usdt',
             'comisionBanco','comisionPct','aportes','timestamp',
-            'consumedLots','ganancia','comisionPlataforma','_syncState'].includes(k))return;
+            'consumedLots','ganancia','comisionPlataforma','costoUsdt','_syncState'].includes(k))return;
         out['x_'+k]=op[k];
     });
     return out;
@@ -299,18 +282,26 @@ function _selftestWireCompression(){
 _selftestWireCompression();
 
 /* ═══════════════════════════════════════════════════════════════════════
- * 📜 CHANGELOG — registro de cambios por versión
+ * CHANGELOG — registro de cambios por versión
  * ═══════════════════════════════════════════════════════════════════════
  * Mantener esta lista en sync con CONFIG.APP_VERSION. Cada release
  * debe agregar una entrada al INICIO del array (más reciente primero).
- * Formato: { version, date (YYYY-MM-DD), changes: [array de strings] }
  * ═══════════════════════════════════════════════════════════════════════ */
 /* CHANGELOG schema:
- * { version, date, headline (resumen corto p/ modal "qué hay nuevo"), changes: [{type,title,desc?}] }
+ * { version, date, headline (resumen corto para Novedades), changes: [{type,title,desc?}] }
  * type: 'feature' | 'improve' | 'fix' | 'perf'
- * Para entradas viejas legacy (changes: [string]) hay normalizador en normalizarChangelog().
  */
 const CHANGELOG = [
+    {version:'8.0.0', date:'2026-10-14', headline:'App nueva, pensada para el celular: cada movimiento con su historial y una papelera para recuperar lo borrado.', changes:[
+        {type:'feature', title:'Pantallas nuevas', desc:'Abajo están Inicio, Registro, Cuentas y Más, y en el medio el botón + para cargar cualquier cosa. El inicio muestra la ganancia de hoy, la semana, tus cuentas y lo que cargaste hoy.'},
+        {type:'feature', title:'Registro completo', desc:'Todo lo que cargaste en una sola lista por día, con filtros por tipo, período y cuenta, y búsqueda. Cada compra y venta muestra la comisión con la que se cerró. Tocá cualquier movimiento para ver su detalle y cómo cambió cada cuenta.'},
+        {type:'feature', title:'Historial de cambios', desc:'Cada edición queda anotada en el movimiento: qué cambiaste, de qué valor a cuál y cuándo.'},
+        {type:'feature', title:'Eliminados', desc:'Lo que borrás queda 30 días en Eliminados y se puede recuperar, también desde otro dispositivo. Al borrar aparece "Deshacer".'},
+        {type:'feature', title:'Fecha y hora a elección', desc:'Podés cargar un movimiento de otro día u hora. No se permiten fechas futuras ni meses ya archivados.'},
+        {type:'fix', title:'La comisión de Binance se descuenta de la ganancia', desc:'La ganancia de cada venta se calculaba sin restar la comisión de Binance, así que salía un poco más alta que la real. Ahora es lo que entró al banco menos lo que costaron los USDT que salieron, con la comisión incluida. Las ganancias que ya tenías cargadas bajan un poco; los meses archivados conservan su cálculo.'},
+        {type:'improve', title:'Capital total y libro de cada cuenta', desc:'Cuentas muestra el capital total (bancos más tus USDT a lo que te costaron), el cupo de cada cuenta y tus lotes de USDT. El libro de cada cuenta muestra el saldo que dejó cada movimiento.'},
+        {type:'improve', title:'Más rápida', desc:'Cada cambio se ve al instante y se sube a tu cuenta en segundo plano. Cómo se guardan tus datos no cambió.'}
+    ]},
     {version:'7.3.0', date:'2026-09-26', headline:'Todo se recalcula al instante y cada movimiento se puede editar desde su cuenta.', changes:[
         {type:'fix', title:'Los ajustes, transferencias y correcciones recalculan al momento', desc:'Al crear o editar un ajuste externo en un banco, una transferencia o una corrección de saldo, el saldo quedaba viejo hasta que respondía el servidor (y sin conexión, hasta recargar). Ahora toda alta, edición o baja pasa por un mismo camino que recalcula saldos, lotes y cupos en el acto.'},
         {type:'fix', title:'Un cambio hecho mientras se guardaba se perdía', desc:'Si editabas algo mientras la app todavía subía lo anterior, la pantalla mostraba el valor nuevo pero en la nube quedaba el viejo: al recargar o en el otro dispositivo "volvía el saldo anterior". Ahora se confirma exactamente lo que viajó.'},

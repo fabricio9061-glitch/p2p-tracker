@@ -38,16 +38,36 @@ const hallazgos = [];
 const rep = (sev, cat, det) => hallazgos.push({ sev, cat, det });
 
 /* ── 1 · Botones que no hacen nada ──
-   Un elemento con data-action que ningún manejador atiende: al tocarlo no
-   ocurre absolutamente nada y no hay ningún aviso. */
-const accHtml = new Set([...html.matchAll(/data-action="([^"$]+)"/g)].map(m => m[1]));
-[...todoJS.matchAll(/data-action="([a-z-]+)"/g)].forEach(m => accHtml.add(m[1]));
-const accJs = new Set([...todoJS.matchAll(/a===['"]([^'"]+)['"]/g)].map(m => m[1]));
-/* v7.3.0 — La tabla de acciones de 14: { 'accion': (t,id)=>… } */
-[...todoJS.matchAll(/['"]([a-z][a-z0-9-]*)['"]\s*:\s*(?:\(|[a-z]\s*=>)/g)].forEach(m => accJs.add(m[1]));
-[...accHtml].forEach(a => {
-    if (!accJs.has(a)) rep('ALTA', 'Botón sin manejador',
-        `data-action="${a}" está en la pantalla pero ningún código responde`);
+   v8.0.0 — Cada botón dice qué hace con data-a="accion" y cada campo con
+   data-in / data-ch; un solo escuchador busca la acción en ACC o ENT
+   (18-ui-base.js). Si un botón nombra una acción que nadie definió, al tocarlo
+   no ocurre absolutamente nada y no hay ningún aviso. También se avisa de las
+   acciones definidas que ningún botón usa. */
+const accUsadas = new Set();
+const agregar = (re, fuente) => [...fuente.matchAll(re)].forEach(m => accUsadas.add(m[1]));
+agregar(/data-a="([a-z][a-z0-9-]*)"/g, html);
+agregar(/data-a="([a-z][a-z0-9-]*)"/g, todoJS);
+/* Acciones que se arman con funciones de ayuda: opc('resumen',…), {accion:'op-cuenta'},
+   a('op-nueva',…) en el botón +, navMes(mes,'resumen-mes'), botonCuando(st,'op-cuando') */
+agregar(/\bopc\('([a-z][a-z0-9-]*)'/g, todoJS);
+agregar(/accion:'([a-z][a-z0-9-]*)'/g, todoJS);
+agregar(/\ba\('([a-z][a-z0-9-]*)'/g, todoJS);
+agregar(/navMes\([^,]+,'([a-z][a-z0-9-]*)'\)/g, todoJS);
+agregar(/botonCuando\([^,]+,'([a-z][a-z0-9-]*)'\)/g, todoJS);
+const accDef = new Set([...todoJS.matchAll(/ACC\['([a-z][a-z0-9-]*)'\]\s*=/g)].map(m => m[1]));
+[...accUsadas].forEach(a => {
+    if (!accDef.has(a)) rep('ALTA', 'Botón sin manejador', `data-a="${a}" está en la pantalla pero no hay ACC['${a}']`);
+});
+[...accDef].forEach(a => {
+    if (!accUsadas.has(a)) rep('MEDIA', 'Acción sin botón', `ACC['${a}'] está definida pero ningún botón la usa`);
+});
+const entUsadas = new Set([...(html + todoJS).matchAll(/data-(?:in|ch)="([a-z][a-z0-9-]*)"/g)].map(m => m[1]));
+const entDef = new Set([...todoJS.matchAll(/ENT\['([a-z][a-z0-9-]*)'\]\s*=/g)].map(m => m[1]));
+[...entUsadas].forEach(a => {
+    if (!entDef.has(a)) rep('ALTA', 'Campo sin manejador', `data-in/data-ch="${a}" no tiene ENT['${a}']`);
+});
+[...entDef].forEach(a => {
+    if (!entUsadas.has(a)) rep('MEDIA', 'Manejador de campo sin uso', `ENT['${a}'] está definido pero ningún campo lo usa`);
 });
 
 /* ── 2 · Campos que el programa busca y no existen ──

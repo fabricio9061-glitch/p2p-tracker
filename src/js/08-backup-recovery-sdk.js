@@ -69,7 +69,7 @@ function backupToLocal(){
                 /* Aun fallando: avisar al usuario UNA vez por sesión, no en cada intento */
                 if(!backupToLocal._quotaWarned){
                     backupToLocal._quotaWarned=true;
-                    setSyncStatus('offline','Espacio local lleno — exportá tus datos');
+                    setSyncStatus('offline','El teléfono no tiene lugar: exportá una copia');
                     console.error('[P2P] localStorage quota crítica — el backup local podría estar desactualizado');
                 }
             }
@@ -93,7 +93,7 @@ function restoreFromLocal(){
 function updateSyncBadge(){
     const badge=$('syncBadge');if(!badge)return;
     const n=_syncPending+_syncErrors;
-    badge.textContent=n>0?n:'';badge.style.display=n>0?'inline-block':'none';
+    badge.textContent=n>0?'('+n+')':'';badge.style.display=n>0?'inline':'none';
 }
 
 async function guardarDatos(forzar,opts){
@@ -137,7 +137,7 @@ async function guardarDatos(forzar,opts){
        a medias (documento sin migrar, o revertido desde otro dispositivo): no
        escribimos NADA, para no mezclar formatos ni pisar datos buenos. */
     console.error('[P2P] Documento en formato anterior: la escritura quedó bloqueada.');
-    setSyncStatus('offline','Formato anterior — ver consola');
+    setSyncStatus('offline','Actualizando el formato de tus datos…');
 }
 
 function cargarDatosUsuario(){
@@ -210,7 +210,7 @@ function cargarDatosUsuario(){
                 /* Hay datos en este dispositivo pero la nube está vacía: no se
                    borra nada ni se sube a ciegas. Se ofrece restaurar. */
                 ocultarLoading();
-                setSyncStatus('offline','Sin datos en la nube — usá Restaurar respaldo');
+                setSyncStatus('offline','No hay datos en la nube: usá Restaurar el último respaldo');
             }
             return;
         }
@@ -238,7 +238,7 @@ function cargarDatosUsuario(){
                migración se interrumpe) y lanzamos la migración automática, que
                conserva todas sus verificaciones. */
             console.warn('[P2P] Documento en formato anterior: migrando automáticamente.');
-            setSyncStatus('syncing','Actualizando formato…');
+            setSyncStatus('syncing','Actualizando el formato de tus datos…');
             if(!cargarDatosUsuario._autoMigrando){
                 cargarDatosUsuario._autoMigrando=true;
                 AppState.datos={...crearDatosVacios(),...(_d||{})};
@@ -261,10 +261,6 @@ function cargarDatosUsuario(){
 
 function showApp(u){
     AppState.currentUser=u;
-    const uname=emailToUser(u.email);
-    setText('menuUserName',uname);
-    setText('menuUserEmail',u.email);
-    $('menuUserAvatar').textContent=(uname[0]||'U').toUpperCase();
     $('authContainer').classList.add('hidden');
     $('appContainer').classList.add('active');
     /* ═══════════════════════════════════════════════════════════════════
@@ -300,12 +296,10 @@ function showApp(u){
             /* Render inmediato — la UI queda usable. */
             try{
                 inicializarBancos();
-                if(typeof recalcularLotesYGanancias==='function')recalcularLotesYGanancias();
+                recalcularLotesYGanancias();
                 actualizarVista();
-                actualizarFormulario();
-                actualizarColorSelect();
                 ocultarLoading();
-                setSyncStatus('syncing','Modo local activo');
+                setSyncStatus('syncing','Usando lo guardado en el teléfono');
                 hidratoDesdeCache=true;
                 _syncLog('ui:cache-hydrated',{v:AppState._localVersion,ops:(AppState.datos.operaciones||[]).length});
                 _syncLog('ui:render-ready',{from:'local-cache'});
@@ -331,7 +325,7 @@ function showApp(u){
             console.warn('[P2P] Watchdog desbloqueó la UI tras 3s — el sync continúa en background');
             /* Si no había cache, al menos mostramos vista por defecto */
             if(!hidratoDesdeCache){
-                try{actualizarVista();actualizarFormulario();actualizarColorSelect()}catch(e){}
+                try{actualizarVista()}catch(e){}
                 setSyncStatus('syncing','Conectando…');
             }
         }
@@ -340,14 +334,14 @@ function showApp(u){
     _syncLog('sync:background-mode',{cacheHydrated:hidratoDesdeCache});
     cargarDatosUsuario();
 }
-function showAuth(){AppState.currentUser=null;$('authContainer')?.classList.remove('hidden');$('appContainer')?.classList.remove('active');['loginBtn','registerBtn'].forEach(id=>{const b=$(id);if(b){b.disabled=false;b.textContent=id==='loginBtn'?'Iniciar Sesión':'Crear Cuenta'}});['loginUser','loginPass','regUser','regPass','regPassConfirm'].forEach(id=>{const e=$(id);if(e)e.value=''});ocultarLoading()}
+function showAuth(){AppState.currentUser=null;$('authContainer')?.classList.remove('hidden');$('appContainer')?.classList.remove('active');['loginBtn','registerBtn'].forEach(id=>{const b=$(id);if(b){b.disabled=false;b.textContent=id==='loginBtn'?'Entrar':'Crear cuenta'}});['loginUser','loginPass','regUser','regPass','regPassConfirm'].forEach(id=>{const e=$(id);if(e)e.value=''});ocultarLoading()}
 
 /* ═══════════════════════════════════════════════════════════════════
    §ERR — Error boundary + telemetría local
    ═══════════════════════════════════════════════════════════════════
    Captura errores no manejados. Los guarda en localStorage (circular buffer de 50
-   entradas) bajo 'p2p_errlog'. El usuario puede exportarlos con "Diagnóstico" en
-   el menú Sistema para enviarlos si reporta un bug.
+   entradas) bajo 'p2p_errlog', en el teléfono, para poder revisarlos si se
+   reporta un problema.
 */
 const _ERRLOG_KEY='p2p_errlog';
 const _ERRLOG_MAX=50;
@@ -435,8 +429,9 @@ function iniciarRecuperacionFirestore(){
     /* Aviso visible pero no bloqueante */
     try{
         const banner=document.createElement('div');
-        banner.style.cssText='position:fixed;top:0;left:0;right:0;background:#fef3c7;color:#78350f;padding:14px 18px;font-size:0.88em;font-weight:600;text-align:center;z-index:99999;box-shadow:0 2px 8px rgba(0,0,0,0.15);line-height:1.4';
-        banner.innerHTML='<svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> Detectamos un problema con la base de datos local. Reiniciando en 3 segundos para evitar pérdida de datos…<br><span style="font-weight:400;font-size:0.85em;opacity:0.85">Tus datos están respaldados localmente.</span>';
+        banner.className='aviso-fijo';
+        banner.setAttribute('role','alert');
+        banner.innerHTML='<b>La app se va a reiniciar en 3 segundos</b><span>Hubo un problema con los datos guardados en el teléfono. Tus datos están a salvo.</span>';
         document.body.appendChild(banner);
     }catch(e){}
     /* ═══ Limpieza ordenada del SDK Firestore ═══

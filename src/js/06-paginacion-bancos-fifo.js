@@ -1,114 +1,4 @@
-function inicializarSwipe(){
-    if(window.innerWidth>=768)return;
-    const THRESHOLD=60,MAX=90;
-    document.querySelectorAll('.op-swipe-content:not([data-swipe-init])').forEach(el=>{
-        el.setAttribute('data-swipe-init','1');
-        let startX=0,startY=0,dx=0,dragging=false,locked=false;
-        const wrap=el.closest('.op-swipe-wrap');
-        const opId=el.dataset.opId?parseInt(el.dataset.opId):null;
-        const movId=el.dataset.movId?parseInt(el.dataset.movId):null;
-        const transId=el.dataset.transId?parseInt(el.dataset.transId):null;
-        const convId=el.dataset.convId?parseInt(el.dataset.convId):null;
-        const hasEdit=!!(opId||movId||transId||convId); /* Edit via swipe-right available for all record types */
 
-        el.addEventListener('touchstart',e=>{
-            const t=e.touches[0];startX=t.clientX;startY=t.clientY;dx=0;dragging=true;locked=false;
-            el.classList.remove('animate');
-        },{passive:true});
-        el.addEventListener('touchmove',e=>{
-            if(!dragging)return;
-            const t=e.touches[0],mx=t.clientX-startX,my=t.clientY-startY;
-            if(!locked&&(Math.abs(mx)>8||Math.abs(my)>8)){
-                locked=true;
-                if(Math.abs(my)>Math.abs(mx)){dragging=false;return}
-            }
-            if(!locked)return;
-            /* Operations: both directions. Others: left only (delete) */
-            if(hasEdit)dx=Math.max(-MAX,Math.min(MAX,mx));
-            else dx=Math.max(-MAX,Math.min(0,mx));
-            el.style.transform=`translateX(${dx}px)`;
-            wrap.classList.toggle('swiping',Math.abs(dx)>10);
-        },{passive:true});
-        el.addEventListener('touchend',()=>{
-            if(!dragging&&!locked)return;
-            dragging=false;el.classList.add('animate');
-            if(dx>THRESHOLD&&hasEdit){
-                el.style.transform='translateX(0)';wrap.classList.remove('swiping');
-                setTimeout(()=>{
-                    if(opId)abrirEditarOperacion(opId);
-                    else if(movId)abrirModalMovimiento(movId);
-                    else if(transId)abrirModalTransferencia(transId);
-                    else if(convId)abrirModalTransferencia(convId);
-                },150);
-            }else if(dx<-THRESHOLD){
-                el.style.transform=`translateX(-${MAX}px)`;
-                setTimeout(()=>{
-                    el.style.transform='translateX(0)';wrap.classList.remove('swiping');
-                    if(opId)eliminarOperacion(opId);
-                    else if(movId)eliminarMovimiento(movId);
-                    else if(transId)eliminarTransferencia(transId);
-                    else if(convId)eliminarConversion(convId);
-                },200);
-            }else{
-                el.style.transform='translateX(0)';wrap.classList.remove('swiping');
-            }
-            dx=0;
-        },{passive:true});
-    });
-}
-
-/* ═══════════════════════════════════════
-   §5 — PAGINACIÓN GENÉRICA
-   ═══════════════════════════════════════ */
-/* Acepta getData() (preferido) o getTotal() legacy.
-   getData() devuelve la lista completa filtrada — total y slice se derivan de ahí
-   en una sola pasada, evitando filtrar/contar dos veces por render. */
-function crearPaginacion(cfg) {
-    const {getData,getTotal,getPag,setPag,porPag,ids,renderFn} = cfg;
-    function render(){
-        let data=null,total;
-        if(typeof getData==='function'){
-            data=getData();
-            total=data.length;
-        }else{
-            total=getTotal();
-        }
-        if(!total){$(ids.pagination).style.display='none';renderFn([],0,0,data||[]);return}
-        const tp=Math.max(1,Math.ceil(total/porPag));
-        let pag=getPag();
-        if(pag>tp){pag=tp;setPag(pag)}
-        if(pag<1){pag=1;setPag(pag)}
-        const ini=(pag-1)*porPag,fin=ini+porPag;
-        /* Pasamos data (si la tenemos) como 4to arg — renderFn puede hacer slice sin re-filtrar */
-        renderFn(ini,fin,total,data);
-        $(ids.pagination).style.display=tp>1?'flex':'none';
-        /* v5.4.6 — Antes decía "1 / 29", que informa en qué página estás pero no
-           cuáles estás viendo ni cuántas hay en total. Ahora dice "1–25 de 286". */
-        const desde=ini+1, hasta=Math.min(fin,total);
-        setText(ids.info,`${desde}–${hasta} de ${total}`);
-        $(ids.prev).disabled=pag===1;
-        $(ids.next).disabled=pag===tp;
-    }
-    function cambiar(dir){
-        let total;
-        if(typeof getData==='function')total=getData().length;
-        else total=getTotal();
-        const tp=Math.max(1,Math.ceil(total/porPag));
-        let pag=getPag()+dir;
-        if(pag<1)pag=1;if(pag>tp)pag=tp;setPag(pag);
-        /* ═══ v5.4.6 — La pantalla se corría al pasar de página ═══
-           Cambiar de página reemplaza todas las filas de la lista. Como las filas
-           no miden exactamente lo mismo (un nombre de banco más largo, un importe
-           que ocupa otra línea), el alto total cambia unos píxeles y el navegador
-           reacomoda el scroll. Tocando varias veces seguidas ese corrimiento se
-           acumula y la pantalla termina bajando sola. Se guarda la posición antes
-           de redibujar y se restaura después, así el usuario queda donde estaba. */
-        const y=window.scrollY;
-        render();
-        if(Math.abs(window.scrollY-y)>1)window.scrollTo(0,y);
-    }
-    return{render,cambiar};
-}
 
 /* ═══════════════════════════════════════
    §6 — BANCOS
@@ -127,18 +17,6 @@ function inicializarBancos(){
     });
 }
 
-/* ═══ v5.7.1 — Los días de renovación son un dato de cada cuenta ═══
-   Antes esta regla estaba escrita a mano para un banco puntual, reconocido por
-   una marca en la configuración: si otra cuenta pasaba a comportarse igual, o
-   ese banco cambiaba su política, había que tocar el programa. Ahora cada cuenta
-   guarda en qué días renueva su cupo, y se configura desde su ventana de edición.
-
-   Los días que quedan sin marcar no renuevan: siguen usando el cupo del último
-   día marcado. Así, marcando de martes a viernes, el sábado, el domingo y el
-   lunes comparten un mismo cupo, que es como opera un banco que no procesa los
-   fines de semana. */
-const DIAS_SEMANA=['D','L','M','M','J','V','S'];
-const DIAS_SEMANA_LARGO=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const DIAS_RESET_TODOS=[0,1,2,3,4,5,6];
 
 function getDiasReset(nombreBanco){
@@ -151,31 +29,6 @@ function getDiasReset(nombreBanco){
     return DIAS_RESET_TODOS;
 }
 
-/* Texto explicativo del agrupamiento. Solo dice algo si NO renueva todos los
-   días. Los días se ordenan siguiendo la semana y contemplando la vuelta al
-   domingo: los que comparten cupo con el sábado se leen "sáb a lun", no
-   "dom-lun-sáb", que es correcto pero se entiende peor. */
-function textoDiasReset(nombreBanco){
-    const d=getDiasReset(nombreBanco);
-    if(d.length>=7||!d.length)return'';
-    const sinRenovar=DIAS_RESET_TODOS.filter(x=>!d.includes(x));
-    if(!sinRenovar.length)return'';
-    const ab=i=>DIAS_SEMANA_LARGO[i].slice(0,3);
-    if(sinRenovar.length===1)return` (${ab(sinRenovar[0])} comparte cupo)`;
-    /* Buscar el arranque del tramo: el primer día sin renovar cuyo anterior sí renueva */
-    let ini=sinRenovar.find(x=>d.includes((x+6)%7));
-    if(ini===undefined)ini=sinRenovar[0];
-    /* Recorrer desde ahí dando la vuelta a la semana */
-    const orden=[];
-    for(let k=0,i=ini;k<7;k++,i=(i+1)%7){
-        if(!sinRenovar.includes(i))break;
-        orden.push(i);
-    }
-    const seq=orden.length===sinRenovar.length?orden:sinRenovar;
-    return seq.length===2
-        ? ` (${ab(seq[0])} y ${ab(seq[1])} = 1 cupo)`
-        : ` (${ab(seq[0])} a ${ab(seq[seq.length-1])} = 1 cupo)`;
-}
 
 /* Devuelve true si alguna cuenta renovó su cupo: quien llama tiene que
    recalcular el consumo y guardar, porque la fecha de renovación cambió. */
@@ -194,11 +47,6 @@ function verificarResetLimites(){
     return renovo;
 }
 
-function getMonedaBanco(){const b=$('banco')?.value;if(!b)return'UYU';return getBancoInfo(b)?.moneda||'UYU'}
-/* v7.3.0 — Con comisionConfigurada, que respeta el 0 %. La vista previa usaba
-   `||0.14` y mostraba una comisión que la operación después no cobraba. */
-function getComisionActual(){return comisionConfigurada(getMonedaBanco())}
-function getComisionDec(){return getComisionActual()/100}
 /* ═══ v4.9.5 — Orden por saldo: más plata primero, cuentas vacías al final ═══
    Se agrupa por moneda antes de comparar (UYU y luego USD, según el orden de
    CONFIG): mezclar $24.000 con US$500 en un mismo ranking no tiene sentido.
@@ -227,126 +75,11 @@ function ordenarBancosPorSaldo(lista){
 }
 function getBancosActivos(){return ordenarBancosPorSaldo(CONFIG.BANCOS.filter(b=>AppState.datos.bancos[b.nombre]?.activo))}
 
-function actualizarSelectBancos(){
-    const s=$('banco'),v=s.value;
-    s.innerHTML='<option value="">-- Seleccionar --</option>';
-    /* v5.6.0 — El saldo va dentro de cada opción. Antes había que elegir la
-       cuenta para recién entonces ver si alcanzaba; ahora se compara de un
-       vistazo antes de decidir. Se omite en las cuentas vacías, donde el saldo
-       no aporta y solo hace más largo el texto. */
-    getBancosActivos().forEach(b=>{
-        const saldo=(AppState.datos.bancos[b.nombre]||{}).saldo||0;
-        const etiq=saldo>0.005
-            ? `${b.nombre} — ${getSym(b.moneda)}${fmtNum(saldo,0)}`
-            : `${b.nombre} — sin saldo`;
-        s.innerHTML+=`<option value="${escHtml(b.nombre)}" style="color:${b.color||'#1e293b'};font-weight:600">${escHtml(etiq)}</option>`;
-    });
-    s.value=v;actualizarColorBancoSelect();
-}
-
-/* Al elegir cuenta se limpia el aviso de "Seleccioná un banco". El saldo ya
-   figura en el desplegable y en el resumen del pie. */
-function mostrarSaldoBanco(){
-    const h=$('bancoHelp');
-    if(h){h.textContent='';h.className=''}
-    $('banco').classList.remove('error');
-}
-
-function actualizarBancosGrid(){
-    const la=AppState.datos.lotes.filter(l=>l.disponible>0).length;
-    const saldoUsdt=Math.max(0,AppState.datos.saldoUsdt);
-    /* Computar totales por moneda — solo cuentas bancarias reales */
-    let totalUYU=0,totalUSD=0;
-    CONFIG.BANCOS.forEach(b=>{
-        if(!AppState.datos.bancos[b.nombre]?.activo)return;
-        const s=AppState.datos.bancos[b.nombre].saldo;
-        if(b.moneda==='USD')totalUSD=roundMoney(totalUSD+s);else totalUYU=roundMoney(totalUYU+s);
-    });
-
-    /* ═══ Barra compacta: Total Bancos — una línea, sin ruido ═══ */
-    let heroH=`<span class="saldos-hero-label"><svg class=\"ico\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18\"/></svg> Total Bancos (UYU)</span><span class="saldos-hero-value" style="color:${totalUYU>=0?'#16a34a':'#dc2626'}">$${fmtNum(totalUYU,2)}</span>`;
-    if(totalUSD!==0||hayBancosUSD())heroH+=`<span class="saldos-hero-label" style="margin-left:auto"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 10h.01M18 14h.01"/></svg> USD</span><span class="saldos-hero-value" style="color:#3b82f6">US$${fmtNum(totalUSD,2)}</span>`;
-    setHtml('saldosTotales',heroH);
-
-    /* ═══ Grid de desglose: cada cuenta individual ═══ */
-    let h=`<div class="banco-mini-card usdt-card" data-action="inventario"><div class="banco-nombre" style="display:flex;align-items:center;gap:6px"><img src="${LOGO_USDT}" alt="" class="banco-logo-img" style="width:20px;height:20px;object-fit:contain;border-radius:50%;flex:0 0 auto" loading="lazy" onerror="this.style.display='none'"><b style="color:#1e293b">USDT</b></div><div class="banco-saldo">${fmtTrunc(saldoUsdt,2)}</div><div class="banco-moneda">${la} lotes</div></div>`;
-    /* v4.9.5 — mismo embudo ordenado que los selectores (saldo desc, vacías al
-       final). Antes recorría CONFIG.BANCOS con filtro propio: orden fijo de
-       declaración, con las cuentas en $0 quedando en el medio de la grilla. */
-    getBancosActivos().forEach(b=>{
-        const s=AppState.datos.bancos[b.nombre].saldo,lim=AppState.datos.bancos[b.nombre].limiteDiarioUSD||0,us=AppState.datos.bancos[b.nombre].limiteUsadoUSD||0;
-        let tipHtml='',limTxt='',hasGauge=false,cardStyle='';
-        if(lim>0){
-            hasGauge=true;
-            const pct=Math.min(100,Math.max(0,(us/lim)*100));
-            const fillColor=_gaugeColor(pct);
-            const disp=Math.max(0,lim-us);
-            const visualH=pct<=0.5?0:Math.max(4,pct);
-            /* Custom properties → pseudo ::after las lee. Track y fill comparten 
-               exactamente el mismo rectángulo, el fill solo varía su altura. */
-            cardStyle=` style="--gauge-h:${visualH}%;--gauge-color:${fillColor}"`;
-            tipHtml=`<div class="banco-gauge-tip">${fmtNum(pct,0)}% · US$${fmtNum(disp,0)}</div>`;
-            limTxt=`<div class="banco-limite-txt">US$${fmtNum(disp,0)}/${fmtNum(lim,0)}</div>`;
-        }
-        h+=`<div class="banco-mini-card${hasGauge?' has-gauge':''}"${cardStyle} data-action="editar-saldo" data-banco="${b.nombre}"><div class="banco-nombre" style="color:${b.color||'#1e293b'};display:flex;align-items:center;gap:4px">${_bancoLogoImg(b.nombre,17)}<span class="banco-nombre-txt">${b.nombre}</span></div><div class="banco-saldo" style="color:${s>=0?'#16a34a':'#dc2626'}">${getSym(b.moneda)}${fmtNum(s,2)}</div><div class="banco-moneda">${b.moneda}</div>${limTxt}${tipHtml}${hasGauge?'<span class="banco-gauge" aria-hidden="true"></span>':''}</div>`;
-    });
-    setHtml('bancosGrid',h);
-}
-
-/* Interpolación progresiva de color por porcentaje de uso del límite.
-   Escala 5-stops: azul (bajo) → verde → amarillo → naranja → rojo (crítico).
-   La transición entre colores es suave (mix lineal RGB entre stops consecutivos). */
-function _gaugeColor(pct){
-    /* Clamp */
-    const p=Math.max(0,Math.min(100,pct));
-    /* Stops: [pct, r, g, b] */
-    const stops=[
-        [0,   59, 130, 246],  /* #3b82f6 — azul, uso bajo */
-        [30,  34, 197,  94],  /* #22c55e — verde, normal */
-        [60, 250, 204,  21],  /* #facc15 — amarillo, alerta */
-        [80, 249, 115,  22],  /* #f97316 — naranja, alto */
-        [95, 220,  38,  38]   /* #dc2626 — rojo, crítico */
-    ];
-    /* Encontrar segmento */
-    let i=0;while(i<stops.length-1&&p>stops[i+1][0])i++;
-    const a=stops[i],b=stops[Math.min(i+1,stops.length-1)];
-    const range=b[0]-a[0];
-    const t=range>0?(p-a[0])/range:0;
-    const r=Math.round(a[1]+(b[1]-a[1])*t);
-    const g=Math.round(a[2]+(b[2]-a[2])*t);
-    const bl=Math.round(a[3]+(b[3]-a[3])*t);
-    return `rgb(${r},${g},${bl})`;
-}
-
-/* Lista de cuentas: primero las que usás. "Editar" abre directamente el saldo
-   y el límite; el historial se consulta tocando la tarjeta en Mis Saldos. */
-function renderizarListaBancos(){
-    const activos=CONFIG.BANCOS.filter(b=>AppState.datos.bancos[b.nombre]?.activo);
-    const inactivos=CONFIG.BANCOS.filter(b=>!AppState.datos.bancos[b.nombre]?.activo);
-    const fila=b=>{
-        const bk=AppState.datos.bancos[b.nombre]||{},a=!!bk.activo,s=bk.saldo||0,lim=bk.limiteDiarioUSD||0;
-        const li=lim>0?`<div class="banco-list-lim">Límite US$${fmtNum(lim,0)}/día${escHtml(textoDiasReset(b.nombre))}</div>`:'';
-        return `<div class="banco-list-item${a?'':' inactiva'}"><div class="banco-list-info"><div class="banco-list-nombre"><span style="color:${b.color||'#1e293b'}">${escHtml(b.nombre)}</span> <span class="banco-list-mon">${b.moneda}</span></div><div class="banco-list-saldo">${getSym(b.moneda)}${fmtNum(s)}</div>${li}</div><div class="banco-list-actions">${a?`<button class="btn-edit-small" data-action="corregir-saldo" data-banco="${escHtml(b.nombre)}" aria-label="Editar ${escHtml(b.nombre)}">${ICO_EDITAR}</button>`:''}<label class="toggle-switch" aria-label="${a?'Desactivar':'Activar'} ${escHtml(b.nombre)}"><input type="checkbox" ${a?'checked':''} data-action="toggle-banco" data-banco="${escHtml(b.nombre)}"><span class="toggle-slider"></span></label></div></div>`;
-    };
-    let h='';
-    if(activos.length)h+='<div class="banco-list-grupo">En uso</div>'+activos.map(fila).join('');
-    if(inactivos.length)h+='<div class="banco-list-grupo">Sin usar</div>'+inactivos.map(fila).join('');
-    setHtml('listaBancos',h);
-}
-
-function mostrarSaldoOrigen(){
-    const b=$('bancoOrigen')?.value;
-    if(b&&AppState.datos.bancos[b]){
-        const bi=getBancoInfo(b),sym=getSym(bi?.moneda);let info=colorBanco(b)+': '+sym+fmtNum(AppState.datos.bancos[b].saldo);
-        if(AppState.datos.bancos[b].limiteDiarioUSD>0){const u=AppState.datos.bancos[b].limiteUsadoUSD||0,d=Math.max(0,AppState.datos.bancos[b].limiteDiarioUSD-u);info+=` | Límite: US$${fmtNum(d,0)}/${fmtNum(AppState.datos.bancos[b].limiteDiarioUSD,0)}`}
-        $('saldoOrigenInfo').innerHTML=info;
-    }else $('saldoOrigenInfo').textContent='';
-}
 
 /* ═══════════════════════════════════════
    §7 — INVENTARIO FIFO
    ═══════════════════════════════════════ */
-function agregarLote(id,fecha,hora,precio,cant,moneda){
+function agregarLote(id,fecha,hora,precio,cant,moneda,tasa){
     moneda=moneda||'UYU';cant=truncUsdt(cant);
     /* Mergear con lotes automáticos del mismo precio y moneda, y también con los
        de ARRASTRE: son sintéticos, reemplazan al lote automático que existía al
@@ -361,11 +94,12 @@ function agregarLote(id,fecha,hora,precio,cant,moneda){
        redondean, no se truncan: en coma flotante 800 − 501,92 da 298,0799999…
        y truncar eso perdía un centavo en cada paso del inventario. */
     if(ex){ex.cantidad=roundMoney(ex.cantidad+cant);ex.disponible=roundMoney(ex.disponible+cant)}
-    else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant,moneda});
+    else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant,moneda,...(tasa>0?{tasa}:{})});
 }
 
 function consumirFIFO(cant,precioVenta,monedaVenta){
-    let rest=truncUsdt(cant),gan=0,costo=0;
+    const pedido=truncUsdt(cant);
+    let rest=pedido,gan=0,costo=0;
     /* CRITICAL: FIFO must consume only lots of the matching currency.
        Mixing UYU and USD lots breaks cost basis and profit calculations. */
     const monedaTarget=monedaVenta||'UYU';
@@ -376,7 +110,7 @@ function consumirFIFO(cant,precioVenta,monedaVenta){
         if(precioVenta!==undefined)gan=roundMoney(gan+roundMoney(c*(precioVenta-l.precioCompra)));
         consumed.push({lotId:l.id,amount:c,precio:l.precioCompra});
         l.disponible=roundMoney(l.disponible-c);if(l.disponible<0.005)l.disponible=0;rest=roundMoney(rest-c);if(rest<0.005)rest=0}
-    return{ganancia:gan,costo,consumed};
+    return{ganancia:gan,costo,consumed,consumido:roundMoney(pedido-rest)};
 }
 function previewFIFO(cant,moneda){
     let rest=truncUsdt(cant);
@@ -444,19 +178,30 @@ function recalcularLotesYGanancias(){
             const cpct=((op.comisionPct===undefined||op.comisionPct===null||!isFinite(op.comisionPct))
                         ?comisionConfigurada(op.moneda):Number(op.comisionPct))/100;
             const uBase=usdtBase(op.monto/op.tasa,op.tipo),cp=truncar(uBase*cpct,2),isU=op.moneda==='USD';
+            /* ═══ v8.0.0 — La comisión de Binance es un costo ═══
+               Al comprar, el lote se anotaba a la tasa pactada aunque llegaran
+               menos USDT (la base menos la comisión); al vender, se contaba como
+               cobrada también la comisión que se lleva Binance. Las dos cosas
+               inflaban la ganancia: unos $45 por cada compra y venta de $16.000.
+               Ahora el lote vale lo que se pagó dividido lo que llegó, y la
+               ganancia de una venta es lo que entró al banco menos lo que costaron
+               los USDT que salieron, comisión incluida. */
             if(op.tipo==='compra'){
                 const un=usdtNeto(uBase,cp,op.tipo);
                 if(isU){
                     op.ganancia=roundMoney((utvU>0?roundMoney(un*(utvU-op.tasa)):0)-(op.comisionBanco||0));
                     utcUL=op.tasa;
                 }else{utcL=op.tasa;op.ganancia=roundMoney(-(op.comisionBanco||0))}
-                agregarLote(op.id,op.fecha,op.hora||'00:00',op.tasa,un,op.moneda||'UYU');
+                agregarLote(op.id,op.fecha,op.hora||'00:00',un>0?op.monto/un:op.tasa,un,op.moneda||'UYU',op.tasa);
             }else{
                 const av=usdtNeto(uBase,cp,op.tipo);
-                const fifo=consumirFIFO(av,op.tasa,op.moneda||'UYU');
+                const fifo=consumirFIFO(av,undefined,op.moneda||'UYU');
                 op.consumedLots=fifo.consumed;
-                if(isU){utvU=op.tasa;op.ganancia=roundMoney(fifo.ganancia)}
-                else{utvL=op.tasa;op.ganancia=roundMoney(fifo.ganancia)}
+                op.costoUsdt=fifo.costo;
+                /* Si faltó inventario, solo cuenta la parte que salió de un lote */
+                const cobrado=(av>0&&fifo.consumido<av-0.005)?roundMoney(op.monto*fifo.consumido/av):op.monto;
+                op.ganancia=roundMoney(cobrado-fifo.costo);
+                if(isU)utvU=op.tasa;else utvL=op.tasa;
             }
             op.usdt=uBase;op.comisionPlataforma=cp;
         }else if(e.tipo==='mi'){
@@ -485,6 +230,4 @@ function recalcularLotesYGanancias(){
        mismo recorrido y no pueden quedar desincronizados entre sí. */
     if(typeof recalcularCuposDiarios==='function')recalcularCuposDiarios();
     invalidarGananciaCache();
-    /* Listas dependen de ganancia/ops recalculadas → invalidar fingerprints también */
-    if(typeof _invalidateListCache==='function')_invalidateListCache();
 }

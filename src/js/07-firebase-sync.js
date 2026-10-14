@@ -1,39 +1,3 @@
-/* v6.5.0 — La fecha de cada lote, que faltaba. El orden siempre fue por fecha
-   de compra, pero sin verla no había forma de comprobarlo. Las compras a la
-   misma tasa se fusionan en un lote y este conserva la fecha de la primera,
-   así que un lote grande puede ser más viejo de lo que parece: mostrarla lo
-   explica. */
-function _fechaLote(l){
-    const f=String(l&&l.fecha||'');
-    if(!f)return '';
-    const p=f.split('-');
-    return p.length===3?`${p[2]}/${p[1]}`:f;
-}
-
-function renderizarInventario(){
-    const la=getLotesActivosFIFO();
-    if(!la.length){setHtml('inventarioContent','<div style="text-align:center;padding:30px;color:#94a3b8"><div style="margin-bottom:8px"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></div><div>Sin USDT en inventario</div></div>');return}
-    let tot=0,h='';
-    la.forEach((l,i)=>{tot=roundMoney(tot+l.disponible);const mon=l.moneda||'UYU',sy=getSym(mon),v=roundMoney(l.disponible*l.precioCompra,2);
-        const tag=l.manual?'<span style="display:inline-block;font-size:0.6em;background:#e0e7ff;color:#4338ca;padding:1px 5px;border-radius:4px;font-weight:600;vertical-align:middle;margin-left:4px;letter-spacing:0.3px">manual</span>':'';
-        h+=`<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:13px 0;${i>0?'border-top:1px solid #f1f5f9':''}">
-            <div style="min-width:0">
-                <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
-                    <span style="font-size:0.88em;font-weight:700;color:#2563eb">${fmtTrunc(l.disponible,2)} USDT</span>
-                    <span style="font-size:0.7em;color:#94a3b8;font-weight:500">#${i+1}${tag}</span>
-                </div>
-                <div style="display:flex;gap:10px;margin-top:3px;font-size:0.72em;color:#64748b;flex-wrap:wrap">
-                    <span>${_fechaLote(l)}</span>
-                    <span>Precio: <b style="color:#475569">${fmtTasaMon(l.precioCompra,mon)}</b></span>
-                    <span>Valor: <b style="color:#475569">${sy}${fmtNum(v,2)}</b></span>
-                </div>
-            </div>
-            ${l.manual?`<button class="btn-edit-small" style="padding:6px 10px;min-height:34px;flex-shrink:0" data-action="editar-lote" data-lote-id="${escHtml(String(l.id))}" aria-label="Editar lote">${ICO_EDITAR}</button>`:''}
-        </div>`});
-    h+=`<div style="margin-top:14px;padding:13px 16px;background:#f0f9ff;border:1px solid #e0f2fe;border-radius:10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:0.78em;color:#64748b">Total inventario</span><span style="font-size:1.05em;font-weight:700;color:#2563eb">${fmtTrunc(tot,2)} USDT</span></div>`;
-    setHtml('inventarioContent',h);
-}
-
 /* ═══════════════════════════════════════
    §8 — FIREBASE & AUTH
    ═══════════════════════════════════════ */
@@ -126,7 +90,6 @@ function repairOrphanPendingStates(){
     });
     if(cleaned>0){
         if(typeof _syncLog==='function')_syncLog('repair:orphans-cleaned',{count:cleaned});
-        if(typeof _invalidateListCache==='function')_invalidateListCache();
         if(typeof actualizarVistaDebounced==='function')actualizarVistaDebounced();
     }
     return cleaned;
@@ -196,9 +159,6 @@ function guardaOptimista(type,entity,id){
        Adicionalmente, backupToLocal valida que el estado no esté vacío antes de
        guardar (esDatosVacios), evitando sobrescribir un backup bueno con uno malo. */
     try{backupToLocal()}catch(e){console.warn('[P2P] backup inmediato falló:',e.message)}
-    /* Invalidar fingerprints de listas → próximo actualizarVista re-renderiza las listas
-       aunque no cambie array.length (ej. editar monto de una transferencia) */
-    if(typeof _invalidateListCache==='function')_invalidateListCache();
     const now=Date.now();
     if(!_guardaFirstPendingTs)_guardaFirstPendingTs=now;
     clearTimeout(_guardaDebounceTimer);

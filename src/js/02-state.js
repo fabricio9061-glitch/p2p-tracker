@@ -11,10 +11,11 @@ const AppState = {
     datos: null,
     _localVersion: 0,
     _datosStale: false,
-    ui: { bancoEditando:null, tipoMovimiento:'ingreso', calendarDate:new Date(),
-          loteEditandoId:null, paginaOp:1, paginaMov:1, paginaTrans:1, paginaConv:1,
-          guardandoMovimiento:false, guardandoLote:false, guardandoOperacion:false, guardandoTransferencia:false,
-          enCooldown:false, comisionDebounce:null, tasaManual:false, ultimoMonedaBanco:null, syncState:'offline', opEditandoId:null, tagPeriodo:'total' }
+    /* Estado de la pantalla: qué se está viendo y los filtros elegidos.
+       No se guarda en ningún lado. */
+    ui: { tab:'inicio', syncState:'offline',
+          registro:{tipo:'todo',periodo:'mes',cuenta:'',buscar:'',dia:'',limite:60},
+          tagPeriodo:'mes' }
 };
 
 function crearDatosVacios() {
@@ -26,7 +27,9 @@ function crearDatosVacios() {
             lastSeenVersion:'',dismissedVersions:[],
             /* v5.2.2 — Explícitos en null: si no figuran, el reseteo no puede
                limpiarlos y los lotes de arrastre reaparecen con su saldo USDT. */
-            _archivoCarryover:null,_archivoSeeds:null,_archivoIndex:null};
+            _archivoCarryover:null,_archivoSeeds:null,_archivoIndex:null,
+            /* v8.0.0 — Lo borrado en los últimos 30 días, para poder recuperarlo */
+            eliminados:[]};
 }
 AppState.datos = crearDatosVacios();
 
@@ -35,48 +38,19 @@ AppState.datos = crearDatosVacios();
    ═══════════════════════════════════════ */
 const $ = id => document.getElementById(id);
 const setText = (id, t) => { const e=$(id); if(e) e.textContent=t; };
-const setHtml = (id, h) => { const e=$(id); if(e) e.innerHTML=h; };
 
-/* v7.3.0 — El último modal que se abre queda arriba. Antes el orden dependía
-   del lugar en la página: abrir una operación desde el libro de una cuenta la
-   dejaba escondida detrás del libro. */
-let _modalCapa=0;
-function abrirModal(id){
-    const m=$(id);if(!m)return;
-    if(!document.querySelector('.modal.active'))_modalCapa=0;
-    m.style.zIndex=String(1000+Math.min(40,++_modalCapa));
-    m.classList.add('active');
-    document.body.style.overflow='hidden';
-}
-function cerrarModal(id){
-    $(id)?.classList.remove('active');
-    if(!document.querySelector('.modal.active')){document.body.style.overflow='';_modalCapa=0}
-}
-
-/* ═══ Success confirmation overlay ═══ */
-let _successTimer=null;
-function showSuccess(opts){
-    const{amount,message,sub}=opts;
-    clearTimeout(_successTimer);
-    const ov=$('successOverlay');if(!ov)return;
-    $('successAmount').textContent=amount||'';
-    $('successMsg').textContent=message||'Operación exitosa';
-    $('successSub').textContent=sub||'';
-    ov.classList.add('show');document.body.style.overflow='hidden';
-    _successTimer=setTimeout(()=>{ov.classList.remove('show');if(!document.querySelector('.modal.active'))document.body.style.overflow=''},1500);
-}
 function setSyncStatus(s,t) {
-    const el=$('syncStatus');if(!el)return;
-    const labels={online:'En línea',offline:'Desconectado',syncing:'Sincronizando...',reconnecting:'Reconectando...'};
-    el.className='sync-status '+s;
-    /* Trazabilidad: si hubo restauración reciente, reflejarla al estar online */
+    const el=$('syncStatus');
+    AppState.ui.syncState=s;
+    if(!el)return;
+    const labels={online:'Todo guardado',offline:'Sin conexión: se guarda al volver',syncing:'Guardando…',reconnecting:'Reconectando…'};
+    el.className='sync '+s;
     let lbl=t||labels[s]||s;
     if(s==='online'&&AppState._restoredFrom&&!t){
-        const map={'backup-empty-remote':'Restaurado (auto)','backup-no-remote':'Restaurado (auto)','manual-backup':'Restaurado (manual)','manual-import':'Importado (manual)'};
-        lbl=map[AppState._restoredFrom]||'En línea';
+        const map={'backup-empty-remote':'Restaurado','backup-no-remote':'Restaurado','manual-backup':'Respaldo restaurado','manual-import':'Copia importada'};
+        lbl=map[AppState._restoredFrom]||labels.online;
     }
     setText('syncText',lbl);
-    AppState.ui.syncState=s;
 }
 
 /* ═══ Reconnect Firebase sin recargar ═══ */
@@ -106,7 +80,7 @@ async function reconnectFirebase(){
             });
         })()]);
     }catch(e){
-        const msg=e.message==='timeout'||e.message==='sync-timeout'?'Tiempo agotado':'Error al reconectar';
+        const msg=e.message==='timeout'||e.message==='sync-timeout'?'La conexión está lenta: se guarda al volver':'No se pudo reconectar: tocá para reintentar';
         if(e.message==='sync-timeout'){
             /* Si el timeout es de sync pero la conexión se restableció, desbloquear de todas formas */
             AppState._datosStale=false;
@@ -162,181 +136,3 @@ function inicializarConectividad(){
         if(AppState.currentUser)flushGuardaDebounce();
     });
 }
-
-/* ═══ Monthly Summary — Snapshot automático al cambio de mes ═══ */
-async function verificarCambioMes(){
-    if(!AppState.currentUser||!AppState.datos)return;
-    const hoy=getUDate(),mesActual=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
-    const ultimoMes=AppState.datos.ultimoMesProcesado||'';
-    if(!ultimoMes){
-        /* v7.3.0 — Con guardaOptimista: guardarDatos() sin nada anotado no
-           escribía nada y el mes quedaba sin registrar. */
-        AppState.datos.ultimoMesProcesado=mesActual;
-        guardaOptimista('update','config','ultimoMesProcesado');return;
-    }
-    if(ultimoMes>=mesActual)return;
-    try{
-        const ops=AppState.datos.operaciones.filter(op=>op.fecha?.startsWith(ultimoMes));
-        let compras=0,ventas=0,montoCompras=0,montoVentas=0,gananciaTotal=0,comisionesTotal=0,comisionBancariaTotal=0;
-        let sumTasaC=0,sumTasaV=0;
-        const opsPorBanco={};
-        const gananciaDiaria={};
-        ops.forEach(op=>{
-            if(op.tipo==='compra'){compras++;montoCompras=roundMoney(montoCompras+op.monto);sumTasaC+=op.tasa;comisionBancariaTotal=roundMoney(comisionBancariaTotal+(op.comisionBanco||0))}
-            else{ventas++;montoVentas=roundMoney(montoVentas+op.monto);sumTasaV+=op.tasa}
-            gananciaTotal=roundMoney(gananciaTotal+(op.ganancia||0));
-            comisionesTotal=roundMoney(comisionesTotal+(op.comisionPlataforma||0));
-            if(op.banco)opsPorBanco[op.banco]=(opsPorBanco[op.banco]||0)+1;
-            if(op.fecha)gananciaDiaria[op.fecha]=roundMoney((gananciaDiaria[op.fecha]||0)+(op.ganancia||0));
-        });
-        const tasaPromCompra=compras?roundMoney(sumTasaC/compras):0;
-        const tasaPromVenta=ventas?roundMoney(sumTasaV/ventas):0;
-        const spreadPromedio=(compras&&ventas)?roundMoney(tasaPromVenta-tasaPromCompra):0;
-        let mejorDia=null,peorDia=null,maxG=-Infinity,minG=Infinity;
-        Object.entries(gananciaDiaria).forEach(([dia,g])=>{
-            if(g>maxG){maxG=g;mejorDia={dia,ganancia:g}}
-            if(g<minG){minG=g;peorDia={dia,ganancia:g}}
-        });
-        let bancoMasUsado=null,maxOps=0;
-        Object.entries(opsPorBanco).forEach(([b,n])=>{if(n>maxOps){maxOps=n;bancoMasUsado={banco:b,ops:n}}});
-        const lotesAlCierre=(AppState.datos.lotes||[]).filter(l=>l.disponible>0).length;
-        const capitalOperado=roundMoney(montoCompras+montoVentas);
-        const movs=AppState.datos.movimientos.filter(m=>m.fecha?.startsWith(ultimoMes));
-        const transf=AppState.datos.transferencias.filter(t=>t.fecha?.startsWith(ultimoMes));
-        const snapshot={
-            mes:ultimoMes,
-            creadoEn:firebase.firestore.FieldValue.serverTimestamp(),
-            operaciones:{total:ops.length,compras,ventas,montoCompras,montoVentas},
-            gananciaTotal,comisionesTotal,comisionBancariaTotal,
-            movimientos:movs.length,transferencias:transf.length,
-            saldoUsdt:AppState.datos.saldoUsdt,
-            bancosSnapshot:{},
-            gastosTag:{},
-            tasaPromCompra,tasaPromVenta,spreadPromedio,
-            mejorDia,peorDia,bancoMasUsado,
-            lotesAlCierre,capitalOperado
-        };
-        CONFIG.BANCOS.forEach(b=>{
-            if(AppState.datos.bancos[b.nombre]?.activo)
-                snapshot.bancosSnapshot[b.nombre]={saldo:AppState.datos.bancos[b.nombre].saldo,moneda:b.moneda}
-        });
-        /* Análisis de gastos por tag para el mes que cierra */
-        const tasaFb=AppState.datos.ultimaTasaCompra||1;
-        const egresosMes=movs.filter(m=>m.tipoMovimiento==='egreso');
-        let totalEgresoUYU=0;
-        const tags=AppState.datos.tags||[];
-        tags.forEach(tag=>{
-            const tagMovs=egresosMes.filter(m=>m.descripcion&&tagKey(m.descripcion)===tagKey(tag));
-            if(!tagMovs.length)return;
-            let uyu=0;tagMovs.forEach(m=>{uyu=roundMoney(uyu+movimientoValorUYU(m,tasaFb))});
-            totalEgresoUYU=roundMoney(totalEgresoUYU+uyu);
-            snapshot.gastosTag[tag]={ops:tagMovs.length,totalUYU:uyu};
-        });
-        snapshot.totalEgresoUYU=totalEgresoUYU;
-        /* Ingresos externos del mes — separados de la ganancia P2P */
-        let ingresosExternosTotal=0;
-        movs.filter(m=>m.tipoMovimiento==='ingreso').forEach(m=>{
-            ingresosExternosTotal=roundMoney(ingresosExternosTotal+movimientoValorUYU(m,tasaFb));
-        });
-        snapshot.ingresosExternosTotal=ingresosExternosTotal;
-        /* Batch write atómico: snapshot + actualizar mes procesado */
-        const batch=AppState.db.batch();
-        const userRef=AppState.db.collection('users').doc(AppState.currentUser.uid);
-        batch.set(userRef.collection('monthly_summaries').doc(ultimoMes),snapshot);
-        batch.update(userRef,{ultimoMesProcesado:mesActual});
-        await batch.commit();
-        /* El cupo diario no se toca: sale del recálculo (v7.0.0) */
-        AppState.datos.ultimoMesProcesado=mesActual;
-        console.log('[P2P] Resumen mensual guardado:',ultimoMes);
-    }catch(e){console.error('[P2P] Error guardando resumen mensual:',e)}
-}
-
-/* ═══ Resumen Mensual — Cargar y renderizar ═══ */
-/* SVG chart helpers for Resumen Mensual */
-function _chartBar(items,maxH){
-    /* items: [{label,value,color}] — value can be negative */
-    const maxAbs=Math.max(...items.map(i=>Math.abs(i.value||0)),1);
-    const H=maxH||90,W=320,pad=4,barW=(W-pad*2)/items.length-6;
-    let bars='';
-    items.forEach((it,i)=>{
-        const h=Math.abs(it.value)/maxAbs*H*0.85;
-        const x=pad+i*((W-pad*2)/items.length)+3;
-        const y=H-h;
-        bars+=`<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="3" fill="${it.color||'#2563eb'}"/>`;
-        bars+=`<text x="${x+barW/2}" y="${H+12}" text-anchor="middle" fill="#94a3b8" font-size="9">${escHtml(it.label)}</text>`;
-        if(it.value)bars+=`<text x="${x+barW/2}" y="${y-3}" text-anchor="middle" fill="#475569" font-size="9" font-weight="600">${it.valueText||fmtNum(it.value,0)}</text>`;
-    });
-    return `<svg class="resumen-chart-svg" viewBox="0 0 ${W} ${H+18}" preserveAspectRatio="xMidYMid meet">${bars}</svg>`;
-}
-function _chartDona(items,total){
-    /* items: [{label,value,color}] */
-    if(!total||total<=0||!items.length)return '<div style="text-align:center;color:#94a3b8;font-size:0.78em;padding:16px">Sin datos</div>';
-    const r=42,cx=60,cy=60,stroke=16,circ=2*Math.PI*r;
-    let cum=0,svg='';
-    items.forEach(it=>{
-        const pct=it.value/total;if(pct<=0)return;
-        const dash=pct*circ,gap=circ-dash,offset=-cum*circ+circ*0.25;
-        svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${it.color}" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}"/>`;
-        cum+=pct;
-    });
-    svg=`<svg viewBox="0 0 120 120" style="width:110px;height:110px;flex-shrink:0"><text x="${cx}" y="${cy-2}" text-anchor="middle" fill="#1e293b" font-size="11" font-weight="700">$${fmtNum(total,0)}</text><text x="${cx}" y="${cy+10}" text-anchor="middle" fill="#94a3b8" font-size="7">total</text>${svg}</svg>`;
-    const leg=items.filter(i=>i.value>0).map(i=>`<div class="resumen-chart-legend-item"><span class="resumen-chart-legend-dot" style="background:${i.color}"></span>${escHtml(i.label)} · $${fmtNum(i.value,0)}</div>`).join('');
-    return `<div style="display:flex;gap:12px;align-items:center">${svg}<div style="flex:1"><div class="resumen-chart-legend" style="flex-direction:column;gap:4px">${leg}</div></div></div>`;
-}
-function _chartLinea(points,opts){
-    /* points: [{label,value}] */
-    opts=opts||{};
-    if(!points.length)return '<div style="text-align:center;color:#94a3b8;font-size:0.78em;padding:16px">Sin datos</div>';
-    const W=320,H=100,pad=20;
-    const vals=points.map(p=>p.value||0);
-    const min=Math.min(0,...vals),max=Math.max(0,...vals);
-    const range=max-min||1;
-    const xStep=(W-pad*2)/Math.max(1,points.length-1);
-    const yFor=v=>H-pad-((v-min)/range)*(H-pad*2);
-    let path='',area='',dots='';
-    points.forEach((p,i)=>{
-        const x=pad+i*xStep,y=yFor(p.value||0);
-        path+=(i===0?'M':'L')+x.toFixed(1)+' '+y.toFixed(1)+' ';
-        dots+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${(p.value||0)>=0?'#16a34a':'#dc2626'}"/>`;
-        if(i===points.length-1)area=path+`L${x.toFixed(1)} ${(H-pad).toFixed(1)} L${pad} ${(H-pad).toFixed(1)} Z`;
-    });
-    const zeroY=yFor(0);
-    return `<svg class="resumen-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-        <path d="${area}" fill="${opts.areaFill||'rgba(37,99,235,0.1)'}"/>
-        <line x1="${pad}" y1="${zeroY.toFixed(1)}" x2="${W-pad}" y2="${zeroY.toFixed(1)}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2 2"/>
-        <path d="${path}" fill="none" stroke="${opts.lineColor||'#2563eb'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        ${dots}
-        ${points.map((p,i)=>`<text x="${(pad+i*xStep).toFixed(1)}" y="${H-4}" text-anchor="middle" fill="#94a3b8" font-size="9">${escHtml(p.label)}</text>`).join('')}
-    </svg>`;
-}
-function _resumenChartHtml(d,mesesCortos,chartType){
-    const op=d.operaciones||{};
-    if(chartType==='barras'){
-        const items=[
-            {label:'Compras',value:op.compras||0,color:'#16a34a'},
-            {label:'Ventas',value:op.ventas||0,color:'#2563eb'},
-            {label:'Ajustes',value:d.movimientos||0,color:'#f59e0b'},
-            {label:'Transf',value:d.transferencias||0,color:'#8b5cf6'}
-        ];
-        return _chartBar(items);
-    }else if(chartType==='dona'){
-        const gt=d.gastosTag||{};
-        const keys=Object.keys(gt).sort((a,b)=>(gt[b].totalUYU||0)-(gt[a].totalUYU||0)).slice(0,6);
-        const COLORS=['#3b82f6','#16a34a','#f59e0b','#dc2626','#8b5cf6','#ec4899'];
-        const items=keys.map((k,i)=>({label:k,value:gt[k].totalUYU||0,color:COLORS[i%COLORS.length]}));
-        const total=items.reduce((s,i)=>s+i.value,0);
-        return _chartDona(items,total);
-    }
-    return '';
-}
-/* Monthly progression line — receives docs array (reversed: oldest first) */
-function _chartMensual(docs,mesesCortos){
-    const pts=[...docs].reverse().map(d=>{
-        const mn=parseInt(d.mes.split('-')[1])-1;
-        const neta=roundMoney((d.gananciaTotal||0)-(d.totalEgresoUYU||0)-(d.comisionBancariaTotal||0));
-        return{label:mesesCortos[mn],value:neta};
-    });
-    return _chartLinea(pts,{lineColor:'#2563eb',areaFill:'rgba(37,99,235,0.08)'});
-}
-
-/* Compare panel state + rendering */

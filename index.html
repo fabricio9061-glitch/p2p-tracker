@@ -2,463 +2,151 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="P2P Tracker">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Registro P2P">
+    <meta name="theme-color" content="#EEF1F5">
     <title>Registro P2P</title>
     <link rel="icon" type="image/png" href="https://i.imgur.com/fK4ZCLV.png">
     <link rel="apple-touch-icon" href="https://i.imgur.com/fK4ZCLV.png">
-    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUDJQIFRyYWNrZXIiLCJzaG9ydF9uYW1lIjoiUDJQIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmMGYwZWUiLCJ0aGVtZV9jb2xvciI6IiMyNTYzZWIiLCJpY29ucyI6W3sic3JjIjoiaHR0cHM6Ly9pLmltZ3VyLmNvbS9mSzRaQ0xWLnBuZyIsInNpemVzIjoiNTEyeDUxMiIsInR5cGUiOiJpbWFnZS9wbmciLCJwdXJwb3NlIjoiYW55IG1hc2thYmxlIn1dfQ==">
-    <!-- v4.7.48: Inter font, carga no bloqueante. Si Google Fonts no responde,
-         el stack --ff-sans cae a -apple-system / SF Pro automáticamente. -->
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUmVnaXN0cm8gUDJQIiwic2hvcnRfbmFtZSI6IlAyUCIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjRUVGMUY1IiwidGhlbWVfY29sb3IiOiIjRUVGMUY1IiwiaWNvbnMiOlt7InNyYyI6Imh0dHBzOi8vaS5pbWd1ci5jb20vZks0WkNMVi5wbmciLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIiwicHVycG9zZSI6ImFueSBtYXNrYWJsZSJ9XX0=">
+    <!-- Archivo: letra de ancho variable. Los números van angostos para que
+         entren grandes en el teléfono. Si no carga, se usa la del sistema. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <link rel="stylesheet" href="src/css/00-tokens.css?v=7.3.0">
-    <link rel="stylesheet" href="src/css/01-base.css?v=7.3.0">
-    <link rel="stylesheet" href="src/css/02-components.css?v=7.3.0">
-    <link rel="stylesheet" href="src/css/03-modals.css?v=7.3.0">
-    <link rel="stylesheet" href="src/css/04-views.css?v=7.3.0">
-    <link rel="stylesheet" href="src/css/05-overrides.css?v=7.3.0">
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap"></noscript>
+    <link rel="stylesheet" href="src/css/00-tokens.css?v=8.0.0">
+    <link rel="stylesheet" href="src/css/01-base.css?v=8.0.0">
+    <link rel="stylesheet" href="src/css/02-components.css?v=8.0.0">
+    <link rel="stylesheet" href="src/css/03-pantallas.css?v=8.0.0">
 </head>
 <body>
-    <!-- ═══ OVERLAYS ═══ -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <!-- v5.5.0 — Antes había un círculo girando sobre pantalla en blanco. Un
-             esqueleto con la forma de lo que está por aparecer hace que la espera
-             se sienta más corta, porque la pantalla ya se parece al resultado. -->
-        <div class="esqueleto" aria-label="Cargando" role="status">
-            <div class="esq-hero"><div class="esq-l" style="width:34%;height:13px"></div><div class="esq-l" style="width:56%;height:30px;margin-top:9px"></div><div class="esq-l" style="width:22%;height:11px;margin-top:8px"></div></div>
-            <div class="esq-fila"><div class="esq-l" style="width:44%;height:15px"></div><div class="esq-l" style="width:64%;height:11px;margin-top:6px"></div></div>
-            <div class="esq-fila"><div class="esq-l" style="width:37%;height:15px"></div><div class="esq-l" style="width:58%;height:11px;margin-top:6px"></div></div>
-            <div class="esq-fila"><div class="esq-l" style="width:49%;height:15px"></div><div class="esq-l" style="width:52%;height:11px;margin-top:6px"></div></div>
-            <div class="esq-fila"><div class="esq-l" style="width:31%;height:15px"></div><div class="esq-l" style="width:61%;height:11px;margin-top:6px"></div></div>
-        </div>
-    </div>
-    <div class="cooldown-overlay hidden" id="cooldownOverlay"><div class="spinner"></div><div class="cooldown-text"><svg class="ico ico-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg> Guardado</div></div>
-
-    <!-- ═══ AUTH ═══ -->
-    <div class="auth-container" id="authContainer">
-        <div class="auth-box">
-            <div class="auth-logo"><svg class="logo-svg logo-svg-auth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/><path d="M12 2v3M12 19v3"/></svg></div>
-            <h1 class="auth-title">Registro P2P</h1>
-            <p class="auth-subtitle">Control de operaciones y saldos</p>
-            <div class="auth-tabs">
-                <button class="auth-tab active" id="tabLogin">Iniciar Sesión</button>
-                <button class="auth-tab" id="tabRegister">Registrarse</button>
-            </div>
-            <div class="auth-error" id="authError"></div>
-            <form class="auth-form" id="loginForm">
-                <div class="form-group"><label>Usuario</label><input type="text" id="loginUser" placeholder="Tu usuario" required></div>
-                <div class="form-group"><label>Contraseña</label><input type="password" id="loginPass" placeholder="Tu contraseña" autocomplete="current-password" required></div>
-                <button type="submit" class="btn" id="loginBtn">Iniciar Sesión</button>
-            </form>
-            <form class="auth-form" id="registerForm" style="display:none">
-                <div class="form-group"><label>Usuario</label><input type="text" id="regUser" placeholder="Elige un usuario" required><small>Letras, números, guiones. 3-20 caracteres.</small></div>
-                <div class="form-group"><label>Contraseña</label><input type="password" id="regPass" placeholder="Crea una contraseña" autocomplete="new-password" required><small>Mínimo 6 caracteres</small></div>
-                <div class="form-group"><label>Confirmar Contraseña</label><input type="password" id="regPassConfirm" placeholder="Repite la contraseña" autocomplete="new-password" required></div>
-                <button type="submit" class="btn" id="registerBtn">Crear Cuenta</button>
-            </form>
+    <!-- Mientras carga: la forma del inicio, para que la espera se sienta corta -->
+    <div class="cargando" id="loadingOverlay" role="status" aria-label="Cargando">
+        <div class="esq-col">
+            <div class="esq" style="width:52%;height:18px"></div>
+            <div class="esq" style="width:30%;height:13px"></div>
+            <div class="esq" style="width:34%;height:15px;margin-top:22px"></div>
+            <div class="esq" style="width:64%;height:62px"></div>
+            <div class="esq" style="width:100%;height:84px;margin-top:14px"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px"><div class="esq" style="height:58px"></div><div class="esq" style="height:58px"></div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px"><div class="esq" style="height:96px"></div><div class="esq" style="height:96px"></div></div>
         </div>
     </div>
 
-    <!-- ═══ APP ═══ -->
-    <div class="app-container" id="appContainer">
-        <div class="container">
-            <div class="header">
-                <div class="header-left">
-                    <h1><svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/><path d="M12 2v3M12 19v3"/></svg> Registro P2P</h1>
-                    <div class="sync-status offline" id="syncStatus" data-action="reconnect" role="button" tabindex="0" title="Tocá para reconectar"><div class="sync-dot"></div><span id="syncText">...</span><span class="sync-badge" id="syncBadge"></span></div>
-                </div>
-                <div class="menu-container">
-                    <button class="news-bell" id="newsBellBtn" aria-label="Centro de novedades">
-                        <span class="news-bell-icon"><svg class="news-bell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg></span>
-                        <span class="news-bell-badge hidden" id="newsBellBadge">0</span>
-                    </button>
-                    <button class="menu-btn" id="menuBtn" aria-label="Abrir menú" aria-expanded="false" aria-controls="menuPanel"><span></span><span></span><span></span></button>
-                </div>
-            </div>
-
-            <!-- ═══ Menú (v7.3.0) ═══
-                 Lo más usado arriba, en cuatro accesos grandes. Después análisis y
-                 datos; cerrar sesión aparte; y borrar todo al final, separado,
-                 para que no se toque sin querer. -->
-            <div class="menu-backdrop" id="menuBackdrop"></div>
-            <div class="menu-panel" id="menuPanel" role="dialog" aria-label="Menú">
-                <div class="menu-panel-header">
-                    <button type="button" class="menu-back" id="menuBack" aria-label="Cerrar menú"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
-                    <div class="menu-panel-title">Menú</div>
-                </div>
-                <div class="menu-panel-body">
-                    <div class="menu-panel-user">
-                        <div class="menu-panel-user-avatar" id="menuUserAvatar">U</div>
-                        <div class="menu-panel-user-info">
-                            <div class="menu-panel-user-name" id="menuUserName">Usuario</div>
-                            <div class="menu-panel-user-email" id="menuUserEmail">@p2p</div>
-                        </div>
-                    </div>
-
-                    <div class="menu-accesos">
-                        <button type="button" class="menu-acceso" data-action="movimiento"><span class="menu-acceso-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span class="menu-acceso-txt">Ajuste externo</span></button>
-                        <button type="button" class="menu-acceso" data-action="transferencia"><span class="menu-acceso-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg></span><span class="menu-acceso-txt">Transferencia</span></button>
-                        <button type="button" class="menu-acceso" data-action="bancos"><span class="menu-acceso-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18"/></svg></span><span class="menu-acceso-txt">Cuentas</span><small class="menu-acceso-dato" id="menuDatoCuentas"></small></button>
-                        <button type="button" class="menu-acceso" data-action="inventario"><span class="menu-acceso-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="menu-acceso-txt">Lotes USDT</span><small class="menu-acceso-dato" id="menuDatoLotes"></small></button>
-                    </div>
-
-                    <div class="menu-group-title">Análisis</div>
-                    <div class="menu-group">
-                        <button type="button" class="menu-row" data-action="historial-mensual"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg></span><span class="menu-row-label">Resumen mensual</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                        <button type="button" class="menu-row" data-action="calendario"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6a2 2 0 012-2h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V6zm0 4h18M8 2v4M16 2v4"/></svg></span><span class="menu-row-label">Calendario</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                        <button type="button" class="menu-row" data-action="gestion-tags"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15.5A9 9 0 118.5 3v9h9a9 9 0 013.5 3.5z"/><path d="M20.9 9.5A9 9 0 0014.5 3.1V9.5h6.4z"/></svg></span><span class="menu-row-label">Análisis de gastos</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                        <button type="button" class="menu-row" data-action="ver-archivo" id="menuFilaArchivo"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8zm0 0l9 5 9-5M12 13v8"/></svg></span><span class="menu-row-label">Historial archivado</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                    </div>
-
-                    <div class="menu-group-title">Tus datos</div>
-                    <div class="menu-group">
-                        <button type="button" class="menu-row" data-action="reconciliar"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4"/></svg></span><span class="menu-row-label">Verificar y reconciliar</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                        <button type="button" class="menu-row" data-action="exportar-datos"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v13M7 8l5-5 5 5"/></svg></span><span class="menu-row-label">Exportar copia (.json)</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                        <button type="button" class="menu-row" data-action="importar-datos"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg></span><span class="menu-row-label">Importar copia (.json)</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                        <button type="button" class="menu-row" data-action="restaurar-respaldo"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v11a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5zM7 3v6h9M8 17h8"/></svg></span><span class="menu-row-label">Restaurar último respaldo</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                        <button type="button" class="menu-row" data-action="archivar"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg></span><span class="menu-row-label">Archivar meses anteriores</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                    </div>
-
-                    <div class="menu-group">
-                        <button type="button" class="menu-row" data-action="cerrar-sesion"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg></span><span class="menu-row-label">Cerrar sesión</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                    </div>
-
-                    <div class="menu-group menu-group-peligro">
-                        <button type="button" class="menu-row danger" data-action="borrar-todo"><span class="menu-row-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg></span><span class="menu-row-label">Borrar todos los datos</span><span class="menu-row-chevron" aria-hidden="true">›</span></button>
-                    </div>
-
-                    <div class="menu-version"><span class="menu-version-label">Versión</span> <span id="menuVersion">—</span></div>
-                </div>
-            </div>
-
-            <div class="cards">
-                <div class="card main-card" id="cardGananciaHoy">
-                    <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 7-7M14 8h7v7"/></svg> Ganancia Hoy</div><span style="font-size:0.65em;color:#64748b" id="fechaHoy">--</span></div>
-                    <div class="card-value positive" id="gananciaHoy">$0</div>
-                    <div class="hoy-meta hoy-meta-line"><span id="opsHoy">0 ops</span></div>
-                    <!-- v4.7.53: mini-cajas con métricas operativas + Ver detalle -->
-                    <div class="hoy-cells" id="hoyCells">
-                        <div class="hoy-cell" id="hoyCellVsAyer"><div class="hoy-cell-v"><span id="vsAyerArrow" class="hc-arrow" style="display:none"></span><span id="vsAyerPct">—</span></div><div class="hoy-cell-l" id="vsAyerLabel">Ayer</div></div>
-                        <div class="hoy-cell" id="hoyCellVsSem"><div class="hoy-cell-v"><span id="vsSemArrow" class="hc-arrow" style="display:none"></span><span id="vsSemPct">—</span></div><div class="hoy-cell-l" id="vsSemLabel">Prom. semana</div></div>
-                        <div class="hoy-cell" id="hoyCellSpread"><div class="hoy-cell-v"><span id="spreadPromedio">$0</span><span id="spreadTrend" class="spread-trend" style="display:none"></span></div><div class="hoy-cell-l">Spread prom.</div></div>
-                    </div>
-                    <div id="cardIngresosExt" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;font-size:0.68em;color:#64748b;justify-content:space-between;align-items:center"><span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 10h.01M18 14h.01"/></svg> Otros ingresos</span><span style="font-weight:700;color:#475569" id="ingresosExtHoy">$0</span></div>
-                    <div class="spark-wrap" id="gananciaSparkline" aria-hidden="true"></div>
-                </div>
-                <div class="card" id="cardGananciaUSD" style="display:none;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:2px solid #3b82f6"><div class="card-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 10h.01M18 14h.01"/></svg> Ganancia USD</div><div class="card-value positive" id="gananciaHoyUSD">US$0</div><div class="card-subtitle" id="opsHoyUSD">0 ops</div></div>
-            </div>
-
-            <div class="section-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg> Actividad del período</div>
-            <div class="cards cards-actividad">
-                <div class="card card-compra">
-                    <div class="card-title" style="color:#16a34a"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg> Compras <span id="mesCompras" style="color:#86efac;font-weight:400;text-transform:none"></span></div>
-                    <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalPagado">$0</div>
-                    <div style="font-size:0.6em;color:#94a3b8" id="statsCompra">--</div>
-                </div>
-                <div class="card card-venta">
-                    <div class="card-title" style="color:#dc2626"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v13M7 8l5-5 5 5"/></svg> Ventas <span id="mesVentas" style="color:#fca5a5;font-weight:400;text-transform:none"></span></div>
-                    <div style="font-size:1.15em;font-weight:700;color:#1e293b;margin:3px 0" id="totalRecibido">$0</div>
-                    <div style="font-size:0.6em;color:#94a3b8" id="statsVenta">--</div>
-                </div>
-            </div>
-
-            <div class="section-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 0V6a2 2 0 012-2h9M17 13h.01"/></svg> Mis Saldos</div>
-            <div class="saldos-hero" id="saldosTotales"></div>
-            <div class="bancos-grid" id="bancosGrid"></div>
-
-            <div class="desktop-columns">
-            <div class="col-left">
-            <!-- Nueva Operación -->
-            <div class="toggle-section open" id="seccionNuevaOp">
-                <div class="toggle-header"><span class="toggle-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nueva Operación</span><span class="toggle-arrow">▼</span></div>
-                <div class="toggle-content">
-                    <div class="form-content">
-                        <select id="tipo"><option value="compra">Compra</option><option value="venta">Venta</option></select>
-                        <div class="op-toggle">
-                            <div class="op-toggle-btn active-compra" id="opToggleCompra"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg> Comprar USDT</div>
-                            <div class="op-toggle-btn" id="opToggleVenta"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v13M7 8l5-5 5 5"/></svg> Vender USDT</div>
-                        </div>
-
-                        <div class="form-group"><label id="montoLabel">Comprás por (UYU)</label><input type="text" inputmode="decimal" id="monto" placeholder="0,00">
-                            <!-- v5.6.0 — Resultado en vivo: lo que recibís aparece acá, debajo
-                                 del monto, en vez de al final del formulario. -->
-                            <div class="eco-resultado oculto" id="ecoResultado">
-                                <span class="eco-t" id="ecoLabel">Recibís<small id="ecoSub">comisión incluida</small></span>
-                                <span class="eco-n" id="ecoValor">0 USDT</span>
-                            </div></div>
-
-                        <div class="tasa-block">
-                            <label>Tasa por USDT</label>
-                            <div class="tasa-input-row">
-                                <button type="button" class="tasa-step-btn" data-action="tasa-step" data-dir="down" aria-label="Bajar tasa">−</button>
-                                <input type="text" id="tasa" placeholder="39,50" inputmode="decimal">
-                                <button type="button" class="tasa-step-btn" data-action="tasa-step" data-dir="up" aria-label="Subir tasa">+</button>
-                            </div>
-                            <small id="tasaHelp" style="display:none"></small>
-                            <div class="tasa-tags" id="tasaTagsContainer"></div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group"><label id="bancoLabel">Sale de</label><select id="banco"><option value="">Seleccionar</option></select><small id="bancoHelp"></small></div>
-                            <div class="form-group" id="comisionBancoGroup"><label>Com. banco</label><input type="text" inputmode="decimal" id="comisionBanco" value="0" placeholder="0"></div>
-                        </div>
-
-                        <div id="splitPanel" class="split-panel" style="display:none"></div>
-
-                        <!-- v5.6.2 — Antes esta caja repetía lo que ya dice el resultado en vivo
-                             que está arriba del todo: cantidad a recibir y comisión aparecían
-                             dos veces en la misma pantalla. Queda solo el efecto en el saldo
-                             de la cuenta, que es el único dato que no está en ningún otro lado. -->
-                        <div class="op-summary modo-compra" id="opSummary" style="display:none">
-                            <div class="op-summary-row main">
-                                <span class="op-summary-label" id="opSumBancoLabel">Saldo</span>
-                                <span class="op-summary-value" id="opSumBancoValue">--</span>
-                            </div>
-                        </div>
-                        <div id="previewBox" style="display:none"><span id="previewText"></span></div>
-
-                        <div class="op-btn-wrap">
-                            <div class="com-row">
-                                <div class="com-label">Comisión Binance</div>
-                                <label class="com-edit" title="Comisión Binance editable (0% a 10%). Se aplica a compras y ventas." aria-label="Editar comisión de Binance en porcentaje"><input type="text" id="comisionPlataforma" value="0,14" placeholder="0,14" inputmode="decimal" maxlength="6" aria-label="Porcentaje de comisión"><span>%</span></label>
-                            </div>
-                            <button class="btn op-btn-compra" id="btnAgregarOp"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg> Comprar USDT</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            </div><!-- /col-left -->
-            <div class="col-right">
-            <!-- Operaciones -->
-            <div class="toggle-section open" id="seccionOperaciones">
-                <div class="toggle-header"><span class="toggle-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg> Operaciones</span><div class="toggle-right"><span class="ops-filtros-trigger" id="opsFiltrosTrigger" data-action="toggle-ops-filters" title="Filtros"><span class="filter-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span><span class="ops-filtros-trigger-label" id="opsFiltrosTriggerLabel">Filtros</span><span class="ops-filtros-badge hidden" id="opsFiltrosBadge">0</span></span><span class="ops-filtros-trigger hidden" id="btnVerArchivo" data-action="ver-archivo" title="Historial archivado"><span class="filter-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8zm0 0l9 5 9-5M12 13v8"/></svg></span><span class="ops-filtros-trigger-label">Archivo</span></span><span class="toggle-badge" id="totalOperaciones">0</span><span class="toggle-arrow">▼</span></div></div>
-                <div class="toggle-content">
-                    <div class="ops-filtros-strip" id="opsFiltros"></div>
-                    <div class="ops-summary" id="opsSummary">
-                        <div class="ops-summary-item"><div class="val" id="opsSumCompras">0</div><div class="lbl">Compras</div></div>
-                        <div class="ops-summary-item"><div class="val" id="opsSumVentas">0</div><div class="lbl">Ventas</div></div>
-                        <div class="ops-summary-item"><div class="val" id="opsSumGanancia" style="color:#16a34a">$0</div><div class="lbl">Ganancia</div></div>
-                        <div class="ops-summary-item"><div class="val" id="opsSumTotal">0</div><div class="lbl">Total</div></div>
-                    </div>
-                    <div id="tablaContent"><div class="empty-state"><div class="empty-state-icon"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></div><div>Sin operaciones</div></div></div>
-                    <div class="pagination" id="paginationOp" style="display:none"><button id="btnPrevOp">← Ant</button><span class="pagination-info" id="paginaInfoOp">1 / 1</span><button id="btnNextOp">Sig →</button></div>
-                </div>
-            </div>
-
-            <!-- Movimientos -->
-            <div class="toggle-section" id="seccionMovimientos" style="display:none">
-                <div class="toggle-header"><span class="toggle-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Ajustes</span><div class="toggle-right"><span class="ops-filtros-trigger" id="movFiltrosTrigger" data-action="toggle-mov-filters" title="Filtros"><span class="filter-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span><span class="ops-filtros-trigger-label">Filtros</span><span class="ops-filtros-badge hidden" id="movFiltrosBadge">0</span></span><span class="toggle-badge" id="totalMovimientos">0</span><span class="toggle-arrow">▼</span></div></div>
-                <div class="toggle-content">
-                    <!-- Drawer de filtros (Ajustes) -->
-                    <div class="ops-filtros-drawer" id="movFiltrosDrawer" style="display:none"></div>
-                    <div class="ops-summary" id="movSummary" style="grid-template-columns:repeat(3,1fr)">
-                        <div class="ops-summary-item"><div class="val" id="movSumIngresos" style="color:#16a34a">$0</div><div class="lbl">Ingresos</div></div>
-                        <div class="ops-summary-item"><div class="val" id="movSumEgresos" style="color:#dc2626">$0</div><div class="lbl">Egresos</div></div>
-                        <div class="ops-summary-item"><div class="val" id="movSumBalance">$0</div><div class="lbl">Balance</div></div>
-                    </div>
-                    <div id="movimientosContent"></div>
-                    <div class="pagination" id="paginationMov" style="display:none"><button id="btnPrevMov">← Ant</button><span class="pagination-info" id="paginaInfoMov">1 / 1</span><button id="btnNextMov">Sig →</button></div>
-                </div>
-            </div>
-
-            <!-- Transferencias -->
-            <div class="toggle-section" id="seccionTransferencias" style="display:none">
-                <div class="toggle-header"><span class="toggle-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg> Transferencias</span><div class="toggle-right"><span class="ops-filtros-trigger" id="transFiltrosTrigger" data-action="toggle-trans-filters" title="Filtros"><span class="filter-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span><span class="ops-filtros-trigger-label">Filtros</span><span class="ops-filtros-badge hidden" id="transFiltrosBadge">0</span></span><span class="toggle-badge" id="totalTransferencias">0</span><span class="toggle-arrow">▼</span></div></div>
-                <div class="toggle-content">
-                    <!-- Drawer de filtros (Transferencias) -->
-                    <div class="ops-filtros-drawer" id="transFiltrosDrawer" style="display:none"></div>
-                    <div class="ops-summary" id="transSummary" style="grid-template-columns:repeat(3,1fr)">
-                        <div class="ops-summary-item"><div class="val" id="transSumMonto">$0</div><div class="lbl">Transferido</div></div>
-                        <div class="ops-summary-item"><div class="val" id="transSumCom">$0</div><div class="lbl">Comisiones</div></div>
-                        <div class="ops-summary-item"><div class="val" id="transSumTotal">0</div><div class="lbl">Total</div></div>
-                    </div>
-                    <div id="transferenciasContent"></div>
-                    <div class="pagination" id="paginationTrans" style="display:none"><button id="btnPrevTrans">← Ant</button><span class="pagination-info" id="paginaInfoTrans">1 / 1</span><button id="btnNextTrans">Sig →</button></div>
-                </div>
-            </div>
-
-            <!-- Conversiones -->
-            <div class="toggle-section" id="seccionConversiones" style="display:none">
-                <div class="toggle-header"><span class="toggle-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5H6l3-3M9 19h9l-3 3M4 12a8 8 0 018-8M20 12a8 8 0 01-8 8"/></svg> Conversiones</span><div class="toggle-right"><span class="toggle-badge" id="totalConversiones">0</span><span class="toggle-arrow">▼</span></div></div>
-                <div class="toggle-content">
-                    <div id="conversionesContent"></div>
-                    <div class="pagination" id="paginationConv" style="display:none"><button id="btnPrevConv">← Ant</button><span class="pagination-info" id="paginaInfoConv">1 / 1</span><button id="btnNextConv">Sig →</button></div>
-                </div>
-            </div>
-            </div><!-- /col-right -->
-            </div><!-- /desktop-columns -->
+    <!-- ═══ Entrada ═══ -->
+    <main class="acceso hidden" id="authContainer">
+        <h1 class="acceso-marca">Registro P2P</h1>
+        <p class="acceso-sub">Tus compras y ventas de USDT, con cada peso en su lugar.</p>
+        <div class="segmento" role="tablist" aria-label="Entrar o crear cuenta">
+            <button type="button" role="tab" id="tabLogin" aria-selected="true">Entrar</button>
+            <button type="button" role="tab" id="tabRegister" aria-selected="false">Crear cuenta</button>
         </div>
+        <div class="auth-error" id="authError" role="alert"></div>
+        <form id="loginForm" novalidate>
+            <div><label class="rotulo" for="loginUser">Usuario</label><input class="campo" type="text" id="loginUser" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+            <div><label class="rotulo" for="loginPass">Contraseña</label><input class="campo" type="password" id="loginPass" autocomplete="current-password" required></div>
+            <button type="submit" class="btn" id="loginBtn">Entrar</button>
+        </form>
+        <form id="registerForm" class="hidden" novalidate>
+            <div><label class="rotulo" for="regUser">Usuario</label><input class="campo" type="text" id="regUser" autocomplete="username" autocapitalize="none" spellcheck="false" required><small>Letras, números y guiones, de 3 a 20.</small></div>
+            <div><label class="rotulo" for="regPass">Contraseña</label><input class="campo" type="password" id="regPass" autocomplete="new-password" required><small>Por lo menos 6 caracteres.</small></div>
+            <div><label class="rotulo" for="regPassConfirm">Repetí la contraseña</label><input class="campo" type="password" id="regPassConfirm" autocomplete="new-password" required></div>
+            <button type="submit" class="btn" id="registerBtn">Crear cuenta</button>
+        </form>
+    </main>
+
+    <!-- ═══ App ═══ -->
+    <div class="app" id="appContainer">
+        <section class="tab-pantalla" id="pInicio" aria-label="Inicio">
+            <header class="inicio-cab">
+                <div>
+                    <div class="inicio-fecha" id="inicioFecha"></div>
+                    <button type="button" class="sync offline" id="syncStatus" data-a="sync"><span id="syncText">Conectando…</span><span class="n" id="syncBadge" style="display:none"></span></button>
+                </div>
+                <button type="button" class="campana" id="newsBellBtn" data-a="novedades" aria-label="Novedades">
+                    <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg>
+                    <span class="punto-rojo hidden" id="newsBellBadge"></span>
+                </button>
+            </header>
+            <div id="inicioCuerpo"></div>
+        </section>
+
+        <section class="tab-pantalla" id="pRegistro" aria-label="Registro" hidden>
+            <header class="cab-tab">
+                <h1 class="titulo-tab">Registro</h1>
+                <button type="button" class="campana" id="regBuscarBtn" data-a="reg-buscar" aria-label="Buscar" aria-expanded="false">
+                    <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4"/></svg>
+                </button>
+            </header>
+            <div class="buscar-fila hidden" id="regBuscarFila">
+                <input class="campo" id="regBuscar" type="search" data-in="reg-buscar" placeholder="Categoría, nota, cuenta o monto" enterkeyhint="search" autocomplete="off" aria-label="Buscar en el registro">
+            </div>
+            <div class="filtros" id="registroFiltros"></div>
+            <div id="registroCuerpo"></div>
+        </section>
+
+        <section class="tab-pantalla" id="pCuentas" aria-label="Cuentas" hidden>
+            <header class="cab-tab"><h1 class="titulo-tab">Cuentas</h1></header>
+            <div id="cuentasCuerpo"></div>
+        </section>
+
+        <section class="tab-pantalla" id="pMas" aria-label="Más" hidden>
+            <header class="cab-tab"><h1 class="titulo-tab">Más</h1></header>
+            <div id="masCuerpo"></div>
+        </section>
+
+        <nav class="tabs" aria-label="Secciones">
+            <button type="button" class="tab" data-a="tab" data-tab="inicio" aria-current="page">
+                <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/></svg><span>Inicio</span>
+            </button>
+            <button type="button" class="tab" data-a="tab" data-tab="registro">
+                <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4"/></svg><span>Registro</span>
+            </button>
+            <button type="button" class="tab-mas" data-a="cargar" aria-label="Cargar un movimiento">
+                <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button type="button" class="tab" data-a="tab" data-tab="cuentas">
+                <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18"/></svg><span>Cuentas</span>
+            </button>
+            <button type="button" class="tab" data-a="tab" data-tab="mas">
+                <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg><span>Más</span>
+            </button>
+        </nav>
     </div>
 
-    <!-- ═══ MODALS ═══ -->
-    <div id="modalCalendario" class="modal"><div class="modal-content" style="max-width:420px;padding:14px"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6a2 2 0 012-2h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V6zm0 4h18M8 2v4M16 2v4"/></svg> Calendario</div><div class="calendar-container"><div class="calendar-header"><button id="btnCalPrev">◀</button><div class="calendar-month" id="calendarMonth">2025-01</div><button id="btnCalNext">▶</button></div><div class="calendar-weekdays"><div class="calendar-weekday">D</div><div class="calendar-weekday">L</div><div class="calendar-weekday">M</div><div class="calendar-weekday">M</div><div class="calendar-weekday">J</div><div class="calendar-weekday">V</div><div class="calendar-weekday">S</div></div><div class="calendar-days" id="calendarDays"></div><div id="calendarDayDetail"></div><div class="calendar-summary"><div class="calendar-stat full" id="calGananciaTotalBox"><div class="calendar-stat-value positive" id="calGananciaTotal">$0</div><div class="calendar-stat-label"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 0V6a2 2 0 012-2h9M17 13h.01"/></svg> Ganancia Acumulada (UYU)</div></div><div class="calendar-stat" id="calGananciaUSDBox" style="display:none"><div class="calendar-stat-value positive" id="calGananciaUSD">US$0</div><div class="calendar-stat-label"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 10h.01M18 14h.01"/></svg> Ganancia Acumulada (USD)</div></div><div class="calendar-stat"><div class="calendar-stat-value positive" id="calGanancias">$0</div><div class="calendar-stat-label">Mes +</div></div><div class="calendar-stat"><div class="calendar-stat-value negative" id="calPerdidas">$0</div><div class="calendar-stat-label">Mes -</div></div></div><div class="calendar-metrics" id="calMetrics"></div></div><div class="modal-buttons"><button class="btn" id="btnCerrarCalendario">Cerrar</button></div></div></div>
-    <div id="modalMovimiento" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Ajuste Externo</div><div class="tabs"><button class="tab tab-ingreso active" id="tabIngreso"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg> Ingreso</button><button class="tab tab-egreso" id="tabEgreso"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v13M7 8l5-5 5 5"/></svg> Egreso</button></div><div class="form-group"><label>Tipo de cuenta</label>
-                        <!-- v5.6.3 — Las opciones de una lista desplegable no admiten dibujos,
-                             así que el ícono va sobre el campo y cambia con la selección. Al
-                             desplegarla, el teléfono muestra su propio selector con el texto. -->
-                        <div class="select-con-icono"><span class="select-icono" id="movTipoIcono"></span>
-                        <select id="movTipoCuenta" class="select-tipo"><option value="banco">Banco</option><option value="usdt">USDT</option></select></div></div><div class="form-group" id="movBancoGroup"><label>Banco</label><select id="movBanco" class="select-banco"></select></div><div class="form-group" id="movTasaRefGroup" style="display:none"><label id="movTasaRefLabel">Tasa referencia ($/USDT)</label><input type="text" inputmode="decimal" id="movTasaRef"><small>Precio al que se registra en el inventario FIFO</small></div><div class="form-group mov-monto-group"><label id="movMontoLabel">Monto</label><input type="text" inputmode="decimal" id="movMonto" class="mov-monto-input" placeholder="0"></div><div id="movFifoPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:12px"></div><div class="form-group"><label>Descripción</label><textarea id="movDescripcion" rows="1" placeholder="Ej: Almuerzo, Uber, etc."></textarea><div id="tagSugerenciasMov"></div></div><div id="movResumen" class="mov-resumen" style="display:none"></div>
-                <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelMov">Cancelar</button><button class="btn" id="btnGuardarMov">Guardar</button></div>
-                <button type="button" class="btn-eliminar-registro" id="btnEliminarMov" style="display:none"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg> Eliminar</button></div></div>
-    <div id="modalBancos" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M4 10V9l8-5 8 5v1M6 10v7M10 10v7M14 10v7M18 10v7M3 20h18"/></svg> Cuentas Bancarias</div><div id="listaBancos"></div><div class="modal-buttons"><button class="btn" id="btnCerrarBancos">Cerrar</button></div></div></div>
-    <div id="modalTransferencia" class="modal"><div class="modal-content"><div class="modal-header" id="transfHeader"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg> Transferencia entre cuentas</div>
-        <div class="form-group"><label>Desde</label><select id="bancoOrigen"></select><small id="saldoOrigenInfo"></small></div>
-        <div class="form-group"><label>Hacia</label><select id="bancoDestino"></select></div>
-        <div id="transfTasaGroup" class="form-group" style="display:none"><label>Tasa de conversión (UYU por 1 USD)</label><input type="text" inputmode="decimal" id="transfTasa" placeholder="Ej: 42,50"></div>
-        <div class="form-group"><label>Monto</label><input type="text" inputmode="decimal" id="montoTransferencia" placeholder="0"></div>
-        <div id="transfConvPreview" class="caja-info" style="display:none"></div>
-        <div class="form-group" id="comisionTransfGroup"><label>Comisión <span class="opcional">(opcional)</span></label><input type="text" inputmode="decimal" id="comisionTransferencia" value="0"></div>
-        <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelTransf">Cancelar</button><button class="btn" id="btnTransferir">Transferir</button></div>
-        <button type="button" class="btn-eliminar-registro" id="btnEliminarTransf" style="display:none"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg> Eliminar</button>
-    </div></div>
-    <!-- v6.1.0 — Movimientos de una cuenta, derivados de los asientos existentes -->
-    <div id="modalMovsCuenta" class="modal"><div class="modal-content" style="max-width:560px">
-        <div class="modal-header" data-action="cerrar-movs-cuenta" id="movsCuentaHeader">Movimientos</div>
-        <div id="movsCuentaBody"></div>
-    </div></div>
+    <!-- Hojas, vistas y diálogos se agregan acá -->
+    <div id="capas"></div>
+    <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
 
-    <div id="modalEditarSaldo" class="modal"><div class="modal-content"><div class="modal-header" id="editarSaldoHeader">Editar Saldo</div>
-                <!-- v6.1.0 — Corregir el saldo deja de ser sobrescribir un número: se ve
-                     cuánto dice la app, cuánto hay de verdad y qué diferencia se registra. -->
-                <div class="saldo-actual-box"><span>Saldo registrado</span><b id="saldoRegistrado">$0,00</b></div>
-                <div class="form-group"><label>Saldo real en el banco</label><input type="text" inputmode="decimal" id="nuevoSaldoBanco"></div>
-                <div class="saldo-diff-box" id="saldoDiffBox" style="display:none"><span>Diferencia a registrar</span><b id="saldoDiff">$0,00</b></div>
-                <div class="form-group" id="motivoAjusteGroup" style="display:none"><label>Motivo <span style="font-weight:400;color:var(--c-text-mute)">(opcional)</span></label><input type="text" id="motivoAjuste" placeholder="Ej: comisión no registrada"></div><div class="form-group" id="limiteDiarioGroup"><label>Límite diario (USD)</label><input type="text" inputmode="decimal" id="limiteDiarioBanco" placeholder="0 = sin límite"><small>Se descuenta automáticamente con cada compra</small></div>
-                <!-- v5.7.1 — Qué días renueva el límite. Antes esta regla estaba escrita
-                     a mano en el programa para un solo banco; ahora se configura acá. -->
-                <div class="form-group" id="diasResetGroup"><label>Días en que se renueva el límite</label>
-                    <div class="dias-reset" id="diasResetBanco"></div>
-                    <small id="diasResetHelp">Los días sin marcar comparten el límite del día marcado anterior</small>
-                </div><div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelSaldo">Cancelar</button><button class="btn" id="btnGuardarSaldo">Guardar</button></div></div></div>
-    <!-- v5.8.1 — Resultado de la verificación, con formato en vez de un aviso del navegador -->
-    <div id="modalReconciliar" class="modal"><div class="modal-content" style="max-width:560px">
-        <div class="modal-header" data-action="cerrar-reconciliar"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> Verificar y reconciliar</div>
-        <div id="reconciliarBody"></div>
-    </div></div>
-
-    <div id="modalInventario" class="modal"><div class="modal-content"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/></svg> Lotes de USDT</div><div id="inventarioContent" class="inv-list"></div><div class="inv-fifo-note">FIFO: al vender se consumen los lotes más antiguos</div><!-- v5.8.1 — Verificación al alcance, sin consola -->
-            <!-- v6.5.0 — La billetera también tiene su libro de movimientos -->
-            <button class="inv-verificar" data-action="movs-usdt" type="button"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg> Ver movimientos</button>
-            <button class="inv-verificar" data-action="reconciliar" type="button"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> Verificar y reconciliar</button>
-            <div class="inv-buttons"><button class="btn" style="background:#16a34a" id="btnAgregarLote">+ Agregar</button><button class="btn" style="background:#f1f5f9;color:#475569" id="btnCerrarInventario">Cerrar</button></div></div></div>
-    <div id="modalEditarLote" class="modal"><div class="modal-content"><div class="modal-header" id="editarLoteHeader">Editar Lote</div><div class="form-group"><label>Precio de compra (tasa)</label><input type="text" inputmode="decimal" id="lotePrecio" placeholder="Ej: 42,50"></div><div class="form-group"><label>Cantidad del lote (USDT)</label><input type="text" inputmode="decimal" id="loteDisponible" placeholder="Ej: 100,00"><small id="loteDisponibleInfo" style="display:none"></small></div><div class="form-group"><label>Fecha (opcional)</label><input type="date" id="loteFecha"></div><div id="loteButtons" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px"><button class="btn btn-cancel" id="btnCancelLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Cancelar</button><button class="btn" id="btnEliminarLote" style="background:#dc2626;padding:12px 8px;font-size:0.85em;white-space:nowrap">Eliminar</button><button class="btn" id="btnGuardarLote" style="padding:12px 8px;font-size:0.85em;white-space:nowrap">Guardar</button></div></div></div>
-    <div id="modalGestionTags" class="modal"><div class="modal-content" style="max-width:500px"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15.5A9 9 0 118.5 3v9h9a9 9 0 013.5 3.5z"/><path d="M20.9 9.5A9 9 0 0014.5 3.1V9.5h6.4z"/></svg> Análisis de Gastos</div>
-        <div id="tagAnalytics" style="margin-bottom:14px"></div>
-        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
-            <div id="tagPeriodFilter" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-            <div id="tagViewToggle" style="display:flex;gap:0;margin-left:auto;background:#f1f5f9;border-radius:8px;padding:2px"></div>
-        </div>
-        <input class="tag-search" type="text" id="tagSearch" placeholder="Buscar categoría…">
-        <div id="tagsList" style="max-height:40vh;overflow-y:auto"></div>
-        <div class="tags-nota">Fusionar une dos categorías en una: sus gastos pasan a la que elijas.</div>
-        <div class="modal-buttons"><button class="btn" id="btnCerrarTags">Cerrar</button></div>
-    </div></div>
-
-    <!-- Merge Tag Modal -->
-    <div id="modalMergeTag" class="modal"><div class="modal-content" style="max-width:480px">
-        <div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/></svg> Fusionar categoría</div>
-        <div id="mergeSourceCard" class="merge-source"></div>
-        <div class="merge-help">Elegí una categoría destino. Todos los movimientos se moverán y la categoría origen se eliminará.</div>
-        <div class="merge-tabs">
-            <button class="merge-tab active" data-mergetab="existing" id="mergeTabExisting"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg> Usar existente</button>
-            <button class="merge-tab" data-mergetab="new" id="mergeTabNew"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></svg> Crear nueva</button>
-        </div>
-        <div id="mergePanelExisting">
-            <input type="text" id="mergeSearch" class="tag-search" placeholder="Buscar destino…" style="margin-bottom:8px">
-            <div id="mergeDestList" class="merge-dest-list"></div>
-        </div>
-        <div id="mergePanelNew" style="display:none">
-            <div class="merge-new-label">Nuevo nombre unificado</div>
-            <input type="text" id="mergeNewName" placeholder="Ej: Comida" class="merge-new-input">
-            <div class="merge-new-hint">Se creará una categoría nueva y los movimientos pasarán a ella.</div>
-        </div>
-        <div id="mergeConfirmBox" class="merge-confirm" style="display:none"></div>
-        <div class="modal-buttons">
-            <button class="btn btn-cancel" id="btnCancelMerge">Cancelar</button>
-            <button class="btn" id="btnConfirmMerge" disabled>Fusionar</button>
-        </div>
-    </div></div>
-    <div id="modalHistorial" class="modal"><div class="modal-content" style="max-width:480px;padding:16px 16px 18px"><div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg> Resumen Mensual</div><div id="historialContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:30px;color:#94a3b8">Cargando...</div></div><div style="margin-top:14px"><button class="btn" style="width:100%;background:#f1f5f9;color:#475569;font-size:0.85em;padding:12px" id="btnCerrarHistorial">Cerrar</button></div></div></div>
-
-    <!-- ═══ Centro de Novedades ═══ -->
-    <div id="modalNoticias" class="modal">
-        <div class="modal-content" style="max-width:520px;padding:16px 14px 18px">
-            <div class="modal-header"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg> Centro de Novedades</div>
-            <div id="noticiasContent"></div>
-            <div style="margin-top:14px"><button class="btn" style="width:100%;background:#f1f5f9;color:#475569;font-size:0.85em;padding:12px" id="btnCerrarNoticias">Cerrar</button></div>
-        </div>
-    </div>
-
-    <!-- ═══ "Qué hay nuevo" — modal automático en versión nueva ═══ -->
-    <div id="modalWhatsNew" class="modal">
-        <div class="modal-content" style="max-width:420px;padding:0;overflow:hidden">
-            <div class="whatsnew-content" id="whatsNewContent"></div>
-        </div>
-    </div>
-    <div id="modalEditarOp" class="modal"><div class="modal-content">
-        <div class="modal-header" id="editarOpHeader"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Editar Operación</div>
-        <div id="editarOpInfo" class="editar-op-info"></div>
-        <div id="editOpNota" class="caja-info" style="display:none"></div>
-        <div class="form-group"><label id="editOpMontoLabel">Monto</label><input type="text" inputmode="decimal" id="editOpMonto"></div>
-        <div class="form-group"><label>Tasa</label><input type="text" inputmode="decimal" id="editOpTasa"></div>
-        <div class="form-group"><label>Banco</label><select id="editOpBanco"></select></div>
-        <div class="com-row" style="margin-bottom:12px">
-            <div><div class="com-label">Comisión Binance</div><div class="com-info"><strong id="editOpComisionInfo">0 USDT</strong></div></div>
-            <label class="com-edit" title="Comisión Binance de esta operación (0% a 10%)" aria-label="Editar comisión Binance"><input type="text" id="editOpComisionPct" value="0,14" placeholder="0,14" inputmode="decimal" maxlength="6" aria-label="Porcentaje de comisión"><span>%</span></label>
-        </div>
-        <div id="editOpPreview" class="caja-info" style="display:none"></div>
-        <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelEditOp">Cancelar</button><button class="btn" id="btnGuardarEditOp">Guardar</button></div>
-        <button type="button" class="btn-eliminar-registro" id="btnEliminarEditOp"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg> Eliminar operación</button>
-    </div></div>
-
-    <!-- v7.3.0 — Corrección de saldo: se edita o se borra como cualquier registro -->
-    <div id="modalAjusteSaldo" class="modal"><div class="modal-content">
-        <div class="modal-header" id="ajusteSaldoHeader">Corrección de saldo</div>
-        <div class="editar-op-info" id="ajusteSaldoCuando"></div>
-        <div class="tabs"><button type="button" class="tab tab-ingreso active" id="ajusteSaldoSuma">Suma</button><button type="button" class="tab tab-egreso" id="ajusteSaldoResta">Resta</button></div>
-        <div class="form-group"><label>Diferencia (<span id="ajusteSaldoSym">$</span>)</label><input type="text" inputmode="decimal" id="ajusteSaldoMonto" placeholder="0"></div>
-        <div class="form-group"><label>Motivo <span class="opcional">(opcional)</span></label><input type="text" id="ajusteSaldoMotivo" maxlength="120" placeholder="Ej: comisión no registrada"></div>
-        <div class="modal-buttons"><button class="btn btn-cancel" id="btnCancelAjusteSaldo">Cancelar</button><button class="btn" id="btnGuardarAjusteSaldo">Guardar</button></div>
-        <button type="button" class="btn-eliminar-registro" id="btnEliminarAjusteSaldo"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg> Borrar corrección</button>
-    </div></div>
-
-    <!-- ═══ SUCCESS OVERLAY ═══ -->
-    <div class="success-overlay" id="successOverlay">
-        <div class="success-content">
-            <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <div class="success-amount" id="successAmount"></div>
-            <div class="success-msg" id="successMsg"></div>
-            <div class="success-sub" id="successSub"></div>
-        </div>
-    </div>
-
-    <!-- ═══ FIREBASE SDK ═══ -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <script src="src/js/01-config.js?v=7.3.0"></script>
-    <script src="src/js/02-state.js?v=7.3.0"></script>
-    <script src="src/js/03-news-changelog.js?v=7.3.0"></script>
-    <script src="src/js/04-utils-filtros.js?v=7.3.0"></script>
-    <script src="src/js/05-integridad.js?v=7.3.0"></script>
-    <script src="src/js/06-paginacion-bancos-fifo.js?v=7.3.0"></script>
-    <script src="src/js/07-firebase-sync.js?v=7.3.0"></script>
-    <script src="src/js/08-backup-recovery-sdk.js?v=7.3.0"></script>
-    <script src="src/js/09-form-split.js?v=7.3.0"></script>
-    <script src="src/js/10-mov-transf-calendario.js?v=7.3.0"></script>
-    <script src="src/js/11-paginaciones-dashboard.js?v=7.3.0"></script>
-    <script src="src/js/12-lotes-reset-importexport.js?v=7.3.0"></script>
-    <script src="src/js/13-eventos.js?v=7.3.0"></script>
-    <script src="src/js/14-recovery-write.js?v=7.3.0"></script>
-    <script src="src/js/15-archivo.js?v=7.3.0"></script>
-    <script src="src/js/16-store-v2.js?v=7.3.0"></script>
+    <script src="src/js/01-config.js?v=8.0.0"></script>
+    <script src="src/js/02-state.js?v=8.0.0"></script>
+    <script src="src/js/03-news-changelog.js?v=8.0.0"></script>
+    <script src="src/js/04-utils-filtros.js?v=8.0.0"></script>
+    <script src="src/js/05-integridad.js?v=8.0.0"></script>
+    <script src="src/js/06-paginacion-bancos-fifo.js?v=8.0.0"></script>
+    <script src="src/js/07-firebase-sync.js?v=8.0.0"></script>
+    <script src="src/js/08-backup-recovery-sdk.js?v=8.0.0"></script>
+    <script src="src/js/09-form-split.js?v=8.0.0"></script>
+    <script src="src/js/10-mov-transf-calendario.js?v=8.0.0"></script>
+    <script src="src/js/12-lotes-reset-importexport.js?v=8.0.0"></script>
+    <script src="src/js/13-eventos.js?v=8.0.0"></script>
+    <script src="src/js/14-recovery-write.js?v=8.0.0"></script>
+    <script src="src/js/15-archivo.js?v=8.0.0"></script>
+    <script src="src/js/16-store-v2.js?v=8.0.0"></script>
+    <script src="src/js/17-registros.js?v=8.0.0"></script>
+    <script src="src/js/18-ui-base.js?v=8.0.0"></script>
+    <script src="src/js/19-ui-inicio.js?v=8.0.0"></script>
+    <script src="src/js/20-ui-registro.js?v=8.0.0"></script>
+    <script src="src/js/21-ui-cargar.js?v=8.0.0"></script>
+    <script src="src/js/22-ui-cuentas.js?v=8.0.0"></script>
+    <script src="src/js/23-ui-herramientas.js?v=8.0.0"></script>
 </body>
 </html>

@@ -6,67 +6,7 @@ function sincronizarSaldoUsdt(){AppState.datos.saldoUsdt=roundMoney(AppState.dat
    reconstruyen desde los registros (recalcularLotesYGanancias). Acá viven las
    reglas que dicen cuánto mueve cada registro y la validación previa.
    ═══════════════════════════════════════════════════════════════════════ */
-const INTEG_EPSILON=0.005; /* tolerancia uniforme para comparaciones de saldo */
-
-/* Verifica si una operación puede aplicarse SIN ejecutarla.
-   Devuelve {ok, reason?}. Acepta un objeto con deltas planificados:
-     { bancos: {Itau: -80000, BBVA: +5000}, usdt: -100 }
-   Aplica todos los deltas en una "vista simulada" y verifica que ninguno
-   quede negativo (más allá del epsilon). */
-function validarDeltas(deltas){
-    deltas=deltas||{};
-    const errs=[];
-    /* Bancos */
-    if(deltas.bancos){
-        for(const [nombre,delta] of Object.entries(deltas.bancos)){
-            if(typeof delta!=='number'||!isFinite(delta))continue;
-            const bk=AppState.datos.bancos[nombre];
-            if(!bk){errs.push(`Banco ${nombre} no existe`);continue}
-            const nuevoSaldo=roundMoney(bk.saldo+delta);
-            if(nuevoSaldo<-INTEG_EPSILON){
-                errs.push(`${nombre} quedaría con saldo negativo: ${getSym(getBancoInfo(nombre)?.moneda)}${fmtNum(nuevoSaldo,2)} (saldo actual ${getSym(getBancoInfo(nombre)?.moneda)}${fmtNum(bk.saldo,2)}, requeridos ${getSym(getBancoInfo(nombre)?.moneda)}${fmtNum(Math.abs(delta),2)})`);
-            }
-        }
-    }
-    /* USDT total disponible */
-    if(deltas.usdt&&typeof deltas.usdt==='number'&&isFinite(deltas.usdt)){
-        const nuevo=roundMoney(AppState.datos.saldoUsdt+deltas.usdt);
-        if(nuevo<-INTEG_EPSILON){
-            errs.push(`Inventario USDT quedaría negativo: ${fmtTrunc(nuevo,2)} USDT (disponible ${fmtTrunc(AppState.datos.saldoUsdt,2)}, requeridos ${fmtTrunc(Math.abs(deltas.usdt),2)})`);
-        }
-        /* Validación FIFO por moneda — solo si es egreso de USDT que va contra inventario */
-        if(deltas.usdt<0&&deltas.usdtMoneda){
-            const requerido=Math.abs(deltas.usdt);
-            const disponibleEnMoneda=AppState.datos.lotes
-                .filter(l=>(l.moneda||'UYU')===deltas.usdtMoneda&&l.disponible>0)
-                .reduce((s,l)=>roundMoney(s+l.disponible),0);
-            if(requerido>disponibleEnMoneda+INTEG_EPSILON){
-                errs.push(`Inventario USDT en ${deltas.usdtMoneda} insuficiente: ${fmtTrunc(disponibleEnMoneda,2)} disponible, ${fmtTrunc(requerido,2)} requerido`);
-            }
-        }
-    }
-    /* Aportes (split pago): cada banco debe poder cubrir su parte */
-    if(Array.isArray(deltas.aportes)){
-        for(const a of deltas.aportes){
-            const bk=AppState.datos.bancos[a.banco];
-            if(!bk){errs.push(`Banco ${a.banco} no existe`);continue}
-            if(bk.saldo<a.monto-INTEG_EPSILON){
-                errs.push(`${a.banco} no tiene saldo suficiente: ${getSym(getBancoInfo(a.banco)?.moneda)}${fmtNum(bk.saldo,2)} disponible, ${getSym(getBancoInfo(a.banco)?.moneda)}${fmtNum(a.monto,2)} requerido`);
-            }
-        }
-    }
-    return errs.length?{ok:false,reason:errs[0],all:errs}:{ok:true};
-}
-
-/* v7.3.0 — Antes de borrar o editar algo del pasado. Crear una operación nueva
-   sin fondos se sigue bloqueando, pero corregir un registro equivocado no: si
-   se bloqueara, un error viejo quedaría atrapado para siempre. Se avisa qué
-   saldo queda en negativo y la persona decide. */
-function confirmarSiQuedaNegativo(deltas,accion){
-    const v=validarDeltas(deltas);
-    if(v.ok)return true;
-    return confirm(accion+'\n\n'+(v.all||[v.reason]).join('\n')+'\n\n¿Continuar igual?');
-}
+const INTEG_EPSILON=0.005;
 
 /* Diferencia de saldos entre dos versiones de un registro (null = no existe) */
 function diferenciaDeEfecto(tipo,antes,despues){
@@ -181,9 +121,12 @@ function _aIso(texto){
     const d=new Date(s);
     return isFinite(d.getTime())?d.toISOString():'';
 }
+/* v8.0.0 — El momento de un registro es su fecha y hora, no el momento en que
+   se cargó: ahora se puede cargar algo con fecha de otro día, y tiene que
+   quedar en su lugar del libro, igual que en el recálculo de lotes. */
 function _marcaEvento(ev){
     if(!ev)return '';
-    return (ev.timestamp&&_aIso(ev.timestamp))||_aIso(String(ev.fecha||'')+'T'+String(ev.hora||'00:00'));
+    return _aIso(String(ev.fecha||'')+'T'+String(ev.hora||'00:00'))||(ev.timestamp&&_aIso(ev.timestamp))||'';
 }
 
 function recalcularSaldosBancos(){
@@ -440,104 +383,7 @@ function _claseMovimiento(tipo,ev,v){
     if(tipo==='transferencias')return v>0?'transf-entra':'transf-sale';
     return v>0?'conv-entra':'conv-sale';
 }
-const _ETIQUETA_MOV={
-    inicial:'Saldo inicial',compra:'Compra USDT',venta:'Venta USDT',
-    ingreso:'Ingreso',egreso:'Egreso',ajuste:'Ajuste manual',
-    'transf-entra':'Transferencia recibida','transf-sale':'Transferencia enviada',
-    'conv-entra':'Conversión recibida','conv-sale':'Conversión enviada'
-};
 
-/* Cuándo pasó, en palabras: "Hoy 13:00", "Ayer 18:10" o "24/09 10:00".
-   Se usa la fecha y la hora que registró la persona, que son locales: la marca
-   universal sirve para ordenar, no para mostrar. */
-function _cuandoLegible(ev){
-    if(!ev)return '';
-    const hoy=getUDateStr();
-    const ayer=(()=>{const d=getUDate();d.setDate(d.getDate()-1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`})();
-    const hora=ev.hora||'';
-    if(ev.fecha===hoy)return 'Hoy'+(hora?' '+hora:'');
-    if(ev.fecha===ayer)return 'Ayer'+(hora?' '+hora:'');
-    return fmtFechaHora(ev.fecha,ev.hora,ev.timestamp);
-}
-
-/* Dibuja los movimientos de una cuenta. Empieza mostrando los últimos cinco,
-   con la opción de ver el último mes. */
-let _movsCuentaActual=null,_movsCuentaTodo=false;
-function abrirMovimientosCuenta(nombre){
-    _movsCuentaActual=nombre;_movsCuentaTodo=false;
-    _pintarMovimientosCuenta();
-    abrirModal('modalMovsCuenta');
-}
-function _pintarMovimientosCuenta(){
-    const nombre=_movsCuentaActual;
-    const cont=$('movsCuentaBody');if(!cont||!nombre)return;
-    const esUsdt=nombre==='USDT';
-    const bk=esUsdt?{saldo:AppState.datos.saldoUsdt||0}:AppState.datos.bancos[nombre];
-    if(!bk)return;
-    const hd=$('movsCuentaHeader');
-    if(hd)hd.innerHTML=escHtml(esUsdt?'Movimientos de USDT':nombre);
-    /* ═══ v6.3.1 — El listado completo se limita al último mes ═══
-       El saldo se calcula con TODO; acá solo se recorta lo que se muestra. */
-    const todas=historialCuenta(nombre);
-    const desde=Date.now()-30*24*60*60*1000;
-    const delMes=todas.filter(l=>l.tipo!=='inicial'&&Date.parse(l.ts||'')>=desde);
-    const TOPE=120;
-    const recortado=_movsCuentaTodo&&delMes.length>TOPE;
-    const lista=_movsCuentaTodo?delMes.slice(0,TOPE):todas.slice(0,5);
-    const sym=esUsdt?'':(getSym(getBancoInfo(nombre)&&getBancoInfo(nombre).moneda));
-    const suf=esUsdt?' USDT':'';
-    const dinero=v=>sym+fmtNum(Math.abs(v),2)+suf;
-
-    let h='<div class="movc-saldo"><div class="l">'+(esUsdt?'Inventario actual':'Saldo actual')+'</div>'+
-          '<div class="v">'+sym+fmtNum(bk.saldo||0,2)+suf+'</div></div>';
-
-    if(!todas.length){
-        h+='<div class="movc-nota">Sin movimientos registrados en esta cuenta.</div>';
-    }else{
-        h+='<div class="movc-lista">';
-        lista.forEach(l=>{
-            const entra=l.variacion>0, esInicial=l.tipo==='inicial', esAjuste=l.clase==='ajuste';
-            const cls=esInicial?'inicial':esAjuste?'ajuste':(entra?'entra':'sale');
-            let detalle='';
-            if(esAjuste&&l.ev&&l.ev.motivo)detalle=' · '+escHtml(l.ev.motivo);
-            else if(l.tipo==='operaciones'&&l.ev)detalle=' · '+fmtTasaMon(l.ev.tasa,l.ev.moneda);
-            else if(l.tipo==='movimientos'&&l.ev&&l.ev.descripcion)detalle=' · '+escHtml(l.ev.descripcion);
-            else if(l.tipo==='transferencias'&&l.ev)detalle=' · '+escHtml(entra?l.ev.origen:l.ev.destino);
-            else if(l.tipo==='conversiones'&&l.ev)detalle=' · '+escHtml(entra?l.ev.origen:l.ev.destino);
-            /* ═══ v7.3.0 — Cada línea abre su registro ═══
-               Tocar un movimiento abre la operación, el ajuste, la transferencia
-               o la corrección que lo originó, para editarlo o borrarlo desde ahí.
-               Al guardar, el saldo y este mismo libro se recalculan solos. */
-            const accion=esInicial?'':' data-action="movc-abrir" data-tipo="'+l.tipo+'" data-id="'+escHtml(String(l.id))+'" role="button" tabindex="0"';
-            h+='<div class="movc-row '+cls+'"'+accion+'><div class="movc-i">'+
-               '<div class="t">'+(_ETIQUETA_MOV[l.clase]||'Movimiento')+detalle+'</div>'+
-               '<div class="m">'+(esInicial?'Antes del primer registro':escHtml(_cuandoLegible(l.ev)))+'</div></div>'+
-               '<div class="movc-d">'+
-               (esInicial?'':'<div class="v '+(entra?'entra':'sale')+'">'+(entra?'+':'-')+dinero(l.variacion)+'</div>')+
-               '<div class="s">'+sym+fmtNum(l.resultante,2)+suf+'</div></div>'+
-               (esInicial?'':'<span class="movc-ir" aria-hidden="true">›</span>')+'</div>';
-        });
-        h+='</div>';
-        /* Solo si el último mes tiene más de lo que ya se ve: si no, el botón
-           mostraba las mismas líneas */
-        if(!_movsCuentaTodo&&delMes.length>lista.filter(l=>l.tipo!=='inicial').length){
-            h+='<button class="movc-mas" data-action="movs-cuenta-todo">Ver el último mes ('+delMes.length+')</button>';
-        }
-        h+='<div class="movc-nota">Tocá un movimiento para editarlo o borrarlo.'+
-           (_movsCuentaTodo&&recortado?' Se muestran los '+TOPE+' más recientes del último mes.':'')+'</div>';
-    }
-    if(!esUsdt)h+='<button class="movc-mas" data-action="corregir-saldo">Corregir saldo o límite</button>';
-    cont.innerHTML=h;
-}
-
-/* Abre el registro que originó una línea del libro */
-function abrirRegistroDelLibro(tipo,id){
-    const buscar=arr=>(arr||[]).find(x=>String(x.id)===String(id));
-    if(tipo==='operaciones'){const op=buscar(AppState.datos.operaciones);if(op)abrirEditarOperacion(op.id)}
-    else if(tipo==='movimientos'){const m=buscar(AppState.datos.movimientos);if(m)abrirModalMovimiento(m.id)}
-    else if(tipo==='transferencias'||tipo==='conversiones'){const t=buscar(AppState.datos[tipo]);if(t)abrirModalTransferencia(t.id)}
-    else if(tipo==='ajustesSaldo'){const a=buscar(AppState.datos.ajustesSaldo);if(a)abrirAjusteSaldo(a.id)}
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CORRECCIONES DE SALDO (v6.1.0, editables desde v7.3.0)
@@ -563,56 +409,6 @@ function registrarAjusteSaldo(cuenta,nuevoSaldo,motivo){
     return aj;
 }
 
-function abrirAjusteSaldo(id){
-    const aj=(AppState.datos.ajustesSaldo||[]).find(a=>String(a.id)===String(id));
-    if(!aj)return;
-    AppState.ui.ajusteEditandoId=aj.id;
-    AppState.ui.ajusteSigno=aj.delta<0?'resta':'suma';
-    const sym=getSym(getBancoInfo(aj.cuenta)&&getBancoInfo(aj.cuenta).moneda);
-    const hd=$('ajusteSaldoHeader');
-    if(hd)hd.innerHTML=ICO_AJUSTE+' Corrección · '+escHtml(aj.cuenta);
-    setText('ajusteSaldoCuando',_cuandoLegible(aj)+(aj.editadoEn?' · editada':''));
-    $('ajusteSaldoMonto').value=fmtNum(Math.abs(aj.delta));
-    $('ajusteSaldoMotivo').value=aj.motivo||'';
-    setText('ajusteSaldoSym',sym);
-    _pintarSignoAjuste();
-    abrirModal('modalAjusteSaldo');
-}
-function _pintarSignoAjuste(){
-    const suma=AppState.ui.ajusteSigno!=='resta';
-    const a=$('ajusteSaldoSuma'),b=$('ajusteSaldoResta');
-    if(a)a.className='tab tab-ingreso'+(suma?' active':'');
-    if(b)b.className='tab tab-egreso'+(suma?'':' active');
-}
-function guardarAjusteSaldo(){
-    const aj=(AppState.datos.ajustesSaldo||[]).find(a=>String(a.id)===String(AppState.ui.ajusteEditandoId));
-    if(!aj){cerrarModal('modalAjusteSaldo');return}
-    const monto=roundMoney(pv('ajusteSaldoMonto'));
-    if(!(monto>0)){alert('Ingresá la diferencia (mayor que cero). Para quitar la corrección, usá Borrar.');return}
-    const nuevo=roundMoney((AppState.ui.ajusteSigno==='resta'?-1:1)*monto);
-    const despues={...aj,delta:nuevo};
-    if(!confirmarSiQuedaNegativo(diferenciaDeEfecto('ajustesSaldo',aj,despues),'Con este cambio la cuenta queda en negativo.'))return;
-    aj.delta=nuevo;
-    aj.motivo=String($('ajusteSaldoMotivo').value||'').trim().slice(0,120);
-    aj.editadoEn=new Date().toISOString();
-    cerrarModal('modalAjusteSaldo');
-    AppState.ui.ajusteEditandoId=null;
-    confirmarCambios([{tipo:'update',entidad:'ajustesSaldo',id:aj.id}]);
-}
-function eliminarAjusteSaldo(id,opts){
-    const aj=(AppState.datos.ajustesSaldo||[]).find(a=>String(a.id)===String(id));
-    if(!aj)return false;
-    const sym=getSym(getBancoInfo(aj.cuenta)&&getBancoInfo(aj.cuenta).moneda);
-    if(!(opts&&opts.sinConfirmar)){
-        if(!confirm('¿Borrar la corrección de '+(aj.delta>0?'+':'-')+sym+fmtNum(Math.abs(aj.delta))+' en '+aj.cuenta+'?'))return false;
-        if(!confirmarSiQuedaNegativo(diferenciaDeEfecto('ajustesSaldo',aj,null),'Sin esta corrección la cuenta queda en negativo.'))return false;
-    }
-    AppState.datos.ajustesSaldo=(AppState.datos.ajustesSaldo||[]).filter(a=>String(a.id)!==String(id));
-    cerrarModal('modalAjusteSaldo');
-    AppState.ui.ajusteEditandoId=null;
-    confirmarCambios([{tipo:'delete',entidad:'ajustesSaldo',id:aj.id}]);
-    return true;
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UN SOLO CAMINO PARA CONFIRMAR UN CAMBIO (v7.3.0)
@@ -633,8 +429,6 @@ function confirmarCambios(cambios){
     const ultimo=lista[lista.length-1];
     if(ultimo)guardaOptimista(ultimo.tipo,ultimo.entidad,ultimo.id);else guardaOptimista();
     actualizarVista();
-    const libro=$('modalMovsCuenta');
-    if(libro&&libro.classList.contains('active'))_pintarMovimientosCuenta();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -655,8 +449,7 @@ function confirmarCambios(cambios){
    NO aplica nada por su cuenta: muestra cada diferencia encontrada y pregunta.
    Sobre dinero, un ajuste automático a partir de un diagnóstico equivocado es
    peor que el problema que intenta resolver.                                  */
-function reconciliarTodo(opts){
-    opts=opts||{};
+function reconciliarTodo(){
     if(!AppState.datos)return null;
 
     /* 1 ── Lotes, ganancias y saldo USDT: ya se reconstruyen solos */
@@ -750,129 +543,8 @@ function reconciliarTodo(opts){
         ok:duplicados.length===0&&imposibles.length===0
     };
 
-    console.log('%c[Verificación]',informe.ok?'color:#15803d;font-weight:bold':'color:#b91c1c;font-weight:bold',informe);
-
-    if(opts.silencioso)return informe;
-    _pintarReconciliacion(informe);
     return informe;
 }
-
-/* ═══ v5.8.1 — El resultado se muestra en la app ═══
-   Antes esto salía por avisos del navegador, que no permiten formato y obligan a
-   leer un bloque de texto corrido con cifras mezcladas. Acá cada diferencia se ve
-   como una fila con el valor que hay en pantalla, el que surge de los eventos y
-   cuánto difieren, que es lo que hace falta para decidir si corregir. */
-function _pintarReconciliacion(inf){
-    const cont=$('reconciliarBody');
-    if(!cont){console.log('[P2P][verificación]',inf);return}
-    let h='';
-
-    const problemas=inf.duplicados.length+(inf.imposibles||[]).length;
-    if(!problemas){
-        h+='<div class="rec-estado ok"><div class="t">Todo cuadra</div>'+
-           '<div class="s">Los saldos de tus cuentas, los lotes y el USDT salen de '+
-           'sumar tus operaciones, ajustes, transferencias y conversiones. No hay '+
-           'registros repetidos ni cifras imposibles.</div></div>';
-    }else{
-        const partes=[];
-        if(inf.duplicados.length)partes.push(inf.duplicados.length+' registro'+(inf.duplicados.length===1?'':'s')+' repetido'+(inf.duplicados.length===1?'':'s'));
-        if((inf.imposibles||[]).length)partes.push(inf.imposibles.length+' cifra'+(inf.imposibles.length===1?'':'s')+' imposible'+(inf.imposibles.length===1?'':'s'));
-        h+='<div class="rec-estado alerta"><div class="t">'+partes.join(' · ')+'</div>'+
-           '<div class="s">Los saldos se recalculan solos, así que lo que aparece acá '+
-           'son datos mal cargados, no errores de cuenta. Borrando lo que sobra, todo '+
-           'lo demás se acomoda en el momento.</div></div>';
-    }
-
-    h+='<div class="rec-linea"><span class="n">Saldo USDT</span>'+
-       '<span class="v">'+fmtNum(inf.usdt.despues,2)+'</span></div>';
-    h+='<div class="rec-linea"><span class="n">Cuentas</span>'+
-       '<span class="v">'+Object.keys(AppState.datos.bancos||{}).length+'</span></div>';
-    const nEv=['operaciones','movimientos','transferencias','conversiones','ajustesSaldo']
-        .reduce((a,k)=>a+((AppState.datos[k]||[]).length),0);
-    h+='<div class="rec-linea"><span class="n">Registros considerados</span>'+
-       '<span class="v">'+nEv+'</span></div>';
-    /* v6.7.0 — Detalle por tipo. Sirve para comparar dos dispositivos: si una
-       misma cuenta muestra saldos distintos, acá se ve enseguida si es porque a
-       uno le faltan registros o porque difiere el saldo de apertura. */
-    [['operaciones','Operaciones'],['movimientos','Ajustes externos'],
-     ['transferencias','Transferencias'],['conversiones','Conversiones'],
-     ['ajustesSaldo','Correcciones de saldo']].forEach(([k,et])=>{
-        const c=(AppState.datos[k]||[]).length;
-        if(c)h+='<div class="rec-linea"><span class="n" style="padding-left:12px;opacity:0.8">'+et+'</span>'+
-               '<span class="v" style="font-weight:600">'+c+'</span></div>';
-    });
-    /* Apertura solo de las cuentas en uso: las inactivas en cero son ruido */
-    Object.keys(AppState.datos.bancos||{}).forEach(n=>{
-        const bk=AppState.datos.bancos[n];
-        if(bk&&isFinite(bk.saldoApertura)&&(bk.activo||Math.abs(bk.saldoApertura)>=0.005))
-            h+='<div class="rec-linea"><span class="n" style="padding-left:12px;opacity:0.8">Apertura '+escHtml(n)+'</span>'+
-               '<span class="v" style="font-weight:600">'+fmtNum(bk.saldoApertura,2)+'</span></div>';
-    });
-
-    if(inf.duplicados.length){
-        h+='<div class="rec-dups"><div class="rec-dups-t">Registros repetidos</div>'+
-           '<div class="rec-dups-s">Aparecen dos veces y por eso se cuentan doble. '+
-           'Suele pasar cuando la app falla a mitad de una operación y el registro '+
-           'se vuelve a crear. Revisá cuál sobra antes de borrarlo.</div>';
-        inf.duplicados.forEach(d=>{
-            const ev=d.ev||{};
-            let desc='';
-            if(d.tipo==='operaciones')desc=(ev.tipo==='compra'?'Compra ':'Venta ')+fmtMonto(ev.monto,ev.moneda)+' a '+fmtTasaMon(ev.tasa,ev.moneda);
-            else if(d.tipo==='movimientos')desc=(ev.tipoMovimiento==='ingreso'?'Ingreso ':'Egreso ')+
-                (ev.tipoCuenta==='usdt'?fmtTrunc(ev.monto,2)+' USDT':fmtMonto(ev.monto))+
-                (ev.descripcion?' · '+escHtml(ev.descripcion):'');
-            else if(d.tipo==='transferencias')desc=fmtMonto(ev.monto)+' · '+escHtml(ev.origen||'')+' → '+escHtml(ev.destino||'');
-            else if(d.tipo==='ajustesSaldo')desc='Corrección '+(ev.delta>0?'+':'-')+fmtMonto(Math.abs(ev.delta||0))+' · '+escHtml(ev.cuenta||'');
-            else desc='Conversión '+fmtMonto(ev.montoOrigen);
-            h+='<div class="rec-dup"><div class="rec-dup-i">'+
-               '<div class="d">'+desc+'</div>'+
-               '<div class="m">'+escHtml(String(ev.fecha||''))+' '+escHtml(String(ev.hora||''))+' · '+escHtml(d.motivo)+'</div></div>'+
-               '<button data-action="rec-borrar-dup" data-tipo="'+d.tipo+'" data-id="'+escHtml(String(d.id))+'">Borrar</button></div>';
-        });
-        h+='</div>';
-    }
-
-    if((inf.imposibles||[]).length){
-        h+='<div class="rec-imposibles"><div class="rec-dups-t">Cifras imposibles</div>';
-        inf.imposibles.forEach(x=>{h+='<div class="rec-imp">'+escHtml(x.que)+' <b>'+fmtNum(x.valor,2)+'</b></div>'});
-        h+='<div class="rec-dups-s">Un saldo negativo o un lote con más disponible del '+
-           'que se compró indican que algo se cargó de más. Suele resolverse borrando '+
-           'el registro repetido de arriba.</div></div>';
-    }
-
-    h+=_recHerramientas();
-    h+='<div class="rec-acciones"><button class="pri" data-action="cerrar-reconciliar">Listo</button></div>';
-    cont.innerHTML=h;
-    abrirModal('modalReconciliar');
-}
-
-
-/* v5.8.1 — Las otras dos verificaciones también se alcanzan desde acá.
-   Estaban solo por consola, que en un teléfono es inaccesible: eran código que
-   se descargaba y nunca podía usarse. */
-function _recHerramientas(){
-    const hayArchivo=!!(AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses&&
-                        Object.keys(AppState.datos._archivoIndex.meses).length);
-    let h='<div class="rec-otras"><div class="rec-otras-t">Otras verificaciones</div>';
-    h+='<button data-action="rec-servidor">Comparar con el servidor'+
-       '<small>Revisa que lo guardado en la nube coincida con lo que ves</small></button>';
-    /* ═══ v6.8.0 — Resolver una discrepancia entre dispositivos ═══
-       Cuando el teléfono y la computadora muestran saldos distintos, hace falta
-       poder decidir cuál tiene razón. Esto sube TODO lo de este dispositivo y
-       reemplaza lo de la nube, con lo que el otro queda alineado al recargar. */
-    h+='<button data-action="rec-imponer" style="border-color:#fcd34d;background:#fffbeb">'+
-       'Este dispositivo tiene los datos correctos'+
-       '<small>Sube todo lo de acá y reemplaza lo de la nube. Usalo solo si otro '+
-       'dispositivo muestra saldos equivocados.</small></button>';
-    if(hayArchivo){
-        h+='<button data-action="rec-arrastre">Recalcular lotes de arrastre'+
-           '<small>Los reconstruye desde el historial archivado</small></button>';
-    }
-    h+='</div>';
-    return h;
-}
-
-
 
 
 /* Helper: convierte monto en UYU (o USD) a su equivalente en USD para tracking de límite diario.
@@ -914,32 +586,6 @@ function normalizarTag(t){return(t||'').trim().replace(/\s+/g,' ').slice(0,TAG_M
 function stripAccents(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function tagKey(t){return stripAccents(t).toLowerCase()}
 
-/* Keyword → category aliases for smart suggestions */
-const TAG_ALIASES={
-    'uber':'transporte','cabify':'transporte','taxi':'transporte','bus':'transporte','omnibus':'transporte','nafta':'transporte','combustible':'transporte','estacionamiento':'transporte','peaje':'transporte',
-    'netflix':'suscripciones','spotify':'suscripciones','youtube':'suscripciones','hbo':'suscripciones','disney':'suscripciones','amazon':'suscripciones','prime':'suscripciones',
-    'antel':'servicios','ute':'servicios','ose':'servicios','luz':'servicios','agua':'servicios','internet':'servicios','celular':'servicios','telefono':'servicios',
-    'alquiler':'vivienda','renta':'vivienda','expensas':'vivienda','gastos comunes':'vivienda',
-    'super':'alimentacion','supermercado':'alimentacion','comida':'alimentacion','restaurante':'alimentacion','delivery':'alimentacion','rappi':'alimentacion','pedidosya':'alimentacion',
-    'farmacia':'salud','medico':'salud','mutualista':'salud','emergencia':'salud','dentista':'salud',
-    'gimnasio':'deporte','gym':'deporte','futbol':'deporte','cancha':'deporte'
-};
-
-function getAliasSuggestion(text){
-    if(!text||text.length<2)return null;
-    const k=tagKey(text);
-    const kNoSpace=k.replace(/\s+/g,'');
-    /* Direct match (with and without spaces) */
-    if(TAG_ALIASES[k])return TAG_ALIASES[k];
-    if(TAG_ALIASES[kNoSpace])return TAG_ALIASES[kNoSpace];
-    /* Partial match */
-    for(const[alias,cat] of Object.entries(TAG_ALIASES)){
-        const aliasNS=alias.replace(/\s+/g,'');
-        if(alias.startsWith(k)||k.startsWith(alias))return cat;
-        if(aliasNS.startsWith(kNoSpace)||kNoSpace.startsWith(aliasNS))return cat;
-    }
-    return null;
-}
 
 function agregarTag(texto){
     const raw=normalizarTag(texto);if(!raw||raw.length<2)return;
@@ -994,131 +640,6 @@ function mergeTag(origen,destino){
     return true;
 }
 
-/* ─── Tag merge: similarity + smart suggestions ─── */
-function tagSimilarityScore(a,b){
-    const na=stripAccents((a||'').toLowerCase()).trim();
-    const nb=stripAccents((b||'').toLowerCase()).trim();
-    if(!na||!nb)return 0;
-    if(na===nb)return 100;
-    if(na.startsWith(nb)||nb.startsWith(na))return 80;
-    if(na.includes(nb)||nb.includes(na))return 60;
-    if(na.substring(0,3)===nb.substring(0,3))return 40;
-    /* Bigram overlap */
-    const bigrams=s=>{const r=new Set();for(let i=0;i<s.length-1;i++)r.add(s.substring(i,i+2));return r};
-    const ba=bigrams(na),bb=bigrams(nb);
-    if(!ba.size||!bb.size)return 0;
-    let inter=0;ba.forEach(g=>{if(bb.has(g))inter++});
-    const jaccard=inter/(ba.size+bb.size-inter);
-    return Math.round(jaccard*40);
-}
-function abrirModalMergeTag(srcTag){
-    if(!srcTag)return;
-    const tags=AppState.datos.tags||[];
-    const otros=tags.filter(t=>tagKey(t)!==tagKey(srcTag));
-    if(!otros.length){alert('No hay otras categorías para fusionar. Creá una nueva primero.');return}
-    /* Compute source stats */
-    const movs=AppState.datos.movimientos.filter(m=>m.descripcion&&tagKey(m.descripcion)===tagKey(srcTag));
-    const tasaFb=AppState.datos.ultimaTasaCompra||1;
-    let totalUYU=0;
-    movs.forEach(m=>{totalUYU=roundMoney(totalUYU+movimientoValorUYU(m,tasaFb))});
-    AppState.ui.mergeSrcTag=srcTag;
-    AppState.ui.mergeSrcStats={count:movs.length,totalUYU};
-    AppState.ui.mergeSelectedDest=null;
-    AppState.ui.mergeMode='existing';
-    /* Render source card */
-    const card=$('mergeSourceCard');
-    card.innerHTML=`<div class="merge-source-label">Categoría a fusionar</div>
-        <div class="merge-source-name">${escHtml(srcTag)}</div>
-        <div class="merge-source-stats">
-            <span class="merge-source-stat"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg> ${movs.length} movimiento${movs.length!==1?'s':''}</span>
-            ${totalUYU>0?`<span class="merge-source-stat"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 10h.01M18 14h.01"/></svg> $${fmtNum(totalUYU,0)}</span>`:''}
-        </div>`;
-    /* Reset UI state */
-    $('mergeSearch').value='';
-    $('mergeNewName').value='';
-    setMergeTab('existing');
-    renderMergeDestinations('');
-    updateMergeConfirmBox();
-    abrirModal('modalMergeTag');
-}
-function setMergeTab(tab){
-    AppState.ui.mergeMode=tab;
-    AppState.ui.mergeSelectedDest=null;
-    $('mergeTabExisting').className='merge-tab'+(tab==='existing'?' active':'');
-    $('mergeTabNew').className='merge-tab'+(tab==='new'?' active':'');
-    $('mergePanelExisting').style.display=tab==='existing'?'block':'none';
-    $('mergePanelNew').style.display=tab==='new'?'block':'none';
-    if(tab==='new')setTimeout(()=>$('mergeNewName').focus(),100);
-    updateMergeConfirmBox();
-}
-function renderMergeDestinations(searchQuery){
-    const cont=$('mergeDestList');if(!cont)return;
-    const srcTag=AppState.ui.mergeSrcTag;if(!srcTag)return;
-    const tags=AppState.datos.tags||[];
-    const otros=tags.filter(t=>tagKey(t)!==tagKey(srcTag));
-    const stats=getTagStats();
-    /* Score each destination */
-    const scored=otros.map(t=>{
-        const sim=tagSimilarityScore(srcTag,t);
-        const usos=stats[tagKey(t)]?.usos||0;
-        /* Boost for high-usage destinations (more "main" categories) */
-        const usageBoost=Math.log(usos+1)*8;
-        return{tag:t,score:sim+usageBoost,sim,usos,suggested:sim>=40};
-    }).sort((a,b)=>b.score-a.score);
-    /* Filter by search */
-    const q=stripAccents((searchQuery||'').toLowerCase()).trim();
-    const filtered=q?scored.filter(s=>stripAccents(s.tag.toLowerCase()).includes(q)):scored;
-    if(!filtered.length){
-        cont.innerHTML='<div class="merge-dest-empty">Sin resultados</div>';
-        return;
-    }
-    const selectedKey=AppState.ui.mergeSelectedDest?tagKey(AppState.ui.mergeSelectedDest):null;
-    cont.innerHTML=filtered.map(s=>{
-        const isSel=selectedKey===tagKey(s.tag);
-        const cls='merge-dest-item'+(s.suggested?' suggested':'')+(isSel?' selected':'');
-        const meta=s.usos>0?`${s.usos} movimiento${s.usos!==1?'s':''}`:'Sin usos';
-        return `<div class="${cls}" data-action="merge-select-dest" data-tag="${escHtml(s.tag)}">
-            <div class="merge-dest-radio"></div>
-            <div class="merge-dest-info">
-                <div class="merge-dest-name">${escHtml(s.tag)}</div>
-                <div class="merge-dest-meta">${meta}</div>
-            </div>
-            ${s.suggested?'<span class="merge-dest-badge">Sugerida</span>':''}
-        </div>`;
-    }).join('');
-}
-function updateMergeConfirmBox(){
-    const box=$('mergeConfirmBox'),btn=$('btnConfirmMerge');
-    const src=AppState.ui.mergeSrcTag,stats=AppState.ui.mergeSrcStats||{count:0,totalUYU:0};
-    let dest=null;
-    if(AppState.ui.mergeMode==='existing')dest=AppState.ui.mergeSelectedDest;
-    else dest=normalizarTag($('mergeNewName').value||'');
-    if(!dest||(src&&tagKey(dest)===tagKey(src))){
-        box.style.display='none';btn.disabled=true;return;
-    }
-    const tags=AppState.datos.tags||[];
-    const isNew=AppState.ui.mergeMode==='new'&&!tags.some(t=>tagKey(t)===tagKey(dest));
-    box.style.display='block';
-    box.innerHTML=`<div>Se moverán <b>${stats.count} movimiento${stats.count!==1?'s':''}</b>${stats.totalUYU>0?` (<b>$${fmtNum(stats.totalUYU,0)}</b>)`:''} de <b>${escHtml(src)}</b> hacia <b>${escHtml(dest)}</b>${isNew?' <span style="font-size:0.7em;background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:6px;font-weight:700">NUEVA</span>':''}.</div>
-        <div class="merge-confirm-warning"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> <span><b>${escHtml(src)}</b> se eliminará y el historial quedará unificado bajo <b>${escHtml(dest)}</b>.</span></div>`;
-    btn.disabled=false;
-}
-function confirmarFusion(){
-    const src=AppState.ui.mergeSrcTag;if(!src)return;
-    let dest=null;
-    if(AppState.ui.mergeMode==='existing')dest=AppState.ui.mergeSelectedDest;
-    else dest=normalizarTag($('mergeNewName').value||'');
-    if(!dest)return;
-    if(tagKey(dest)===tagKey(src))return;
-    const tags=AppState.datos.tags||[];
-    /* Create new tag if needed */
-    if(!tags.some(t=>tagKey(t)===tagKey(dest)))AppState.datos.tags.push(dest);
-    if(mergeTag(src,dest)){
-        AppState.ui.mergeSrcTag=null;AppState.ui.mergeSelectedDest=null;
-        cerrarModal('modalMergeTag');
-        renderizarGestionTags();
-    }
-}
 /* Conteo de usos y tipo dominante por tag */
 function getTagStats(){
     const stats={};
@@ -1131,237 +652,6 @@ function getTagStats(){
         if(m.tipoMovimiento==='ingreso')s.ingresos++;else s.egresos++;
     });
     return stats;
-}
-function renderizarTagsSugerencias(inputId,containerId){
-    const input=$(inputId),cont=$(containerId);if(!cont||!input)return;
-    const val=normalizarTag(input.value),valKey=stripAccents(val).toLowerCase();
-    const tags=AppState.datos.tags||[];
-    if(!valKey&&!tags.length){cont.innerHTML='';return}
-
-    const stats=getTagStats();
-    const tipoMov=AppState.ui.tipoMovimiento||'egreso';
-
-    /* Check keyword alias */
-    const aliasCat=getAliasSuggestion(valKey);
-    const aliasKey=aliasCat?tagKey(aliasCat):null;
-
-    let scored=tags.map(t=>{
-        const k=tagKey(t),s=stats[k]||{usos:0,ingresos:0,egresos:0};
-        let score=s.usos;
-        if(tipoMov==='ingreso'&&s.ingresos>0)score+=10;
-        if(tipoMov==='egreso'&&s.egresos>0)score+=10;
-        if(tipoMov==='ingreso'&&s.egresos>0&&s.ingresos===0&&s.usos>2)score=-1;
-        if(tipoMov==='egreso'&&s.ingresos>0&&s.egresos===0&&s.usos>2)score=-1;
-        let match=0;
-        if(valKey){
-            const tk=stripAccents(t).toLowerCase();
-            if(tk===valKey)match=100;
-            else if(tk.startsWith(valKey))match=50;
-            else if(tk.includes(valKey))match=20;
-            /* Alias boost: if tag matches the alias category */
-            else if(aliasKey&&tk===aliasKey)match=80;
-            else if(aliasKey&&tk.includes(aliasKey))match=30;
-            else match=-999;
-        }
-        return{tag:t,score:score+match,match,usos:s.usos};
-    }).filter(t=>t.score>=0&&t.match>=-1);
-
-    scored.sort((a,b)=>b.score-a.score);
-
-    const MAX_VISIBLE=AppState.ui._tagShowAll?50:5;
-    const visible=scored.slice(0,MAX_VISIBLE);
-    const hasMore=scored.length>MAX_VISIBLE;
-    const exactMatch=valKey&&tags.some(t=>tagKey(t)===valKey);
-    const showCreate=valKey&&val.length>=2&&!exactMatch;
-
-    if(!visible.length&&!showCreate&&!aliasCat){cont.innerHTML='';return}
-
-    let h='<div class="tag-sugerencias"><div class="tags-container">';
-    const selected=input.value.trim();
-    visible.forEach(t=>{
-        const isActive=tagKey(selected)===tagKey(t.tag);
-        /* v5.6.2 — El número de usos era texto gris pegado al nombre y podía
-           leerse como parte de la categoría ("Transporte 77"). Ahora es una
-           insignia separada, con su propio fondo, que se lee como lo que es. */
-        h+=`<span class="tag-pill${isActive?' tag-active':''}" data-action="usar-tag" data-tag="${escHtml(t.tag)}" data-target="${inputId}" title="${escHtml(t.tag)}: ${t.usos} ${t.usos===1?'uso':'usos'}">${escHtml(t.tag)}${t.usos>0?`<b class="tag-usos">${t.usos}</b>`:''}</span>`;
-    });
-    if(hasMore)h+=`<span class="tag-pill tag-pill-mas" data-action="tag-ver-mas" data-target="${inputId}">+${scored.length-MAX_VISIBLE} más</span>`;
-    /* Alias suggestion: suggest creating the category name */
-    if(showCreate&&aliasCat&&!tags.some(t=>tagKey(t)===aliasKey)){
-        h+=`<span class="tag-pill tag-pill-idea" data-action="tag-crear" data-tag="${escHtml(aliasCat)}" data-target="${inputId}" title="Sugerencia según lo que escribiste"><svg class="ico ico-tag-idea" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg> ${escHtml(aliasCat)}</span>`;
-    }
-    if(showCreate)h+=`<span class="tag-pill tag-pill-nueva" data-action="tag-crear" data-tag="${escHtml(val)}" data-target="${inputId}" title="Crear esta categoría">+ ${escHtml(val)}</span>`;
-    h+='</div></div>';
-    cont.innerHTML=h;
-}
-function renderizarGestionTags(){
-    const periodo=AppState.ui.tagPeriodo||'total';
-    const view=AppState.ui.tagView||'dona';
-    const pf=$('tagPeriodFilter');
-    if(pf){const periodos=[['hoy','Hoy'],['semana','Semana'],['mes','Mes'],['total','Total']];
-        pf.innerHTML=periodos.map(([k,l])=>`<button style="padding:4px 10px;font-size:0.7em;border-radius:12px;border:1px solid ${periodo===k?'#2563eb':'#e2e8f0'};background:${periodo===k?'#2563eb':'white'};color:${periodo===k?'white':'#64748b'};cursor:pointer;font-weight:500" data-action="tag-periodo" data-periodo="${k}">${l}</button>`).join('');
-    }
-    const vt=$('tagViewToggle');
-    if(vt){const views=[['dona','<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15.5A9 9 0 118.5 3v9h9a9 9 0 013.5 3.5z"/><path d="M20.9 9.5A9 9 0 0014.5 3.1V9.5h6.4z"/></svg> Dona'],['barras','<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg> Barras']];
-        vt.innerHTML=views.map(([k,l])=>`<button class="gastos-view-btn ${view===k?'active':''}" data-action="tag-view" data-view="${k}">${l}</button>`).join('');
-    }
-
-    /* Build period filters: current + previous (for variation) */
-    const hoy=getUDateStr(),hoyD=getUDate();
-    function periodFilter(p,offset){
-        if(p==='hoy'){const d=new Date(hoyD);d.setDate(d.getDate()+offset);const s=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;return m=>m.fecha===s}
-        if(p==='semana'){const start=new Date(hoyD);start.setDate(start.getDate()-hoyD.getDay()+7*offset);const end=new Date(start);end.setDate(end.getDate()+6);const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const s=fmt(start),e=fmt(end);return m=>m.fecha>=s&&m.fecha<=e}
-        if(p==='mes'){const d=new Date(hoyD.getFullYear(),hoyD.getMonth()+offset,1);const s=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;return m=>m.fecha?.startsWith(s)}
-        return ()=>true;
-    }
-    const currFilter=periodFilter(periodo,0);
-    const prevFilter=periodo==='total'?null:periodFilter(periodo,-1);
-
-    const movsFiltrados=AppState.datos.movimientos.filter(currFilter);
-    const movsPrev=prevFilter?AppState.datos.movimientos.filter(prevFilter):[];
-
-    /* Solo egresos */
-    const egresos=movsFiltrados.filter(m=>m.tipoMovimiento==='egreso');
-    const egresosPrev=movsPrev.filter(m=>m.tipoMovimiento==='egreso');
-    const tasaFallback=AppState.datos.ultimaTasaCompra||1;
-    const egresoUYU=m=>movimientoValorUYU(m,tasaFallback);
-
-    const tags=AppState.datos.tags||[],search=($('tagSearch')?.value||'').toLowerCase();
-    function buildStats(egresoList){
-        return tags.map(t=>{
-            const movs=egresoList.filter(m=>m.descripcion&&tagKey(m.descripcion)===tagKey(t));
-            const ops=movs.length;
-            const egresoTotal=movs.reduce((s,m)=>roundMoney(s+egresoUYU(m)),0);
-            const tieneConversion=movs.some(m=>m.tipoCuenta==='usdt'||(m.banco&&getBancoInfo(m.banco)?.moneda==='USD'));
-            return{tag:t,ops,egresoTotal,tieneConversion};
-        });
-    }
-    const tagStats=buildStats(egresos).sort((a,b)=>b.egresoTotal-a.egresoTotal);
-    const prevStats=prevFilter?buildStats(egresosPrev):[];
-    const prevByTag={};prevStats.forEach(t=>{prevByTag[tagKey(t.tag)]=t});
-
-    const totalEgreso=tagStats.reduce((s,t)=>s+t.egresoTotal,0);
-    const sinTagMovs=egresos.filter(m=>!m.descripcion||!tags.some(t=>tagKey(t)===tagKey(m.descripcion)));
-    const sinTagUYU=sinTagMovs.reduce((s,m)=>roundMoney(s+egresoUYU(m)),0);
-    const grandTotal=roundMoney(totalEgreso+sinTagUYU);
-    const prevGrandTotal=prevStats.reduce((s,t)=>s+t.egresoTotal,0);
-
-    /* Ganancia del período (UYU) for impact metric */
-    const opsPeriodo=AppState.datos.operaciones.filter(op=>op.fecha&&currFilter({fecha:op.fecha})&&op.moneda!=='USD');
-    const gananciaPeriodo=opsPeriodo.reduce((s,op)=>roundMoney(s+(op.ganancia||0)),0);
-    const impactoPct=gananciaPeriodo>0?Math.round(grandTotal/gananciaPeriodo*100):0;
-    const sinTagPct=grandTotal>0?Math.round(sinTagUYU/grandTotal*100):0;
-
-    const ac=$('tagAnalytics');
-    if(ac){
-        const COLORS=['#3b82f6','#16a34a','#f59e0b','#dc2626','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
-        const top=tagStats.filter(t=>t.egresoTotal>0).slice(0,8);
-        if(grandTotal>0&&top.length>0){
-            let chartHtml='';
-            if(view==='dona'){
-                let svg='',cum=0;const r=50,cx=60,cy=60,stroke=18,circ=2*Math.PI*r;
-                top.forEach((t,i)=>{
-                    const pct=t.egresoTotal/grandTotal;const dash=pct*circ;const gap=circ-dash;const offset=-cum*circ+circ*0.25;
-                    svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${COLORS[i%COLORS.length]}" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}" />`;
-                    cum+=pct;
-                });
-                if(sinTagUYU>0){const pct=sinTagUYU/grandTotal;const dash=pct*circ;const gap=circ-dash;const offset=-cum*circ+circ*0.25;
-                    svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}" />`;}
-                svg=`<svg viewBox="0 0 120 120" style="width:110px;height:110px"><text x="${cx}" y="${cy-4}" text-anchor="middle" fill="#1e293b" font-size="11" font-weight="700">$${fmtNum(grandTotal,0)}</text><text x="${cx}" y="${cy+10}" text-anchor="middle" fill="#94a3b8" font-size="7">egresos UYU</text>${svg}</svg>`;
-                let legend=top.map((t,i)=>{
-                    const pct=grandTotal?Math.round(t.egresoTotal/grandTotal*100):0;
-                    return`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:${COLORS[i%COLORS.length]};flex-shrink:0"></span><span style="color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(t.tag)}</span><span style="color:#64748b;white-space:nowrap">$${fmtNum(t.egresoTotal,0)} · ${pct}%</span></div>`;
-                }).join('');
-                if(sinTagUYU>0)legend+=`<div style="display:flex;align-items:center;gap:5px;font-size:0.7em"><span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;flex-shrink:0"></span><span style="color:#94a3b8;flex:1">Sin tag</span><span style="color:#64748b">$${fmtNum(sinTagUYU,0)} · ${sinTagPct}%</span></div>`;
-                chartHtml=`<div style="display:flex;gap:14px;align-items:center;padding:10px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0"><div style="flex-shrink:0">${svg}</div><div style="flex:1;display:flex;flex-direction:column;gap:3px">${legend}</div></div>`;
-            }else{
-                /* Bars view: ranking horizontal */
-                const maxV=top[0].egresoTotal;
-                let bars=top.map((t,i)=>{
-                    const pct=maxV?Math.round(t.egresoTotal/maxV*100):0;
-                    return`<div class="gastos-bar-row"><span class="label">${escHtml(t.tag)}</span><div class="track"><div class="fill" style="width:${pct}%;background:${COLORS[i%COLORS.length]}"></div></div><span class="amount">$${fmtNum(t.egresoTotal,0)}</span></div>`;
-                }).join('');
-                if(sinTagUYU>0){const pct=maxV?Math.round(sinTagUYU/maxV*100):0;bars+=`<div class="gastos-bar-row"><span class="label" style="color:#94a3b8">Sin tag</span><div class="track"><div class="fill" style="width:${pct}%;background:#cbd5e1"></div></div><span class="amount" style="color:#94a3b8">$${fmtNum(sinTagUYU,0)}</span></div>`}
-                chartHtml=`<div class="gastos-bars-container"><div style="font-size:0.8em;font-weight:700;color:#1e293b;margin-bottom:4px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">Total: $${fmtNum(grandTotal,0)}</div>${bars}</div>`;
-            }
-
-            /* Meta chips: impact + sin tag warning + period variation */
-            let metaChips='';
-            if(impactoPct>0)metaChips+=`<span class="gastos-meta-chip impact"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l6 6 4-4 7 7M14 16h7v-7"/></svg> ${impactoPct}% de la ganancia</span>`;
-            if(sinTagUYU>0&&sinTagPct>=10)metaChips+=`<span class="gastos-meta-chip warning"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> ${sinTagPct}% sin clasificar</span>`;
-            if(prevFilter&&prevGrandTotal>0){
-                const diff=roundMoney(grandTotal-prevGrandTotal);
-                const pct=Math.abs(Math.round(diff/prevGrandTotal*100));
-                const cls=diff>0?'warning':(diff<0?'gastos-meta-chip" style="background:#dcfce7;color:#15803d':'');
-                const arrow=diff>0?'↑':(diff<0?'↓':'→');
-                const sign=diff>=0?'+':'-';
-                metaChips+=`<span class="gastos-meta-chip ${diff>0?'warning':''}" ${diff<0?'style="background:#dcfce7;color:#15803d"':''}>${arrow} ${sign}$${fmtNum(Math.abs(diff),0)} (${pct}%) vs período anterior</span>`;
-            }
-
-            /* Insights */
-            const topEg=top[0];
-            const topOps=tagStats.filter(t=>t.ops>0).sort((a,b)=>b.ops-a.ops)[0];
-            let topGrowth=null,maxGrowthPct=0;
-            if(prevFilter){
-                top.forEach(t=>{
-                    const prev=prevByTag[tagKey(t.tag)];
-                    if(prev&&prev.egresoTotal>0){
-                        const pct=Math.round((t.egresoTotal-prev.egresoTotal)/prev.egresoTotal*100);
-                        if(pct>maxGrowthPct){maxGrowthPct=pct;topGrowth={tag:t.tag,pct,diff:roundMoney(t.egresoTotal-prev.egresoTotal)}}
-                    }
-                });
-            }
-            let insights=`<span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 10h.01M18 14h.01"/></svg> Mayor: <b>${escHtml(topEg.tag)}</b> ($${fmtNum(topEg.egresoTotal,0)})</span>`;
-            if(topOps&&topOps.tag!==topEg.tag)insights+=`<span style="margin-left:10px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg> Más frec: <b>${escHtml(topOps.tag)}</b> (${topOps.ops})</span>`;
-            if(topGrowth&&topGrowth.pct>=20)insights+=`<span style="margin-left:10px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 7-7M14 8h7v7"/></svg> Mayor crecimiento: <b>${escHtml(topGrowth.tag)}</b> (+${topGrowth.pct}%)</span>`;
-            const hayConv=top.some(t=>t.tieneConversion);
-
-            ac.innerHTML=chartHtml
-                +(metaChips?`<div class="gastos-header-meta">${metaChips}</div>`:'')
-                +`<div style="margin-top:8px;font-size:0.68em;color:#64748b;display:flex;flex-wrap:wrap;gap:4px">${insights}</div>`
-                +(hayConv?'<div style="margin-top:4px;font-size:0.6em;color:#94a3b8;font-style:italic">* Valores USDT/USD convertidos a UYU con precio FIFO</div>':'');
-        }else{
-            ac.innerHTML='<div style="text-align:center;padding:12px;color:#94a3b8;font-size:0.8em">Sin egresos en este período</div>';
-        }
-    }
-
-    const cont=$('tagsList');if(!cont)return;
-    const searchKey=stripAccents(search);
-    const filtrados=searchKey?tagStats.filter(t=>stripAccents(t.tag.toLowerCase()).includes(searchKey)):tagStats;
-    if(!filtrados.length){cont.innerHTML=`<div style="text-align:center;padding:20px;color:#94a3b8"><div style="font-size:1.8em;margin-bottom:6px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L12 22l-9-9V3h10l7.6 7.6a2 2 0 010 2.8zM7.5 7.5h.01"/></svg></div><div>${search?'Sin resultados':'Sin categorías aún'}</div></div>`;return}
-    let h='';
-    filtrados.forEach(t=>{
-        const pct=grandTotal?Math.round(t.egresoTotal/grandTotal*100):0;
-        const ticketTxt=t.ops>0?`Ticket: $${fmtNum(roundMoney(t.egresoTotal/t.ops),0)}`:'';
-        const convMark=t.tieneConversion?' *':'';
-        const metaParts=[t.ops+' egreso'+(t.ops!==1?'s':'')];
-        if(t.egresoTotal>0)metaParts.push('$'+fmtNum(t.egresoTotal,0)+' UYU'+convMark);
-        if(ticketTxt)metaParts.push(ticketTxt);
-
-        /* Variation chip vs previous period */
-        let varChip='';
-        if(prevFilter&&t.egresoTotal>0){
-            const prev=prevByTag[tagKey(t.tag)];
-            if(prev&&prev.egresoTotal>0){
-                const diff=roundMoney(t.egresoTotal-prev.egresoTotal);
-                const vpct=Math.abs(Math.round(diff/prev.egresoTotal*100));
-                if(diff>0)varChip=`<span class="var-chip up">↑ ${vpct}%</span>`;
-                else if(diff<0)varChip=`<span class="var-chip down">↓ ${vpct}%</span>`;
-                else varChip=`<span class="var-chip flat">→</span>`;
-            }else if(!prev||prev.egresoTotal===0){
-                varChip=`<span class="var-chip new">nuevo</span>`;
-            }
-        }
-
-        h+=`<div class="tag-manage-item">
-            <div style="flex:1;min-width:0">
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="tag-name">${escHtml(t.tag)}</span>${pct>0?`<span style="font-size:0.6em;background:#fef2f2;color:#dc2626;padding:1px 5px;border-radius:8px">${pct}%</span>`:''}${varChip}</div>
-                <div style="font-size:0.65em;color:#94a3b8;margin-top:2px">${metaParts.join(' · ')}</div>
-            </div>
-            <div class="tag-actions"><button class="tag-edit-btn" data-action="merge-tag" data-tag="${escHtml(t.tag)}" title="Fusionar categoría" aria-label="Fusionar"><svg class="ico ico-accion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/></svg></button><button class="tag-edit-btn" data-action="editar-tag" data-tag="${escHtml(t.tag)}" title="Editar nombre" aria-label="Editar"><svg class="ico ico-accion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button class="tag-delete-btn" data-action="eliminar-tag" data-tag="${escHtml(t.tag)}" title="Eliminar categoría" aria-label="Eliminar"><svg class="ico ico-accion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg></button></div>
-        </div>`;
-    });
-    cont.innerHTML=h;
 }
 /* ═══ v7.3.0 — Tasas rápidas desde las operaciones reales ═══
    Se guardaba una lista aparte, a la que se agregaba cada tasa al cargar una
@@ -1381,21 +671,6 @@ function tasasRecientesDe(tipo,moneda,cantidad){
         if(res.length>=n)break;
     }
     return res;
-}
-function renderizarTasasRecientes(){
-    const cont=$('tasaTagsContainer');if(!cont)return;
-    const tipo=$('tipo').value,mon=getMonedaBanco();
-    const recientes=tasasRecientesDe(tipo,mon,5);
-    if(!recientes.length){cont.innerHTML='';return}
-    /* v4.7.62 — la pill activa es la que coincide con el valor del campo */
-    const tasaActualNum=parsearTasa($('tasa').value);
-    const epsilon=mon==='USD'?0.0005:0.005;
-    cont.innerHTML=recientes.map((valor,idx)=>{
-        const isActive=tasaActualNum!==null&&Math.abs(valor-tasaActualNum)<epsilon;
-        const cls='tag-pill'+(isActive?' tag-pill-active':'')+(idx===0?' tag-pill-ultima':'');
-        const tit=idx===0?' title="La última tasa que usaste"':'';
-        return `<span class="${cls}"${tit} data-action="usar-tasa" data-valor="${valor}" style="font-size:0.72em;padding:3px 9px;flex-shrink:0">${fmtTasa(valor,mon)}</span>`;
-    }).join('');
 }
 
 function getLotesActivosFIFO(){return AppState.datos.lotes.filter(l=>l.disponible>0).sort((a,b)=>(a.fecha+(a.hora||'00:00')).localeCompare(b.fecha+(b.hora||'00:00')))}

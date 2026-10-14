@@ -82,7 +82,7 @@ function v2ToDoc(entidad,item){
         /* Las operaciones reusan la compresión wire ya probada. consumedLots y
            ganancia son derivables (recalcularLotesYGanancias los reconstruye),
            así que no se persisten — igual que en v1. */
-        const{consumedLots,ganancia,comisionPlataforma,...op}=limpio;
+        const{consumedLots,ganancia,comisionPlataforma,costoUsdt,...op}=limpio;
         if(!window._wireCompressionBroken&&typeof _compressOpForWire==='function'){
             try{d=_compressOpForWire(op)}catch(_){d=op}
         }else d=op;
@@ -164,7 +164,11 @@ function v2PlanDelta(cola,datos){
         /* Si el item ya no está en memoria, fue borrado después de encolarse:
            el delete correspondiente ya está (o llegará) en la cola. */
         if(!item)return;
-        if(deletes.has(docId))return;
+        /* v8.0.0 — Gana lo último que pasó. Si se borró y después se recuperó
+           (Deshacer, Eliminados) en la misma tanda, el registro tiene que
+           quedar en el servidor: antes el borrado anulaba la recuperación y el
+           registro desaparecía al recargar o en el otro dispositivo. */
+        deletes.delete(docId);
         sets.set(docId,v2ToDoc(entidad,item));
     });
     /* Cualquier alta/baja de evento cambia saldos de banco → el estado va igual */
@@ -374,8 +378,8 @@ async function migrarAV2(opts){
             '\n\nNo se perdió nada: el documento principal sigue en el formato anterior y la app funciona normalmente. Los documentos ya escritos se reutilizan al reintentar.';
         if(window._recoveryUI&&window._recoveryUI.error){
             window._recoveryUI.error('Migración interrumpida',msg,[
-                {label:'Reintentar',color:'#3b82f6',onClick:()=>{window._recoveryUI.hide&&window._recoveryUI.hide();setTimeout(()=>migrarAV2(opts),300)}},
-                {label:'Cerrar',color:'#64748b',onClick:()=>{window._recoveryUI.hide&&window._recoveryUI.hide()}}
+                {label:'Reintentar',onClick:()=>{window._recoveryUI.hide&&window._recoveryUI.hide();setTimeout(()=>migrarAV2(opts),300)}},
+                {label:'Cerrar',onClick:()=>{window._recoveryUI.hide&&window._recoveryUI.hide()}}
             ]);
         }else alert(msg);
         return{ok:false,error:e};
@@ -429,30 +433,16 @@ function _v2Programar(){
             if(typeof inicializarBancos==='function')inicializarBancos();
             if(typeof verificarResetLimites==='function')verificarResetLimites();
             recalcularLotesYGanancias();
-            if(typeof _invalidateListCache==='function')_invalidateListCache();
-            if(typeof actualizarVista==='function')actualizarVista();
-            if(typeof backupToLocal==='function')backupToLocal();
-            if(typeof mostrarBotonArchivo==='function')mostrarBotonArchivo();
-            /* v5.2.0 — Remate de UI que antes hacía el handler de snapshot v1.
-               Sin esto, al retirar ese camino se perdían el resumen mensual, el
-               centro de novedades y el ocultado del cargador. */
-            try{
-                const ci=$('comisionPlataforma');
-                if(ci&&document.activeElement!==ci&&typeof getMonedaBanco==='function'){
-                    ci.value=fmtNum(comisionConfigurada(getMonedaBanco()));
-                }
-            }catch(_){}
-            if(typeof actualizarFormulario==='function')actualizarFormulario();
-            if(typeof actualizarColorSelect==='function')actualizarColorSelect();
-            if(typeof ocultarLoading==='function')ocultarLoading();
-            if(typeof actualizarBadgeNoticias==='function')actualizarBadgeNoticias();
             if(AppState.ui&&!AppState.ui._noticiasInicializadas){
                 AppState.ui._noticiasInicializadas=true;
-                if(typeof chequearWhatsNewAlInicio==='function')chequearWhatsNewAlInicio();
+                chequearWhatsNewAlInicio();
             }
-            if(!_v2FromCache&&typeof verificarCambioMes==='function')verificarCambioMes();
+            actualizarVista();
+            if(typeof backupToLocal==='function')backupToLocal();
+            ocultarLoading();
+            actualizarBadgeNoticias();
             if(!_v2FromCache&&AppState._uiHydratedFromCache)AppState._uiHydratedFromCache=false;
-            if(_syncQueue.length===0&&!_guardando)setSyncStatus(_v2FromCache?'syncing':'online',_v2FromCache?'Caché local':undefined);
+            if(_syncQueue.length===0&&!_guardando)setSyncStatus(_v2FromCache?'syncing':'online',_v2FromCache?'Usando lo guardado en el teléfono':undefined);
         }catch(e){console.error('[P2P][v2] render:',e)}
     },80);
 }
@@ -554,7 +544,7 @@ function v2AttachEventos(){
         const sospechoso=desdeCache&&esperado>0&&total<Math.max(1,Math.floor(esperado*0.9));
         if(sospechoso){
             console.warn('[P2P][v2] Caché parcial ('+total+' de ~'+esperado+' eventos) — esperando al servidor');
-            setSyncStatus('syncing','Cargando desde el servidor…');
+            setSyncStatus('syncing','Trayendo tus datos…');
             _v2EsperandoServidor=true;
             return;
         }
@@ -622,7 +612,7 @@ function v2AttachEventos(){
     },err=>{
         console.error('[P2P][v2] listener eventos:',err);
         const permiso=/permission|insufficient/i.test(String(err&&err.message||err));
-        setSyncStatus('offline',permiso?'Sin permiso sobre eventos':'Error de conexión');
+        setSyncStatus('offline',permiso?'Sin permiso para leer tus datos':'Error de conexión');
         if(permiso)console.error('[P2P][v2] Las reglas de Firestore no permiten leer users/{uid}/eventos.');
     });
 }
@@ -653,7 +643,7 @@ async function v2Guardar(forzar){
        incompleto: no escribimos nada hasta tener la foto confirmada. */
     if(!_v2EventosOk||_v2EsperandoServidor){
         _guardarPendiente=true;
-        setSyncStatus('syncing','Esperando datos del servidor…');
+        setSyncStatus('syncing','Esperando tus datos…');
         return;
     }
     const plan=v2PlanDelta(_syncQueue,AppState.datos);
@@ -678,7 +668,7 @@ async function v2Guardar(forzar){
        mismas y solo esas se dan por guardadas. */
     const enVuelo=_syncQueue.slice();
     enVuelo.forEach(a=>{a.enVuelo=true});
-    const indicador=setTimeout(()=>{if(_v2Guardando)setSyncStatus('syncing','Sincronizando…')},800);
+    const indicador=setTimeout(()=>{if(_v2Guardando)setSyncStatus('syncing','Guardando…')},800);
     try{
         if(!navigator.onLine){setSyncStatus('offline','Sin conexión');throw{code:'offline-deferred'}}
         try{if(typeof backupToLocal==='function')backupToLocal()}catch(_){}
@@ -720,7 +710,7 @@ async function v2Guardar(forzar){
         else{
             _syncErrors++;
             console.error('[P2P][v2] guardar:',e);
-            setSyncStatus('offline',_syncErrors>=3?'Sin sincronizar · tocá para reintentar':'Reintentando…');
+            setSyncStatus('offline',_syncErrors>=3?'Sin guardar en la nube: tocá para reintentar':'Reintentando…');
             if(_syncErrors<3){clearTimeout(_retryTimer);_retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();v2Guardar(true)},Math.min(_retryDelay,30000));_retryDelay=Math.min(_retryDelay*1.5,30000)}
         }
         updateSyncBadge();
@@ -886,8 +876,11 @@ async function verificarIntegridad(opts){
     opts=opts||{};
     const ui=window._recoveryUI||{};
     const setPhase=ui.setPhase||function(){};
-    if(!AppState.currentUser||!AppState.db){alert('Sin sesión activa.');return null}
-    if(!navigator.onLine){alert('Necesitás conexión para verificar contra el servidor.');return null}
+    /* v8.0.0 — Con {silencioso:true} no muestra cartel: devuelve el informe y
+       la pantalla de verificación lo presenta. */
+    const avisar=t=>{if(!opts.silencioso)alert(t)};
+    if(!AppState.currentUser||!AppState.db){avisar('Sin sesión activa.');return{ok:false,error:'Sin sesión activa.'}}
+    if(!navigator.onLine){avisar('Necesitás conexión para verificar contra el servidor.');return{ok:false,error:'Necesitás conexión a internet para comparar.'}}
     const problemas=[],avisos=[];
     try{
         if(ui.ensure)ui.ensure();
@@ -982,8 +975,7 @@ async function verificarIntegridad(opts){
         const informe={ok:problemas.length===0,esquema:est._schema,versionServidor:vRemota,versionLocal:vLocal,
                        eventosServidor:totalServidor,detalle,arrastre,problemas,avisos};
         if(ui.hide)ui.hide();
-        console.log('[Verificación de integridad]',informe);
-        alert((problemas.length?'Se encontraron '+problemas.length+' problema(s):\n\n• '+problemas.join('\n• ')
+        avisar((problemas.length?'Se encontraron '+problemas.length+' problema(s):\n\n• '+problemas.join('\n• ')
                                :'Todo coincide con el servidor.')+
               '\n\nEventos: '+totalServidor+' en el servidor'+
               '\nOperaciones: '+detalle.operaciones.memoria+' en pantalla / '+detalle.operaciones.servidor+' en el servidor'+
@@ -994,8 +986,8 @@ async function verificarIntegridad(opts){
     }catch(e){
         console.error('[P2P] verificarIntegridad:',e);
         if(ui.hide)ui.hide();
-        alert('No se pudo completar la verificación: '+(e&&e.message||e)+'\n\nNo se modificó nada.');
-        return null;
+        avisar('No se pudo completar la verificación: '+(e&&e.message||e)+'\n\nNo se modificó nada.');
+        return{ok:false,error:'No se pudo completar: '+(e&&e.message||e)+'. No se modificó nada.'};
     }
 }
 

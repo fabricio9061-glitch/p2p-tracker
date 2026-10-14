@@ -1,42 +1,4 @@
 'use strict';
-/* ════════════════════════════════════════════════════════════════════════════
-   §15 — ARCHIVADO HISTÓRICO (v4.9.0)
-   ════════════════════════════════════════════════════════════════════════════
-   PROBLEMA QUE RESUELVE (definitivamente): toda la app vive en UN documento de
-   Firestore, y Firestore tiene un límite duro de 1 MiB por documento. La
-   compresión wire (v4.7.63) ya está aplicada — cuando el doc comprimido llegó
-   a 851 KB, el payload guard bloqueó writes y recoveryWrite no puede ayudar
-   (recovery = re-comprimir, y ya está comprimido: reescribe ~lo mismo y la
-   verificación post-write <800 KB falla → "Recovery falló").
-
-   SOLUCIÓN: mover los meses viejos (operaciones, movimientos, transferencias,
-   conversiones) a documentos separados: users/{uid}/archivo/{YYYY-MM}.
-   El doc principal queda solo con los meses recientes → chico para siempre.
-
-   POR QUÉ ES SEGURO PARA EL FIFO: recalcularLotesYGanancias() reconstruye
-   lotes y ganancias re-reproduciendo TODO el historial. Si sacamos ops viejas,
-   el replay quedaría incompleto. Para que siga siendo EXACTO:
-     1) LOTES DE ARRASTRE (carryover): se reproduce SOLO el período archivado
-        con el motor real (sandbox sobre AppState.datos) y los lotes que quedan
-        abiertos al corte se convierten en lotes manuales {carryover:true} con
-        su id/fecha/hora/precio originales y cantidad = disponible al corte.
-        El replay reciente los siembra como eventos 'lm' (ya existente) → el
-        orden FIFO y los consumedLots de las ventas recientes no cambian.
-     2) SEEDS DE TASAS: los trackers (ultimaTasaCompra/Venta UYU y USD) al
-        corte se guardan en datos._archivoSeeds y recalcular() arranca desde
-        ahí (cambio v4.9.0 en 06) — sin esto, la ganancia de una compra USD
-        reciente cambiaría al perder la última venta USD archivada.
-     3) VERIFICACIÓN DE EQUIVALENCIA: antes de tocar nada, se simula el estado
-        post-archivo y se compara contra el actual: saldoUsdt, disponible por
-        moneda, ganancia de CADA op reciente y tasas. Si algo difiere en más
-        de medio centésimo, se aborta sin efectos.
-
-   Los docs de archivo guardan las ops CON su ganancia congelada (no es
-   derivable sin el historial previo). Las estadísticas mensuales agregadas ya
-   viven en users/{uid}/monthly_summaries (v4.7.x) — el Resumen no se afecta.
-   ════════════════════════════════════════════════════════════════════════════ */
-
-const ICONO_ARCHIVO='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/></svg>';
 const ARCHIVO_FORMAT=1;
 const ARCHIVO_MESES_MANTENER_DEFAULT=2;   /* mes actual + 1 anterior */
 const ARCHIVO_EPSILON=0.005;              /* misma tolerancia que el split */
@@ -320,7 +282,7 @@ async function archivarHistorial(opts){
                 if(ui.hide)ui.hide();
                 alert('No hay meses anteriores a '+plan.cutoffMes+' para archivar.');
             }else{
-                if(ui.error)ui.error('Archivado abortado','La verificación de equivalencia detectó diferencias — no se modificó nada:\n• '+plan.diffs.join('\n• '),[{label:'Cerrar',color:'#64748b',onClick:()=>{if(ui.hide)ui.hide()}}]);
+                if(ui.error)ui.error('Archivado abortado','La verificación de equivalencia detectó diferencias — no se modificó nada:\n• '+plan.diffs.join('\n• '),[{label:'Cerrar',onClick:()=>{if(ui.hide)ui.hide()}}]);
                 else alert('Archivado abortado (equivalencia):\n'+plan.diffs.join('\n'));
             }
             _archivoRunning=false;
@@ -373,9 +335,9 @@ async function archivarHistorial(opts){
                 :'No hay canal estable con Firestore ('+(_pingErr&&_pingErr.message||_pingErr)+'). Probá con WiFi estable o reiniciá la conexión.';
             if(uiE&&uiE.error){
                 uiE.error('Sin conexión con Firestore',msg,[
-                    {label:'Reintentar archivado',color:'#3b82f6',onClick:()=>{uiE.hide&&uiE.hide();setTimeout(()=>archivarHistorial(opts),300)}},
-                    {label:'Reiniciar conexión y recargar',color:'#d97706',onClick:()=>{_archivoResetConexion()}},
-                    {label:'Cerrar',color:'#64748b',onClick:()=>{uiE.hide&&uiE.hide()}}
+                    {label:'Reintentar archivado',onClick:()=>{uiE.hide&&uiE.hide();setTimeout(()=>archivarHistorial(opts),300)}},
+                    {label:'Reiniciar conexión y recargar',onClick:()=>{_archivoResetConexion()}},
+                    {label:'Cerrar',onClick:()=>{uiE.hide&&uiE.hide()}}
                 ]);
             }else alert(msg);
             return{ok:false,motivo:'sin-conexion',colaAtascada};
@@ -473,9 +435,8 @@ async function archivarHistorial(opts){
                       'Meses archivados: '+plan.meses.join(', ')+'\n'+
                       'Operaciones: '+plan.resumen.ops+' · Ajustes: '+plan.resumen.movs+' · Transf.: '+plan.resumen.transfs+'\n\n'+
                       'Saldos, lotes y ganancias verificados: no cambió ningún número.\n'+
-                      'El detalle quedó en Operaciones → Archivo.');
-                if(typeof actualizarVista==='function')actualizarVista();
-                mostrarBotonArchivo();
+                      'El detalle quedó en Más, Meses archivados.');
+                actualizarVista();
             },400);
         }
         return{ok:true,plan};
@@ -487,9 +448,9 @@ async function archivarHistorial(opts){
             '\n\nNo se perdió nada: el doc principal NO se modificó y los docs de archivo ya escritos son inofensivos (se reutilizan al reintentar).';
         if(window._recoveryUI&&window._recoveryUI.error){
             window._recoveryUI.error('Archivado interrumpido',msg,[
-                {label:'Reintentar archivado',color:'#3b82f6',onClick:()=>{if(window._recoveryUI.hide)window._recoveryUI.hide();setTimeout(()=>archivarHistorial(opts),300)}},
-                {label:'Reiniciar conexión y recargar',color:'#d97706',onClick:()=>{_archivoResetConexion()}},
-                {label:'Cerrar',color:'#64748b',onClick:()=>{if(window._recoveryUI.hide)window._recoveryUI.hide()}}
+                {label:'Reintentar archivado',onClick:()=>{if(window._recoveryUI.hide)window._recoveryUI.hide();setTimeout(()=>archivarHistorial(opts),300)}},
+                {label:'Reiniciar conexión y recargar',onClick:()=>{_archivoResetConexion()}},
+                {label:'Cerrar',onClick:()=>{if(window._recoveryUI.hide)window._recoveryUI.hide()}}
             ]);
         }else alert(msg);
         return{ok:false,error:e};
@@ -613,35 +574,6 @@ async function _archivoResetConexion(){
     location.reload();
 }
 
-/* ─── VISOR read-only del archivo ──────────────────────────────────────────── */
-function mostrarBotonArchivo(){
-    const btn=$('btnVerArchivo');if(!btn)return;
-    const idx=AppState.datos&&AppState.datos._archivoIndex;
-    const hay=idx&&idx.meses&&Object.keys(idx.meses).length>0;
-    btn.classList.toggle('hidden',!hay);
-}
-function _archivoEnsureModal(){
-    let m=$('archivoModal');
-    if(m)return m;
-    /* v5.3.0 — Usa el sistema de modales de la app (.modal/.modal-content/
-       .modal-header) en vez de estilos propios. Con eso hereda el respeto por el
-       área segura del teléfono (antes el título quedaba tapado por la barra de
-       estado en iPhone), el comportamiento a pantalla completa en móvil, la
-       flecha de volver y el mismo aspecto que el resto de las ventanas. */
-    m=document.createElement('div');
-    m.id='archivoModal';
-    m.className='modal';
-    m.innerHTML='<div class="modal-content" style="max-width:620px">'+
-        '<div class="modal-header" data-action="archivo-cerrar">'+ICONO_ARCHIVO+' Historial archivado</div>'+
-        '<div id="archivoBody"></div></div>';
-    document.body.appendChild(m);
-    return m;
-}
-
-/* v5.3.1 — Usa las funciones centrales de formato (§04), las mismas que la
-   lista principal: así el archivo no puede volver a mostrar cifras distintas. */
-function _archMonto(o){return fmtMonto(o.monto||0,o&&o.moneda)}
-function _archTasa(o){return fmtTasaMon(o.tasa||0,o&&o.moneda)}
 
 /* ═══ v6.9.0 — El listado sale de los meses guardados, no de un índice ═══
    Cada mes archivado es un documento propio, pero la pantalla se armaba leyendo
@@ -688,142 +620,39 @@ async function _archivoSincronizarIndice(){
     }catch(e){console.warn('[P2P] No se pudo revisar el archivo del servidor:',e&&e.message);return 0}
 }
 
-function verArchivo(){
-    const m=_archivoEnsureModal();
-    const idx=(AppState.datos&&AppState.datos._archivoIndex&&AppState.datos._archivoIndex.meses)||{};
-    const meses=Object.keys(idx).sort().reverse();
-    const body=$('archivoBody');
-    /* Se consulta el servidor en paralelo: si aparecen meses que el índice no
-       tenía, la pantalla se vuelve a dibujar con ellos incluidos. */
-    _archivoSincronizarIndice().then(n=>{if(n>0&&typeof verArchivo==='function')verArchivo()});
-    if(!meses.length){
-        body.innerHTML='<div class="empty-state">'+
-            '<div class="empty-state-icon">'+ICONO_ARCHIVO+'</div>'+
-            '<div class="empty-state-title">Todavía no archivaste nada</div>'+
-            '<div class="empty-state-sub">Cuando muevas meses viejos al archivo, vas a poder consultarlos y descargarlos desde acá.</div></div>';
-    }else{
-        /* Totales de todo lo archivado: permiten cruzar de un vistazo que la suma
-           de los meses coincide con lo que muestra cada uno al abrirlo. */
-        let tOps=0,tMovs=0,tGan=0,tC=0,tV=0;
-        meses.forEach(k=>{const s=idx[k]||{};tOps+=s.ops||0;tMovs+=s.movs||0;
-            tGan=roundMoney(tGan+(s.ganancia||0));tC=roundMoney(tC+(s.montoCompras||0));tV=roundMoney(tV+(s.montoVentas||0))});
-        const filaMes=k=>{
-            const s=idx[k]||{};
-            const [a,mm]=k.split('-');
-            const nombre=['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][parseInt(mm,10)]||k;
-            return '<button data-action="archivo-mes" data-mes="'+escHtml(k)+'" class="archivo-mes-row">'+
-                '<div class="archivo-mes-top">'+
-                    '<span class="archivo-mes-nombre">'+escHtml(nombre)+' '+escHtml(a)+'</span>'+
-                    '<span class="archivo-mes-gan" style="color:'+colorGan(s.ganancia)+'">'+fmtGan(s.ganancia)+'</span>'+
-                '</div>'+
-                '<div class="archivo-mes-bot">'+
-                    '<span>'+(s.ops||0)+' ops · '+(s.movs||0)+' aj.'+((s.transfs||0)?' · '+s.transfs+' transf.':'')+'</span>'+
-                    '<span>compras $'+fmtNum(s.montoCompras||0,0)+' · ventas $'+fmtNum(s.montoVentas||0,0)+'</span>'+
-                '</div></button>';
-        };
-        body.innerHTML=
-            '<div class="archivo-total">'+
-                '<div class="archivo-total-row"><span>'+meses.length+(meses.length===1?' mes archivado':' meses archivados')+'</span>'+
-                '<b style="color:'+colorGan(tGan)+'">'+fmtGan(tGan)+'</b></div>'+
-                '<div class="archivo-total-sub">'+tOps+' operaciones · '+tMovs+' ajustes · compras $'+fmtNum(tC,0)+' · ventas $'+fmtNum(tV,0)+'</div>'+
-            '</div>'+
-            '<div class="archivo-lista">'+meses.map(filaMes).join('')+'</div>'+
-            '<div class="archivo-nota">Solo lectura. Tocá un mes para ver el detalle o descargarlo en JSON.</div>';
-    }
-    abrirModal('archivoModal');
+
+/* ─── Lectura de un mes archivado (para la pantalla de meses archivados) ───
+   Devuelve las operaciones con su ganancia y si los totales guardados al
+   archivar coinciden con el detalle. */
+async function cargarMesArchivado(mes){
+    const snap=await AppState.db.collection('users').doc(AppState.currentUser.uid)
+        .collection('archivo').doc(mes).get();
+    if(!snap.exists)throw new Error('No se encontró el mes '+mes+'.');
+    const d=snap.data();
+    let ops=d._wireFormat?_decompressOpsArrayFromWire(d.operaciones):(d.operaciones||[]);
+    if(d.gananciasPorId)ops=_archivoAplicarGanancias(ops,d.gananciasPorId);
+    window._archivoMesCache={mes,data:{...d,operaciones:ops}};
+    const s=d.stats||{};
+    let rC=0,rV=0,rG=0,nC=0,nV=0;
+    ops.forEach(o=>{
+        if(o.tipo==='compra'){nC++;rC=roundMoney(rC+(o.monto||0))}
+        else{nV++;rV=roundMoney(rV+(o.monto||0))}
+        rG=roundMoney(rG+(o.ganancia||0));
+    });
+    const cuadra=Math.abs(rG-(s.ganancia||0))<=0.02&&Math.abs(rC-(s.montoCompras||0))<=0.02&&
+                 Math.abs(rV-(s.montoVentas||0))<=0.02&&(!s.ops||s.ops===ops.length);
+    const clave=x=>String(x.fecha||'')+String(x.hora||'00:00')+String(x.id||'');
+    ops=ops.slice().sort((a,b)=>{const ka=clave(a),kb=clave(b);return ka>kb?-1:ka<kb?1:0});
+    return{mes,ops,movimientos:d.movimientos||[],transferencias:d.transferencias||[],
+           compras:{n:nC,monto:rC},ventas:{n:nV,monto:rV},ganancia:rG,cuadra,guardado:s};
 }
-
-async function _archivoVerMes(mes){
-    const body=$('archivoBody');
-    body.innerHTML='<div class="archivo-nota" style="padding:18px 4px">Cargando '+escHtml(mes)+'…</div>';
-    try{
-        const snap=await AppState.db.collection('users').doc(AppState.currentUser.uid)
-            .collection('archivo').doc(mes).get();
-        if(!snap.exists){body.innerHTML='<div class="archivo-error">No se encontró el documento de '+escHtml(mes)+'.</div>';return}
-        const d=snap.data();
-        let ops=d._wireFormat?_decompressOpsArrayFromWire(d.operaciones):(d.operaciones||[]);
-        if(d.gananciasPorId)ops=_archivoAplicarGanancias(ops,d.gananciasPorId);
-        window._archivoMesCache={mes,data:{...d,operaciones:ops}};
-        const s=d.stats||{};
-
-        /* ═══ Los montos tienen que cuadrar ═══
-           Se recalculan los totales sumando el detalle que se está mostrando y se
-           comparan contra las cifras guardadas al archivar. Si no coinciden, se
-           avisa en pantalla en vez de mostrar dos números distintos sin explicar. */
-        let rC=0,rV=0,rG=0,nC=0,nV=0;
-        ops.forEach(o=>{
-            if(o.tipo==='compra'){nC++;rC=roundMoney(rC+(o.monto||0))}
-            else{nV++;rV=roundMoney(rV+(o.monto||0))}
-            rG=roundMoney(rG+(o.ganancia||0));
-        });
-        const difG=Math.abs(rG-(s.ganancia||0)),difC=Math.abs(rC-(s.montoCompras||0)),difV=Math.abs(rV-(s.montoVentas||0));
-        const cuadra=difG<=0.02&&difC<=0.02&&difV<=0.02&&(!s.ops||s.ops===ops.length);
-
-        /* Orden: más reciente primero, igual que la lista principal */
-        const clave=x=>String(x.fecha||'')+String(x.hora||'00:00')+String(x.id||'');
-        const vista=ops.slice().sort((a,b)=>{const ka=clave(a),kb=clave(b);return ka>kb?-1:ka<kb?1:0});
-        const TOPE=300;
-        const filas=vista.slice(0,TOPE).map(o=>{
-            const isC=o.tipo==='compra';
-            const un=(typeof usdtNeto==='function'&&o.usdt!==undefined)
-                ? usdtNeto(o.usdt,o.comisionPlataforma,o.tipo) : (o.usdt||0);
-            const cPct=o.comisionPct!==undefined?o.comisionPct:0.14;
-            return '<div class="archivo-op '+(isC?'compra':'venta')+'">'+
-                '<div class="archivo-op-l">'+
-                    '<div class="archivo-op-monto">'+_archMonto(o)+'</div>'+
-                    '<div class="archivo-op-meta">'+_archTasa(o)+' · '+fmtTrunc(un,2)+' USDT · '+fmtNum(cPct,2)+'%'+
-                        (o.banco?' · <span class="archivo-op-banco">'+escHtml(o.banco)+'</span>':'')+'</div>'+
-                '</div>'+
-                '<div class="archivo-op-r">'+
-                    '<div class="archivo-op-gan" style="color:'+colorGan(o.ganancia)+'">'+fmtGan(o.ganancia)+'</div>'+
-                    '<div class="archivo-op-fecha">'+escHtml(String(o.fecha||'').slice(8)+'/'+String(o.fecha||'').slice(5,7))+(o.hora?' · '+escHtml(o.hora):'')+'</div>'+
-                '</div></div>';
-        }).join('');
-
-        body.innerHTML=
-            '<div class="archivo-detalle-top">'+
-                '<button data-action="archivo-volver" class="archivo-btn">← Meses</button>'+
-                '<b>'+escHtml(mes)+'</b>'+
-                '<button data-action="archivo-descargar" class="archivo-btn verde"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 16V3M7 11l5 5 5-5"/></svg> JSON</button>'+
-            '</div>'+
-            '<div class="archivo-stats">'+
-                '<div><span>Compras</span><b>'+nC+'</b><i>$'+fmtNum(rC,0)+'</i></div>'+
-                '<div><span>Ventas</span><b>'+nV+'</b><i>$'+fmtNum(rV,0)+'</i></div>'+
-                '<div><span>Ganancia</span><b style="color:'+colorGan(rG)+'">'+fmtGan(rG)+'</b><i>'+ops.length+' ops</i></div>'+
-            '</div>'+
-            (cuadra?'':'<div class="archivo-error"><svg class="ico ico-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/></svg> Los totales guardados al archivar no coinciden con el detalle '+
-                '(guardado: ganancia $'+fmtNum(s.ganancia||0,2)+' · '+(s.ops||0)+' ops). '+
-                'Se muestran los recalculados.</div>')+
-            '<div class="archivo-ops">'+filas+'</div>'+
-            (vista.length>TOPE?'<div class="archivo-nota">Mostrando '+TOPE+' de '+vista.length+' — descargá el JSON para el detalle completo.</div>':'')+
-            ((d.movimientos||[]).length||(d.transferencias||[]).length
-                ? '<div class="archivo-nota">También archivados: '+(d.movimientos||[]).length+' ajustes y '+(d.transferencias||[]).length+' transferencias (incluidos en el JSON).</div>'
-                : '');
-    }catch(e){
-        body.innerHTML='<div class="archivo-error">Error cargando: '+escHtml(e&&e.message||String(e))+'</div>';
-    }
+/* Cuántos registros pasarían al archivo y desde qué mes */
+function infoArchivar(){
+    const corte=_archivoCutoffMes(ARCHIVO_MESES_MANTENER_DEFAULT);
+    const viejos=['operaciones','movimientos','transferencias','conversiones'].reduce((n,k)=> /* coherencia:ok — las correcciones de saldo no se archivan */
+        n+(AppState.datos[k]||[]).filter(x=>x&&String(x.fecha||'').slice(0,7)<corte).length,0);
+    return{corte,viejos};
 }
-function _archivoDescargarMes(){
-    const c=window._archivoMesCache;if(!c)return;
-    try{
-        const blob=new Blob([JSON.stringify(c.data,null,1)],{type:'application/json'});
-        const a=document.createElement('a');
-        a.href=URL.createObjectURL(blob);
-        a.download='p2p-archivo-'+c.mes+'.json';
-        document.body.appendChild(a);a.click();
-        setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},800);
-    }catch(e){alert('Error descargando: '+(e&&e.message||e))}
-}
-/* Botones propios de la pantalla del archivo (abrirla es 'ver-archivo', en 14) */
-document.addEventListener('click',e=>{
-    const t=e.target.closest('[data-action="archivo-cerrar"],[data-action="archivo-mes"],[data-action="archivo-volver"],[data-action="archivo-descargar"]');
-    if(!t)return;
-    const a=t.dataset.action;
-    if(a==='archivo-cerrar')cerrarModal('archivoModal');
-    else if(a==='archivo-mes')_archivoVerMes(t.dataset.mes);
-    else if(a==='archivo-volver')verArchivo();
-    else if(a==='archivo-descargar')_archivoDescargarMes();
-});
 /* ─── Watchdog de conexión (v4.9.4) ───────────────────────────────────────
    "Que la aplicación siempre trate de estar en línea": si a los 12s de boot no
    llegó NINGÚN snapshot de servidor teniendo internet, kick suave del canal;
@@ -857,31 +686,16 @@ async function _connWatchdog(){
        estar sano: ese caso lo diagnostica y lo explica el handler de estado, y
        este cartel solo agregaba ruido y una causa equivocada. */
     const _t=document.getElementById('syncText');
-    if(_t&&String(_t.textContent||'').indexOf('Formato anterior')>=0)return;
-    ui.error('Sin conexión con Firestore',
+    if(_t&&/formato/i.test(String(_t.textContent||'')))return;
+    ui.error('No se puede conectar',
         colaAtascada
-            ?'La app no logra hablar con Firestore y hay escrituras internas atascadas de una sesión anterior (la cola persistida bloquea todo lo nuevo). "Reiniciar conexión" limpia SOLO esa cola interna y recarga. Tus operaciones no se tocan: viven en el respaldo local.'
-            :'La app no logra establecer el canal con Firestore en esta red. Probá reiniciar la conexión o cambiar de red.',
+            ?'La app no logra guardar en internet: quedaron cambios trabados de una sesión anterior. "Reiniciar la conexión" los destraba y recarga la app. Tus datos no se tocan: están guardados en el teléfono.'
+            :'La app no logra conectarse en esta red. Probá reiniciar la conexión o cambiar de red (wifi o datos).',
         [
-            {label:'Reiniciar conexión y recargar',color:'#d97706',onClick:()=>{_archivoResetConexion()}},
-            {label:'Seguir en modo local',color:'#64748b',onClick:()=>{ui.hide&&ui.hide()}}
+            {label:'Reiniciar la conexión',onClick:()=>{_archivoResetConexion()}},
+            {label:'Seguir sin conexión',onClick:()=>{ui.hide&&ui.hide()}}
         ]);
 }
 document.addEventListener('DOMContentLoaded',()=>{_connWatchdog()});
 
-/* Mostrar el botón de Archivo cuando el índice esté hidratado */
-document.addEventListener('DOMContentLoaded',()=>{setTimeout(mostrarBotonArchivo,3500);setTimeout(mostrarBotonArchivo,8000)});
 
-
-/* v7.3.0 — Archivar desde el menú. Mueve los meses anteriores al mes pasado
-   al historial archivado: la app carga y recalcula menos registros, que en el
-   teléfono se nota. Saldos, USDT y ganancias no cambian (se verifica antes de
-   aplicar nada). */
-function archivarDesdeMenu(){
-    const corte=_archivoCutoffMes(ARCHIVO_MESES_MANTENER_DEFAULT);
-    const viejos=['operaciones','movimientos','transferencias','conversiones'].reduce((n,k)=> /* coherencia:ok — las correcciones de saldo no se archivan */
-        n+(AppState.datos[k]||[]).filter(x=>x&&String(x.fecha||'').slice(0,7)<corte).length,0);
-    if(!viejos){alert('No hay registros anteriores a '+corte+' para archivar.');return}
-    if(!confirm('Archivar meses anteriores\n\n'+viejos+' registros anteriores a '+corte+' pasan al historial archivado (solo lectura, se pueden descargar).\n\nLos saldos, el USDT y las ganancias no cambian: se verifica antes de aplicar. Necesita conexión y puede tardar un momento.\n\n¿Archivar?'))return;
-    archivarHistorial({trigger:'menu'});
-}
