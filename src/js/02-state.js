@@ -41,7 +41,10 @@ const setText = (id, t) => { const e=$(id); if(e) e.textContent=t; };
 
 function setSyncStatus(s,t) {
     const el=$('syncStatus');
+    const antes=AppState.ui.syncState;
     AppState.ui.syncState=s;
+    /* v8.0.3 — Si se corta o vuelve la conexión, el detalle abierto lo dice */
+    if(antes!==s&&typeof refrescarEstadoDetalles==='function'){try{refrescarEstadoDetalles()}catch(_){}}
     if(!el)return;
     const labels={online:'Todo guardado',offline:'Sin conexión: se guarda al volver',syncing:'Guardando…',reconnecting:'Reconectando…'};
     el.className='sync '+s;

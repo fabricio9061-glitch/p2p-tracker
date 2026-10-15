@@ -133,7 +133,7 @@ function pintarLibro(cont,capa){
 }
 function filaLibro(l,cuenta){
     if(l.tipo==='inicial'){
-        return'<div class="fila"><span class="hora"></span><span class="fila-t">Saldo inicial</span><span class="fila-m">'+escHtml(montoEnCuenta(l.resultante,cuenta,{unidad:false}))+'</span>'+
+        return'<div class="fila"><span class="fila-t">Saldo inicial</span><span class="fila-m">'+escHtml(montoEnCuenta(l.resultante,cuenta,{unidad:false}))+'</span>'+
             '<span class="fila-s"><span>'+(cuenta==='USDT'?'lotes cargados a mano y de meses archivados':'con el que empezaste')+'</span></span></div>';
     }
     const it=itemRegistro(l.tipo,l.ev);

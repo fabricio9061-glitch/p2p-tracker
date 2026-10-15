@@ -124,7 +124,8 @@ function pintarInicio(){
             '<span class="aba">'+(x.v<0&&h?'<span class="bn" style="height:'+h+'px"></span>':'')+'</span>'+
             '<span>'+DIAS_LETRA[dd.getDay()]+'</span></button>';
     }).join('')+'</div>';
-    html+='<section class="heroe" aria-label="Ganancia de hoy">'+
+    const plegado=heroePlegado();
+    html+='<section class="heroe'+(plegado?' plegado':'')+'" aria-label="Ganancia de hoy">'+
         '<div class="heroe-fila"><div class="heroe-izq"><div class="heroe-rot">Ganancia de hoy</div>'+
             '<div class="heroe-cifra cifra '+claseSigno(gHoy)+'">'+tHoy+'</div></div>'+semana+'</div>'+
         '<div class="heroe-desglose">'+
@@ -142,7 +143,7 @@ function pintarInicio(){
     /* v8.0.2 — Dentro de la misma tarjeta: el spread, las comisiones y los
        otros ingresos de hoy (siempre los tres, aunque estén en cero), y abajo
        ayer, el mes y el promedio. Una grilla en vez de muchas cajitas. */
-    html+='<div class="hoy-grilla"><div class="mini-datos hoy-datos">'+
+    html+='<div class="hoy-grilla" id="hoyGrilla"><div class="mini-datos hoy-datos">'+
         ficha('Spread',deHoy.spread!==null?dinero(deHoy.spread,'UYU'):MENOS,deHoy.spread!==null?claseSigno(deHoy.spread):'','por USDT')+
         ficha('Comisiones',usdtTxt(deHoy.comUsdt),'',dinero(deHoy.comPesos,'UYU')+' en pesos')+
         ficha('Otros ingresos',dinero(deHoy.ingresos,'UYU',{signo:true}),deHoy.ingresos>=0.005?'sube':'','no es ganancia')+'</div>';
@@ -150,6 +151,9 @@ function pintarInicio(){
         ficha('Ayer',dinero(gAyer,'UYU',{signo:true}),claseSigno(gAyer))+
         ficha('Este mes',dinero(gMes,'UYU',{signo:true}),claseSigno(gMes))+
         ficha('Prom. 7 días',dinero(prom7,'UYU',{signo:true}),claseSigno(prom7))+'</div></div>';
+    /* v8.0.3 — Los dos bloques de abajo se pueden ocultar y mostrar */
+    html+='<button type="button" class="heroe-plegar" data-a="heroe-detalle" aria-controls="hoyGrilla" aria-expanded="'+(!plegado)+'">'+
+        '<span>'+(plegado?TXT_VER_DETALLE:TXT_OCULTAR_DETALLE)+'</span>'+ico('abajo')+'</button>';
     html+='</section>';
 
     /* ── Actividad del período ── */
@@ -235,6 +239,23 @@ function htmlAvisosDatos(){
     return h;
 }
 function pintarAvisoGuardado(){if(AppState.ui.tab==='inicio')pintarTab()}
+
+/* ─── Mostrar u ocultar el detalle de hoy (v8.0.3) ─────────────────────── */
+/* El spread, las comisiones, los otros ingresos, ayer, el mes y el promedio
+   se pueden plegar. La elección queda guardada en este teléfono. */
+const TXT_VER_DETALLE='Ver spread, comisiones, ayer y el mes',TXT_OCULTAR_DETALLE='Ocultar el detalle';
+let _heroePlegado=null;
+function heroePlegado(){
+    if(_heroePlegado===null){try{_heroePlegado=localStorage.getItem('p2p_inicio_plegado')==='1'}catch(_){_heroePlegado=false}}
+    return _heroePlegado;
+}
+ACC['heroe-detalle']=t=>{
+    _heroePlegado=!heroePlegado();
+    try{localStorage.setItem('p2p_inicio_plegado',_heroePlegado?'1':'0')}catch(_){}
+    const h=t.closest('.heroe');if(h)h.classList.toggle('plegado',_heroePlegado);
+    t.setAttribute('aria-expanded',String(!_heroePlegado));
+    const sp=t.querySelector('span');if(sp)sp.textContent=_heroePlegado?TXT_VER_DETALLE:TXT_OCULTAR_DETALLE;
+};
 ACC['sync-reintentar']=()=>{
     _syncErrors=0;_retryDelay=2000;clearTimeout(_retryTimer);
     avisar('Reintentando…');

@@ -265,8 +265,9 @@ window.addEventListener('popstate',()=>{
 /* Encabezados comunes */
 function cabHoja(titulo,o){
     o=o||{};
+    const cls=((o.chico?'chico ':'')+(o.clase||'')).trim();
     return'<div class="hoja-cab"><div class="manija"></div><div class="hoja-titulo">'+
-        (o.izquierda||'<h2'+(o.chico?' class="chico"':'')+'>'+escHtml(titulo)+'</h2>')+
+        (o.izquierda||'<h2'+(cls?' class="'+cls+'"':'')+'>'+escHtml(titulo)+'</h2>')+
         '<button type="button" class="cerrar" data-a="cerrar-capa" aria-label="Cerrar">'+ico('cerrar')+'</button></div></div>';
 }
 function cabVista(titulo,o){
@@ -508,14 +509,17 @@ function itemRegistro(ent,rec){
 /* Cada fila va dentro de .desliza: deslizándola a la derecha se edita y a la
    izquierda se elimina, como en la 7.x. Tocarla abre su detalle. */
 const _FONDO_DESLIZA='<div class="desliza-fondo" aria-hidden="true"><span class="d-editar">'+ico('editar')+'Editar</span><span class="d-borrar">Eliminar'+ico('borrar')+'</span></div>';
+/* v8.0.3 — "Venta" en rojo y "Compra" en verde, como los botones de Vender y Comprar */
+function claseTipo(tipo){return tipo==='venta'?' t-venta':tipo==='compra'?' t-compra':''}
 function filaRegistroHtml(it,o){
     o=o||{};
     const der=o.derTxt!==undefined?o.derTxt:it.derTxt;
     const derClase=o.derTxt!==undefined?(o.derClase||''):(it.derClase||'');
     return'<div class="desliza">'+_FONDO_DESLIZA+
         '<button type="button" class="fila" data-a="detalle" data-ent="'+it.ent+'" data-id="'+escHtml(it.id)+'">'+
-        '<span class="hora">'+escHtml(it.hora)+'</span>'+
-        '<span class="fila-t">'+escHtml(o.titulo||it.titulo)+'</span>'+
+        /* v8.0.3 — La hora va a la derecha del título */
+        '<span class="fila-l1"><span class="fila-t'+claseTipo(it.tipo)+'">'+escHtml(o.titulo||it.titulo)+'</span>'+
+            (it.hora?'<span class="hora">'+escHtml(it.hora)+'</span>':'')+'</span>'+
         '<span class="fila-m '+(o.montoClase!==undefined?o.montoClase:(it.montoClase||''))+'">'+escHtml(o.montoTxt||it.montoTxt)+'</span>'+
         '<span class="fila-s">'+(o.sub!==undefined?o.sub:it.sub)+'</span>'+
         (der?'<span class="fila-ms '+derClase+'">'+escHtml(der)+'</span>':'')+

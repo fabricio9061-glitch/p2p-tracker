@@ -61,6 +61,12 @@
 .mini-datos+.mini-datos{margin-top:8px}
 /* La grilla de la tarjeta de hoy: celdas separadas por líneas finas */
 .hoy-grilla{margin:12px -16px 0;border-top:1px solid var(--linea)}
+/* v8.0.3 — Plegar el detalle de hoy */
+.heroe-plegar{display:flex;align-items:center;justify-content:center;gap:5px;width:calc(100% + 32px);height:38px;margin:12px -16px 0;padding:0 12px;border:none;border-top:1px solid var(--linea);border-radius:0 0 18px 18px;background:none;font-size:13px;font-weight:600;color:var(--tenue)}
+.heroe-plegar .i{flex:none;width:15px;height:15px;stroke-width:2.3;transition:transform .15s}
+.heroe-plegar[aria-expanded="true"] .i{transform:rotate(180deg)}
+.hoy-grilla+.heroe-plegar{margin-top:0}
+.heroe.plegado .hoy-grilla{display:none}
 .hoy-grilla .mini-datos{grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:0}
 .hoy-grilla .mini-datos+.mini-datos{margin:0;border-top:1px solid var(--linea)}
 .hoy-grilla .mini-datos>div{padding:10px 12px 11px 16px;border-radius:0;background:none}
@@ -142,12 +148,47 @@
 .reparto-fila .quitar{width:44px;height:44px;margin-top:2px;border:none;border-radius:50%;background:none;color:var(--tenue);display:flex;align-items:center;justify-content:center}
 .reparto-fila .quitar .i{width:18px;height:18px;stroke-width:2.2}
 .reparto-nota{font-size:13px;color:var(--tenue)}
-.resumen-form{margin-bottom:12px;padding:14px 16px;border-radius:var(--r-tile);background:var(--papel)}
-.resumen-form .r-1{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.resumen-form .r-1>span{font-size:14px;font-weight:600;color:var(--tinta-2)}
-.resumen-form .r-1 b{font-size:30px;font-weight:760;font-stretch:72%;font-variant-numeric:tabular-nums;white-space:nowrap}
-.resumen-form .r-2{font-size:13px;color:var(--tenue);margin-top:4px;font-variant-numeric:tabular-nums}
-.linea-pie{font-size:13.5px;color:var(--tenue);text-align:center;margin-bottom:10px;font-variant-numeric:tabular-nums}
+/* v8.0.3 — La cuenta de abajo de comprar y vender: las filas de Binance, con
+   la comisión y lo liberado (o recibido) colgando de la cantidad total */
+.recibo{margin-bottom:12px;padding:9px 14px 12px;border-radius:var(--r-tile);background:var(--papel);font-variant-numeric:tabular-nums}
+.rc-fila{position:relative;display:flex;align-items:baseline;justify-content:space-between;gap:12px;width:100%;min-height:24px;padding:2px 0;font-size:14px;line-height:1.3;color:var(--tinta);text-align:left}
+.rc-fila>span{min-width:0;color:var(--tinta-2)}
+.rc-fila>b{flex:none;font-weight:650;white-space:nowrap}
+.rc-total>span{color:var(--tinta);font-weight:650}
+.rc-total>b{font-size:19px;font-weight:760;font-stretch:78%}
+.rc-rama{margin-left:5px}
+.rc-rama .rc-fila{padding-left:17px;min-height:22px;font-size:13.5px}
+.rc-rama .rc-fila>b{font-weight:600;color:var(--tinta-2)}
+.rc-rama .rc-fila::before{content:'';position:absolute;left:0;top:-2px;height:calc(50% + 2px);width:10px;border-left:1.5px solid var(--borde-3);border-bottom:1.5px solid var(--borde-3);border-bottom-left-radius:5px}
+.rc-rama .rc-fila:not(:last-child)::after{content:'';position:absolute;left:0;top:50%;bottom:-2px;border-left:1.5px solid var(--borde-3)}
+button.rc-fila{border:none;background:none;font:inherit;color:inherit;border-radius:6px}
+button.rc-fila:active{background:var(--papel-2)}
+.rc-pct{color:var(--tinta);font-weight:650;text-decoration:underline dotted;text-decoration-thickness:1.5px;text-underline-offset:3px}
+.rc-extra{margin-top:4px;padding-top:6px;border-top:1px solid var(--borde)}
+.rc-extra>span{color:var(--tinta);font-weight:600}
+.rc-extra>b{font-size:16px}
+.rc-nota{margin-top:6px;font-size:13px;color:var(--tenue)}
+.rc-nota.baja{color:var(--baja);font-weight:560}
+/* "Itaú queda en $X", destacado: verde si entra plata, rojo si sale */
+.quedan{display:flex;flex-direction:column;gap:6px}
+.recibo .quedan{margin-top:8px}
+.hoja-pie>.quedan:not(:empty){margin-bottom:10px}
+.queda{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 12px;border-radius:12px}
+.queda>.q-t{flex:1 1 auto;min-width:0;font-size:14.5px;font-weight:620;line-height:1.2;color:var(--tinta)}
+.queda>b{flex:none;font-size:22px;font-weight:760;line-height:1;white-space:nowrap}
+.queda.sube{background:var(--sube-fondo)}
+.queda.sube>b{color:var(--sube)}
+.queda.baja{background:var(--baja-fondo)}
+.queda.baja>b{color:var(--baja)}
+.queda.mal{box-shadow:inset 0 0 0 1.5px var(--baja)}
+.queda.mal>.q-t{color:var(--baja)}
+.linea-pie{font-size:13.5px;color:var(--tenue);text-align:center;font-variant-numeric:tabular-nums}
+.quedan>.linea-pie{margin-bottom:2px}
+/* Las últimas tasas, al lado de "Tasa por USDT" (las que no entran, no se ven) */
+.rotulo-fila{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.rotulo-fila>.rotulo{flex:none;margin-bottom:0}
+.rotulo-fila>.tasas-rapidas{flex:1 1 auto;min-width:0;margin-top:0;justify-content:flex-end;gap:6px;height:32px;overflow:hidden}
+.rotulo-fila .pastilla.chica{height:32px;padding:0 11px;border-radius:16px;font-size:13.5px}
 .nota-campo{font-size:13px;color:var(--tenue);margin-top:7px}
 .diferencia{margin-top:10px;font-size:14.5px;font-variant-numeric:tabular-nums}
 .diferencia b{font-weight:680}
@@ -174,12 +215,40 @@
 .det-cifra{font-size:58px;line-height:1;font-weight:780;margin-top:10px}
 .det-cifra.l{font-size:46px}
 .det-cifra.xl{font-size:36px}
-.det-donde{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:8px;font-size:14.5px;color:var(--tinta-2)}
-.det-donde b{font-weight:650;color:var(--tinta)}
-.det-cuentas{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:10px;row-gap:10px;align-items:center;margin-top:12px;font-size:15px;font-variant-numeric:tabular-nums}
+/* v8.0.3 — Como "Detalles de la orden" de Binance: estado, bloques y la
+   cantidad total con lo liberado (o recibido) y la comisión colgando */
+.det-estado{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:15px;font-weight:650}
+.det-estado .i{flex:none;width:18px;height:18px;stroke-width:2.5}
+.det-estado.ok{color:var(--sube)}
+.det-estado.espera{color:var(--tenue)}
+.det-estado.mal{color:var(--baja)}
+.det-bloque{margin-top:14px;padding:5px 16px;border-radius:var(--r-tile);background:var(--papel)}
+.det-bloque+.det-bloque{margin-top:10px}
+.det-bloque .dato{padding:10px 0}
+.det-bloque .dato>span{color:var(--tenue)}
+.det-bloque .dato>b{font-weight:650;color:var(--tinta)}
+.det-bloque .dato.fuerte>span{color:var(--tinta);font-weight:650}
+.det-bloque .dato.total{margin-top:2px;padding-top:12px;border-top:1px solid var(--borde-2)}
+.det-bloque .dato.total>span{color:var(--tinta);font-weight:650}
+.det-bloque .dato.total>b{font-size:22px;font-weight:760;line-height:1.1}
+.det-bloque .dato.total>b.sube{color:var(--sube)}
+.det-bloque .dato.total>b.baja{color:var(--baja)}
+.det-rama{margin:-4px 0 2px 5px}
+.det-rama .dato{position:relative;padding:7px 0 7px 18px;font-size:14.5px}
+.det-rama .dato>b{font-weight:600;color:var(--tinta-2)}
+.det-rama .dato::before{content:'';position:absolute;left:0;top:-3px;height:calc(50% + 3px);width:11px;border-left:1.5px solid var(--borde-3);border-bottom:1.5px solid var(--borde-3);border-bottom-left-radius:6px}
+.det-rama .dato:not(:last-child)::after{content:'';position:absolute;left:0;top:50%;bottom:-3px;border-left:1.5px solid var(--borde-3)}
+.det-pct{margin-left:2px;color:var(--tinta-2);font-weight:600}
+.det-cuenta{display:inline-flex;align-items:center;gap:7px;vertical-align:middle}
+.det-cuentas-v{display:inline-flex;flex-direction:column;align-items:flex-end;gap:8px}
+.det-aporte{margin-left:4px;font-weight:600;color:var(--tinta-2);font-variant-numeric:tabular-nums}
+.det-sub{margin-top:24px}
+.det-cuentas{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:10px;row-gap:12px;align-items:center;margin-top:10px;padding:13px 16px;font-size:15px;font-variant-numeric:tabular-nums}
 .det-cuentas>span:nth-child(3n+2){font-weight:600}
 .det-cuentas>span:nth-child(3n){text-align:right}
-.det-cuentas b{font-weight:650}
+.det-cuentas b{font-weight:700}
+.det-cuentas b.sube{color:var(--sube)}
+.det-cuentas b.baja{color:var(--baja)}
 .det-cambios{display:flex;flex-direction:column;gap:12px;margin-top:12px;font-size:14.5px}
 .det-cambios li{display:grid;grid-template-columns:78px minmax(0,1fr);column-gap:8px}
 .det-cambios li>span:first-child{color:var(--tenue);font-variant-numeric:tabular-nums}
