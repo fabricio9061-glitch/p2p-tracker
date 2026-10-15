@@ -40,6 +40,9 @@ async function borrarTodo(){
                     localStorage.removeItem('p2p_archivo_snooze_'+AppState.currentUser.uid);
                 }
             }catch(_){}
+            /* v8.0.1 — Lo pendiente y las copias automáticas también se van */
+            _syncQueue.length=0;guardarColaLocal();
+            try{borrarCopias()}catch(_){}
             if(AppState._schema===2&&window._v2sync&&typeof window._v2sync.subirTodo==='function'){
                 await window._v2sync.subirTodo();
             }else{
@@ -62,75 +65,9 @@ async function borrarTodo(){
 /* ═══════════════════════════════════════
    §17B — RESTAURACIÓN MANUAL + EXPORT/IMPORT JSON
    ═══════════════════════════════════════ */
-/* Respaldos locales de la cuenta actual, el mejor primero.
-   ═══ v7.3.0 — Solo los de esta cuenta ═══
-   Se buscaban todas las claves de respaldo del teléfono, incluidas las de otros
-   usuarios que hubieran iniciado sesión en él. Si la cuenta actual no tenía
-   respaldo propio, se ofrecía restaurar el de otra persona y sus datos quedaban
-   cargados en esta cuenta. Cada usuario ve solo lo suyo. */
-function _buscarTodosLosRespaldos(){
-    const encontrados=[];
-    if(!AppState.currentUser)return encontrados;
-    const propias=['p2p_backup_'+AppState.currentUser.uid,'p2p_backup_'+AppState.currentUser.uid+'_prev'];
-    try{
-        for(const k of propias){
-            try{
-                const raw=localStorage.getItem(k);
-                if(!raw)continue;
-                const b=JSON.parse(raw);
-                if(!b||!b.datos)continue;
-                const score=_puntajeDatos(b.datos);
-                if(score<=0)continue;
-                const isPrev=k.endsWith('_prev');
-                encontrados.push({key:k,score,ts:b.ts||0,v:b.v||0,datos:b.datos,isPrev,isCurrent:true});
-            }catch(e){/* key corrupto — ignorar */}
-        }
-    }catch(e){console.warn('[P2P] Error escaneando localStorage:',e.message)}
-    /* Orden: por puntaje descendente, luego por fecha */
-    encontrados.sort((a,b)=>a.score!==b.score?b.score-a.score:b.ts-a.ts);
-    return encontrados;
-}
-
-async function restaurarRespaldoManual(){
-    if(!AppState.currentUser){alert('No hay usuario activo');return}
-    /* 1. Búsqueda exhaustiva — escanea TODO localStorage */
-    const todos=_buscarTodosLosRespaldos();
-    if(!todos.length){
-        /* Sin respaldos — dar al usuario TODAS las opciones restantes */
-        alert('No hay respaldos de esta cuenta en este dispositivo.\n\n'
-            +'Si tenés un archivo .json exportado, usá "Importar datos".\n'
-            +'Si otro dispositivo tiene los datos bien, abrí la app allí y usá "Exportar datos", o "Verificar y reconciliar" → "Este dispositivo tiene los datos correctos".');
-        return;
-    }
-    /* 2. Elegir el mejor respaldo — el primero del array ordenado */
-    const best=todos[0];
-    const backup={v:best.v,ts:best.ts,datos:best.datos};
-    const origen=best.isPrev?'respaldo previo':'respaldo principal';
-    /* 3. Mostrar resumen al usuario */
-    const d=backup.datos;
-    const ts=backup.ts?new Date(backup.ts):null;
-    const edad=ts?Math.floor((Date.now()-backup.ts)/60000):null;
-    const edadTxt=edad===null?'fecha desconocida':
-                  edad<1?'hace menos de 1 minuto':
-                  edad<60?`hace ${edad} min`:
-                  edad<1440?`hace ${Math.floor(edad/60)} h`:
-                  `hace ${Math.floor(edad/1440)} días`;
-    let resumen=`¿Restaurar este respaldo?\n\n`
-        +`Origen: ${origen}\n`
-        +`Guardado: ${edadTxt}\n`
-        +`Contenido:\n`
-        +`  • ${(d.operaciones||[]).length} operaciones\n`
-        +`  • ${(d.movimientos||[]).length} ajustes\n`
-        +`  • ${(d.transferencias||[]).length} transferencias\n`
-        +`  • ${(d.conversiones||[]).length} conversiones\n`
-        +`  • ${(d.lotes||[]).length} lotes USDT\n`
-        +`  • ${Object.values(d.bancos||{}).filter(b=>b&&b.activo).length} bancos activos\n`;
-    if(todos.length>1)resumen+=`\nHay ${todos.length} respaldos; se usa el más completo.\n`;
-    resumen+=`\nEsta acción reemplazará los datos actuales de la app con los del respaldo.\n`
-        +`Los datos actuales se guardarán como respaldo previo antes de aplicar.`;
-    if(!confirm(resumen))return;
-    await _aplicarRespaldo(backup.datos,origen);
-}
+/* v8.0.1 — "Restaurar el último respaldo" se reemplazó por las copias
+   automáticas (24-copias.js): reemplazaba todo y borraba de la nube lo que no
+   estuviera en el respaldo. Recuperar de una copia solo agrega lo que falta. */
 /* Helper común: aplica un objeto datos al estado, rotando el actual a _prev */
 async function _aplicarRespaldo(datos,origen){
     try{
@@ -142,6 +79,7 @@ async function _aplicarRespaldo(datos,origen){
             }catch(e){}
         }
         AppState.datos=datos;
+        try{normalizarHistoriales(AppState.datos)}catch(_){}
         AppState._localVersion=0;
         AppState._restoredFrom=origen.includes('importado')?'manual-import':'manual-backup';
         AppState._datosStale=false;

@@ -62,14 +62,14 @@ function tilesCuentas(lista,elegida,o){
         const s=saldoDe(n);
         return'<button type="button" class="cuenta" data-a="'+o.accion+'" data-cuenta="'+escHtml(n)+'" aria-pressed="'+sel+'"'+(dis?' disabled':'')+'>'+
             '<span class="c-n">'+mono(n)+'<b>'+escHtml(nombreCuenta(n))+'</b>'+(sel?ico('ok'):'')+'</span>'+
-            '<span class="c-s">'+(n==='USDT'?usdtTxt(s,{unidad:false}):dinero(s,monedaDeCuenta(n),{dec:0}))+'</span>'+
+            '<span class="c-s">'+(n==='USDT'?usdtTxt(s,{unidad:false}):dinero(s,monedaDeCuenta(n)))+'</span>'+
             (o.sub?'<span class="c-x">'+escHtml(o.sub(n)||'')+'</span>':'')+'</button>';
     }).join('')+'</div>';
 }
 function textoCupo(n){
     const cu=infoCupo(n);
     if(!cu)return'Sin límite diario';
-    return cu.disp>0.5?'Quedan US$'+fmtNum(cu.disp,0)+' hoy':'Sin cupo por hoy';
+    return cu.disp>=0.005?'Quedan US$'+fmtExacto(cu.disp)+' hoy':'Sin cupo por hoy';
 }
 /* Cómo quedan las cuentas con un registro nuevo o editado */
 function frasesSaldos(ent,viejo,nuevo){
@@ -77,10 +77,17 @@ function frasesSaldos(ent,viejo,nuevo){
     try{dif=diferenciaDeEfecto(ent,viejo,nuevo).bancos||{}}catch(_){dif={}}
     const partes=Object.entries(dif).filter(([,v])=>Math.abs(v)>=0.005).map(([c,v])=>{
         const fin=roundMoney(saldoDe(c)+v);
-        const txt=nombreCuenta(c)+(fin<-0.004?' quedaría en ':' queda en ')+dinero(fin,monedaDeCuenta(c),{dec:Math.abs(fin-Math.round(fin))<0.005?0:2});
+        const txt=nombreCuenta(c)+(fin<-0.004?' quedaría en ':' queda en ')+dinero(fin,monedaDeCuenta(c));
         return{txt,mal:fin<-0.004};
     });
     return partes;
+}
+/* Al guardar una edición: si se llegó desde el detalle, se vuelve a él con el
+   cambio anotado; si se llegó deslizando la fila, se vuelve a la lista. */
+function trasEditar(capa,ent,id){
+    if(capa.st&&capa.st.desdeDetalle)abrirDetalle(ent,id,{reemplazar:true});
+    else cerrarCapa(capa);
+    avisar('Cambios guardados.');
 }
 function botonCuando(st,accion){
     return'<button type="button" class="campo" data-a="'+accion+'" data-campo="fecha" data-r="cuando"><span>'+escHtml(st.fecha?cuandoCorto(st.fecha,st.hora):'Ahora')+'</span>'+ico('abajo')+'</button>';
@@ -101,7 +108,7 @@ function abrirOperacion(o){
     const viejo=o.id!=null?buscarRegistro('operaciones',o.id):null;
     if(o.id!=null&&!viejo){avisar('Esa operación ya no existe.',{error:true});return}
     const tipo=viejo?viejo.tipo:(o.tipo==='venta'?'venta':'compra');
-    const st={id:viejo?viejo.id:null,tipo,cuenta:'',dividir:false,reparto:[],extra:false,
+    const st={id:viejo?viejo.id:null,desdeDetalle:!!o.reemplazar,tipo,cuenta:'',dividir:false,reparto:[],extra:false,
               fecha:viejo?viejo.fecha:null,hora:viejo?viejo.hora:null,tasaTocada:!!viejo,cuentaTocada:!!viejo};
     if(viejo){
         st.cuenta=viejo.banco;
@@ -121,8 +128,8 @@ function abrirOperacion(o){
                 '<button type="button" data-a="op-tasa-paso" data-d="1" aria-label="Subir la tasa">+</button></div>'+
                 '<div class="tasas-rapidas" data-r="tasas"></div></div>'+
             '<div data-campo="cuenta"><span class="rotulo" data-r="rot-cuenta"></span><div data-r="cuentas"></div>'+
-                '<div class="enlaces-form"><button type="button" class="btn-texto" data-a="op-dividir" data-r="dividir"></button>'+
-                '<button type="button" class="btn-texto" data-a="op-extra" data-r="btn-extra" aria-expanded="false">Comisiones y fecha</button></div>'+
+                '<div class="opciones-form"><button type="button" class="btn-opcion" data-a="op-dividir" data-r="dividir" aria-pressed="false">'+ico('dividir')+'<span>Dividir el pago</span></button>'+
+                '<button type="button" class="btn-opcion" data-a="op-extra" data-r="btn-extra" aria-expanded="false">'+ico('corregir')+'<span>Comisión y fecha</span>'+ico('abajo','ch')+'</button></div>'+
                 '<div class="extra hidden" data-r="extra" data-campo="comisiones">'+
                     '<div class="fila-campo"><label for="opPct">Comisión de Binance</label><div class="campo-sufijo"><input class="campo" id="opPct" data-r="pct" inputmode="decimal" autocomplete="off" data-in="op-calc"><span>%</span></div></div>'+
                     '<div class="fila-campo" data-r="fila-cb"><label for="opCb">Comisión del banco</label><div class="campo-sufijo"><input class="campo" id="opCb" data-r="cb" inputmode="decimal" autocomplete="off" placeholder="0" data-in="op-calc"><span data-r="cb-mon"></span></div></div>'+
@@ -157,7 +164,7 @@ function opPintarTodo(capa){
     q(cont,'fila-cb').classList.toggle('hidden',st.tipo!=='compra');
     const dv=q(cont,'dividir');
     dv.classList.toggle('hidden',st.tipo!=='compra');
-    dv.textContent=st.dividir?'Pagar desde una sola cuenta':'Dividir entre dos cuentas';
+    dv.setAttribute('aria-pressed',String(st.dividir));
     q(cont,'extra').classList.toggle('hidden',!st.extra);
     q(cont,'btn-extra').setAttribute('aria-expanded',String(st.extra));
     const g=q(cont,'guardar');
@@ -202,8 +209,10 @@ function opPintarCuentas(capa){
         const ap=opAportes(capa,v);
         box.innerHTML='<div class="reparto">'+st.reparto.map((r,i)=>{
             const ultimo=i===st.reparto.length-1;
-            const opciones=Array.from(new Set([r.banco,...lista])).filter(Boolean).map(n=>'<option value="'+escHtml(n)+'"'+(n===r.banco?' selected':'')+'>'+escHtml(nombreCuenta(n)+' ('+dinero(saldoDe(n),mon,{dec:0})+')')+'</option>').join('');
-            return'<div class="reparto-fila"><select class="campo" data-ch="op-rep-cuenta" data-i="'+i+'" aria-label="Cuenta '+(i+1)+'">'+opciones+'</select>'+
+            /* El saldo va debajo, entero: dentro de la lista no entraba con los centavos */
+            const opciones=Array.from(new Set([r.banco,...lista])).filter(Boolean).map(n=>'<option value="'+escHtml(n)+'"'+(n===r.banco?' selected':'')+'>'+escHtml(nombreCuenta(n))+'</option>').join('');
+            return'<div class="reparto-fila"><div class="reparto-cuenta"><select class="campo" data-ch="op-rep-cuenta" data-i="'+i+'" aria-label="Cuenta '+(i+1)+'">'+opciones+'</select>'+
+                '<span class="reparto-saldo">Tiene '+dinero(saldoDe(r.banco),mon)+'</span></div>'+
                 (ultimo?'<span class="resto'+(ap[i].monto<-0.004?' baja':'')+'" data-r="resto">'+dinero(ap[i].monto,mon)+'</span>'
                        :'<input class="campo" inputmode="decimal" autocomplete="off" data-in="op-rep-monto" data-i="'+i+'" value="'+escHtml(r.txt!==undefined?r.txt:(r.monto?formatoCampo(r.monto):''))+'" placeholder="0" aria-label="Monto desde '+escHtml(nombreCuenta(r.banco))+'">')+
                 (st.reparto.length>2?'<button type="button" class="quitar" data-a="op-rep-quitar" data-i="'+i+'" aria-label="Quitar esta cuenta">'+ico('cerrar')+'</button>':'<span></span>')+'</div>';
@@ -250,7 +259,7 @@ function opCalcular(capa){
             else{
                 const costo=previewFIFO(neto,mon).reduce((s,x)=>s+x.subtotal,0);
                 const gan=roundMoney(v.monto-costo);
-                r2+=' '+(gan>=0?'Ganás unos ':'Perdés unos ')+dinero(Math.abs(gan),mon)+'.';
+                r2+=' '+(gan>=0?'Ganás ':'Perdés ')+dinero(Math.abs(gan),mon)+'.';
             }
         }
     }
@@ -374,7 +383,7 @@ ACC['op-guardar']=async t=>{
         const r=await conConfirmacion(o=>guardarOperacion(d,{...o,id:st.id}));
         if(r.ok){
             if(!st.dividir)recordarCuenta(st.tipo,st.cuenta);
-            if(st.id){abrirDetalle('operaciones',r.id,{reemplazar:true});avisar('Cambios guardados.')}
+            if(st.id)trasEditar(capa,'operaciones',r.id);
             else{cerrarCapa(capa);avisar(st.tipo==='compra'?'Compra guardada.':'Venta guardada.')}
         }else if(!r.cancelado){
             st.hayError=true;
@@ -400,7 +409,7 @@ function abrirMovimiento(o){
     if(o.id!=null&&!viejo){avisar('Ese movimiento ya no existe.',{error:true});return}
     const tipo=viejo?viejo.tipoMovimiento:(o.tipo==='ingreso'?'ingreso':'egreso');
     const lista=[...bancosActivos(),'USDT'];
-    const st={id:viejo?viejo.id:null,tipo,
+    const st={id:viejo?viejo.id:null,desdeDetalle:!!o.reemplazar,tipo,
               cuenta:viejo?(viejo.tipoCuenta==='usdt'?'USDT':viejo.banco):(o.cuenta||cuentaInicial(tipo,lista)),
               desc:viejo?(viejo.descripcion||''):'',nuevaCat:false,todas:false,
               fecha:viejo?viejo.fecha:null,hora:viejo?viejo.hora:null};
@@ -449,8 +458,9 @@ function mvPintarTodo(capa){
 }
 function mvPintarCuentas(capa){
     const st=capa.st;
-    let lista=[...bancosActivos(),'USDT'];
-    if(st.cuenta&&!lista.includes(st.cuenta))lista=[st.cuenta,...lista];
+    /* USDT primero, después los bancos de más plata a menos */
+    let lista=['USDT',...bancosActivos()];
+    if(st.cuenta&&!lista.includes(st.cuenta))lista=[...lista,st.cuenta];
     q(capa.cont,'cuentas').innerHTML=tilesCuentas(lista,st.cuenta,{accion:'mv-cuenta'});
 }
 function mvPintarCategorias(capa){
@@ -487,7 +497,7 @@ function mvCalcular(capa){
     if(!capa.viejo&&fr.length===1&&!fr[0].mal){
         const antes=saldoDe(st.cuenta),mon=monedaDeCuenta(st.cuenta);
         const fin=roundMoney(antes+(st.tipo==='ingreso'?v.monto:-v.monto));
-        pie.textContent=nombreCuenta(st.cuenta)+' pasa de '+dinero(antes,mon,{dec:0})+' a '+dinero(fin,mon,{dec:Math.abs(fin-Math.round(fin))<0.005?0:2});
+        pie.textContent=nombreCuenta(st.cuenta)+' pasa de '+dinero(antes,mon)+' a '+dinero(fin,mon);
     }else pie.innerHTML=fr.map(f=>f.mal?'<span class="baja">'+escHtml(f.txt)+'</span>':escHtml(f.txt)).join('. ');
 }
 ACC['mv-tipo']=t=>{const capa=capaDe(t);capa.st.tipo=t.dataset.tipo;limpiarError(capa);mvPintarTodo(capa)};
@@ -522,7 +532,7 @@ ACC['mv-guardar']=async t=>{
         if(r.ok){
             recordarCuenta(st.tipo,st.cuenta);
             invalidarItems();
-            if(st.id){abrirDetalle('movimientos',r.id,{reemplazar:true});avisar('Cambios guardados.')}
+            if(st.id)trasEditar(capa,'movimientos',r.id);
             else{cerrarCapa(capa);avisar(st.tipo==='ingreso'?'Ingreso guardado.':'Egreso guardado.')}
         }else if(!r.cancelado){st.hayError=true;mostrarError(capa,r.error,r.campo)}
     }finally{st.guardando=false;if(t.isConnected)t.disabled=false}
@@ -536,7 +546,7 @@ function abrirTransferencia(o){
     if(o.id!=null&&!viejo){avisar('Esa transferencia ya no existe.',{error:true});return}
     const lista=bancosActivos();
     const origen=viejo?viejo.origen:(o.origen||cuentaInicial('transf',lista));
-    const st={id:viejo?viejo.id:null,ent,origen,destino:viejo?viejo.destino:(lista.find(n=>n!==origen)||''),
+    const st={id:viejo?viejo.id:null,desdeDetalle:!!o.reemplazar,ent,origen,destino:viejo?viejo.destino:(lista.find(n=>n!==origen)||''),
               extra:!!(viejo&&(Number(viejo.comision)||0)>0),fecha:viejo?viejo.fecha:null,hora:viejo?viejo.hora:null};
     const html=cabHoja(viejo?(ent==='conversiones'?'Editar conversión':'Editar transferencia'):'Transferencia')+
         '<div class="hoja-cuerpo"><div class="grupo-campos">'+
@@ -546,7 +556,7 @@ function abrirTransferencia(o){
             '<div data-campo="destino"><span class="rotulo">Entra a</span><div data-r="destinos"></div></div>'+
             '<div data-r="bloque-tasa" data-campo="tasa"><label class="rotulo" for="trTasa">Tasa: pesos por cada dólar</label>'+
                 '<input class="campo" id="trTasa" data-r="tasa" inputmode="decimal" autocomplete="off" placeholder="0,00" data-in="tr-calc"></div>'+
-            '<div><button type="button" class="btn-texto" data-a="tr-extra" data-r="btn-extra" aria-expanded="false">Comisión y fecha</button>'+
+            '<div><div class="opciones-form" style="margin-top:0"><button type="button" class="btn-opcion" data-a="tr-extra" data-r="btn-extra" aria-expanded="false">'+ico('corregir')+'<span>Comisión y fecha</span>'+ico('abajo','ch')+'</button></div>'+
                 '<div class="extra hidden" data-r="extra">'+
                     '<div class="fila-campo" data-r="fila-com" data-campo="comision"><label for="trCom">Comisión</label><div class="campo-sufijo"><input class="campo" id="trCom" data-r="com" inputmode="decimal" autocomplete="off" placeholder="0" data-in="tr-calc"><span data-r="com-mon"></span></div></div>'+
                     '<div class="fila-campo"><span>Cuándo</span>'+botonCuando(st,'tr-cuando')+'</div>'+
@@ -577,7 +587,7 @@ function trPintarTodo(capa){
     const cruce=trCruce(st);
     q(cont,'bloque-tasa').classList.toggle('hidden',!cruce);
     q(cont,'fila-com').classList.toggle('hidden',cruce);
-    q(cont,'btn-extra').textContent=cruce?'Fecha':'Comisión y fecha';
+    q(cont,'btn-extra').innerHTML=ico(cruce?'calendario':'corregir')+'<span>'+(cruce?'Fecha':'Comisión y fecha')+'</span>'+ico('abajo','ch');
     q(cont,'extra').classList.toggle('hidden',!st.extra);
     q(cont,'btn-extra').setAttribute('aria-expanded',String(st.extra));
     trPintarCuentas(capa);trCalcular(capa);
@@ -597,7 +607,7 @@ function trCalcular(capa){
     const st=capa.st,cont=capa.cont,v=trLeer(capa),cruce=trCruce(st);
     const mo=st.origen?monedaDeCuenta(st.origen):'UYU',md=st.destino?monedaDeCuenta(st.destino):'UYU';
     const g=q(cont,'guardar'),pie=q(cont,'pie');
-    g.textContent=st.id?'Guardar cambios':(v.monto>0?(cruce?'Convertir ':'Transferir ')+dinero(v.monto,mo,{dec:Math.abs(v.monto-Math.round(v.monto))<0.005?0:2}):(cruce?'Convertir':'Transferir'));
+    g.textContent=st.id?'Guardar cambios':(v.monto>0?(cruce?'Convertir ':'Transferir ')+dinero(v.monto,mo):(cruce?'Convertir':'Transferir'));
     if(!(v.monto>0)||!st.origen||!st.destino||st.origen===st.destino){pie.textContent='';return}
     let prov,ent;
     if(cruce){
@@ -637,7 +647,7 @@ ACC['tr-guardar']=async t=>{
         const r=await conConfirmacion(o=>guardarTransferencia(d,{...o,id:st.id,entidad:st.ent}));
         if(r.ok){
             recordarCuenta('transf',st.origen);
-            if(st.id){abrirDetalle(r.entidad,r.id,{reemplazar:true});avisar('Cambios guardados.')}
+            if(st.id)trasEditar(capa,r.entidad,r.id);
             else{cerrarCapa(capa);avisar(r.entidad==='conversiones'?'Conversión guardada.':'Transferencia guardada.')}
         }else if(!r.cancelado){
             st.hayError=true;
@@ -704,7 +714,7 @@ function abrirEdicionCorreccion(o){
     const viejo=buscarRegistro('ajustesSaldo',o.id);
     if(!viejo){avisar('Esa corrección ya no existe.',{error:true});return}
     const mon=monedaDeCuenta(viejo.cuenta);
-    const st={id:viejo.id,signo:viejo.delta<0?-1:1};
+    const st={id:viejo.id,desdeDetalle:!!o.reemplazar,signo:viejo.delta<0?-1:1};
     const seg=(v,t)=>'<button type="button" role="tab" data-a="co-signo" data-s="'+v+'" aria-selected="'+(st.signo===v)+'">'+t+'</button>';
     const html=cabHoja('Editar corrección')+
         '<div class="hoja-cuerpo"><div class="grupo-campos">'+
@@ -725,7 +735,7 @@ ACC['co-editar']=async t=>{
     const capa=capaDe(t),st=capa.st,cont=capa.cont;
     const delta=roundMoney(st.signo*parseMonto(q(cont,'monto').value));
     const r=await conConfirmacion(o=>editarCorreccion(st.id,{delta,motivo:q(cont,'motivo').value},o));
-    if(r.ok){abrirDetalle('ajustesSaldo',r.id,{reemplazar:true});avisar('Cambios guardados.')}
+    if(r.ok)trasEditar(capa,'ajustesSaldo',r.id);
     else if(!r.cancelado){st.hayError=true;mostrarError(capa,r.error,r.campo)}
 };
 

@@ -65,7 +65,7 @@ const config = {
             'cancelAnimationFrame','requestIdleCallback','alert','confirm','prompt','fetch',
             'Blob','URL','FileReader','Intl','performance','firebase','getComputedStyle',
             'matchMedia','Event','CustomEvent','MutationObserver','IntersectionObserver',
-            'screen','history','btoa','atob','Image'
+            'screen','history','btoa','atob','Image','Response','CompressionStream','DecompressionStream'
         ].map(g => [g, 'readonly']).concat([['location', 'writable']]))
     },
     rules: {

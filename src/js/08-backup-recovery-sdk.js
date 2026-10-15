@@ -121,7 +121,7 @@ async function guardarDatos(forzar,opts){
     if(!forzar&&esDatosVacios(AppState.datos)){
         const backup=restoreFromLocal();
         if(backup&&backup.datos&&!esDatosVacios(backup.datos)){
-            console.warn('[P2P] guardarDatos abortado: estado vacío con backup válido disponible. Usá "Restaurar respaldo".');
+            console.warn('[P2P] guardarDatos abortado: estado vacío con backup válido disponible. Revisá Copias automáticas.');
             setSyncStatus('offline','Datos protegidos');
             return;
         }
@@ -210,7 +210,7 @@ function cargarDatosUsuario(){
                 /* Hay datos en este dispositivo pero la nube está vacía: no se
                    borra nada ni se sube a ciegas. Se ofrece restaurar. */
                 ocultarLoading();
-                setSyncStatus('offline','No hay datos en la nube: usá Restaurar el último respaldo');
+                setSyncStatus('offline','No hay datos en la nube: revisá Más → Copias automáticas');
             }
             return;
         }
@@ -293,6 +293,15 @@ function showApp(u){
             AppState._localVersion=backup.v||0;
             AppState._restoredFrom='backup-bootstrap';
             AppState._uiHydratedFromCache=true;
+            /* ═══ v8.0.1 — Lo que no se llegó a subir no se pierde al reabrir ═══
+               Se repone la cola guardada (y lo marcado como pendiente), así la
+               foto del servidor no lo borra y se sube apenas haya conexión. Antes
+               de hablar con el servidor se hace además una copia automática. */
+            try{normalizarHistoriales(AppState.datos)}catch(_){}
+            try{
+                const repuestos=reponerColaLocal()+rescatarPendientes();
+                if(repuestos)console.warn('[P2P] Cambios sin subir de la sesión anterior:',repuestos);
+            }catch(e){console.warn('[P2P] No se pudo reponer la cola:',e&&e.message)}
             /* Render inmediato — la UI queda usable. */
             try{
                 inicializarBancos();
@@ -301,6 +310,7 @@ function showApp(u){
                 ocultarLoading();
                 setSyncStatus('syncing','Usando lo guardado en el teléfono');
                 hidratoDesdeCache=true;
+                try{copiaAutomatica('al abrir')}catch(_){}
                 _syncLog('ui:cache-hydrated',{v:AppState._localVersion,ops:(AppState.datos.operaciones||[]).length});
                 _syncLog('ui:render-ready',{from:'local-cache'});
                 _syncLog('ui:overlay-hidden',{reason:'cache-hydrate'});

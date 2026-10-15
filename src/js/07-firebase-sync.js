@@ -29,6 +29,7 @@ function enqueueSync(type,entity,id){
        lleva el estado de antes y este cambio tiene que salir en la próxima. */
     if(!(ultima&&!ultima.enVuelo&&ultima.type===type&&ultima.entity===entity&&String(ultima.id)===String(id)))
         _syncQueue.push({type,entity,id,ts:Date.now(),_t:performance.now()});
+    guardarColaLocal();
     if(typeof _syncLog==='function')_syncLog('enqueue',{type,entity,id:safeIdTail(id,12),queueSize:_syncQueue.length});
     /* Marca la entidad como _syncState:'pending' — visible como dot sutil en la lista.
        'synced' es el default (no se setea para no inflar el doc en Firestore — la ausencia 
@@ -40,6 +41,50 @@ function enqueueSync(type,entity,id){
             if(item)item._syncState='pending';
         }
     }
+}
+/* ═══ v8.0.1 — La cola de pendientes sobrevive a un reinicio ═══
+   Vivía solo en memoria. Si la app se cerraba con cambios sin subir (el
+   teléfono la cierra solo cuando queda en segundo plano), al abrirla otra vez
+   la foto del servidor —que no los tenía— los borraba de la pantalla y del
+   respaldo. Ahora la cola se guarda en el teléfono y al abrir se repone: lo
+   pendiente se conserva y se sube. Cada vez que la cola cambia, se guarda. */
+function _claveCola(){return AppState.currentUser?'p2p_cola_'+AppState.currentUser.uid:null}
+function guardarColaLocal(){
+    const k=_claveCola();if(!k)return;
+    try{
+        if(!_syncQueue.length){localStorage.removeItem(k);return}
+        localStorage.setItem(k,JSON.stringify(_syncQueue.map(a=>({type:a.type,entity:a.entity,id:a.id,ts:a.ts}))));
+    }catch(_){}
+}
+/* Vuelve a poner en la cola lo que quedó guardado. Devuelve cuántos. */
+function reponerColaLocal(){
+    const k=_claveCola();if(!k)return 0;
+    let lista=[];
+    try{lista=JSON.parse(localStorage.getItem(k)||'[]')||[]}catch(_){lista=[]}
+    let n=0;
+    (Array.isArray(lista)?lista:[]).forEach(a=>{
+        if(!a||!a.type||!a.entity||a.id===undefined||a.id===null)return;
+        if(_syncQueue.some(x=>x.type===a.type&&x.entity===a.entity&&String(x.id)===String(a.id)))return;
+        _syncQueue.push({type:a.type,entity:a.entity,id:a.id,ts:a.ts||Date.now(),_t:performance.now()});
+        n++;
+    });
+    return n;
+}
+/* Registros marcados como pendientes en el respaldo que no están en la cola
+   (por si la cola guardada no llegó a escribirse): se vuelven a encolar. */
+function rescatarPendientes(){
+    if(!AppState.datos)return 0;
+    let n=0;
+    ['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'].forEach(e=>{
+        (AppState.datos[e]||[]).forEach(r=>{
+            if(!r||r._syncState!=='pending')return;
+            if(_syncQueue.some(a=>a.entity===e&&String(a.id)===String(r.id)))return;
+            _syncQueue.push({type:'update',entity:e,id:r.id,ts:Date.now(),_t:performance.now()});
+            n++;
+        });
+    });
+    if(n)guardarColaLocal();
+    return n;
 }
 /* v4.8.2: clearSyncQueue() eliminada — código muerto verificado (0 referencias en
    JS/HTML; solo aparecía citada en un comentario histórico). Su rol lo cumplen el

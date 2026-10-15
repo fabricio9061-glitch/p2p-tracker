@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    §22 — CUENTAS Y LIBRO DE CADA CUENTA (v8.0.0)
    ═══════════════════════════════════════════════════════════════════════════
-   El capital total, cada cuenta con su cupo del día, los lotes de USDT y el
-   libro de una cuenta: cada movimiento con el saldo que dejó, hasta llegar al
-   saldo de la tarjeta. */
+   El capital total, los USDT con sus lotes (siempre primero), cada cuenta con
+   su cupo del día y el libro de una cuenta: cada movimiento con el saldo que
+   dejó, hasta llegar al saldo de la tarjeta. */
 PANTALLAS.cuentas={pintar:pintarCuentas};
 
-const LOTES_VISIBLES=8;
+const LOTES_VISIBLES=4;   /* los USDT van arriba: con pocos lotes a la vista, los bancos quedan cerca */
 function capitalTotal(){
     const d=AppState.datos;
     let pesos=0,dolares=0,costoUYU=0,costoUSD=0;
@@ -40,25 +40,11 @@ function pintarCuentas(){
         (Math.abs(cap.capitalUSD)>=0.005?'<div class="cifra" style="font-size:26px;font-weight:720;margin-top:6px">y '+dinero(cap.capitalUSD,'USD')+'</div>':'')+
         '<div class="expl">Lo que hay en los bancos más tus USDT a lo que te costaron</div></section>';
 
-    /* Bancos */
-    if(vis.length){
-        html+='<section style="margin-top:20px"><div class="bloque">'+vis.map(b=>{
-            const n=b.nombre,bk=d.bancos[n]||{},cu=infoCupo(n);
-            return'<button type="button" class="cta" data-a="libro" data-cuenta="'+escHtml(n)+'">'+mono(n,true)+
-                '<span class="cta-n">'+escHtml(nombreCuenta(n))+'</span><span class="cta-v">'+dinero(saldoDe(n),b.moneda||'UYU')+'</span>'+
-                (cu?'<span class="barra'+(cu.disp<=0.5?' lleno':'')+'"><i style="width:'+cu.pct+'%"></i></span><span class="cta-s">'+
-                    (cu.disp>0.5?'Quedan US$'+fmtNum(cu.disp,0)+' de '+fmtNum(cu.lim,0)+' hoy':'Sin cupo por hoy: usaste los US$'+fmtNum(cu.lim,0))+'</span>'
-                   :'<span class="cta-s">'+(bk.activo?'Sin límite diario':'Desactivada, con saldo')+'</span>')+'</button>';
-        }).join('')+'</div>'+
-        '<div class="total-linea"><span>En bancos</span><b>'+dinero(cap.pesos,'UYU')+'</b></div>'+
-        (vis.some(b=>b.moneda==='USD')?'<div class="total-linea"><span>En dólares</span><b>'+dinero(cap.dolares,'USD')+'</b></div>':'')+'</section>';
-    }
-
-    /* USDT */
+    /* USDT, siempre primero */
     const lotes=lotesActivos();
     const costoTot=roundMoney(cap.costoUYU);
     const mostrar=AppState.ui.todosLosLotes?lotes:lotes.slice(0,LOTES_VISIBLES);
-    html+='<section style="margin-top:24px"><div class="bloque" style="padding:14px 16px">'+
+    html+='<section style="margin-top:20px"><div class="bloque" style="padding:14px 16px">'+
         '<button type="button" class="usdt-cab" data-a="libro" data-cuenta="USDT">'+mono('USDT',true)+'<span class="cta-n">USDT</span>'+
         '<span class="cta-v">'+usdtTxt(d.saldoUsdt,{unidad:false})+'</span></button>'+
         '<div class="usdt-sub">'+(lotes.length?(lotes.length===1?'1 lote':lotes.length+' lotes')+', te costaron '+dinero(costoTot,'UYU')+
@@ -71,6 +57,22 @@ function pintarCuentas(){
         html+='<div class="lotes-nota">Al vender se usa primero el lote más viejo.</div>';
     }
     html+='<button type="button" class="btn-texto" style="margin-left:36px" data-a="lote-nuevo">Agregar USDT que ya tenías</button></div></section>';
+
+    /* Bancos, de más plata a menos (en pesos y después en dólares) */
+    if(vis.length){
+        html+='<section style="margin-top:24px"><div class="bloque">'+vis.map(b=>{
+            const n=b.nombre,bk=d.bancos[n]||{},cu=infoCupo(n);
+            return'<button type="button" class="cta" data-a="libro" data-cuenta="'+escHtml(n)+'">'+mono(n,true)+
+                '<span class="cta-n">'+escHtml(nombreCuenta(n))+'</span><span class="cta-v">'+dinero(saldoDe(n),b.moneda||'UYU')+'</span>'+
+                (cu?'<span class="barra'+(cu.disp<0.005?' lleno':'')+'"><i style="width:'+cu.pct+'%"></i></span><span class="cta-s">'+
+                    (cu.disp>=0.005?'Quedan US$'+fmtExacto(cu.disp)+' de '+fmtExacto(cu.lim)+' hoy':'Sin cupo por hoy: usaste los US$'+fmtExacto(cu.lim))+'</span>'
+                   :'<span class="cta-s">'+(bk.activo?'Sin límite diario':'Desactivada, con saldo')+'</span>')+'</button>';
+        }).join('')+'</div>'+
+        /* El total solo suma algo cuando hay más de una cuenta en esa moneda;
+           con una sola repetiría el saldo que ya se ve arriba. */
+        (vis.filter(b=>b.moneda!=='USD').length>1?'<div class="total-linea"><span>En bancos</span><b>'+dinero(cap.pesos,'UYU')+'</b></div>':'')+
+        (vis.filter(b=>b.moneda==='USD').length>1?'<div class="total-linea"><span>En dólares</span><b>'+dinero(cap.dolares,'USD')+'</b></div>':'')+'</section>';
+    }
 
     html+='<section style="margin-top:16px"><button type="button" class="boton-punteado" data-a="activar-cuentas">Agregar o quitar cuentas</button></section>';
     c.innerHTML=html;
@@ -103,8 +105,8 @@ function pintarLibro(cont,capa){
         '<section class="libro-saldo"><div class="rot">Saldo</div><div class="cifra '+tamCifra(tS,12,15)+'">'+escHtml(tS)+(esUsdt?' <span style="font-size:.4em;font-weight:650">USDT</span>':'')+'</div>';
     if(!esUsdt){
         const cu=infoCupo(cuenta);
-        if(cu)html+='<div class="barra'+(cu.disp<=0.5?' lleno':'')+'"><i style="width:'+cu.pct+'%"></i></div>'+
-            '<div class="libro-cupo">Cupo de hoy: quedan US$'+fmtNum(cu.disp,0)+' de '+fmtNum(cu.lim,0)+'. '+escHtml(textoRenovacion(cuenta))+'</div>';
+        if(cu)html+='<div class="barra'+(cu.disp<0.005?' lleno':'')+'"><i style="width:'+cu.pct+'%"></i></div>'+
+            '<div class="libro-cupo">Cupo de hoy: quedan US$'+fmtExacto(cu.disp)+' de '+fmtExacto(cu.lim)+'. '+escHtml(textoRenovacion(cuenta))+'</div>';
         html+='<div class="libro-botones"><button type="button" class="btn" data-a="corregir" data-cuenta="'+escHtml(cuenta)+'">'+ico('corregir')+'Corregir saldo</button>'+
             '<button type="button" class="btn" data-a="limite" data-cuenta="'+escHtml(cuenta)+'">'+ico('reloj')+'Límite diario</button></div>';
     }else{
@@ -116,7 +118,7 @@ function pintarLibro(cont,capa){
     const lineas=historialCuenta(cuenta);
     const vista=lineas.slice(0,capa.limite);
     let dia=null,filas='';
-    const cerrar=()=>{if(dia!==null)html+='<div class="bloque">'+filas+'</div>';filas=''};
+    const cerrar=()=>{if(dia!==null)html+='<div class="bloque lista">'+filas+'</div>';filas=''};
     vista.forEach(l=>{
         const f=l.tipo==='inicial'?'inicial':(l.ev&&l.ev.fecha)||'';
         if(f!==dia){cerrar();dia=f;html+='<div class="dia"><b>'+escHtml(f==='inicial'?'Al empezar':tituloDia(f))+'</b></div>'}

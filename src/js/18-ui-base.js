@@ -51,7 +51,9 @@ const ICONOS={
     alerta:'M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z',
     info:'M12 22a10 10 0 100-20 10 10 0 000 20zM12 16v-4M12 8h.01',
     wifi:'M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0M12 19.5h.01M2 9a15 15 0 0120 0',
-    unir:'M8 3v6a4 4 0 004 4h0a4 4 0 014 4v4M16 3v6M8 21v-4'
+    unir:'M8 3v6a4 4 0 004 4h0a4 4 0 014 4v4M16 3v6M8 21v-4',
+    dividir:'M12 3v7M12 10l-6 6v5M12 10l6 6v5',
+    desliza:'M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4'
 };
 function ico(n,cls){
     return '<svg class="i'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(ICONOS[n]||'')+'"/></svg>';
@@ -62,15 +64,16 @@ const MENOS='−';
 /* Signo menos pegado al número: sin esto, en una frase larga el signo podía
    quedar al final de un renglón y el importe en el siguiente */
 const MENOS_PEGADO=MENOS+'\u2060';
-/* $1.039,07 · US$800,00 · con signo: +$335,58 · −$320,00 */
+/* $1.039,07 · US$800,00 · con signo: +$335,58 · −$320,00
+   v8.0.1 — Siempre con sus centavos: la app no redondea ningún monto. */
 function dinero(n,moneda,o){
     o=o||{};n=Number(n)||0;
-    const dec=o.dec===undefined?2:o.dec;
-    const txt=(moneda==='USD'?'US$':'$')+fmtNum(Math.abs(n),dec);
-    const lim=dec===0?0.5:0.005;
-    if(o.signo)return(n>=lim?'+':n<=-lim?MENOS_PEGADO:'')+txt;
-    return(n<=-lim?MENOS_PEGADO:'')+txt;
+    const txt=(moneda==='USD'?'US$':'$')+fmtNum(Math.abs(n),2);
+    if(o.signo)return(n>=0.005?'+':n<=-0.005?MENOS_PEGADO:'')+txt;
+    return(n<=-0.005?MENOS_PEGADO:'')+txt;
 }
+/* Un número tal cual es: 3.000 si es entero, 1.253,75 si tiene centavos */
+function fmtExacto(n){n=roundMoney(Number(n)||0);return fmtNum(n,Math.abs(n-Math.round(n))<0.005?0:2)}
 /* USDT: siempre truncado a centésimos, como el inventario */
 function usdtTxt(n,o){
     o=o||{};n=Number(n)||0;
@@ -144,6 +147,8 @@ function cuandoIso(iso){const x=isoAUY(iso);return x?cuandoCorto(x.fecha,x.hora)
 /* Monograma de color: la sigla del banco, o ₮ para USDT */
 function mono(cuenta,grande){
     const cls='mono'+(grande?' m':'');
+    /* Las cuentas con logo (USDT, Itaú, Mercado Pago) muestran el logo */
+    if(typeof LOGOS!=='undefined'&&LOGOS[cuenta])return'<img class="'+cls+' logo" src="'+LOGOS[cuenta]+'" alt="" aria-hidden="true">';
     if(cuenta==='USDT')return'<span class="'+cls+' usdt" aria-hidden="true">₮</span>';
     const b=getBancoInfo(cuenta);
     const sig=(b&&b.sigla)||String(cuenta||'?').slice(0,2).toUpperCase();
@@ -326,6 +331,8 @@ const ACC={},ENT={};
 document.addEventListener('click',e=>{
     const t=e.target.closest('[data-a]');if(!t)return;
     if(t.disabled||t.getAttribute('aria-disabled')==='true')return;
+    /* Después de deslizar una fila no se abre su detalle */
+    if(t._sinClick&&Date.now()-t._sinClick<600){e.preventDefault();return}
     const fn=ACC[t.dataset.a];if(!fn)return;
     e.preventDefault();
     try{fn(t,e)}catch(err){console.error('[P2P] acción '+t.dataset.a,err);avisar('Algo falló. Probá de nuevo.',{error:true})}
@@ -419,7 +426,7 @@ function cuentasDeRegistro(ent,rec){
     return[];
 }
 function fueEditado(rec){
-    return Array.isArray(rec&&rec.cambios)&&rec.cambios.some(c=>c&&Array.isArray(c.c)&&c.c.some(x=>x&&x[0]!=='recuperado'));
+    return Array.isArray(rec&&rec.cambios)&&rec.cambios.some(c=>itemsDeCambio(c).some(x=>x.f!=='recuperado'&&x.f!=='copia'));
 }
 function tituloCategoria(desc,porDefecto){return desc?mayus(desc):porDefecto}
 function itemRegistro(ent,rec){
@@ -475,18 +482,106 @@ function itemRegistro(ent,rec){
     it.buscable=tagKey(buscable+' '+it.cuentas.map(nombreCuenta).join(' '));
     return it;
 }
+/* Cada fila va dentro de .desliza: deslizándola a la derecha se edita y a la
+   izquierda se elimina, como en la 7.x. Tocarla abre su detalle. */
+const _FONDO_DESLIZA='<div class="desliza-fondo" aria-hidden="true"><span class="d-editar">'+ico('editar')+'Editar</span><span class="d-borrar">Eliminar'+ico('borrar')+'</span></div>';
 function filaRegistroHtml(it,o){
     o=o||{};
     const der=o.derTxt!==undefined?o.derTxt:it.derTxt;
     const derClase=o.derTxt!==undefined?(o.derClase||''):(it.derClase||'');
-    return'<button type="button" class="fila" data-a="detalle" data-ent="'+it.ent+'" data-id="'+escHtml(it.id)+'">'+
+    return'<div class="desliza">'+_FONDO_DESLIZA+
+        '<button type="button" class="fila" data-a="detalle" data-ent="'+it.ent+'" data-id="'+escHtml(it.id)+'">'+
         '<span class="hora">'+escHtml(it.hora)+'</span>'+
         '<span class="fila-t">'+escHtml(o.titulo||it.titulo)+'</span>'+
         '<span class="fila-m '+(o.montoClase!==undefined?o.montoClase:(it.montoClase||''))+'">'+escHtml(o.montoTxt||it.montoTxt)+'</span>'+
         '<span class="fila-s">'+(o.sub!==undefined?o.sub:it.sub)+'</span>'+
         (der?'<span class="fila-ms '+derClase+'">'+escHtml(der)+'</span>':'')+
-    '</button>';
+    '</button></div>';
 }
+
+/* ─── Deslizar filas ───────────────────────────────────────────────────── */
+/* A la derecha, editar; a la izquierda, eliminar (queda en Eliminados y el
+   aviso trae Deshacer). El movimiento se decide en los primeros píxeles: si
+   es más vertical que horizontal, es scroll y no se toca nada. */
+(function(){
+    const UMBRAL=60,TOPE=110;   /* como en la 7.x: con 60 px alcanza */
+    let s=null;
+    const limpiar=w=>{if(w)w.classList.remove('a-editar','a-borrar','listo')};
+    document.addEventListener('touchstart',e=>{
+        if(e.touches.length!==1){s=null;return}
+        const fila=e.target.closest&&e.target.closest('.desliza>.fila');
+        if(!fila){s=null;return}
+        const t=e.touches[0];
+        s={fila,wrap:fila.parentElement,x0:t.clientX,y0:t.clientY,dx:0,dir:null};
+        fila.classList.remove('vuelve');
+    },{passive:true});
+    document.addEventListener('touchmove',e=>{
+        if(!s)return;
+        const t=e.touches[0],mx=t.clientX-s.x0,my=t.clientY-s.y0;
+        if(!s.dir){
+            if(Math.abs(mx)<8&&Math.abs(my)<8)return;
+            s.dir=Math.abs(mx)>Math.abs(my)?'h':'v';
+            if(s.dir==='v'){s=null;return}
+        }
+        s.dx=Math.max(-TOPE,Math.min(TOPE,mx));
+        s.fila.style.transform='translateX('+s.dx+'px)';
+        s.wrap.classList.toggle('a-editar',s.dx>0);
+        s.wrap.classList.toggle('a-borrar',s.dx<0);
+        s.wrap.classList.toggle('listo',Math.abs(s.dx)>=UMBRAL);
+    },{passive:true});
+    document.addEventListener('touchend',()=>{
+        if(!s)return;
+        const {fila,wrap,dx,dir}=s;s=null;
+        if(dir!=='h')return;
+        fila._sinClick=Date.now();
+        fila.classList.add('vuelve');
+        const ent=fila.dataset.ent,id=fila.dataset.id;
+        if(dx>=UMBRAL){
+            fila.style.transform='';
+            setTimeout(()=>{limpiar(wrap);editarRegistro(ent,id)},140);
+        }else if(dx<=-UMBRAL){
+            fila.style.transform='translateX(-100%)';
+            setTimeout(async()=>{
+                const r=await eliminarConDeshacer(ent,id);
+                if(!r||!r.ok){fila.style.transform='';setTimeout(()=>limpiar(wrap),220)}
+            },180);
+        }else{
+            fila.style.transform='';
+            setTimeout(()=>limpiar(wrap),220);
+        }
+    },{passive:true});
+    document.addEventListener('touchcancel',()=>{
+        if(!s)return;
+        s.fila.classList.add('vuelve');s.fila.style.transform='';limpiar(s.wrap);s=null;
+    },{passive:true});
+})();
+/* ─── Cifras enteras ───────────────────────────────────────────────────── */
+/* Los montos van siempre con sus centavos. Si uno no entra en su tarjeta, la
+   letra se achica lo justo para que entre: el número nunca se corta. Se
+   revisa solo cuando cambia algo en pantalla, al girar el teléfono y cuando
+   termina de cargar la letra. */
+const _CIFRAS='.tile .t-s,.act-v,.cuenta .c-s,.heroe-cifra,.det-cifra,.capital .cifra,.libro-saldo .cifra,.cal-dia .g';
+function ajustarCifras(todas){
+    document.querySelectorAll(_CIFRAS).forEach(el=>{
+        if(el._aj&&!todas)return;
+        if(el.style.fontSize)el.style.fontSize='';
+        const w=el.clientWidth;if(!w)return;
+        el._aj=true;
+        const sw=el.scrollWidth;if(sw<=w+0.5)return;
+        const base=parseFloat(getComputedStyle(el).fontSize),min=base*0.55;
+        let tam=Math.max(min,Math.floor(base*w/sw*2)/2);
+        el.style.fontSize=tam+'px';
+        while(el.scrollWidth>el.clientWidth+0.5&&tam>min){tam=Math.max(min,tam-0.5);el.style.fontSize=tam+'px'}
+    });
+}
+(function(){
+    let pend=0,tr=0;
+    new MutationObserver(()=>{if(!pend)pend=requestAnimationFrame(()=>{pend=0;ajustarCifras(false)})})
+        .observe(document.body,{childList:true,subtree:true});
+    window.addEventListener('resize',()=>{clearTimeout(tr);tr=setTimeout(()=>ajustarCifras(true),120)});
+    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>ajustarCifras(true));
+})();
+
 /* Todos los registros en una sola lista, de lo más nuevo a lo más viejo */
 let _itemsCache={clave:null,items:[]};
 function invalidarItems(){_itemsCache.clave=null}

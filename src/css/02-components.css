@@ -94,6 +94,9 @@ html.con-capa .aviso{bottom:calc(var(--seg-abajo) + 16px)}
 .campo::placeholder{color:var(--apagado)}
 .campo:focus{box-shadow:0 0 0 2px var(--tinta)}
 .campo:focus-visible,.monto-grande input:focus-visible,.paso-tasa input:focus-visible{outline:none}
+input[type="date"].campo,input[type="time"].campo{-webkit-appearance:none;appearance:none;display:flex;align-items:center;min-width:0;width:100%;text-align:left}
+input[type="date"].campo::-webkit-date-and-time-value,input[type="time"].campo::-webkit-date-and-time-value{text-align:left;margin:0}
+input[type="date"].campo::-webkit-calendar-picker-indicator,input[type="time"].campo::-webkit-calendar-picker-indicator{opacity:.55}
 button.campo{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;font-weight:550}
 button.campo .i{width:16px;height:16px;stroke-width:2.2;color:var(--tenue)}
 select.campo{-webkit-appearance:none;appearance:none;font-weight:600}
@@ -134,7 +137,7 @@ select.campo{-webkit-appearance:none;appearance:none;font-weight:600}
 .cuenta .c-n{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:650;min-width:0}
 .cuenta .c-n b{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cuenta .c-n .i{width:17px;height:17px;stroke-width:2.6;margin-left:auto}
-.cuenta .c-s{display:block;margin-top:4px;font-size:19px;font-weight:700;font-stretch:72%;font-variant-numeric:tabular-nums}
+.cuenta .c-s{display:block;margin-top:4px;font-size:19px;font-weight:700;font-stretch:72%;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
 .cuenta .c-x{display:block;font-size:11.5px;color:var(--tenue);font-variant-numeric:tabular-nums}
 
 /* ─── Pastillas y filtros ──────────────────────────────────────────────── */
@@ -166,9 +169,10 @@ select.campo{-webkit-appearance:none;appearance:none;font-weight:600}
 .mono.usdt{background:var(--usdt);font-size:12px}
 .mono.m{width:26px;height:26px;border-radius:7px;font-size:11px}
 .mono.m.usdt{font-size:15px}
+.mono.logo{background:transparent;object-fit:contain;border-radius:0}
 
 .fila{display:grid;grid-template-columns:44px minmax(0,1fr) auto;column-gap:8px;width:100%;padding:13px 16px 13px 14px;border:none;background:none;text-align:left;color:var(--tinta)}
-.fila+.fila{border-top:1px solid var(--linea)}
+.fila+.fila,.desliza+.desliza,.desliza+.fila{border-top:1px solid var(--linea)}
 .fila .hora{grid-column:1;grid-row:1;padding-top:2px;font-size:13px;color:var(--tenue);font-variant-numeric:tabular-nums}
 .fila .fila-t{grid-column:2;grid-row:1;min-width:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fila .fila-m{grid-column:3;grid-row:1;text-align:right;font-size:16.5px;font-weight:660;font-stretch:84%;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -181,6 +185,20 @@ select.campo{-webkit-appearance:none;appearance:none;font-weight:600}
 .fila.sin-hora{grid-template-columns:minmax(0,1fr) auto}
 .fila.sin-hora .fila-t,.fila.sin-hora .fila-s{grid-column:1}
 .fila.sin-hora .fila-m,.fila.sin-hora .fila-ms{grid-column:2}
+/* Deslizar una fila: a la derecha edita, a la izquierda elimina (como en la 7.x) */
+.lista{overflow:hidden}
+.desliza{position:relative}
+.desliza-fondo{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--tinta);color:var(--blanco);font-size:14.5px;font-weight:700;visibility:hidden}
+.desliza.a-editar .desliza-fondo,.desliza.a-borrar .desliza-fondo{visibility:visible}
+.desliza.a-borrar .desliza-fondo{background:var(--baja)}
+.desliza-fondo span{display:flex;align-items:center;gap:7px;opacity:.6}
+.desliza-fondo .i{width:19px;height:19px;stroke-width:2.2}
+.desliza.a-editar .d-borrar,.desliza.a-borrar .d-editar{visibility:hidden}
+.desliza.listo .desliza-fondo span{opacity:1}
+.desliza>.fila{position:relative;background:var(--blanco);touch-action:pan-y}
+.desliza>.fila.vuelve{transition:transform .2s ease-out}
+@media (pointer:coarse){.solo-puntero{display:none!important}}
+@media (pointer:fine){.solo-tactil{display:none!important}}
 .marca{flex:none;display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:10px;background:var(--papel);font-size:11.5px;font-weight:600;color:var(--tinta-2)}
 .fila .fila-s .marca .i,.marca .i{width:11px;height:11px;stroke-width:2.4}
 .fila .fila-s{font-stretch:94%}

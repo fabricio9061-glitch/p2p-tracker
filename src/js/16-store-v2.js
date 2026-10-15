@@ -63,6 +63,44 @@ const V2_ENTIDADES_ESTADO=new Set(['bancos','config','tags','settings','lotes'])
 
 let _v2Migrando=false;
 
+/* ═══ v8.0.1 — Todo lo que se sube, en un formato que Firestore acepta ═══
+   Firestore rechaza la escritura ENTERA si un campo vale undefined o si hay
+   una lista dentro de otra lista, y mientras ese documento esté en la cola no
+   sube nada más. Así se perdió lo cargado en un día entero con la 8.0.0 (el
+   historial de cambios usaba listas dentro de listas). Ahora todo lo que se
+   escribe pasa por acá: se quitan los undefined, las funciones y los campos
+   sin nombre, y una lista dentro de otra viaja envuelta en {__a:[…]}, que
+   v2Desenvolver deshace al leer. Así ningún dato puede trabar la subida. */
+function v2Saneado(v){
+    if(v===undefined||typeof v==='function'||typeof v==='symbol')return undefined;
+    if(v===null||typeof v!=='object')return v;
+    if(v instanceof Date)return isFinite(v.getTime())?v.toISOString():null;
+    if(Array.isArray(v))return v.map(x=>{
+        const s=v2Saneado(x);
+        if(s===undefined)return null;
+        return Array.isArray(s)?{__a:s}:s;
+    });
+    /* Centinelas de Firestore (serverTimestamp, delete) y otros objetos de clase: tal cual */
+    const proto=Object.getPrototypeOf(v);
+    if(proto!==Object.prototype&&proto!==null)return v;
+    const o={};
+    for(const k of Object.keys(v)){
+        if(k==='')continue;
+        const s=v2Saneado(v[k]);
+        if(s!==undefined)o[k]=s;
+    }
+    return o;
+}
+function v2Desenvolver(v){
+    if(Array.isArray(v))return v.map(x=>(x&&typeof x==='object'&&!Array.isArray(x)&&Array.isArray(x.__a)&&Object.keys(x).length===1)?v2Desenvolver(x.__a):v2Desenvolver(x));
+    if(v&&typeof v==='object'){
+        const proto=Object.getPrototypeOf(v);
+        if(proto!==Object.prototype&&proto!==null)return v;     /* Timestamp de Firestore, etc. */
+        const o={};for(const k of Object.keys(v))o[k]=v2Desenvolver(v[k]);return o;
+    }
+    return v;
+}
+
 /* ─── Códec evento ⇄ documento ─────────────────────────────────────────────
    El id del documento se deriva del id del evento, saneado para Firestore
    (sin / \ . ni espacios). El id verdadero viaja SIEMPRE dentro del payload,
@@ -87,16 +125,17 @@ function v2ToDoc(entidad,item){
             try{d=_compressOpForWire(op)}catch(_){d=op}
         }else d=op;
     }
-    return{k,f:String(item.fecha||''),d,w:(entidad==='operaciones'&&d!==limpio)?WIRE_FORMAT_VERSION:null};
+    return{k,f:String(item.fecha||''),d:v2Saneado(d),w:(entidad==='operaciones'&&d!==limpio)?WIRE_FORMAT_VERSION:null};
 }
 function v2FromDoc(data){
     if(!data||!data.k)return null;
     const entidad=V2_ENTIDAD[data.k];
     if(!entidad)return null;
-    let item=data.d||{};
+    let item=v2Desenvolver(data.d||{});
     if(entidad==='operaciones'&&data.w&&typeof _decompressOpFromWire==='function'){
         try{item=_decompressOpFromWire(item)}catch(_){}
     }
+    if(item&&item.cambios&&typeof normalizarCambios==='function')item.cambios=normalizarCambios(item.cambios);
     return{entidad,item};
 }
 
@@ -118,7 +157,7 @@ function v2ExtraerEstado(datos,version){
     estado._schema=V2_SCHEMA;
     if(version!==undefined)estado._version=version;
     delete estado._syncState;
-    return estado;
+    return v2Saneado(estado);
 }
 
 /* Clave de orden: fecha + hora + id, todos de ancho fijo o comparables como
@@ -412,6 +451,7 @@ async function migrarAV2(opts){
    escritura atómica de Firestore.
    ════════════════════════════════════════════════════════════════════════════ */
 
+let _v2YaRevisoCopias=false;
 let _v2EventosUnsub=null,_v2EstadoOk=false,_v2EventosOk=false,_v2RenderTimer=null,_v2Guardando=false,_v2FromCache=false,_v2EsperandoServidor=false,_v2CrearEstado=false;
 
 function _v2UserRef(){return AppState.db.collection('users').doc(AppState.currentUser.uid)}
@@ -449,12 +489,17 @@ function _v2Programar(){
 
 /* ─── Snapshot del documento de ESTADO ───────────────────────────────────── */
 function v2OnEstadoSnapshot(doc){
-    const d=doc.data()||{};
+    const d=v2Desenvolver(doc.data()||{});
     AppState._schema=V2_SCHEMA;
     try{localStorage.setItem('p2p_schema_'+AppState.currentUser.uid,String(V2_SCHEMA))}catch(_){}
     _v2FromCache=!!doc.metadata.fromCache;
     if(!_v2FromCache)AppState._snapshotServidorOk=true;
     const serverV=d._version||0;
+    /* v8.0.1 — La versión más alta que se vio en el servidor. Cada guardado
+       escribe una mayor que esa: antes cada dispositivo contaba la suya, y el
+       que había guardado menos veces escribía un número menor que el otro
+       descartaba sin avisar. */
+    AppState._versionServidor=Math.max(AppState._versionServidor||0,serverV);
     /* Protección de cambios locales sin subir: si hay mutaciones de estado en la
        cola (saldos, tags, config), lo local manda hasta que se confirme el push.
        Mismo criterio que usaba mergeRemoteState en v1. */
@@ -506,8 +551,10 @@ function v2OnEstadoSnapshot(doc){
         }
         AppState._localVersion=serverV;
         AppState.datos._version=serverV;
-        /* Una foto aceptada del servidor es un cambio legítimo: se toma como
-           nueva referencia para no reportarla como desvío. */
+        /* Historiales de lo que viaja en el estado (Eliminados, lotes) al formato nuevo */
+        if(typeof normalizarHistoriales==='function'){
+            try{normalizarHistoriales({lotes:AppState.datos.lotes,_archivoCarryover:AppState.datos._archivoCarryover,eliminados:AppState.datos.eliminados})}catch(_){}
+        }
         }
     AppState._datosStale=false;
     _v2EstadoOk=true;
@@ -602,6 +649,12 @@ function v2AttachEventos(){
         const primeraVez=!_v2EventosOk;
         _v2EventosOk=true;
         _v2Programar();
+        /* v8.0.1 — Con la primera foto del servidor se revisa contra la última
+           copia automática que no haya desaparecido nada sin que lo borraras */
+        if(!desdeCache&&!_v2YaRevisoCopias&&typeof revisarContraCopias==='function'){
+            _v2YaRevisoCopias=true;
+            setTimeout(()=>{try{revisarContraCopias()}catch(e){console.warn('[P2P] copias:',e)}},1200);
+        }
         /* v7.3.0 — Lo que se pidió guardar mientras se cargaban los eventos
            quedaba esperando hasta el próximo cambio: ahora sale apenas están. */
         if(primeraVez&&(_guardarPendiente||_syncQueue.length||_v2CrearEstado)&&!_v2Guardando){
@@ -632,6 +685,7 @@ function v2IniciarCuentaNueva(){
 }
 function v2DetachEventos(){
     if(_v2EventosUnsub){try{_v2EventosUnsub()}catch(_){}_v2EventosUnsub=null}
+    _v2YaRevisoCopias=false;
     _v2EstadoOk=false;_v2EventosOk=false;_v2EsperandoServidor=false;_v2CrearEstado=false;
 }
 
@@ -653,7 +707,7 @@ async function v2Guardar(forzar){
            badge quedaría en "N pendientes" para siempre y los puntos amarillos
            nunca se apagarían. */
         if(_syncQueue.length){
-            _syncQueue.length=0;
+            _syncQueue.length=0;guardarColaLocal();
             if(typeof repairOrphanPendingStates==='function')try{repairOrphanPendingStates()}catch(_){}
         }
         setSyncStatus('online');updateSyncBadge();return;
@@ -672,7 +726,7 @@ async function v2Guardar(forzar){
     try{
         if(!navigator.onLine){setSyncStatus('offline','Sin conexión');throw{code:'offline-deferred'}}
         try{if(typeof backupToLocal==='function')backupToLocal()}catch(_){}
-        const nueva=(AppState._localVersion||0)+1;
+        const nueva=Math.max(AppState._localVersion||0,AppState._versionServidor||0)+1;
         const evRef=_v2EvRef(),batch=AppState.db.batch();
         plan.sets.forEach(x=>batch.set(evRef.doc(x.id),x.data));
         plan.deletes.forEach(id=>batch.delete(evRef.doc(id)));
@@ -690,17 +744,20 @@ async function v2Guardar(forzar){
         const t0=performance.now();
         await _v2ConTimeout(batch.commit(),30000,'escritura');
         AppState._localVersion=nueva;AppState.datos._version=nueva;
+        AppState._versionServidor=Math.max(AppState._versionServidor||0,nueva);
         _syncLog&&_syncLog('v2:write-end',{ms:Math.round(performance.now()-t0)});
         /* Drenar exactamente lo confirmado */
         const conf=new Set(enVuelo);
         for(let i=_syncQueue.length-1;i>=0;i--)if(conf.has(_syncQueue[i]))_syncQueue.splice(i,1);
+        guardarColaLocal();
+        if(AppState.ui.problemaGuardado){AppState.ui.problemaGuardado=null;if(typeof pintarAvisoGuardado==='function')pintarAvisoGuardado()}
         const siguenPendientes=new Set(_syncQueue.map(a=>a.entity+':'+String(a.id)));
         enVuelo.forEach(x=>{
             if(siguenPendientes.has(x.entity+':'+String(x.id)))return;
             const arr=AppState.datos[x.entity];
             if(Array.isArray(arr)){const it=arr.find(y=>String(y.id)===String(x.id));if(it)delete it._syncState}
         });
-        _syncPending=Math.max(0,_syncPending-1);_syncErrors=0;
+        _syncPending=Math.max(0,_syncPending-1);_syncErrors=0;_retryDelay=2000;
         if(_syncQueue.length===0)setSyncStatus('online');
         updateSyncBadge();
     }catch(e){
@@ -711,7 +768,22 @@ async function v2Guardar(forzar){
             _syncErrors++;
             console.error('[P2P][v2] guardar:',e);
             setSyncStatus('offline',_syncErrors>=3?'Sin guardar en la nube: tocá para reintentar':'Reintentando…');
-            if(_syncErrors<3){clearTimeout(_retryTimer);_retryTimer=setTimeout(()=>{_syncErrors=0;updateSyncBadge();v2Guardar(true)},Math.min(_retryDelay,30000));_retryDelay=Math.min(_retryDelay*1.5,30000)}
+            /* v8.0.1 — Si no sube, se avisa en grande. Antes solo cambiaba el texto
+               chico de arriba, y se podía cargar un día entero sin enterarse. */
+            const permanente=e&&/invalid-argument|permission-denied|exceeds the maximum/i.test(String(e.code||'')+' '+String(e.message||''));
+            if(permanente||_syncErrors>=2){
+                if(!AppState.ui.problemaGuardado)AppState.ui.problemaGuardado={desde:Date.now()};
+                AppState.ui.problemaGuardado.permanente=!!permanente;
+                if(typeof pintarAvisoGuardado==='function')pintarAvisoGuardado();
+            }
+            /* v8.0.1 — Se sigue reintentando solo (cada vez más espaciado, hasta un
+               minuto) en vez de rendirse al tercer intento: lo pendiente está a
+               salvo en el teléfono y se sube apenas se pueda. */
+            if(!permanente){
+                clearTimeout(_retryTimer);
+                _retryTimer=setTimeout(()=>{updateSyncBadge();v2Guardar(true)},Math.min(_retryDelay,60000));
+                _retryDelay=Math.min(_retryDelay*1.5,60000);
+            }
         }
         updateSyncBadge();
     }finally{
@@ -810,7 +882,7 @@ async function v2SubirTodo(opts){
         estado.ultimaActualizacion=firebase.firestore.FieldValue.serverTimestamp();
         await _v2ConTimeout(_v2UserRef().set(estado),V2_WRITE_TIMEOUT,'documento de estado');
         AppState._localVersion=nueva;AppState.datos._version=nueva;
-        _syncQueue.length=0;_syncErrors=0;
+        _syncQueue.length=0;_syncErrors=0;guardarColaLocal();
         setSyncStatus('online');updateSyncBadge();
         _v2CountSet(enMemoria.length);
         console.log('[P2P][v2] subida total:',enMemoria.length,'eventos ·',aBorrar.length,'retirados');
@@ -940,7 +1012,7 @@ async function verificarIntegridad(opts){
             setPhase('Revisando el archivo histórico…');
             const ops=[],movs=[];
             for(const mes of meses){
-                const d=(await userRef.collection('archivo').doc(mes).get()).data();
+                const d=v2Desenvolver((await userRef.collection('archivo').doc(mes).get()).data());
                 if(!d){problemas.push('Falta el documento de archivo '+mes+'.');continue}
                 let o=d._wireFormat?_decompressOpsArrayFromWire(d.operaciones):(d.operaciones||[]);
                 if(d.gananciasPorId&&typeof _archivoAplicarGanancias==='function')o=_archivoAplicarGanancias(o,d.gananciasPorId);
