@@ -466,7 +466,8 @@ function itemRegistro(ent,rec){
         it.sub=monos+'<span>a '+escHtml(fmtTasaMon(rec.tasa,mon))+'</span>'+
             (isFinite(rec.comisionPct)?'<span class="marca" title="Comisión de Binance">'+escHtml(pctTxt(rec.comisionPct))+'</span>':'')+lapiz;
         if(tipo==='venta'){
-            it.montoTxt=dinero(rec.monto,mon,{signo:true});it.montoClase='sube';
+            /* v8.0.4 — El monto va en negro: lo que se cobra no es ganancia; la ganancia es la verde */
+            it.montoTxt=dinero(rec.monto,mon,{signo:true});it.montoClase='';
             const g=Number(rec.ganancia)||0;
             it.derTxt=(g>=-0.004?'ganancia ':'pérdida ')+dinero(Math.abs(g),mon);
             it.derClase=g>=-0.004?'sube':'baja';
@@ -479,7 +480,7 @@ function itemRegistro(ent,rec){
         const cuenta=it.cuentas[0]||'';
         it.titulo=tituloCategoria(rec.descripcion,tipo==='ingreso'?'Ingreso':'Egreso');
         it.montoTxt=montoEnCuenta(tipo==='ingreso'?rec.monto:-rec.monto,cuenta,{signo:tipo==='ingreso'});
-        it.montoClase=tipo==='ingreso'?'sube':'';
+        it.montoClase='';
         it.sub=monos+'<span>'+escHtml(rec.nota?rec.nota:(tipo==='ingreso'?'Ingreso':'Egreso'))+'</span>'+lapiz;
         buscable=[tipo,rec.descripcion,rec.nota,fmtNum(rec.monto),String(rec.monto)].join(' ');
     }else if(tipo==='transferencia'){
@@ -509,6 +510,9 @@ function itemRegistro(ent,rec){
 /* Cada fila va dentro de .desliza: deslizándola a la derecha se edita y a la
    izquierda se elimina, como en la 7.x. Tocarla abre su detalle. */
 const _FONDO_DESLIZA='<div class="desliza-fondo" aria-hidden="true"><span class="d-editar">'+ico('editar')+'Editar</span><span class="d-borrar">Eliminar'+ico('borrar')+'</span></div>';
+/* Compras y ventas de USDT; lo demás (ingresos, egresos, transferencias y
+   correcciones) son otros movimientos */
+function esOperacion(it){return it.tipo==='venta'||it.tipo==='compra'}
 /* v8.0.3 — "Venta" en rojo y "Compra" en verde, como los botones de Vender y Comprar */
 function claseTipo(tipo){return tipo==='venta'?' t-venta':tipo==='compra'?' t-compra':''}
 function filaRegistroHtml(it,o){

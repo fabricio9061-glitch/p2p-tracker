@@ -152,7 +152,7 @@ function filaLibro(l,cuenta){
         sub='<span>'+escHtml(r.motivo||'sin motivo')+'</span>';
     }
     if(fueEditado(r))sub+='<span class="marca" title="Editado">'+ico('lapiz')+'</span>';
-    return filaRegistroHtml(it,{titulo,sub,montoTxt:montoEnCuenta(l.variacion,cuenta,{signo:l.variacion>0,unidad:false}),montoClase:l.variacion>0?'sube':'',
+    return filaRegistroHtml(it,{titulo,sub,montoTxt:montoEnCuenta(l.variacion,cuenta,{signo:l.variacion>0,unidad:false}),montoClase:'',
         derTxt:'queda '+montoEnCuenta(l.resultante,cuenta,{unidad:false}),derClase:''});
 }
 ACC['libro-mas']=t=>{const c=capaDe(t);if(!c)return;c.limite+=80;pintarLibro(c.cont,c)};

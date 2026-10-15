@@ -9,7 +9,7 @@
    días en Eliminados. */
 PANTALLAS.registro={pintar:pintarRegistro};
 
-const TIPOS_REG=[['todo','Todo'],['venta','Ventas'],['compra','Compras'],['ingreso','Ingresos'],['egreso','Egresos'],
+const TIPOS_REG=[['todo','Todo'],['operaciones','Operaciones'],['venta','Ventas'],['compra','Compras'],['ingreso','Ingresos'],['egreso','Egresos'],
                  ['transferencia','Transferencias'],['correccion','Correcciones'],['eliminados','Eliminados']];
 const PERIODOS_REG=[['hoy','Hoy'],['ayer','Ayer'],['semana','Últimos 7 días'],['mes','Este mes'],['mespasado','Mes pasado'],['todo','Todo']];
 const REG_PAGINA=60;
@@ -35,7 +35,8 @@ function filtrarRegistro(){
     const[desde,hasta]=rangoRegistro(r);
     const q=tagKey(String(r.buscar||'').trim());
     return itemsDelRegistro().filter(it=>{
-        if(r.tipo!=='todo'&&it.tipo!==r.tipo)return false;
+        if(r.tipo==='operaciones'){if(!esOperacion(it))return false}
+        else if(r.tipo!=='todo'&&it.tipo!==r.tipo)return false;
         if(it.fecha<desde||it.fecha>hasta)return false;
         if(r.cuenta){
             if(r.cuenta==='USDT'){if(!(it.ent==='operaciones'||(it.ent==='movimientos'&&it.rec.tipoCuenta==='usdt')))return false}
@@ -99,7 +100,8 @@ function pintarRegistro(){
     const monedas=Array.from(new Set([...Object.keys(res.entra),...Object.keys(res.sale)])).sort((a,b)=>a==='UYU'?-1:b==='UYU'?1:0);
     monedas.forEach(m=>{
         const extra=m==='USD'?' en dólares':'';
-        if(res.entra[m])lineas+='<span>'+escHtml(dondeE+extra)+'</span><b class="sube">'+fmt(m,res.entra[m],true)+'</b>';
+        /* v8.0.4 — Lo que entra va en negro: el verde queda para la ganancia */
+        if(res.entra[m])lineas+='<span>'+escHtml(dondeE+extra)+'</span><b>'+fmt(m,res.entra[m],true)+'</b>';
         if(res.sale[m])lineas+='<span>'+escHtml(dondeS+extra)+'</span><b>'+fmt(m,res.sale[m],false)+'</b>';
     });
     if(res.hayGan&&r.cuenta!=='USDT')lineas+='<span class="total">Ganancia neta</span><b class="total cifra '+claseSigno(res.gan)+'">'+dinero(res.gan,'UYU',{signo:true})+'</b>';
@@ -348,14 +350,14 @@ function htmlDetalle(ent,rec,o){
     const fem=esFemenino(ent);
     const cuando=escHtml(mayus(cuandoTexto(rec.fecha||'',rec.hora||'')));
     const bloques=[];
-    let cifra='',cifraClase='';
+    /* v8.0.4 — El número grande va en negro: el verde queda para la ganancia */
+    let cifra='';
     const mon=rec.moneda||'UYU';
     if(tipo==='venta'||tipo==='compra'){
         const base=Number(rec.usdt)||0,com=Number(rec.comisionPlataforma)||0,neto=usdtNeto(base,com,tipo);
         const p=partesBinance(tipo,base,com);
         const pct=isFinite(rec.comisionPct)?pctTxt(rec.comisionPct):'';
         cifra=usdtTxt(tipo==='venta'?-neto:neto,{signo:true});
-        cifraClase=tipo==='compra'?'sube':'';
         bloques.push(dato('Importe en fiat',dinero(rec.monto,mon))+
             dato('Precio de USDT',escHtml(fmtTasaMon(rec.tasa,mon)))+
             dato('Cantidad total',usdtTxt(p.total),{fila:'fuerte'})+
@@ -400,7 +402,6 @@ function htmlDetalle(ent,rec,o){
     }else if(tipo==='ingreso'||tipo==='egreso'){
         const cuenta=it.cuentas[0]||'';
         cifra=montoEnCuenta(tipo==='ingreso'?rec.monto:-rec.monto,cuenta,{signo:tipo==='ingreso'});
-        cifraClase=tipo==='ingreso'?'sube':'';
         let b=dato(tipo==='ingreso'?'Entró a':'Salió de',cuentaDet(cuenta));
         b+=dato('Categoría',escHtml(rec.descripcion||'sin categoría'));
         if(rec.nota)b+=dato('Nota',escHtml(rec.nota));
@@ -422,7 +423,7 @@ function htmlDetalle(ent,rec,o){
                 dato('Comisión',(Number(rec.comision)||0)>0?dinero(rec.comision,mo):'sin comisión')+dato('Cuándo',cuando));
         }
     }else if(tipo==='lote'){
-        cifra=usdtTxt(rec.cantidad,{signo:true});cifraClase='sube';
+        cifra=usdtTxt(rec.cantidad,{signo:true});
         bloques.push(dato('Te salió cada uno a',dinero(rec.precioCompra,rec.moneda||'UYU'))+
             dato('Cargados a mano para el',escHtml(fmtFechaCorta(rec.fecha||''))));
     }else{
@@ -433,7 +434,7 @@ function htmlDetalle(ent,rec,o){
 
     const claseTitulo=tipo==='venta'?'t-venta':tipo==='compra'?'t-compra':'';
     let html=cabHoja(titulo,{chico:true,clase:claseTitulo})+'<div class="hoja-cuerpo">'+
-        '<div class="det-cifra cifra '+cifraClase+' '+tamCifra(cifra,11,14)+'">'+escHtml(cifra)+'</div>'+
+        '<div class="det-cifra cifra '+tamCifra(cifra,11,14)+'">'+escHtml(cifra)+'</div>'+
         htmlEstado(estadoGuardado(rec,fem,elim))+
         bloques.filter(Boolean).map(b=>'<div class="det-bloque">'+b+'</div>').join('');
     if(!elim){

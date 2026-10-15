@@ -80,6 +80,22 @@ function htmlActividad(hoy){
 function ficha(rot,valor,clase,nota){
     return'<div><span>'+escHtml(rot)+'</span><b class="cifra '+(clase||'')+'">'+escHtml(valor)+'</b>'+(nota?'<small>'+escHtml(nota)+'</small>':'')+'</div>';
 }
+/* "6 operaciones: 3 compras y 3 ventas. Operado $X." (lo usan el inicio y el calendario) */
+function lineaOperaciones(a,vacio){
+    if(!a.total)return vacio;
+    const operado=roundMoney(a.compras.pagado+a.ventas.cobrado);
+    return a.total+(a.total===1?' operación':' operaciones')+': '+
+        [a.compras.n?a.compras.n+(a.compras.n===1?' compra':' compras'):'',
+         a.ventas.n?a.ventas.n+(a.ventas.n===1?' venta':' ventas'):''].filter(Boolean).join(' y ')+
+        '. <span class="nw">Operado '+dinero(operado,'UYU')+'.</span>';
+}
+/* El spread, las comisiones y los otros ingresos de un día */
+function fichasDelDia(a){
+    return'<div class="mini-datos hoy-datos">'+
+        ficha('Spread',a.spread!==null?dinero(a.spread,'UYU'):MENOS,a.spread!==null?claseSigno(a.spread):'','por USDT')+
+        ficha('Comisiones',usdtTxt(a.comUsdt),'',dinero(a.comPesos,'UYU')+' en pesos')+
+        ficha('Otros ingresos',dinero(a.ingresos,'UYU',{signo:true}),'','no es ganancia')+'</div>';
+}
 
 function pintarInicio(){
     const c=$('inicioCuerpo');if(!c||!AppState.datos)return;
@@ -102,13 +118,7 @@ function pintarInicio(){
     /* ── Ganancia de hoy ── */
     const tHoy=dinero(gHoy,'UYU',{signo:true});
     const deHoy=actividadEntre(hoy,hoy);
-    const operado=roundMoney(deHoy.compras.pagado+deHoy.ventas.cobrado);
-    const lineaHoy=deHoy.total
-        ?deHoy.total+(deHoy.total===1?' operación':' operaciones')+': '+
-            [deHoy.compras.n?deHoy.compras.n+(deHoy.compras.n===1?' compra':' compras'):'',
-             deHoy.ventas.n?deHoy.ventas.n+(deHoy.ventas.n===1?' venta':' ventas'):''].filter(Boolean).join(' y ')+
-            '. <span class="nw">Operado '+dinero(operado,'UYU')+'.</span>'
-        :'Sin operaciones hoy.';
+    const lineaHoy=lineaOperaciones(deHoy,'Sin operaciones hoy.');
     /* v8.0.2 — Más compacto y práctico: la cifra a la izquierda y la semana a
        su lado; el desglose y las operaciones en una línea cada uno. */
     const dias=[];
@@ -143,10 +153,7 @@ function pintarInicio(){
     /* v8.0.2 — Dentro de la misma tarjeta: el spread, las comisiones y los
        otros ingresos de hoy (siempre los tres, aunque estén en cero), y abajo
        ayer, el mes y el promedio. Una grilla en vez de muchas cajitas. */
-    html+='<div class="hoy-grilla" id="hoyGrilla"><div class="mini-datos hoy-datos">'+
-        ficha('Spread',deHoy.spread!==null?dinero(deHoy.spread,'UYU'):MENOS,deHoy.spread!==null?claseSigno(deHoy.spread):'','por USDT')+
-        ficha('Comisiones',usdtTxt(deHoy.comUsdt),'',dinero(deHoy.comPesos,'UYU')+' en pesos')+
-        ficha('Otros ingresos',dinero(deHoy.ingresos,'UYU',{signo:true}),deHoy.ingresos>=0.005?'sube':'','no es ganancia')+'</div>';
+    html+='<div class="hoy-grilla" id="hoyGrilla">'+fichasDelDia(deHoy);
     html+='<div class="mini-datos semana-pie">'+
         ficha('Ayer',dinero(gAyer,'UYU',{signo:true}),claseSigno(gAyer))+
         ficha('Este mes',dinero(gMes,'UYU',{signo:true}),claseSigno(gMes))+
@@ -181,16 +188,23 @@ function pintarInicio(){
     }
     html+='</section>';
 
-    /* ── Hoy ── */
+    /* ── Hoy: las operaciones por un lado y lo demás por otro (v8.0.4) ── */
     const movsHoy=itemsDelRegistro().filter(it=>it.fecha===hoy);
-    html+='<section class="seccion"><div class="seccion-cab"><h2>Hoy</h2><button type="button" class="ir" data-a="tab" data-tab="registro">Ver registro</button></div>';
-    if(!movsHoy.length){
-        html+='<div class="bloque vacio"><b>Todavía no cargaste nada hoy</b><p>Con el botón + cargás una compra, una venta, un ingreso o un egreso.</p></div>';
+    const opsHoy=movsHoy.filter(esOperacion),otrosHoy=movsHoy.filter(it=>!esOperacion(it));
+    html+='<section class="seccion"><div class="seccion-cab"><h2>Operaciones de hoy</h2><button type="button" class="ir" data-a="tab" data-tab="registro">Ver registro</button></div>';
+    if(!opsHoy.length){
+        html+='<div class="bloque vacio"><b>Todavía no hay operaciones hoy</b><p>Cargalas con Comprar USDT o Vender USDT.</p></div>';
     }else{
-        html+='<div class="bloque lista">'+movsHoy.slice(0,4).map(it=>filaRegistroHtml(it)).join('')+'</div>';
-        if(movsHoy.length>4)html+='<button type="button" class="ver-mas" data-a="ir-dia" data-fecha="'+hoy+'">Ver los '+movsHoy.length+' movimientos de hoy</button>';
+        html+='<div class="bloque lista">'+opsHoy.slice(0,5).map(it=>filaRegistroHtml(it)).join('')+'</div>';
+        if(opsHoy.length>5)html+='<button type="button" class="ver-mas" data-a="ir-dia" data-fecha="'+hoy+'" data-tipo="operaciones">Ver las '+opsHoy.length+' operaciones de hoy</button>';
     }
     html+='</section>';
+    if(otrosHoy.length){
+        html+='<section class="seccion"><div class="seccion-cab"><h2>Otros movimientos de hoy</h2></div>'+
+            '<div class="bloque lista">'+otrosHoy.slice(0,4).map(it=>filaRegistroHtml(it)).join('')+'</div>';
+        if(otrosHoy.length>4)html+='<button type="button" class="ver-mas" data-a="ir-dia" data-fecha="'+hoy+'">Ver todo lo de hoy</button>';
+        html+='</section>';
+    }
     c.innerHTML=html;
 }
 
@@ -265,7 +279,7 @@ ACC['sync-reintentar']=()=>{
 /* Ir al registro de un día puntual (desde el gráfico o "Ver los movimientos de hoy") */
 ACC['ir-dia']=t=>{
     const r=AppState.ui.registro;
-    r.dia=t.dataset.fecha||'';r.tipo='todo';r.cuenta='';r.buscar='';r.limite=60;
+    r.dia=t.dataset.fecha||'';r.tipo=t.dataset.tipo||'todo';r.cuenta='';r.buscar='';r.limite=60;
     const inp=$('regBuscar');if(inp)inp.value='';
     cerrarTodasLasCapas();
     irATab('registro');
