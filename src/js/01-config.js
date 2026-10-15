@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.0.1',
+    APP_VERSION: '8.0.2',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,11 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.0.2', date:'2026-10-14', headline:'Inicio más práctico: lo de hoy en una sola tarjeta y todo a la vista sin bajar.', changes:[
+        {type:'improve', title:'Todo lo de hoy en una tarjeta', desc:'La ganancia de hoy con la semana al lado y, en la misma tarjeta, el spread, las comisiones y los otros ingresos de hoy, más lo de ayer, el mes y el promedio de 7 días.'},
+        {type:'improve', title:'Menos espacio, más a la vista', desc:'La actividad del período en una sola tarjeta, los botones de comprar y vender debajo de ella y las cuentas de a tres. Hasta los botones, todo entra en la primera pantalla.'},
+        {type:'improve', title:'Solo números al cargar', desc:'En montos, tasas y comisiones no se pueden escribir ni pegar letras: si pegás algo como "$ 15.000 UYU", queda 15.000.'}
+    ]},
     {version:'8.0.1', date:'2026-10-14', headline:'Arreglo importante: después de editar, lo que cargabas no se subía a internet. Ahora nada se pierde y hay copias automáticas.', changes:[
         {type:'fix', title:'Lo cargado después de editar no se subía', desc:'Con la 8.0.0, después de editar o recuperar un movimiento la app dejaba de subir todo a internet: lo guardaba solo en el teléfono y, al reabrirse, lo perdía. Ya está arreglado. Lo que haya quedado sin subir en el teléfono se sube solo.'},
         {type:'feature', title:'Copias automáticas', desc:'Cada 30 minutos la app guarda en el teléfono una copia de tus movimientos y se quedan las 3 últimas. Si falta algo, el inicio avisa y lo recuperás desde Más → Copias automáticas, sin borrar nada. Reemplaza a "Restaurar el último respaldo".'},

@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   §19 — INICIO (v8.0.1)
+   §19 — INICIO (v8.0.2)
    ═══════════════════════════════════════════════════════════════════════════
-   Lo primero que se ve: cuánto se ganó hoy y cuántas operaciones hubo, la
-   semana, los dos botones de uso diario, la actividad del período (compras,
-   ventas, spread y comisiones, como en la 7.x), cuánto hay en USDT y en cada
-   cuenta (USDT primero, después los bancos de más plata a menos) y lo que se
-   cargó hoy. */
+   Lo primero que se ve, compacto y práctico: la ganancia de hoy con la
+   semana al lado, el spread, las comisiones y los otros ingresos de hoy, ayer,
+   el mes y el promedio; después la actividad del período (compras y ventas),
+   los dos botones de uso diario, cuánto hay en USDT y en cada cuenta (USDT
+   primero, después los bancos de más plata a menos) y lo que se cargó hoy. */
 PANTALLAS.inicio={pintar:pintarInicio};
 
 function claseSigno(n){return n>=0.005?'sube':n<=-0.005?'baja':''}
@@ -74,13 +74,11 @@ function htmlActividad(hoy){
             lado('act-compra','compra','Compras',a.compras.pagado,a.compras.n,a.promCompra,'compra','compras')+
             lado('act-venta','venta','Ventas',a.ventas.cobrado,a.ventas.n,a.promVenta,'venta','ventas')+
         '</div>';
-    const filas=[];
-    if(a.spread!==null)filas.push(dato('Spread promedio',escHtml(dinero(a.spread,'UYU'))+' por USDT',{clase:claseSigno(a.spread)}));
-    if(a.comUsdt>=0.005)filas.push(dato('Comisiones de Binance',escHtml(usdtTxt(a.comUsdt)),{chico:escHtml(dinero(a.comPesos,'UYU'))+' en pesos'}));
-    if(a.ingresos>=0.005)filas.push(dato('Otros ingresos','<span class="sube">'+escHtml(dinero(a.ingresos,'UYU',{signo:true}))+'</span>',{chico:'no suman a la ganancia'}));
-    if(a.opsUSD)filas.push(dato('Operaciones en dólares',String(a.opsUSD)));
-    if(filas.length)html+='<div class="bloque datos-linea act-datos">'+filas.join('')+'</div>';
     return html+'</section>';
+}
+/* Un dato chico: rótulo, valor y, si hace falta, una aclaración */
+function ficha(rot,valor,clase,nota){
+    return'<div><span>'+escHtml(rot)+'</span><b class="cifra '+(clase||'')+'">'+escHtml(valor)+'</b>'+(nota?'<small>'+escHtml(nota)+'</small>':'')+'</div>';
 }
 
 function pintarInicio(){
@@ -106,54 +104,61 @@ function pintarInicio(){
     const deHoy=actividadEntre(hoy,hoy);
     const operado=roundMoney(deHoy.compras.pagado+deHoy.ventas.cobrado);
     const lineaHoy=deHoy.total
-        ?deHoy.total+(deHoy.total===1?' operación hoy':' operaciones hoy')+': '+
+        ?deHoy.total+(deHoy.total===1?' operación':' operaciones')+': '+
             [deHoy.compras.n?deHoy.compras.n+(deHoy.compras.n===1?' compra':' compras'):'',
              deHoy.ventas.n?deHoy.ventas.n+(deHoy.ventas.n===1?' venta':' ventas'):''].filter(Boolean).join(' y ')+
-            '. Operado '+dinero(operado,'UYU')+'.'
+            '. <span class="nw">Operado '+dinero(operado,'UYU')+'.</span>'
         :'Sin operaciones hoy.';
-    html+='<section class="heroe" aria-label="Ganancia de hoy">'+
-        '<div class="heroe-rot">Ganancia de hoy</div>'+
-        '<div class="heroe-cifra cifra '+claseSigno(gHoy)+' '+tamCifra(tHoy,10,13)+'">'+tHoy+'</div>'+
-        '<div class="heroe-desglose">'+
-            '<span>Operaciones</span><span class="'+claseSigno(st.gananciaOps)+'">'+dinero(st.gananciaOps,'UYU',{signo:true})+'</span>'+
-            '<span>Egresos</span><span>'+dinero(-(st.gastos||0),'UYU')+'</span>'+
-            (Math.abs(gUSD)>=0.005?'<span>En dólares</span><span class="'+claseSigno(gUSD)+'">'+dinero(gUSD,'USD',{signo:true})+'</span>':'')+
-        '</div>'+
-        '<div class="heroe-ops">'+escHtml(lineaHoy)+'</div>';
-
-    /* ── Últimos 7 días ── */
+    /* v8.0.2 — Más compacto y práctico: la cifra a la izquierda y la semana a
+       su lado; el desglose y las operaciones en una línea cada uno. */
     const dias=[];
     for(let i=6;i>=0;i--){const f=sumarDias(hoy,-i);dias.push({f,v:roundMoney(g[f]||0),hoy:i===0})}
     const max=Math.max(1,...dias.map(x=>Math.abs(x.v)));
-    html+='<div class="semana" role="group" aria-label="Ganancia de los últimos 7 días">'+dias.map(x=>{
-        const h=Math.abs(x.v)>=0.005?Math.max(3,Math.round(Math.abs(x.v)/max*34)):0;
+    const semana='<div class="semana" role="group" aria-label="Ganancia de los últimos 7 días">'+dias.map(x=>{
+        const h=Math.abs(x.v)>=0.005?Math.max(2,Math.round(Math.abs(x.v)/max*18)):0;
         const dd=fechaObj(x.f);
         const et=(x.hoy?'Hoy':mayus(DIAS_LARGO[dd.getDay()])+' '+dd.getDate())+': '+(h?dinero(x.v,'UYU',{signo:true}):'sin movimientos');
         return'<button type="button" class="semana-col'+(x.hoy?' hoy':'')+'" data-a="ir-dia" data-fecha="'+x.f+'" aria-label="'+escHtml(et)+'">'+
             '<span class="arr">'+(x.v>0&&h?'<span class="b" style="height:'+h+'px"></span>':'')+'</span>'+
             '<span class="eje"></span>'+
             '<span class="aba">'+(x.v<0&&h?'<span class="bn" style="height:'+h+'px"></span>':'')+'</span>'+
-            '<span>'+(x.hoy?'Hoy':DIAS_LETRA[dd.getDay()])+'</span></button>';
+            '<span>'+DIAS_LETRA[dd.getDay()]+'</span></button>';
     }).join('')+'</div>';
+    html+='<section class="heroe" aria-label="Ganancia de hoy">'+
+        '<div class="heroe-fila"><div class="heroe-izq"><div class="heroe-rot">Ganancia de hoy</div>'+
+            '<div class="heroe-cifra cifra '+claseSigno(gHoy)+'">'+tHoy+'</div></div>'+semana+'</div>'+
+        '<div class="heroe-desglose">'+
+            '<span>Operaciones <b class="'+claseSigno(st.gananciaOps)+'">'+dinero(st.gananciaOps,'UYU',{signo:true})+'</b></span>'+
+            '<span>Egresos <b>'+dinero(-(st.gastos||0),'UYU')+'</b></span>'+
+            (Math.abs(gUSD)>=0.005?'<span>En dólares <b class="'+claseSigno(gUSD)+'">'+dinero(gUSD,'USD',{signo:true})+'</b></span>':'')+
+        '</div>'+
+        '<div class="heroe-ops">'+lineaHoy+'</div>';
     let gMes=0;
     Object.entries(g).forEach(([f,v])=>{if(f.startsWith(mes))gMes=roundMoney(gMes+v)});
     const gAyer=roundMoney(g[ayer]||0);
     /* Promedio de los 7 días anteriores a hoy (hoy no cuenta: todavía no terminó) */
     let suma7=0;for(let i=1;i<=7;i++)suma7+=g[sumarDias(hoy,-i)]||0;
     const prom7=roundMoney(suma7/7);
-    html+='<div class="semana-pie">'+
-        '<div><span class="tenue">Ayer </span><b class="'+claseSigno(gAyer)+'">'+dinero(gAyer,'UYU',{signo:true})+'</b></div>'+
-        '<div><span class="tenue">Este mes </span><b class="'+claseSigno(gMes)+'">'+dinero(gMes,'UYU',{signo:true})+'</b></div>'+
-        '<div><span class="tenue">Promedio de 7 días </span><b class="'+claseSigno(prom7)+'">'+dinero(prom7,'UYU',{signo:true})+'</b></div></div>';
+    /* v8.0.2 — Dentro de la misma tarjeta: el spread, las comisiones y los
+       otros ingresos de hoy (siempre los tres, aunque estén en cero), y abajo
+       ayer, el mes y el promedio. Una grilla en vez de muchas cajitas. */
+    html+='<div class="hoy-grilla"><div class="mini-datos hoy-datos">'+
+        ficha('Spread',deHoy.spread!==null?dinero(deHoy.spread,'UYU'):MENOS,deHoy.spread!==null?claseSigno(deHoy.spread):'','por USDT')+
+        ficha('Comisiones',usdtTxt(deHoy.comUsdt),'',dinero(deHoy.comPesos,'UYU')+' en pesos')+
+        ficha('Otros ingresos',dinero(deHoy.ingresos,'UYU',{signo:true}),deHoy.ingresos>=0.005?'sube':'','no es ganancia')+'</div>';
+    html+='<div class="mini-datos semana-pie">'+
+        ficha('Ayer',dinero(gAyer,'UYU',{signo:true}),claseSigno(gAyer))+
+        ficha('Este mes',dinero(gMes,'UYU',{signo:true}),claseSigno(gMes))+
+        ficha('Prom. 7 días',dinero(prom7,'UYU',{signo:true}),claseSigno(prom7))+'</div></div>';
     html+='</section>';
-
-    /* ── Uso diario ── */
-    html+='<section class="botones-op">'+
-        '<button type="button" class="boton-op compra" data-a="op-nueva" data-tipo="compra">'+ico('compra')+'Comprar USDT</button>'+
-        '<button type="button" class="boton-op venta" data-a="op-nueva" data-tipo="venta">'+ico('venta')+'Vender USDT</button></section>';
 
     /* ── Actividad del período ── */
     html+=htmlActividad(hoy);
+
+    /* ── Uso diario: debajo de la actividad ── */
+    html+='<section class="botones-op">'+
+        '<button type="button" class="boton-op compra" data-a="op-nueva" data-tipo="compra">'+ico('compra')+'Comprar USDT</button>'+
+        '<button type="button" class="boton-op venta" data-a="op-nueva" data-tipo="venta">'+ico('venta')+'Vender USDT</button></section>';
 
     /* ── Cuentas ── */
     const vis=cuentasVisibles();
@@ -164,7 +169,7 @@ function pintarInicio(){
         const totales=[];
         if(uyu.length>1)totales.push(['En bancos',dinero(uyu.reduce((s,b)=>s+saldoDe(b.nombre),0),'UYU')]);
         if(usd.length>1)totales.push(['En dólares',dinero(usd.reduce((s,b)=>s+saldoDe(b.nombre),0),'USD')]);
-        if(totales.length)html+='<div class="totales">'+totales.map(([r,v])=>'<div><div class="rot">'+r+'</div><div class="cifra">'+v+'</div></div>').join('')+'</div>';
+        if(totales.length)html+='<div class="totales">'+totales.map(([r,v])=>'<span>'+r+' <b class="cifra">'+v+'</b></span>').join('')+'</div>';
         /* USDT siempre primero; después los bancos, de más plata a menos */
         html+='<div class="tiles">'+tileUsdt()+vis.slice(0,5).map(tileCuenta).join('')+'</div>';
     }else{
@@ -188,8 +193,8 @@ function pintarInicio(){
 function tileCuenta(b){
     const n=b.nombre,cu=infoCupo(n),bk=AppState.datos.bancos[n]||{};
     const pie=cu
-        ?'<span class="barra'+(cu.disp<0.005?' lleno':'')+'"><i style="width:'+cu.pct+'%"></i></span><span class="t-x">'+(cu.disp>=0.005?'Quedan US$'+fmtExacto(cu.disp)+' hoy':'Sin cupo por hoy')+'</span>'
-        :'<span class="t-x solo">'+(bk.activo?'Sin límite diario':'Desactivada')+'</span>';
+        ?'<span class="barra'+(cu.disp<0.005?' lleno':'')+'"><i style="width:'+cu.pct+'%"></i></span><span class="t-x">'+(cu.disp>=0.005?'Quedan US$'+fmtExacto(cu.disp):'Sin cupo hoy')+'</span>'
+        :'<span class="t-x solo">'+(bk.activo?'Sin límite':'Desactivada')+'</span>';
     return'<button type="button" class="tile" data-a="libro" data-cuenta="'+escHtml(n)+'">'+
         '<span class="t-n">'+mono(n)+'<b>'+escHtml(nombreCuenta(n))+'</b></span>'+
         '<span class="t-s">'+dinero(saldoDe(n),b.moneda||'UYU')+'</span>'+pie+'</button>';
@@ -206,7 +211,7 @@ function tileUsdt(){
     return'<button type="button" class="tile" data-a="libro" data-cuenta="USDT">'+
         '<span class="t-n">'+mono('USDT')+'<b>USDT</b></span>'+
         '<span class="t-s">'+usdtTxt(s,{unidad:false})+'</span>'+
-        '<span class="t-x solo">'+(prom>0?'Costo promedio '+dinero(prom,'UYU'):'Sin USDT')+'</span></button>';
+        '<span class="t-x solo">'+(prom>0?'Prom. '+dinero(prom,'UYU'):'Sin USDT')+'</span></button>';
 }
 
 /* ─── Avisos sobre tus datos (v8.0.1) ──────────────────────────────────── */

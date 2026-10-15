@@ -354,6 +354,29 @@ document.addEventListener('keydown',e=>{
         if(b&&!b.disabled){e.preventDefault();e.target.blur();b.click()}
     }
 });
+/* ─── Campos de números (v8.0.2) ───────────────────────────────────────── */
+/* En montos, tasas y comisiones solo entran números: dígitos, punto y coma
+   (y el signo menos al principio donde tiene sentido, como el saldo real de
+   una cuenta). Si se escribe o se pega algo con letras, se quitan solas:
+   "$ 15.000,50 UYU" queda 15.000,50. Corre antes que cualquier cálculo. */
+function _esCampoNumero(t){return!!(t&&t.tagName==='INPUT'&&t.getAttribute('inputmode')==='decimal')}
+function soloNumeros(t){
+    const neg=t.hasAttribute('data-negativo');
+    const malo=neg?/[^\d.,-]/g:/[^\d.,]/g;
+    const limpiar=x=>{let y=x.replace(malo,'');if(neg)y=y.replace(/(?!^)-/g,'');return y};
+    const v=t.value,limpio=limpiar(v);
+    if(limpio===v)return false;
+    const pos=(typeof t.selectionStart==='number')?t.selectionStart:v.length;
+    const hasta=limpiar(v.slice(0,pos)).length;
+    t.value=limpio;
+    try{t.setSelectionRange(hasta,hasta)}catch(_){}
+    return true;
+}
+document.addEventListener('input',e=>{
+    const t=e.target;
+    if(!_esCampoNumero(t))return;
+    if(soloNumeros(t)&&e.inputType==='insertFromPaste')avisar('Solo van números: se quitaron las letras.');
+},true);
 ACC['cerrar-capa']=t=>cerrarCapa(capaDe(t));
 ACC['dlg-si']=t=>{const c=capaDe(t);if(c&&c.responder)c.responder(true)};
 ACC['dlg-no']=t=>{const c=capaDe(t);if(c&&c.responder)c.responder(false)};
@@ -560,7 +583,8 @@ function filaRegistroHtml(it,o){
    letra se achica lo justo para que entre: el número nunca se corta. Se
    revisa solo cuando cambia algo en pantalla, al girar el teléfono y cuando
    termina de cargar la letra. */
-const _CIFRAS='.tile .t-s,.act-v,.cuenta .c-s,.heroe-cifra,.det-cifra,.capital .cifra,.libro-saldo .cifra,.cal-dia .g';
+/* (también el nombre de la cuenta en las tarjetas de a tres del inicio: "Mercado Pago" no entraba entero) */
+const _CIFRAS='.tile .t-s,.act-v,.cuenta .c-s,.heroe-cifra,.det-cifra,.capital .cifra,.libro-saldo .cifra,.cal-dia .g,.mini-datos b,.tile .t-n b';
 function ajustarCifras(todas){
     document.querySelectorAll(_CIFRAS).forEach(el=>{
         if(el._aj&&!todas)return;
