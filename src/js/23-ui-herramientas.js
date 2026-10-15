@@ -183,12 +183,43 @@ ACC['resumen-cargar']=async t=>{
 };
 
 /* ─── Calendario ───────────────────────────────────────────────────────── */
+/* v8.0.4 — Tocar un día ya no lleva al registro: el día queda marcado y abajo
+   se ve su ganancia, el desglose, el spread, las comisiones y sus movimientos
+   (las operaciones por un lado y lo demás por otro). */
 ACC['calendario']=()=>abrirCapa({tipo:'vista',etiqueta:'Calendario',clave:'calendario',
-    montar(cont,capa){capa.mes=getMesActivo();capa.archivo={};pintarCalendario(cont,capa)},
+    montar(cont,capa){capa.mes=getMesActivo();capa.archivo={};capa.dia=null;pintarCalendario(cont,capa)},
     actualizar(cont,capa){pintarCalendario(cont,capa)}});
-ACC['cal-mes']=t=>{const c=capaDe(t);if(!c||!t.dataset.mes)return;c.mes=t.dataset.mes;pintarCalendario(c.cont,c)};
+ACC['cal-mes']=t=>{const c=capaDe(t);if(!c||!t.dataset.mes)return;c.mes=t.dataset.mes;c.dia=null;c.cont.scrollTop=0;pintarCalendario(c.cont,c)};
+ACC['cal-dia']=t=>{
+    const c=capaDe(t);if(!c||!t.dataset.fecha)return;
+    c.dia=t.dataset.fecha;
+    pintarCalendario(c.cont,c);
+    /* Que se vea el resumen del día sin perder de vista el calendario */
+    const tarjeta=c.cont.querySelector('.cal-panel .tarjeta-hoy');
+    if(tarjeta)setTimeout(()=>{try{tarjeta.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(_){}},20);
+};
+function htmlDiaCalendario(f){
+    const g=roundMoney(calcularGananciaDiaria()[f]||0);
+    const st=getDayStats(f)||{gananciaOps:0,gastos:0};
+    const a=actividadEntre(f,f);
+    const items=itemsDelRegistro().filter(it=>it.fecha===f);
+    const ops=items.filter(esOperacion),otros=items.filter(it=>!esOperacion(it));
+    let h='<section class="cal-panel" aria-label="'+escHtml(tituloDia(f))+'">'+
+        '<div class="seccion-cab"><h2>'+escHtml(tituloDia(f))+'</h2><button type="button" class="ir" data-a="ir-dia" data-fecha="'+f+'">Ver en el registro</button></div>'+
+        '<div class="heroe tarjeta-hoy cal-tarjeta"><div class="heroe-rot">Ganancia del día</div>'+
+            '<div class="heroe-cifra cifra '+claseSigno(g)+'">'+dinero(g,'UYU',{signo:true})+'</div>'+
+            '<div class="heroe-desglose"><span>Operaciones <b class="'+claseSigno(st.gananciaOps)+'">'+dinero(st.gananciaOps,'UYU',{signo:true})+'</b></span>'+
+                '<span>Egresos <b>'+dinero(-(st.gastos||0),'UYU')+'</b></span></div>'+
+            '<div class="heroe-ops">'+lineaOperaciones(a,'Sin operaciones ese día.')+'</div>'+
+            '<div class="hoy-grilla">'+fichasDelDia(a)+'</div></div>';
+    if(ops.length)h+='<h3 class="h3 cal-sub">Operaciones</h3><div class="bloque lista">'+ops.map(it=>filaRegistroHtml(it)).join('')+'</div>';
+    if(otros.length)h+='<h3 class="h3 cal-sub">Otros movimientos</h3><div class="bloque lista">'+otros.map(it=>filaRegistroHtml(it)).join('')+'</div>';
+    if(!items.length)h+='<div class="bloque vacio cal-vacio"><b>Ese día no hay movimientos</b></div>';
+    return h+'</section>';
+}
 function pintarCalendario(cont,capa){
     const mes=capa.mes,arch=mesArchivado(mes)&&!capa.archivo[mes];
+    const arriba=cont.scrollTop;
     let html=cabVista('',{centro:navMes(mes,'cal-mes')})+'<div class="vista-cuerpo">';
     if(arch){
         html+='<p class="texto-ayuda">Este mes está archivado. Para ver cada día hay que traerlo de internet.</p><button type="button" class="btn gris" style="margin-top:12px" data-a="cal-cargar">Ver los días</button></div>';
@@ -197,6 +228,8 @@ function pintarCalendario(cont,capa){
     const fuente=capa.archivo[mes];
     const r=fuente?resumenMes(mes,fuente.ops,fuente.movimientos):resumenMes(mes,AppState.datos.operaciones,AppState.datos.movimientos);
     const hoy=getUDateStr();
+    /* De entrada, en el mes actual queda marcado hoy */
+    if(!capa.dia&&!fuente&&mes===hoy.slice(0,7))capa.dia=hoy;
     html+='<div class="heroe-rot">Ganancia neta</div><div class="cifra '+claseSigno(r.neta)+'" style="font-size:40px;font-weight:760;line-height:1;margin-top:4px">'+dinero(r.neta,'UYU',{signo:true})+'</div>';
     const primero=fechaObj(mes+'-01').getDay();          /* 0 = domingo */
     const corrimiento=(primero+6)%7;                     /* la semana empieza el lunes */
@@ -205,12 +238,16 @@ function pintarCalendario(cont,capa){
     for(let dnum=1;dnum<=r.dias;dnum++){
         const f=mes+'-'+String(dnum).padStart(2,'0'),v=r.porDia[dnum-1];
         const hay=Math.abs(v)>=0.005;
-        html+='<button type="button" class="cal-dia'+(f===hoy?' hoy':'')+'" data-a="ir-dia" data-fecha="'+f+'"'+(f>hoy||fuente?' disabled':'')+
+        const sel=f===capa.dia;
+        html+='<button type="button" class="cal-dia'+(f===hoy?' hoy':'')+(sel?' sel':'')+'" data-a="cal-dia" data-fecha="'+f+'" aria-pressed="'+sel+'"'+(f>hoy||fuente?' disabled':'')+
             ' aria-label="'+escHtml(dnum+': '+(hay?dinero(v,'UYU',{signo:true}):'sin ganancia'))+'"><span class="d">'+dnum+'</span>'+
             '<span class="g '+claseSigno(v)+'">'+(hay?(v>0?'+':MENOS)+fmtNum(Math.abs(v),2):'')+'</span></button>';
     }
-    html+='</div><p class="texto-ayuda">Tocá un día para ver sus movimientos.</p></div>';
+    html+='</div>';
+    html+=capa.dia&&!fuente&&capa.dia.slice(0,7)===mes?htmlDiaCalendario(capa.dia):'<p class="texto-ayuda">Tocá un día para ver su detalle acá abajo.</p>';
+    html+='</div>';
     cont.innerHTML=html;
+    cont.scrollTop=arriba;
 }
 ACC['cal-cargar']=async t=>{
     const c=capaDe(t);if(!c)return;

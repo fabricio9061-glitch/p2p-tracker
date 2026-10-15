@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.0.3',
+    APP_VERSION: '8.0.4',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,11 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.0.4', date:'2026-10-15', headline:'El verde queda para la ganancia, el inicio separa las operaciones del resto y el calendario muestra el día que tocás.', changes:[
+        {type:'improve', title:'El verde es la ganancia', desc:'Los montos de las ventas y de los ingresos van en negro, porque no son ganancia. Lo que se ve en verde es lo que ganaste.'},
+        {type:'improve', title:'Operaciones aparte', desc:'En el inicio, las operaciones de hoy van por un lado y los ingresos, egresos y transferencias por otro. En el registro hay un filtro nuevo: Operaciones.'},
+        {type:'feature', title:'El día en el calendario', desc:'Al tocar un día, ahí mismo ves su ganancia, el desglose, el spread, las comisiones y sus movimientos. Si lo querés ver en el registro, tocá "Ver en el registro".'}
+    ]},
     {version:'8.0.3', date:'2026-10-15', headline:'Las operaciones se leen como en Binance, lo que queda en cada cuenta se ve en color y las listas son más compactas.', changes:[
         {type:'improve', title:'La cuenta, como en Binance', desc:'Al comprar o vender, abajo ves la cantidad total y, colgando de ella, lo liberado (o recibido) y la comisión, con las mismas palabras que el detalle de la orden en Binance. Si tocás la comisión, la cambiás.'},
         {type:'improve', title:'Cuánto queda en cada cuenta, en color', desc:'"Itaú queda en…" se destaca en verde cuando entra plata y en rojo cuando sale. También al cargar ingresos, egresos y transferencias.'},
