@@ -200,7 +200,9 @@ function pintarInicio(){
     }
     html+='</section>';
     if(otrosHoy.length){
-        html+='<section class="seccion"><div class="seccion-cab"><h2>Otros movimientos de hoy</h2></div>'+
+        const huboEgresos=otrosHoy.some(it=>it.tipo==='egreso');
+        html+='<section class="seccion"><div class="seccion-cab"><h2>Otros movimientos de hoy</h2>'+
+            (huboEgresos?'<button type="button" class="ir" data-a="egresos-cat" data-p="hoy">En qué gastaste</button>':'')+'</div>'+
             '<div class="bloque lista">'+otrosHoy.slice(0,4).map(it=>filaRegistroHtml(it)).join('')+'</div>';
         if(otrosHoy.length>4)html+='<button type="button" class="ver-mas" data-a="ir-dia" data-fecha="'+hoy+'">Ver todo lo de hoy</button>';
         html+='</section>';

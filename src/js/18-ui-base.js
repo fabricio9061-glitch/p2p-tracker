@@ -592,7 +592,7 @@ function filaRegistroHtml(it,o){
    revisa solo cuando cambia algo en pantalla, al girar el teléfono y cuando
    termina de cargar la letra. */
 /* (también el nombre de la cuenta en las tarjetas de a tres del inicio: "Mercado Pago" no entraba entero) */
-const _CIFRAS='.tile .t-s,.act-v,.cuenta .c-s,.heroe-cifra,.det-cifra,.capital .cifra,.libro-saldo .cifra,.cal-dia .g,.mini-datos b,.tile .t-n b';
+const _CIFRAS='.tile .t-s,.act-v,.cuenta .c-s,.heroe-cifra,.det-cifra,.capital .cifra,.libro-saldo .cifra,.cal-dia .g,.mini-datos b,.tile .t-n b,.dona-centro b';
 function ajustarCifras(todas){
     document.querySelectorAll(_CIFRAS).forEach(el=>{
         if(el._aj&&!todas)return;
