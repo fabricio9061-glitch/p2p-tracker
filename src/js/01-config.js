@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.0.4',
+    APP_VERSION: '8.0.5',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,11 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.0.5', date:'2026-10-15', headline:'Vuelven las donas: en qué gastaste hoy, en la semana o en el mes.', changes:[
+        {type:'feature', title:'Las donas de egresos', desc:'En Egresos por categoría, una dona muestra en qué se fue la plata y qué porcentaje es cada categoría. Si tocás una porción, ves cuánto es. Se puede ver hoy, 7 días, este mes, el mes pasado, 3 meses o todo. El resumen del mes también la trae.'},
+        {type:'feature', title:'En qué gastaste cada día', desc:'En el calendario, el día que tocás muestra su dona de egresos. En el inicio, "En qué gastaste" te lleva a los egresos de hoy.'},
+        {type:'improve', title:'Con contexto', desc:'Debajo de la dona: qué parte de lo que ganaste se fue en egresos y cuánto más o menos gastaste que en el período anterior.'}
+    ]},
     {version:'8.0.4', date:'2026-10-15', headline:'El verde queda para la ganancia, el inicio separa las operaciones del resto y el calendario muestra el día que tocás.', changes:[
         {type:'improve', title:'El verde es la ganancia', desc:'Los montos de las ventas y de los ingresos van en negro, porque no son ganancia. Lo que se ve en verde es lo que ganaste.'},
         {type:'improve', title:'Operaciones aparte', desc:'En el inicio, las operaciones de hoy van por un lado y los ingresos, egresos y transferencias por otro. En el registro hay un filtro nuevo: Operaciones.'},

@@ -158,11 +158,12 @@ function pintarResumen(cont,capa){
             (pc&&pv?dato('Diferencia promedio',dinero(pv-pc,'UYU')+' por USDT'):'')+
             dato('Comisiones de Binance',usdtTxt(r.comUsdt),{chico:r.comUsdt?dinero(r.comPesos,'UYU')+' en pesos, ya descontados':''})+'</div>';
     }
-    /* Categorías */
+    /* Categorías: la dona del mes (v8.0.5) */
     if(r.categorias.length){
-        const mx=r.categorias[0].total||1;
-        html+='<h2 class="h3" style="margin-top:24px;font-size:17px">Egresos por categoría</h2><div class="bloque" style="padding:8px 16px;margin-top:10px">'+
-            r.categorias.map(c=>'<div class="cat"><span>'+escHtml(c.nombre)+'</span><i style="width:'+Math.max(2,Math.round(c.total/mx*100))+'%"></i><b>'+dinero(c.total,'UYU')+'</b></div>').join('')+'</div>';
+        const ec=egresosPorCategoria(mes+'-01',mes+'-31',arch?capa.archivo[mes].movimientos:null);
+        const d=htmlDona(ec.lista,ec.total);
+        html+='<h2 class="h3" style="margin-top:24px;font-size:17px">En qué gastaste</h2><div class="bloque dona-bloque" style="margin-top:10px">'+d.dona+'</div>'+
+            '<div class="bloque cats">'+d.filas+'</div>';
     }
     if(!r.compras.n&&!r.ventas.n&&!r.categorias.length)html+='<div class="bloque vacio" style="margin-top:22px"><b>Sin movimientos este mes</b></div>';
     html+='</div>';
@@ -212,6 +213,9 @@ function htmlDiaCalendario(f){
                 '<span>Egresos <b>'+dinero(-(st.gastos||0),'UYU')+'</b></span></div>'+
             '<div class="heroe-ops">'+lineaOperaciones(a,'Sin operaciones ese día.')+'</div>'+
             '<div class="hoy-grilla">'+fichasDelDia(a)+'</div></div>';
+    /* En qué se gastó ese día */
+    const eg=egresosPorCategoria(f,f);
+    if(eg.lista.length)h+='<h3 class="h3 cal-sub">En qué gastaste</h3><div class="bloque dona-bloque chica">'+htmlDona(eg.lista,eg.total,{chica:true})+'</div>';
     if(ops.length)h+='<h3 class="h3 cal-sub">Operaciones</h3><div class="bloque lista">'+ops.map(it=>filaRegistroHtml(it)).join('')+'</div>';
     if(otros.length)h+='<h3 class="h3 cal-sub">Otros movimientos</h3><div class="bloque lista">'+otros.map(it=>filaRegistroHtml(it)).join('')+'</div>';
     if(!items.length)h+='<div class="bloque vacio cal-vacio"><b>Ese día no hay movimientos</b></div>';
@@ -256,34 +260,165 @@ ACC['cal-cargar']=async t=>{
     catch(e){if(t.isConnected){t.disabled=false;t.textContent='Ver los días'}avisar('No se pudo traer el mes: '+(e&&e.message||e),{error:true})}
 };
 
-/* ─── Egresos por categoría ────────────────────────────────────────────── */
-const PERIODOS_CAT=[['mes','Este mes'],['mespasado','Mes pasado'],['tres','Últimos 3 meses'],['todo','Todo']];
-ACC['egresos-cat']=()=>abrirCapa({tipo:'vista',etiqueta:'Egresos por categoría',clave:'egresos-cat',
-    montar:pintarEgresosCat,actualizar:pintarEgresosCat});
-function pintarEgresosCat(cont){
-    const p=AppState.ui.tagPeriodo||'mes',hoy=getUDateStr(),mes=hoy.slice(0,7);
-    const desde=p==='mes'?mes:p==='mespasado'?sumarMeses(mes,-1):p==='tres'?sumarMeses(mes,-2):'';
-    const hasta=p==='mespasado'?sumarMeses(mes,-1):'9999-99';
-    const cats={};let total=0;
+/* ─── Donas de egresos (v8.0.5) ────────────────────────────────────────── */
+/* En qué se fue la plata: una dona con hasta cinco categorías de color y el
+   resto en gris ("Otras"), el total en el centro y, debajo, la lista con el
+   porcentaje de cada una. Tocando una porción, el centro muestra esa. Cada
+   categoría conserva su color entre períodos siempre que puede: las cinco en
+   las que más gastaste desde siempre tienen el suyo fijo. */
+const COLORES_CAT=['var(--cat-1)','var(--cat-2)','var(--cat-3)','var(--cat-4)','var(--cat-5)'];
+let _rankingCats={clave:'',orden:{}};
+function rankingCategorias(){
+    const clave=_gananciaCacheKey('_cats');
+    if(_rankingCats.clave===clave)return _rankingCats.orden;
+    const tot={};
     (AppState.datos.movimientos||[]).forEach(m=>{
+        if(!m||m.tipoMovimiento!=='egreso'||!m.descripcion)return;
+        const k=tagKey(m.descripcion);tot[k]=(tot[k]||0)+movimientoValorUYU(m);
+    });
+    const orden={};Object.keys(tot).sort((a,b)=>tot[b]-tot[a]).forEach((k,i)=>{orden[k]=i});
+    _rankingCats={clave,orden};
+    return orden;
+}
+/* Los egresos entre dos fechas (incluidas), por categoría y de mayor a menor */
+function egresosPorCategoria(desde,hasta,movs){
+    const cats={};let total=0;
+    (movs||AppState.datos.movimientos||[]).forEach(m=>{
         if(!m||m.tipoMovimiento!=='egreso')return;
-        const mm=String(m.fecha||'').slice(0,7);if(mm<desde||mm>hasta)return;
+        const f=String(m.fecha||'');if(f<desde||f>hasta)return;
         const v=movimientoValorUYU(m),k=m.descripcion?tagKey(m.descripcion):'';
-        if(!cats[k])cats[k]={nombre:m.descripcion||'',total:0,n:0};
+        if(!cats[k])cats[k]={k,nombre:m.descripcion||'',total:0,n:0};
         cats[k].total=roundMoney(cats[k].total+v);cats[k].n++;total=roundMoney(total+v);
     });
-    const lista=Object.values(cats).sort((a,b)=>b.total-a.total);
+    return{lista:Object.values(cats).sort((a,b)=>b.total-a.total),total};
+}
+/* Qué color le toca a cada categoría: primero las que tienen color fijo, después las demás en los que quedan libres */
+function coloresDona(lista){
+    const rk=rankingCategorias(),con=lista.filter(c=>c.k&&c.total>=0.005).slice(0,5);
+    const usados=new Set(),col={};
+    con.forEach(c=>{const p=rk[c.k];if(p!==undefined&&p<5&&!usados.has(p)){col[c.k]=p;usados.add(p)}});
+    con.forEach(c=>{if(col[c.k]!==undefined)return;for(let i=0;i<5;i++)if(!usados.has(i)){col[c.k]=i;usados.add(i);break}});
+    return col;
+}
+function pctTexto(v,total){
+    if(!(total>0))return'0 %';
+    const p=v/total*100;
+    return(p>0&&p<1?'<1':String(Math.round(p)))+' %';
+}
+/* o.chica: la dona del día en el calendario, con la lista corta al lado.
+   o.accion: lo que hace tocar una fila de la lista completa. */
+function htmlDona(lista,total,o){
+    o=o||{};
+    const col=coloresDona(lista);
+    const segs=[],resto=[];
+    lista.forEach(c=>{
+        if(col[c.k]!==undefined)segs.push({nombre:c.nombre,total:c.total,color:COLORES_CAT[col[c.k]]});
+        else if(c.total>=0.005)resto.push(c);
+    });
+    /* Lo que no tiene color va junto, en gris; si es una sola, con su nombre */
+    if(resto.length)segs.push({nombre:resto.length===1?(resto[0].nombre||'sin categoría'):'Otras',
+        total:roundMoney(resto.reduce((s,c)=>s+c.total,0)),color:'var(--cat-otras)',otras:true});
+    const R=48,CIRC=2*Math.PI*R,HUECO=segs.length>1?1.6:0;
+    let off=0,arcos='';
+    segs.forEach((s,i)=>{
+        const largo=total>0?s.total/total*CIRC:0;
+        const trazo=Math.max(0.01,largo-HUECO);
+        arcos+='<circle class="dona-seg" data-a="dona-seg" data-n="'+escHtml(s.nombre||'sin categoría')+'" data-v="'+escHtml(dinero(s.total,'UYU'))+'" data-p="'+escHtml(pctTexto(s.total,total))+'"'+
+            ' cx="60" cy="60" r="'+R+'" style="stroke:'+s.color+'" stroke-dasharray="'+trazo.toFixed(2)+' '+(CIRC-trazo).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'"/>';
+        off+=largo;
+    });
+    const resumen=segs.map(s=>(s.nombre||'sin categoría')+' '+pctTexto(s.total,total)).join(', ');
+    const dona='<div class="dona'+(o.chica?' chica':'')+'" role="img" aria-label="'+escHtml('Egresos: '+dinero(total,'UYU')+'. '+resumen)+'">'+
+        '<svg viewBox="0 0 120 120" aria-hidden="true"><g transform="rotate(-90 60 60)">'+arcos+'</g></svg>'+
+        '<div class="dona-centro"><b class="cifra" data-r="dona-v">'+escHtml(dinero(total,'UYU'))+'</b><span data-r="dona-t">'+(o.chica?'egresos':'en egresos')+'</span></div></div>';
+    const punto=c=>'<span class="punto" style="background:'+(col[c.k]!==undefined?COLORES_CAT[col[c.k]]:'var(--cat-otras)')+'"></span>';
+    if(o.chica){
+        const filas=segs.map(s=>'<div class="dona-ley"><span class="punto" style="background:'+s.color+'"></span><span class="n">'+escHtml(s.nombre||'sin categoría')+'</span>'+
+            '<b>'+escHtml(dinero(s.total,'UYU'))+'<small>'+escHtml(pctTexto(s.total,total))+'</small></b></div>').join('');
+        return'<div class="dona-fila">'+dona+'<div class="dona-leyenda">'+filas+'</div></div>';
+    }
+    const mx=lista.length?lista[0].total||1:1;
+    const filas=lista.map(c=>{
+        const color=col[c.k]!==undefined?COLORES_CAT[col[c.k]]:'var(--cat-otras)';
+        const abre=o.accion?'<button type="button" class="cat" data-a="'+o.accion+'" data-cat="'+escHtml(c.nombre)+'">':'<div class="cat">';
+        return abre+'<span class="cat-n">'+punto(c)+'<span>'+escHtml(c.nombre||'sin categoría')+'</span></span>'+
+            '<i style="width:'+Math.max(2,Math.round(c.total/mx*100))+'%;background:'+color+'"></i>'+
+            '<b>'+dinero(c.total,'UYU')+'<small>'+escHtml(pctTexto(c.total,total))+' · '+c.n+(c.n===1?' vez':' veces')+'</small></b>'+(o.accion?'</button>':'</div>');
+    }).join('');
+    return{dona,filas};
+}
+/* Tocar una porción: el centro muestra esa categoría; tocarla de nuevo vuelve al total */
+ACC['dona-seg']=t=>{
+    const box=t.closest('.dona');if(!box)return;
+    const v=box.querySelector('[data-r="dona-v"]'),tx=box.querySelector('[data-r="dona-t"]');
+    if(!box.dataset.total){box.dataset.total=v.textContent;box.dataset.texto=tx.textContent}
+    const yaEstaba=t.classList.contains('activo');
+    box.querySelectorAll('.dona-seg').forEach(s=>s.classList.remove('activo'));
+    if(yaEstaba){box.classList.remove('foco');v.textContent=box.dataset.total;tx.textContent=box.dataset.texto;return}
+    t.classList.add('activo');box.classList.add('foco');
+    v.textContent=t.getAttribute('data-v');tx.textContent=t.getAttribute('data-n')+' · '+t.getAttribute('data-p');
+};
+
+/* ─── Egresos por categoría ────────────────────────────────────────────── */
+const PERIODOS_CAT=[['hoy','Hoy'],['semana','7 días'],['mes','Este mes'],['mespasado','Mes pasado'],['tres','Últimos 3 meses'],['todo','Todo']];
+ACC['egresos-cat']=t=>{
+    if(t&&t.dataset&&t.dataset.p)AppState.ui.tagPeriodo=t.dataset.p;
+    abrirCapa({tipo:'vista',etiqueta:'Egresos por categoría',clave:'egresos-cat',montar:pintarEgresosCat,actualizar:pintarEgresosCat});
+};
+/* El rango de cada período y el anterior, para comparar */
+function rangoCat(p){
+    const hoy=getUDateStr(),mes=hoy.slice(0,7),dia=parseInt(hoy.slice(8,10),10);
+    const finMes=m=>m+'-'+String(diasDelMes(m)).padStart(2,'0');
+    switch(p){
+        case'hoy':return{desde:hoy,hasta:hoy,antes:[sumarDias(hoy,-1),sumarDias(hoy,-1)],contra:'que ayer'};
+        case'semana':return{desde:sumarDias(hoy,-6),hasta:hoy,antes:[sumarDias(hoy,-13),sumarDias(hoy,-7)],contra:'que los 7 días anteriores'};
+        case'mes':{const ma=sumarMeses(mes,-1);const tope=Math.min(dia,diasDelMes(ma));
+            return{desde:mes+'-01',hasta:finMes(mes),antes:[ma+'-01',ma+'-'+String(tope).padStart(2,'0')],contra:'que a esta altura del mes pasado'}}
+        case'mespasado':{const ma=sumarMeses(mes,-1),mb=sumarMeses(mes,-2);
+            return{desde:ma+'-01',hasta:finMes(ma),antes:[mb+'-01',finMes(mb)],contra:'que el mes anterior'}}
+        case'tres':return{desde:sumarMeses(mes,-2)+'-01',hasta:finMes(mes)};
+        default:return{desde:'',hasta:'9999-99-99'};
+    }
+}
+function pintarEgresosCat(cont){
+    const p=AppState.ui.tagPeriodo||'mes';
+    const r=rangoCat(p),{lista,total}=egresosPorCategoria(r.desde,r.hasta);
+    const arriba=cont.scrollTop;
+    const chips=cont.querySelector('.chips'),sl=chips?chips.scrollLeft:0;
     let html=cabVista('Egresos por categoría')+'<div class="vista-cuerpo">'+
         '<div class="chips" role="group" aria-label="Período">'+PERIODOS_CAT.map(([k,t])=>'<button type="button" class="chip" data-a="cat-periodo" data-p="'+k+'" aria-pressed="'+(p===k)+'">'+t+'</button>').join('')+'</div>';
-    if(!lista.length){html+='<div class="bloque vacio" style="margin-top:16px"><b>No hay egresos en este período</b></div></div>';cont.innerHTML=html;return}
-    html+='<div style="margin-top:18px"><div class="heroe-rot">Total</div><div class="cifra" style="font-size:40px;font-weight:760;line-height:1;margin-top:4px">'+dinero(total,'UYU')+'</div></div>'+
-        '<div class="bloque" style="padding:8px 16px;margin-top:16px">'+lista.map(c=>
-            '<button type="button" class="cat" data-a="cat-ver" data-cat="'+escHtml(c.nombre)+'"><span>'+escHtml(c.nombre||'sin categoría')+'</span><i style="width:'+Math.max(2,Math.round(c.total/lista[0].total*100))+'%"></i>'+
-            '<b>'+dinero(c.total,'UYU')+'<small>'+c.n+(c.n===1?' vez':' veces')+'</small></b></button>').join('')+'</div>'+
-        '<p class="texto-ayuda">Tocá una categoría para ver sus egresos.</p></div>';
-    cont.innerHTML=html;
+    if(!lista.length){
+        html+='<div class="bloque vacio" style="margin-top:16px"><b>'+(p==='hoy'?'Hoy no hay egresos':'No hay egresos en este período')+'</b></div></div>';
+        cont.innerHTML=html;
+    }else{
+        const d=htmlDona(lista,total,{accion:'cat-ver'});
+        /* Cuánto de lo ganado se fue en egresos, y contra el período anterior */
+        let notas='';
+        const gan=(AppState.datos.operaciones||[]).reduce((s,o)=>o&&(o.moneda||'UYU')!=='USD'&&o.fecha>=r.desde&&o.fecha<=r.hasta?s+(Number(o.ganancia)||0):s,0);
+        if(gan>=0.005)notas+=total<=gan
+            ?'<p>Es el <b>'+escHtml(pctTexto(total,gan))+'</b> de lo que ganaste con las operaciones.</p>'
+            :'<p>Gastaste <b>'+escHtml(dinero(roundMoney(total-gan),'UYU'))+' más</b> de lo que ganaste con las operaciones.</p>';
+        if(r.antes){
+            const ant=egresosPorCategoria(r.antes[0],r.antes[1]).total,dif=roundMoney(total-ant);
+            if(ant>=0.005&&Math.abs(dif)>=0.005)notas+='<p>'+escHtml(dinero(Math.abs(dif),'UYU'))+(dif>0?' más ':' menos ')+escHtml(r.contra)+'.</p>';
+        }
+        const masVeces=lista.filter(c=>c.k).sort((a,b)=>b.n-a.n)[0];
+        if(masVeces&&masVeces.n>1&&masVeces.k!==(lista[0]&&lista[0].k))notas+='<p>Lo más seguido: '+escHtml(masVeces.nombre)+' ('+masVeces.n+' veces).</p>';
+        html+='<div class="bloque dona-bloque">'+d.dona+(notas?'<div class="dona-notas">'+notas+'</div>':'')+'</div>'+
+            '<div class="bloque cats">'+d.filas+'</div>'+
+            '<p class="texto-ayuda">Tocá una porción de la dona para ver cuánto es, o una categoría para ver sus egresos.</p></div>';
+        cont.innerHTML=html;
+    }
+    const ch=cont.querySelector('.chips');if(ch)ch.scrollLeft=sl;
+    cont.scrollTop=arriba;
 }
-ACC['cat-periodo']=t=>{AppState.ui.tagPeriodo=t.dataset.p;const c=capaDe(t);if(c)pintarEgresosCat(c.cont)};
+ACC['cat-periodo']=t=>{
+    AppState.ui.tagPeriodo=t.dataset.p;const c=capaDe(t);if(!c)return;
+    pintarEgresosCat(c.cont);
+    /* Que el período elegido quede a la vista en la fila, sin mover la pantalla */
+    const ch=c.cont.querySelector('.chips'),b=ch&&ch.querySelector('[aria-pressed="true"]');
+    if(b){const izq=b.offsetLeft-ch.offsetLeft;if(izq<ch.scrollLeft||izq+b.offsetWidth>ch.scrollLeft+ch.clientWidth)ch.scrollLeft=Math.max(0,izq-20)}
+};
 ACC['cat-ver']=t=>{
     const r=AppState.ui.registro,p=AppState.ui.tagPeriodo||'mes';
     Object.assign(r,{tipo:'egreso',buscar:t.dataset.cat||'',cuenta:'',dia:'',limite:60,periodo:p==='tres'?'todo':p});
