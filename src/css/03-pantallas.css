@@ -17,7 +17,7 @@
 .novedad b{font-weight:680}
 .novedad .i{width:16px;height:16px;stroke-width:2.4;margin-left:auto;color:var(--apagado)}
 
-.heroe{padding-top:26px}
+.heroe{padding-top:14px}
 .heroe-rot{font-size:15px;font-weight:550;color:var(--tinta-2)}
 .heroe-cifra{font-size:68px;line-height:.95;font-weight:780;margin-top:6px}
 .heroe-cifra.l{font-size:56px}
@@ -26,57 +26,89 @@
 .heroe-desglose>span:nth-child(odd){color:var(--tenue)}
 .heroe-desglose>span:nth-child(even){font-weight:650}
 
-.semana{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));column-gap:10px;margin-top:22px}
+/* ─── Inicio compacto (v8.0.2) ─────────────────────────────────────────────
+   Todo lo de hoy en una sola tarjeta: la ganancia con la semana al lado, el
+   desglose, y una grilla con el spread, las comisiones, los otros ingresos,
+   ayer, el mes y el promedio. Menos cajas sueltas, más fácil de leer. */
+.heroe.tarjeta-hoy,#inicioCuerpo .heroe{margin-top:12px;padding:14px 16px 0;border-radius:18px;background:var(--blanco)}
+.heroe-fila{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+.heroe-izq{flex:1 1 auto;min-width:0}
+.heroe .heroe-rot{font-size:13.5px}
+.heroe .heroe-cifra{font-size:46px;line-height:1;margin-top:3px;white-space:nowrap;overflow:hidden}
+.heroe .heroe-desglose{display:flex;flex-wrap:wrap;column-gap:16px;row-gap:2px;margin-top:8px;font-size:13.5px;color:var(--tenue)}
+.heroe .heroe-desglose>span{color:var(--tenue);font-weight:450}
+.heroe .heroe-desglose b{font-weight:650;color:var(--tinta)}
+.heroe .heroe-desglose b.sube{color:var(--sube)}
+.heroe .heroe-desglose b.baja{color:var(--baja)}
+.heroe-ops{margin-top:3px;font-size:12.5px;color:var(--tinta-2);font-variant-numeric:tabular-nums}
+.heroe-ops .nw{white-space:nowrap}
+
+.semana{flex:none;width:128px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));column-gap:4px;margin-bottom:2px}
 .semana-col{display:flex;flex-direction:column;align-items:center;padding:0;border:none;background:none;color:var(--tenue)}
-.semana-col .arr,.semana-col .aba{height:34px;width:100%;display:flex}
+.semana-col .arr,.semana-col .aba{height:18px;width:100%;display:flex}
 .semana-col .arr{align-items:flex-end}
 .semana-col .aba{align-items:flex-start}
 .semana-col .eje{height:1px;width:100%;background:var(--eje)}
-.semana-col .b{width:100%;border-radius:4px 4px 0 0;background:var(--sube-claro)}
-.semana-col .bn{width:100%;border-radius:0 0 4px 4px;background:var(--baja-claro)}
+.semana-col .b{width:100%;border-radius:3px 3px 0 0;background:var(--sube-claro)}
+.semana-col .bn{width:100%;border-radius:0 0 3px 3px;background:var(--baja-claro)}
 .semana-col.hoy .b{background:var(--sube)}
 .semana-col.hoy .bn{background:var(--baja)}
-.semana-col>span{font-size:12px;margin-top:4px}
+.semana-col>span{font-size:10.5px;margin-top:2px;line-height:1.2}
 .semana-col.hoy>span{color:var(--tinta);font-weight:700}
-.semana-pie{display:flex;flex-wrap:wrap;column-gap:24px;row-gap:4px;margin-top:12px;font-size:14px;font-variant-numeric:tabular-nums}
-.heroe-ops{margin-top:10px;font-size:14px;color:var(--tinta-2);font-variant-numeric:tabular-nums}
+
+/* Fichas: un rótulo chico, el valor y a veces una aclaración */
+.mini-datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-top:12px}
+.mini-datos+.mini-datos{margin-top:8px}
+/* La grilla de la tarjeta de hoy: celdas separadas por líneas finas */
+.hoy-grilla{margin:12px -16px 0;border-top:1px solid var(--linea)}
+.hoy-grilla .mini-datos{grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:0}
+.hoy-grilla .mini-datos+.mini-datos{margin:0;border-top:1px solid var(--linea)}
+.hoy-grilla .mini-datos>div{padding:10px 12px 11px 16px;border-radius:0;background:none}
+.hoy-grilla .mini-datos>div+div{border-left:1px solid var(--linea);padding-left:12px}
+.mini-datos>div{display:flex;flex-direction:column;min-width:0;padding:9px 10px;border-radius:12px;background:var(--blanco)}
+.mini-datos span{font-size:11.5px;color:var(--tenue);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-datos b{margin-top:2px;font-size:15px;font-weight:700;font-stretch:84%;white-space:nowrap;overflow:hidden}
+.mini-datos small{margin-top:1px;font-size:11px;color:var(--tenue);line-height:1.25}
 
 /* Actividad del período */
+#inicioCuerpo .seccion{margin-top:22px}
+#inicioCuerpo .seccion-cab h2{font-size:17px}
+#inicioCuerpo .seccion-cab .ir{min-height:40px;font-size:13.5px}
 .seccion-cab.con-periodos{align-items:center}
-.periodos{display:flex;gap:6px}
-.periodo{height:34px;padding:0 12px;border:1.5px solid var(--borde);border-radius:17px;background:var(--blanco);font-size:13.5px;font-weight:650;color:var(--tinta)}
+.periodos{display:flex;gap:5px}
+.periodo{height:30px;padding:0 11px;border:1.5px solid var(--borde);border-radius:15px;background:var(--blanco);font-size:12.5px;font-weight:650;color:var(--tinta)}
 .periodo[aria-pressed="true"]{border-color:var(--tinta);background:var(--tinta);color:var(--blanco)}
-.actividad{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
-.act{display:flex;flex-direction:column;min-width:0;padding:14px 14px 13px;border-radius:var(--r-tile);background:var(--blanco)}
-.act-t{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:650}
-.act-t .i{width:18px;height:18px;stroke-width:2.2}
+.actividad{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px;border-radius:var(--r-tile);background:var(--blanco)}
+.act{display:flex;flex-direction:column;min-width:0;padding:12px 14px 11px}
+.act+.act{border-left:1px solid var(--linea)}
+.act-t{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:650}
+.act-t .i{width:16px;height:16px;stroke-width:2.2}
 .act-compra .act-t .i{color:var(--sube)}
 .act-venta .act-t .i{color:var(--baja)}
-.act-v{margin-top:8px;font-size:25px;font-weight:720;white-space:nowrap;overflow:hidden}
-.act-s{margin-top:4px;font-size:12px;color:var(--tenue);font-variant-numeric:tabular-nums}
-.act-datos{margin-top:10px;padding:4px 16px}
-.semana-pie b{font-weight:650}
+.act-v{margin-top:5px;font-size:21px;font-weight:720;white-space:nowrap;overflow:hidden}
+.act-s{margin-top:3px;font-size:11.5px;color:var(--tenue);font-variant-numeric:tabular-nums}
 
-.botones-op{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:24px}
-.boton-op{display:flex;align-items:center;justify-content:center;gap:9px;height:58px;border:none;border-radius:var(--r-tile);background:var(--tinta);color:var(--blanco);font-size:16px;font-weight:650}
-.boton-op .i{width:21px;height:21px;stroke-width:2.2}
+.botones-op{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.boton-op{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border:none;border-radius:var(--r-tile);background:var(--tinta);color:var(--blanco);font-size:15.5px;font-weight:650}
+.boton-op .i{width:20px;height:20px;stroke-width:2.2}
 .boton-op.compra .i{color:var(--sube-icono)}
 .boton-op.venta .i{color:var(--baja-icono)}
 
-.totales{display:flex;flex-wrap:wrap;column-gap:28px;row-gap:6px;margin-top:2px}
-.totales .rot{font-size:13px;color:var(--tenue)}
-.totales .cifra{font-size:30px;font-weight:740;line-height:1.1}
-.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+/* Cuentas: el total en una línea y las tarjetas de a tres */
+.totales{display:flex;flex-wrap:wrap;column-gap:18px;row-gap:2px;margin-top:-4px;font-size:13.5px;color:var(--tinta-2)}
+.totales b{font-size:15px;font-weight:720;color:var(--tinta);white-space:nowrap}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
 /* Las tarjetas son botones: en columna desde arriba, así dos tarjetas de la
    misma fila quedan alineadas aunque una tenga barra de cupo y la otra no */
-.tile{display:flex;flex-direction:column;justify-content:flex-start;width:100%;padding:14px 14px 13px;border:none;border-radius:var(--r-tile);background:var(--blanco);text-align:left;color:var(--tinta)}
-.tile .t-n{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:650;min-width:0}
-.tile .t-n b{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tile .t-s{display:block;margin-top:8px;font-size:25px;font-weight:720;font-stretch:72%;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
-.tile .barra{margin-top:9px}
-.tile .t-x{display:block;margin-top:5px;font-size:12px;font-stretch:92%;color:var(--tenue);font-variant-numeric:tabular-nums}
-.tile .t-x.solo{margin-top:18px}
-.tile.activar{grid-column:1/-1;border:1.5px dashed var(--borde-3);background:transparent;display:flex;align-items:center;justify-content:center;min-height:96px;font-weight:650;font-size:14.5px;text-align:center}
+.tile{display:flex;flex-direction:column;justify-content:flex-start;width:100%;min-width:0;padding:10px 10px 9px;border:none;border-radius:14px;background:var(--blanco);text-align:left;color:var(--tinta)}
+.tile .t-n{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:650;min-width:0}
+.tile .t-n b{font-weight:650;font-stretch:86%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .t-s{display:block;margin-top:6px;font-size:17.5px;font-weight:720;font-stretch:72%;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+.tile .barra{margin-top:7px;height:3px}
+.tile .barra>i{height:3px}
+.tile .t-x{display:block;margin-top:4px;font-size:11px;font-stretch:92%;line-height:1.25;color:var(--tenue);font-variant-numeric:tabular-nums}
+.tile .t-x.solo{margin-top:14px}
+.tile.activar{grid-column:1/-1;border:1.5px dashed var(--borde-3);background:transparent;display:flex;align-items:center;justify-content:center;min-height:72px;font-weight:650;font-size:13.5px;text-align:center}
 
 /* ─── Acciones (botón +) ───────────────────────────────────────────────── */
 .acciones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}

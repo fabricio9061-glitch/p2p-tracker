@@ -668,7 +668,7 @@ function abrirCorreccion(o){
             '<p class="tenue" style="font-size:14px;margin-top:-6px">Si la app no coincide con lo que dice el banco, escribí el saldo real. La diferencia queda anotada como una corrección.</p>'+
             '<div data-campo="cuenta"><span class="rotulo">Cuenta</span><div data-r="cuentas"></div></div>'+
             '<div><label class="rotulo" for="coReal">Saldo real en el banco</label><div class="monto-grande" data-campo="monto"><span class="sim cifra" data-r="sim"></span>'+
-                '<input id="coReal" data-r="real" inputmode="decimal" autocomplete="off" data-in="co-calc"><span class="mon" data-r="mon"></span></div>'+
+                '<input id="coReal" data-r="real" inputmode="decimal" data-negativo autocomplete="off" data-in="co-calc"><span class="mon" data-r="mon"></span></div>'+
                 '<div class="diferencia" data-r="dif"></div></div>'+
             '<div><label class="rotulo" for="coMotivo">Motivo</label><input class="campo" id="coMotivo" data-r="motivo" maxlength="120" placeholder="Por ejemplo, una comisión que no anotaste" autocomplete="off"></div>'+
         '</div></div>'+
