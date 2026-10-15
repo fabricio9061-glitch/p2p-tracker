@@ -112,15 +112,40 @@ function _valorCampo(entidad,rec,campo){
     const v=rec[campo];
     return(v===undefined||v===null)?'':v;
 }
+/* ═══ v8.0.1 — Cada cambio es {f: campo, a: antes, d: después} ═══
+   En la 8.0.0 era una lista [campo, antes, después] dentro de otra lista.
+   Firestore no acepta listas dentro de listas: desde la primera edición el
+   teléfono dejaba de subir todo, lo guardaba solo en el teléfono, y al
+   reabrirse la app se quedaba con lo de la nube y se perdía lo del día. Se
+   leen los dos formatos, porque lo viejo pudo quedar guardado en el teléfono. */
+function itemCambio(x){
+    const v=y=>(y===undefined||y===null)?'':y;
+    if(Array.isArray(x))return{f:String(x[0]),a:v(x[1]),d:v(x[2])};
+    if(x&&typeof x==='object')return{f:String(x.f),a:v(x.a),d:v(x.d)};
+    return null;
+}
+function itemsDeCambio(c){return(Array.isArray(c&&c.c)?c.c:[]).map(itemCambio).filter(Boolean)}
+function normalizarCambios(lista){
+    return(Array.isArray(lista)?lista:[]).filter(c=>c&&typeof c==='object').map(c=>({t:String(c.t||''),c:itemsDeCambio(c)}));
+}
+/* Pasa al formato nuevo el historial de todo lo que hay en memoria */
+function normalizarHistoriales(datos){
+    if(!datos)return;
+    const arreglar=r=>{if(r&&r.cambios)r.cambios=normalizarCambios(r.cambios)};
+    ENTIDADES_REGISTRO.forEach(e=>(datos[e]||[]).forEach(arreglar));
+    (datos.lotes||[]).forEach(arreglar);
+    (datos._archivoCarryover||[]).forEach(arreglar);
+    (datos.eliminados||[]).forEach(x=>x&&arreglar(x.r));
+}
 function anotarCambios(entidad,antes,despues){
     const c=[];
     (CAMPOS_CAMBIO[entidad]||[]).forEach(campo=>{
         const a=_valorCampo(entidad,antes,campo),d=_valorCampo(entidad,despues,campo);
         const iguales=(typeof a==='number'&&typeof d==='number')?Math.abs(a-d)<1e-9:String(a)===String(d);
-        if(!iguales)c.push([campo,a,d]);
+        if(!iguales)c.push({f:campo,a,d});
     });
     if(!c.length)return 0;
-    const previos=Array.isArray(antes&&antes.cambios)?antes.cambios:[];
+    const previos=normalizarCambios(antes&&antes.cambios);
     despues.cambios=[{t:new Date().toISOString(),c},...previos].slice(0,CAMBIOS_MAX);
     despues.editadoEn=despues.cambios[0].t;
     return c.length;
@@ -230,7 +255,7 @@ function restaurarEliminado(clave,opts){
         if(probs.length)return{ok:false,confirmar:'Si lo recuperás:\n'+probs.join('\n')};
     }
     const copia=JSON.parse(JSON.stringify(rec));
-    copia.cambios=[{t:new Date().toISOString(),c:[['recuperado','','']]},...(copia.cambios||[])].slice(0,CAMBIOS_MAX);
+    copia.cambios=[{t:new Date().toISOString(),c:[{f:'recuperado',a:'',d:''}]},...normalizarCambios(copia.cambios)].slice(0,CAMBIOS_MAX);
     if(entidad==='lotes'){
         if(lista[i].arrastre){
             if(!Array.isArray(AppState.datos._archivoCarryover))AppState.datos._archivoCarryover=[];

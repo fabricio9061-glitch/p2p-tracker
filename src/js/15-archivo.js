@@ -347,7 +347,8 @@ async function archivarHistorial(opts){
         for(let i=0;i<total;i++){
             const mes=plan.meses[i],p=plan.porMes[mes];
             const compr=_archivoComprimirOps(p.operaciones);
-            const docPayload={
+            /* v8.0.1 — Saneado como todo lo que se sube (ver v2Saneado) */
+            const docPayload=v2Saneado({
                 mes,_archivoFormat:ARCHIVO_FORMAT,
                 _wireFormat:compr.wire?WIRE_FORMAT_VERSION:null,
                 operaciones:compr.ops,
@@ -355,9 +356,9 @@ async function archivarHistorial(opts){
                 transferencias:p.transferencias,
                 conversiones:p.conversiones,
                 stats:p.stats,
-                appVersion:CONFIG.APP_VERSION,
-                creadoEn:firebase.firestore.FieldValue.serverTimestamp()
-            };
+                appVersion:CONFIG.APP_VERSION
+            });
+            docPayload.creadoEn=firebase.firestore.FieldValue.serverTimestamp();
             if(compr.ganMap)docPayload.gananciasPorId=compr.ganMap;
             const ref=userRef.collection('archivo').doc(mes);
             let escrito=false,ultimoErr=null;
@@ -628,7 +629,7 @@ async function cargarMesArchivado(mes){
     const snap=await AppState.db.collection('users').doc(AppState.currentUser.uid)
         .collection('archivo').doc(mes).get();
     if(!snap.exists)throw new Error('No se encontró el mes '+mes+'.');
-    const d=snap.data();
+    const d=v2Desenvolver(snap.data());
     let ops=d._wireFormat?_decompressOpsArrayFromWire(d.operaciones):(d.operaciones||[]);
     if(d.gananciasPorId)ops=_archivoAplicarGanancias(ops,d.gananciasPorId);
     window._archivoMesCache={mes,data:{...d,operaciones:ops}};

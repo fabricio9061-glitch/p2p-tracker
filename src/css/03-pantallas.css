@@ -39,6 +39,22 @@
 .semana-col>span{font-size:12px;margin-top:4px}
 .semana-col.hoy>span{color:var(--tinta);font-weight:700}
 .semana-pie{display:flex;flex-wrap:wrap;column-gap:24px;row-gap:4px;margin-top:12px;font-size:14px;font-variant-numeric:tabular-nums}
+.heroe-ops{margin-top:10px;font-size:14px;color:var(--tinta-2);font-variant-numeric:tabular-nums}
+
+/* Actividad del período */
+.seccion-cab.con-periodos{align-items:center}
+.periodos{display:flex;gap:6px}
+.periodo{height:34px;padding:0 12px;border:1.5px solid var(--borde);border-radius:17px;background:var(--blanco);font-size:13.5px;font-weight:650;color:var(--tinta)}
+.periodo[aria-pressed="true"]{border-color:var(--tinta);background:var(--tinta);color:var(--blanco)}
+.actividad{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.act{display:flex;flex-direction:column;min-width:0;padding:14px 14px 13px;border-radius:var(--r-tile);background:var(--blanco)}
+.act-t{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:650}
+.act-t .i{width:18px;height:18px;stroke-width:2.2}
+.act-compra .act-t .i{color:var(--sube)}
+.act-venta .act-t .i{color:var(--baja)}
+.act-v{margin-top:8px;font-size:25px;font-weight:720;white-space:nowrap;overflow:hidden}
+.act-s{margin-top:4px;font-size:12px;color:var(--tenue);font-variant-numeric:tabular-nums}
+.act-datos{margin-top:10px;padding:4px 16px}
 .semana-pie b{font-weight:650}
 
 .botones-op{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:24px}
@@ -51,12 +67,14 @@
 .totales .rot{font-size:13px;color:var(--tenue)}
 .totales .cifra{font-size:30px;font-weight:740;line-height:1.1}
 .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
-.tile{display:block;width:100%;padding:14px 14px 13px;border:none;border-radius:var(--r-tile);background:var(--blanco);text-align:left;color:var(--tinta)}
+/* Las tarjetas son botones: en columna desde arriba, así dos tarjetas de la
+   misma fila quedan alineadas aunque una tenga barra de cupo y la otra no */
+.tile{display:flex;flex-direction:column;justify-content:flex-start;width:100%;padding:14px 14px 13px;border:none;border-radius:var(--r-tile);background:var(--blanco);text-align:left;color:var(--tinta)}
 .tile .t-n{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:650;min-width:0}
 .tile .t-n b{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tile .t-s{display:block;margin-top:8px;font-size:25px;font-weight:720;font-stretch:72%;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .t-s{display:block;margin-top:8px;font-size:25px;font-weight:720;font-stretch:72%;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
 .tile .barra{margin-top:9px}
-.tile .t-x{display:block;margin-top:5px;font-size:12px;color:var(--tenue);font-variant-numeric:tabular-nums}
+.tile .t-x{display:block;margin-top:5px;font-size:12px;font-stretch:92%;color:var(--tenue);font-variant-numeric:tabular-nums}
 .tile .t-x.solo{margin-top:18px}
 .tile.activar{grid-column:1/-1;border:1.5px dashed var(--borde-3);background:transparent;display:flex;align-items:center;justify-content:center;min-height:96px;font-weight:650;font-size:14.5px;text-align:center}
 
@@ -70,17 +88,26 @@
 .accion span{display:block;font-size:13px;color:var(--tenue);margin-top:2px}
 
 /* ─── Formularios de carga ─────────────────────────────────────────────── */
-.enlaces-form{display:flex;justify-content:space-between;gap:12px;margin-top:4px}
-.extra{margin-top:4px;padding:14px;border-radius:var(--r-tile);background:var(--papel)}
+.opciones-form{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.btn-opcion{display:inline-flex;align-items:center;gap:7px;height:42px;padding:0 13px;border:1.5px solid var(--borde);border-radius:12px;background:var(--blanco);font-size:14px;font-weight:650;color:var(--tinta)}
+.btn-opcion .i{width:17px;height:17px;stroke-width:2.1;color:var(--tinta-2)}
+.btn-opcion .ch{width:15px;height:15px;transition:transform .15s}
+.btn-opcion[aria-expanded="true"]{border-color:var(--tinta)}
+.btn-opcion[aria-pressed="true"]{border-color:var(--tinta);background:var(--tinta);color:var(--blanco)}
+.btn-opcion[aria-pressed="true"] .i{color:var(--blanco)}
+.btn-opcion[aria-expanded="true"] .ch{transform:rotate(180deg)}
+.extra{margin-top:10px;padding:14px;border-radius:var(--r-tile);background:var(--papel)}
 .extra .campo{background:var(--blanco)}
 .extra .fila-campo{display:grid;grid-template-columns:minmax(0,1fr) 150px;align-items:center;column-gap:12px}
 .extra .fila-campo+.fila-campo{margin-top:10px}
 .extra .fila-campo>label,.extra .fila-campo>span{font-size:14px;font-weight:600;color:var(--tinta-2)}
 .reparto{display:flex;flex-direction:column;gap:8px}
-.reparto-fila{display:grid;grid-template-columns:minmax(0,1fr) 130px 44px;gap:8px;align-items:center}
+.reparto-fila{display:grid;grid-template-columns:minmax(0,1fr) 130px 44px;gap:8px;align-items:start}
+.reparto-cuenta{display:flex;flex-direction:column;gap:4px;min-width:0}
+.reparto-saldo{padding-left:4px;font-size:12.5px;color:var(--tenue);font-variant-numeric:tabular-nums}
 .reparto-fila .campo{height:48px}
 .reparto-fila .resto{height:48px;display:flex;align-items:center;justify-content:flex-end;padding:0 14px;border-radius:var(--r-campo);border:1.5px dashed var(--borde);font-weight:650;font-variant-numeric:tabular-nums}
-.reparto-fila .quitar{width:44px;height:44px;border:none;border-radius:50%;background:none;color:var(--tenue);display:flex;align-items:center;justify-content:center}
+.reparto-fila .quitar{width:44px;height:44px;margin-top:2px;border:none;border-radius:50%;background:none;color:var(--tenue);display:flex;align-items:center;justify-content:center}
 .reparto-fila .quitar .i{width:18px;height:18px;stroke-width:2.2}
 .reparto-nota{font-size:13px;color:var(--tenue)}
 .resumen-form{margin-bottom:12px;padding:14px 16px;border-radius:var(--r-tile);background:var(--papel)}
@@ -125,6 +152,12 @@
 .det-cambios li{display:grid;grid-template-columns:78px minmax(0,1fr);column-gap:8px}
 .det-cambios li>span:first-child{color:var(--tenue);font-variant-numeric:tabular-nums}
 .det-aviso{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--papel);font-size:13.5px;color:var(--tinta-2)}
+/* En el celular el detalle no trae botones: se edita y se elimina deslizando la fila */
+.det-pista{display:flex;gap:10px;align-items:flex-start;margin:26px 0 var(--seg-abajo);padding:12px 14px;border-radius:12px;background:var(--papel);font-size:13.5px;line-height:1.4;color:var(--tinta-2)}
+.det-pista .i{flex:none;width:18px;height:18px;margin-top:1px;stroke-width:2}
+/* Período: un día puntual se aplica con su botón */
+.dia-puntual{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.dia-puntual .btn{width:auto;height:50px;padding:0 18px;border-radius:var(--r-campo);font-size:15px;font-weight:650}
 .det-marca-pct{margin-left:4px}
 
 /* ─── Cuentas ──────────────────────────────────────────────────────────── */
@@ -200,10 +233,10 @@
 
 .calendario{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:16px}
 .calendario .cab-dia{font-size:12px;font-weight:650;color:var(--tenue);text-align:center;padding-bottom:4px}
-.cal-dia{display:flex;flex-direction:column;justify-content:space-between;min-height:56px;padding:6px 5px;border:none;border-radius:10px;background:var(--blanco);text-align:left;color:var(--tinta);font-variant-numeric:tabular-nums}
+.cal-dia{display:flex;flex-direction:column;justify-content:space-between;min-width:0;min-height:56px;padding:6px 4px;border:none;border-radius:10px;background:var(--blanco);text-align:left;color:var(--tinta);font-variant-numeric:tabular-nums}
 .cal-dia:disabled{background:transparent;color:var(--apagado)}
 .cal-dia .d{font-size:13px;font-weight:650}
-.cal-dia .g{font-size:11.5px;font-weight:650;font-stretch:84%;white-space:nowrap;overflow:hidden}
+.cal-dia .g{font-size:11px;font-weight:650;font-stretch:72%;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:clip}
 .cal-dia.hoy{box-shadow:inset 0 0 0 2px var(--tinta)}
 .cal-dia.vacio-mes{visibility:hidden}
 
@@ -236,3 +269,23 @@
 .dias-sel{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .dias-sel button{height:44px;border:1.5px solid var(--borde);border-radius:12px;background:var(--blanco);font-size:14px;font-weight:650;color:var(--tinta)}
 .dias-sel button[aria-pressed="true"]{border-color:var(--tinta);background:var(--tinta);color:var(--blanco)}
+
+/* ─── Avisos sobre tus datos (v8.0.1) ──────────────────────────────────── */
+/* Arriba de todo en el inicio: si no se sube a internet, o si falta algo que
+   estaba en la última copia automática */
+.alerta-datos{display:flex;gap:12px;align-items:flex-start;margin:0 0 16px;padding:14px 16px;border-radius:var(--r-tile);background:#FDECEA;color:var(--tinta);border:1.5px solid var(--baja-borde)}
+.alerta-datos>.i{flex:none;width:22px;height:22px;margin-top:1px;color:var(--baja);stroke-width:2.2}
+.alerta-datos b{display:block;font-size:15.5px;font-weight:720;line-height:1.3}
+.alerta-datos p{margin-top:4px;font-size:13.5px;line-height:1.4;color:var(--tinta-2)}
+.alerta-datos .btn-texto{margin-top:2px;color:var(--baja);font-weight:700;min-height:40px}
+
+/* ─── Copias automáticas ───────────────────────────────────────────────── */
+.copias{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.copia{padding:14px 16px;border-radius:var(--r-tile);background:var(--blanco)}
+.copia-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.copia-cab b{font-size:16px;font-weight:700}
+.copia-cab span{font-size:13px;color:var(--tenue);font-variant-numeric:tabular-nums;white-space:nowrap}
+.copia-estado{margin-top:4px;font-size:14px;font-weight:600}
+.copia-nota{margin-top:6px;font-size:12.5px;color:var(--tenue);line-height:1.4}
+.copia .btn{margin-top:12px}
+

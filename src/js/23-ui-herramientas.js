@@ -25,7 +25,7 @@ function pintarMas(){
         '<div class="bloque usuario"><span class="avatar" aria-hidden="true">'+escHtml((usuario[0]||'U').toUpperCase())+'</span>'+
         '<div><b>'+escHtml(usuario)+'</b><span>Tus datos se guardan en tu cuenta</span></div></div>'+
         '<h2 class="grupo">Análisis</h2><div class="bloque">'+
-            opc('resumen','resumen','Resumen del mes',{valor:escHtml(dinero(gMes,'UYU',{signo:true,dec:0}))})+
+            opc('resumen','resumen','Resumen del mes',{valor:escHtml(dinero(gMes,'UYU',{signo:true}))})+
             opc('calendario','calendario','Calendario de ganancias')+
             opc('egresos-cat','torta','Egresos por categoría')+
         '</div>'+
@@ -33,7 +33,7 @@ function pintarMas(){
             opc('verificar','escudo','Verificar que todo cuadre',{valor:verVal})+
             opc('exportar','exportar','Exportar una copia')+
             opc('importar','importar','Importar una copia')+
-            opc('restaurar','restaurar','Restaurar el último respaldo')+
+            opc('copias','restaurar','Copias automáticas',{sub:'Las 3 últimas, en este teléfono'})+
             opc('archivar','archivar','Archivar meses anteriores')+
             (meses.length?opc('meses-archivados','caja','Meses archivados',{valor:String(meses.length)}):'')+
         '</div>'+
@@ -156,7 +156,7 @@ function pintarResumen(cont,capa){
             dato('Compraste',dinero(r.compras.monto,'UYU'),{chico:r.compras.n?r.compras.n+(r.compras.n===1?' compra':' compras')+' a '+dinero(pc,'UYU')+' promedio':''})+
             dato('Vendiste',dinero(r.ventas.monto,'UYU'),{chico:r.ventas.n?r.ventas.n+(r.ventas.n===1?' venta':' ventas')+' a '+dinero(pv,'UYU')+' promedio':''})+
             (pc&&pv?dato('Diferencia promedio',dinero(pv-pc,'UYU')+' por USDT'):'')+
-            dato('Comisiones de Binance',usdtTxt(r.comUsdt),{chico:r.comUsdt?'unos '+dinero(r.comPesos,'UYU',{dec:0})+', ya descontados':''})+'</div>';
+            dato('Comisiones de Binance',usdtTxt(r.comUsdt),{chico:r.comUsdt?dinero(r.comPesos,'UYU')+' en pesos, ya descontados':''})+'</div>';
     }
     /* Categorías */
     if(r.categorias.length){
@@ -207,7 +207,7 @@ function pintarCalendario(cont,capa){
         const hay=Math.abs(v)>=0.005;
         html+='<button type="button" class="cal-dia'+(f===hoy?' hoy':'')+'" data-a="ir-dia" data-fecha="'+f+'"'+(f>hoy||fuente?' disabled':'')+
             ' aria-label="'+escHtml(dnum+': '+(hay?dinero(v,'UYU',{signo:true}):'sin ganancia'))+'"><span class="d">'+dnum+'</span>'+
-            '<span class="g '+claseSigno(v)+'">'+(hay?(v>0?'+':MENOS)+fmtNum(Math.abs(v),0):'')+'</span></button>';
+            '<span class="g '+claseSigno(v)+'">'+(hay?(v>0?'+':MENOS)+fmtNum(Math.abs(v),2):'')+'</span></button>';
     }
     html+='</div><p class="texto-ayuda">Tocá un día para ver sus movimientos.</p></div>';
     cont.innerHTML=html;
@@ -387,7 +387,73 @@ ACC['reiniciar-conexion']=()=>_archivoResetConexion();
 /* ─── Copias de seguridad ──────────────────────────────────────────────── */
 ACC['exportar']=()=>exportarDatos();
 ACC['importar']=()=>importarDatos();
-ACC['restaurar']=()=>restaurarRespaldoManual();
+
+/* ─── Copias automáticas (v8.0.1) ──────────────────────────────────────── */
+/* Lista las 3 copias guardadas en el teléfono, dice si a la app le falta algo
+   de cada una y permite recuperarlo (solo agrega, nunca borra). */
+ACC['copias']=()=>{
+    cerrarTodasLasCapas();
+    abrirCapa({tipo:'vista',etiqueta:'Copias automáticas',clave:'copias',
+        montar(cont,capa){capa.info={};pintarCopias(cont,capa);revisarCopias(capa)},
+        actualizar(cont,capa){revisarCopias(capa)}});
+};
+async function revisarCopias(capa){
+    const lista=listaCopias(),info={};
+    for(const c of lista){
+        try{const cont=await leerCopia(c);info[c.id]=cont?{faltan:faltantesDe(cont)}:{error:true}}
+        catch(_){info[c.id]={error:true}}
+    }
+    capa.info=info;
+    if(capa.el.isConnected)pintarCopias(capa.cont,capa);
+}
+function _cuandoCopia(ts){const x=isoAUY(new Date(ts).toISOString());return x?mayus(cuandoTexto(x.fecha,x.hora)):''}
+function _movimientosTxt(n){return n+(n===1?' movimiento':' movimientos')}
+function pintarCopias(cont,capa){
+    const lista=listaCopias();
+    let html=cabVista('Copias automáticas')+'<div class="vista-cuerpo">'+
+        '<p class="texto-ayuda" style="padding-top:0">La app guarda en este teléfono una copia de todos tus movimientos cada 30 minutos, y se quedan las 3 últimas. '+
+        'Recuperar agrega lo que falte: no borra ni cambia nada de lo que ya tenés.</p>';
+    if(!lista.length){
+        html+='<div class="bloque vacio" style="margin-top:14px"><b>Todavía no hay copias</b><p>La primera se hace sola en un minuto, o tocá el botón de abajo.</p></div>';
+    }else{
+        html+='<div class="copias">'+lista.map(c=>{
+            const inf=capa.info&&capa.info[c.id];
+            let estado,boton='';
+            if(!inf)estado='<span class="tenue">Revisando…</span>';
+            else if(inf.error)estado='<span class="baja">No se pudo leer esta copia</span>';
+            else if(inf.faltan.length){
+                estado='<span class="baja">A la app le '+(inf.faltan.length===1?'falta ':'faltan ')+_movimientosTxt(inf.faltan.length)+'</span>';
+                boton='<button type="button" class="btn chico" data-a="copia-recuperar" data-id="'+escHtml(c.id)+'">'+ico('restaurar')+'Recuperar '+_movimientosTxt(inf.faltan.length)+'</button>';
+            }else estado='<span class="sube">Tenés todo lo de esta copia</span>';
+            return'<div class="copia"><div class="copia-cab"><b>'+escHtml(_cuandoCopia(c.ts))+'</b><span>'+((c.n&&c.n.total)||0)+' registros</span></div>'+
+                '<div class="copia-estado">'+estado+'</div>'+
+                (c.protegida?'<div class="copia-nota">Se guarda hasta el '+escHtml(fmtFechaCorta((isoAUY(new Date(c.protegida).toISOString())||{}).fecha||''))+' porque tenía cosas que después faltaron.</div>':'')+
+                boton+'</div>';
+        }).join('')+'</div>';
+    }
+    html+='<button type="button" class="btn claro" style="margin-top:16px" data-a="copia-ahora">'+ico('caja')+'Hacer una copia ahora</button></div>';
+    cont.innerHTML=html;
+}
+ACC['copia-recuperar']=async t=>{
+    const capa=capaDe(t),id=t.dataset.id;
+    const inf=capa&&capa.info&&capa.info[id];
+    const n=inf&&inf.faltan?inf.faltan.length:0;
+    const si=await preguntar({titulo:'¿Recuperar '+_movimientosTxt(n)+'?',
+        texto:'Vuelven a la app tal como estaban en la copia, y se suben a tu cuenta. No se borra ni se cambia nada de lo que ya tenés.',si:'Recuperar'});
+    if(!si)return;
+    const r=await recuperarDeCopia(id);
+    if(r.ok)avisar(!r.n?'No faltaba nada.':r.n===1?'Se recuperó 1 movimiento.':'Se recuperaron '+_movimientosTxt(r.n)+'.');
+    else avisar(r.error||'No se pudo recuperar.',{error:true});
+    if(capa&&capa.el.isConnected)revisarCopias(capa);
+};
+ACC['copia-ahora']=async t=>{
+    const capa=capaDe(t);
+    t.disabled=true;
+    const m=await copiaAutomatica('a mano',{nueva:true});
+    t.disabled=false;
+    avisar(m?'Copia hecha.':'No se pudo hacer la copia.',m?{}:{error:true});
+    if(capa&&capa.el.isConnected){capa.info={};pintarCopias(capa.cont,capa);revisarCopias(capa)}
+};
 
 /* ─── Archivar meses anteriores ────────────────────────────────────────── */
 ACC['archivar']=()=>{
@@ -415,7 +481,7 @@ function pintarMesesArchivados(cont){
         (meses.length?'<div class="bloque">'+meses.map(m=>{
             const s=idx[m]||{};
             return'<button type="button" class="opc" data-a="mes-archivado" data-mes="'+m+'">'+ico('caja')+'<span class="t">'+escHtml(nombreMesLargo(m))+
-                '<small>'+(s.ops||0)+' operaciones</small></span><span class="v '+claseSigno(s.ganancia||0)+'">'+dinero(s.ganancia||0,'UYU',{signo:true,dec:0})+'</span>'+ico('sig','ch')+'</button>';
+                '<small>'+(s.ops||0)+' operaciones</small></span><span class="v '+claseSigno(s.ganancia||0)+'">'+dinero(s.ganancia||0,'UYU',{signo:true})+'</span>'+ico('sig','ch')+'</button>';
         }).join('')+'</div>':'<div class="bloque vacio"><b>No hay meses archivados</b></div>')+
         '<button type="button" class="btn-texto" style="margin-top:8px" data-a="buscar-meses">Buscar meses que falten</button></div>';
 }

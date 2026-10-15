@@ -3,8 +3,10 @@
    ═══════════════════════════════════════════════════════════════════════════
    El registro junta todo lo que se cargó, por día, con filtros por tipo,
    período, cuenta y búsqueda. Tocar una fila abre su detalle: qué pasó, cómo
-   cambió cada cuenta y qué se le cambió desde que se cargó. Desde ahí se edita
-   o se elimina; lo eliminado queda 30 días en Eliminados. */
+   cambió cada cuenta y qué se le cambió desde que se cargó. En el celular se
+   edita deslizando la fila a la derecha y se elimina deslizándola a la
+   izquierda; con mouse, desde los botones del detalle. Lo eliminado queda 30
+   días en Eliminados. */
 PANTALLAS.registro={pintar:pintarRegistro};
 
 const TIPOS_REG=[['todo','Todo'],['venta','Ventas'],['compra','Compras'],['ingreso','Ingresos'],['egreso','Egresos'],
@@ -111,7 +113,7 @@ function pintarRegistro(){
     });
     const vista=items.slice(0,r.limite||REG_PAGINA);
     let dia=null,filas='';
-    const cerrarDia=()=>{if(dia!==null)html+='<div class="bloque">'+filas+'</div>';filas=''};
+    const cerrarDia=()=>{if(dia!==null)html+='<div class="bloque lista">'+filas+'</div>';filas=''};
     vista.forEach(it=>{
         if(it.fecha!==dia){
             cerrarDia();dia=it.fecha;
@@ -157,21 +159,26 @@ ACC['reg-periodo']=()=>{
         html:cabHoja('Período',{chico:true})+'<div class="hoja-cuerpo">'+
             PERIODOS_REG.map(([k,t])=>'<button type="button" class="opc" role="radio" aria-checked="'+(!r.dia&&r.periodo===k)+'" data-a="reg-periodo-elegir" data-p="'+k+'">'+t+ico('ok','marca-ok')+'</button>').join('')+
             '<label class="rotulo" for="regDia" style="margin-top:18px">Un día puntual</label>'+
-            '<input class="campo" type="date" id="regDia" data-ch="reg-dia" max="'+getUDateStr()+'" value="'+escHtml(r.dia||'')+'">'+
+            '<div class="dia-puntual"><input class="campo" type="date" id="regDia" max="'+getUDateStr()+'" value="'+escHtml(r.dia||getUDateStr())+'">'+
+            '<button type="button" class="btn" data-a="reg-dia-ver">Ver ese día</button></div>'+
         '</div>'});
 };
 ACC['reg-periodo-elegir']=t=>{
     const r=AppState.ui.registro;r.periodo=t.dataset.p;r.dia='';r.limite=REG_PAGINA;
     cerrarCapa(capaDe(t));pintarRegistro();
 };
-ENT['reg-dia']=el=>{
-    if(!el.value)return;
+/* El día se aplica recién con el botón: en el iPhone el calendario avisa del
+   cambio apenas se mueve la rueda, y la hoja se cerraba antes de terminar. */
+ACC['reg-dia-ver']=t=>{
+    const c=capaDe(t);if(!c)return;
+    const el=c.cont.querySelector('#regDia');
+    if(!el||!/^\d{4}-\d{2}-\d{2}$/.test(el.value)){if(el)el.focus();return}
     const r=AppState.ui.registro;r.dia=el.value;r.limite=REG_PAGINA;
-    cerrarCapa(capaDe(el));pintarRegistro();
+    cerrarCapa(c);pintarRegistro();
 };
 ACC['reg-cuenta']=()=>{
     const r=AppState.ui.registro;
-    const ops=[['','Todas las cuentas']].concat(cuentasVisibles().map(b=>[b.nombre,nombreCuenta(b.nombre)]),[['USDT','USDT']]);
+    const ops=[['','Todas las cuentas'],['USDT','USDT']].concat(cuentasVisibles().map(b=>[b.nombre,nombreCuenta(b.nombre)]));
     abrirCapa({tipo:'hoja',etiqueta:'Cuenta',
         html:cabHoja('Cuenta',{chico:true})+'<div class="hoja-cuerpo">'+ops.map(([k,t])=>
             '<button type="button" class="opc" role="radio" aria-checked="'+((r.cuenta||'')===k)+'" data-a="reg-cuenta-elegir" data-c="'+escHtml(k)+'">'+
@@ -284,10 +291,12 @@ function unirConY(partes){return partes.length>1?partes.slice(0,-1).join(', ')+'
 function lineasDeCambios(ent,rec){
     const L=[];
     (Array.isArray(rec.cambios)?rec.cambios:[]).forEach(c=>{
-        if(!c||!Array.isArray(c.c))return;
+        const items=itemsDeCambio(c);
+        if(!items.length)return;
         let t;
-        if(c.c.some(x=>x[0]==='recuperado'))t='Se recuperó de Eliminados';
-        else t='Cambiaste '+unirConY(c.c.map(([campo,a,d])=>(ROTULO_CAMBIO[campo]||campo)+' de '+valorCambio(ent,rec,campo,a)+' a '+valorCambio(ent,rec,campo,d)));
+        if(items.some(x=>x.f==='recuperado'))t='Se recuperó de Eliminados';
+        else if(items.some(x=>x.f==='copia'))t='Se recuperó de una copia automática';
+        else t='Cambiaste '+unirConY(items.map(x=>(ROTULO_CAMBIO[x.f]||x.f)+' de '+valorCambio(ent,rec,x.f,x.a)+' a '+valorCambio(ent,rec,x.f,x.d)));
         L.push({cuando:cuandoIso(c.t),t});
     });
     if(rec.creado)L.push({cuando:cuandoIso(rec.creado),t:ent==='movimientos'?'Lo cargaste':'La cargaste'});
@@ -404,14 +413,18 @@ function htmlDetalle(ent,rec,o){
         html+='<h3 class="h3" style="margin-top:26px">Cambios</h3><ol class="det-cambios">'+
             lc.map(l=>'<li><span>'+escHtml(l.cuando)+'</span><span>'+escHtml(l.t)+'</span></li>').join('')+'</ol>';
     }
-    html+='</div>';
     const fem=!(ent==='movimientos'||ent==='lotes');
+    const la=fem?'la':'lo';
+    if(!elim&&ent!=='lotes')html+='<p class="det-pista solo-tactil">'+ico('desliza')+'<span>En la lista, desliza'+la+' a la derecha para editar'+la+
+        ' o a la izquierda para eliminar'+la+'. Lo eliminado queda 30 días en Eliminados.</span></p>';
+    html+='</div>';
     if(elim){
         const hasta=isoAUY(new Date(Date.parse(elim.t)+ELIMINADOS_DIAS*86400000).toISOString());
         html+='<div class="hoja-pie"><button type="button" class="btn" data-a="recuperar" data-k="'+escHtml(elim.k)+'">'+ico('restaurar')+'Recuperar</button>'+
             '<div class="nota-pie">Se borró '+escHtml(cuandoIso(elim.t).toLowerCase())+'. Queda en Eliminados hasta el '+escHtml(hasta?fmtFechaCorta(hasta.fecha):'')+'.</div></div>';
     }else{
-        html+='<div class="hoja-pie"><div class="botones-2">'+
+        /* Con mouse no se puede deslizar: ahí siguen los botones */
+        html+='<div class="hoja-pie solo-puntero"><div class="botones-2">'+
             '<button type="button" class="btn" data-a="editar">'+ico('editar')+'Editar</button>'+
             '<button type="button" class="btn peligro" data-a="eliminar">'+ico('borrar')+'Eliminar</button></div>'+
             '<div class="nota-pie">Si '+(fem?'la':'lo')+' eliminás, queda en Eliminados y '+(fem?'la':'lo')+' podés recuperar.</div></div>';
@@ -419,24 +432,32 @@ function htmlDetalle(ent,rec,o){
     return html;
 }
 
-ACC['editar']=t=>{
-    const c=capaDe(t);if(!c)return;
-    const ent=c.ent,id=c.id;
-    if(ent==='operaciones')abrirOperacion({id,reemplazar:true});
-    else if(ent==='movimientos')abrirMovimiento({id,reemplazar:true});
-    else if(ent==='transferencias'||ent==='conversiones')abrirTransferencia({id,ent,reemplazar:true});
-    else if(ent==='ajustesSaldo')abrirCorreccion({id,reemplazar:true});
-};
+/* ─── Editar y eliminar ────────────────────────────────────────────────── */
+/* Los usan el deslizamiento de las filas (§18) y los botones del detalle. */
+function editarRegistro(ent,id,o){
+    const reemplazar=!!(o&&o.reemplazar);
+    if(ent==='operaciones')abrirOperacion({id,reemplazar});
+    else if(ent==='movimientos')abrirMovimiento({id,reemplazar});
+    else if(ent==='transferencias'||ent==='conversiones')abrirTransferencia({id,ent,reemplazar});
+    else if(ent==='ajustesSaldo')abrirCorreccion({id,reemplazar});
+}
 const TEXTO_ELIMINADO={venta:'Se eliminó la venta',compra:'Se eliminó la compra',ingreso:'Se eliminó el ingreso',egreso:'Se eliminó el egreso',
                        transferencia:'Se eliminó la transferencia',correccion:'Se eliminó la corrección',lote:'Se eliminó el lote'};
-ACC['eliminar']=async t=>{
-    const c=capaDe(t);if(!c)return;
-    const ent=c.ent,id=c.id;
-    const rec=buscarRegistro(ent,id);if(!rec){cerrarCapa(c);return}
+/* Elimina sin preguntar (queda en Eliminados y el aviso trae Deshacer). Solo
+   pregunta si sacarlo deja algo descuadrado, como USDT ya vendidos. */
+async function eliminarConDeshacer(ent,id){
+    const rec=buscarRegistro(ent,id);
+    if(!rec){avisar('Ese movimiento ya no está.',{error:true});return{ok:false}}
     const tipo=tipoDeRegistro(ent,rec);
     const r=await conConfirmacion(o=>eliminarRegistro(ent,id,o),{titulo:'¿Eliminar igual?',si:'Eliminar igual'});
-    if(r.ok){
-        cerrarCapa(c);
-        avisar(ent==='conversiones'?'Se eliminó la conversión':(TEXTO_ELIMINADO[tipo]||'Se eliminó'),{deshacer:()=>recuperarEliminado(r.clave)});
-    }else if(!r.cancelado)avisar(r.error||'No se pudo eliminar.',{error:true});
+    if(r.ok)avisar(ent==='conversiones'?'Se eliminó la conversión':(TEXTO_ELIMINADO[tipo]||'Se eliminó'),{deshacer:()=>recuperarEliminado(r.clave)});
+    else if(!r.cancelado)avisar(r.error||'No se pudo eliminar.',{error:true});
+    return r;
+}
+ACC['editar']=t=>{const c=capaDe(t);if(c)editarRegistro(c.ent,c.id,{reemplazar:true})};
+ACC['eliminar']=async t=>{
+    const c=capaDe(t);if(!c)return;
+    if(!buscarRegistro(c.ent,c.id)){cerrarCapa(c);return}
+    const r=await eliminarConDeshacer(c.ent,c.id);
+    if(r.ok)cerrarCapa(c);
 };

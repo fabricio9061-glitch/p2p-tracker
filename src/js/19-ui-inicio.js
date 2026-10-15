@@ -1,11 +1,87 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   §19 — INICIO (v8.0.0)
+   §19 — INICIO (v8.0.1)
    ═══════════════════════════════════════════════════════════════════════════
-   Lo primero que se ve: cuánto se ganó hoy, la semana, los dos botones de uso
-   diario, cuánto hay en cada cuenta y lo que se cargó hoy. */
+   Lo primero que se ve: cuánto se ganó hoy y cuántas operaciones hubo, la
+   semana, los dos botones de uso diario, la actividad del período (compras,
+   ventas, spread y comisiones, como en la 7.x), cuánto hay en USDT y en cada
+   cuenta (USDT primero, después los bancos de más plata a menos) y lo que se
+   cargó hoy. */
 PANTALLAS.inicio={pintar:pintarInicio};
 
 function claseSigno(n){return n>=0.005?'sube':n<=-0.005?'baja':''}
+
+/* ─── Actividad de un período ──────────────────────────────────────────── */
+/* Compras y ventas en pesos entre dos fechas (incluidas): cuántas, cuánto se
+   pagó y cobró, la tasa promedio de cada lado (ponderada por USDT), el spread
+   y la comisión de Binance. Las operaciones en dólares se cuentan aparte. */
+function actividadEntre(desde,hasta){
+    const r={compras:{n:0,monto:0,pagado:0,usdt:0},ventas:{n:0,cobrado:0,usdt:0},
+             comUsdt:0,comPesos:0,ingresos:0,opsUSD:0};
+    (AppState.datos.operaciones||[]).forEach(o=>{
+        if(!o||o.fecha<desde||o.fecha>hasta)return;
+        if((o.moneda||'UYU')==='USD'){r.opsUSD++;return}
+        const base=Number(o.usdt)||0,monto=Number(o.monto)||0;
+        if(o.tipo==='compra'){
+            const k=r.compras;k.n++;
+            k.monto=roundMoney(k.monto+monto);
+            k.pagado=roundMoney(k.pagado+monto+(Number(o.comisionBanco)||0));
+            k.usdt=roundMoney(k.usdt+base);
+        }else{
+            const k=r.ventas;k.n++;
+            k.cobrado=roundMoney(k.cobrado+monto);
+            k.usdt=roundMoney(k.usdt+base);
+        }
+        const cp=Number(o.comisionPlataforma)||0;
+        r.comUsdt=roundMoney(r.comUsdt+cp);
+        r.comPesos=roundMoney(r.comPesos+cp*(Number(o.tasa)||0));
+    });
+    (AppState.datos.movimientos||[]).forEach(m=>{
+        if(!m||m.tipoMovimiento!=='ingreso'||m.fecha<desde||m.fecha>hasta)return;
+        r.ingresos=roundMoney(r.ingresos+movimientoValorUYU(m));
+    });
+    r.promCompra=r.compras.usdt>0?r.compras.monto/r.compras.usdt:0;
+    r.promVenta=r.ventas.usdt>0?r.ventas.cobrado/r.ventas.usdt:0;
+    r.spread=(r.promCompra>0&&r.promVenta>0)?roundMoney(r.promVenta-r.promCompra):null;
+    r.total=r.compras.n+r.ventas.n;
+    return r;
+}
+const PERIODOS_ACT=[['hoy','Hoy'],['semana','7 días'],['mes','Mes']];
+function periodoActividad(){
+    if(!AppState.ui.actividad){
+        let v='mes';
+        try{v=localStorage.getItem('p2p_actividad')||'mes'}catch(_){}
+        AppState.ui.actividad=PERIODOS_ACT.some(p=>p[0]===v)?v:'mes';
+    }
+    return AppState.ui.actividad;
+}
+ACC['act-periodo']=t=>{
+    AppState.ui.actividad=t.dataset.p;
+    try{localStorage.setItem('p2p_actividad',t.dataset.p)}catch(_){}
+    pintarInicio();
+};
+function htmlActividad(hoy){
+    const p=periodoActividad();
+    const desde=p==='hoy'?hoy:p==='semana'?sumarDias(hoy,-6):hoy.slice(0,7)+'-01';
+    const a=actividadEntre(desde,hoy);
+    const lado=(clase,icono,titulo,monto,n,prom,singular,plural)=>
+        '<div class="act '+clase+'"><span class="act-t">'+ico(icono)+titulo+'</span>'+
+        '<span class="act-v cifra">'+dinero(monto,'UYU')+'</span>'+
+        '<span class="act-s">'+(n?n+' '+(n===1?singular:plural)+(prom>0?' a '+dinero(prom,'UYU')+' prom.':''):'Ninguna')+'</span></div>';
+    let html='<section class="seccion"><div class="seccion-cab con-periodos"><h2>Actividad</h2>'+
+        '<div class="periodos" role="group" aria-label="Período">'+PERIODOS_ACT.map(([k,t])=>
+            '<button type="button" class="periodo" data-a="act-periodo" data-p="'+k+'" aria-pressed="'+(p===k)+'">'+t+'</button>').join('')+'</div></div>'+
+        '<div class="actividad">'+
+            lado('act-compra','compra','Compras',a.compras.pagado,a.compras.n,a.promCompra,'compra','compras')+
+            lado('act-venta','venta','Ventas',a.ventas.cobrado,a.ventas.n,a.promVenta,'venta','ventas')+
+        '</div>';
+    const filas=[];
+    if(a.spread!==null)filas.push(dato('Spread promedio',escHtml(dinero(a.spread,'UYU'))+' por USDT',{clase:claseSigno(a.spread)}));
+    if(a.comUsdt>=0.005)filas.push(dato('Comisiones de Binance',escHtml(usdtTxt(a.comUsdt)),{chico:escHtml(dinero(a.comPesos,'UYU'))+' en pesos'}));
+    if(a.ingresos>=0.005)filas.push(dato('Otros ingresos','<span class="sube">'+escHtml(dinero(a.ingresos,'UYU',{signo:true}))+'</span>',{chico:'no suman a la ganancia'}));
+    if(a.opsUSD)filas.push(dato('Operaciones en dólares',String(a.opsUSD)));
+    if(filas.length)html+='<div class="bloque datos-linea act-datos">'+filas.join('')+'</div>';
+    return html+'</section>';
+}
 
 function pintarInicio(){
     const c=$('inicioCuerpo');if(!c||!AppState.datos)return;
@@ -18,6 +94,8 @@ function pintarInicio(){
         .reduce((s,o)=>s+(Number(o.ganancia)||0),0));
     let html='';
 
+    html+=htmlAvisosDatos();
+
     if(AppState.ui.hayNovedad){
         html+='<button type="button" class="novedad" data-a="novedades">'+
             '<span><b>Hay cosas nuevas en la versión '+escHtml(CONFIG.APP_VERSION.split('.').slice(0,2).join('.'))+'.</b> Mirá qué cambió.</span>'+ico('sig')+'</button>';
@@ -25,6 +103,14 @@ function pintarInicio(){
 
     /* ── Ganancia de hoy ── */
     const tHoy=dinero(gHoy,'UYU',{signo:true});
+    const deHoy=actividadEntre(hoy,hoy);
+    const operado=roundMoney(deHoy.compras.pagado+deHoy.ventas.cobrado);
+    const lineaHoy=deHoy.total
+        ?deHoy.total+(deHoy.total===1?' operación hoy':' operaciones hoy')+': '+
+            [deHoy.compras.n?deHoy.compras.n+(deHoy.compras.n===1?' compra':' compras'):'',
+             deHoy.ventas.n?deHoy.ventas.n+(deHoy.ventas.n===1?' venta':' ventas'):''].filter(Boolean).join(' y ')+
+            '. Operado '+dinero(operado,'UYU')+'.'
+        :'Sin operaciones hoy.';
     html+='<section class="heroe" aria-label="Ganancia de hoy">'+
         '<div class="heroe-rot">Ganancia de hoy</div>'+
         '<div class="heroe-cifra cifra '+claseSigno(gHoy)+' '+tamCifra(tHoy,10,13)+'">'+tHoy+'</div>'+
@@ -32,7 +118,8 @@ function pintarInicio(){
             '<span>Operaciones</span><span class="'+claseSigno(st.gananciaOps)+'">'+dinero(st.gananciaOps,'UYU',{signo:true})+'</span>'+
             '<span>Egresos</span><span>'+dinero(-(st.gastos||0),'UYU')+'</span>'+
             (Math.abs(gUSD)>=0.005?'<span>En dólares</span><span class="'+claseSigno(gUSD)+'">'+dinero(gUSD,'USD',{signo:true})+'</span>':'')+
-        '</div>';
+        '</div>'+
+        '<div class="heroe-ops">'+escHtml(lineaHoy)+'</div>';
 
     /* ── Últimos 7 días ── */
     const dias=[];
@@ -51,8 +138,13 @@ function pintarInicio(){
     let gMes=0;
     Object.entries(g).forEach(([f,v])=>{if(f.startsWith(mes))gMes=roundMoney(gMes+v)});
     const gAyer=roundMoney(g[ayer]||0);
-    html+='<div class="semana-pie"><div><span class="tenue">Ayer </span><b class="'+claseSigno(gAyer)+'">'+dinero(gAyer,'UYU',{signo:true})+'</b></div>'+
-          '<div><span class="tenue">Este mes </span><b class="'+claseSigno(gMes)+'">'+dinero(gMes,'UYU',{signo:true})+'</b></div></div>';
+    /* Promedio de los 7 días anteriores a hoy (hoy no cuenta: todavía no terminó) */
+    let suma7=0;for(let i=1;i<=7;i++)suma7+=g[sumarDias(hoy,-i)]||0;
+    const prom7=roundMoney(suma7/7);
+    html+='<div class="semana-pie">'+
+        '<div><span class="tenue">Ayer </span><b class="'+claseSigno(gAyer)+'">'+dinero(gAyer,'UYU',{signo:true})+'</b></div>'+
+        '<div><span class="tenue">Este mes </span><b class="'+claseSigno(gMes)+'">'+dinero(gMes,'UYU',{signo:true})+'</b></div>'+
+        '<div><span class="tenue">Promedio de 7 días </span><b class="'+claseSigno(prom7)+'">'+dinero(prom7,'UYU',{signo:true})+'</b></div></div>';
     html+='</section>';
 
     /* ── Uso diario ── */
@@ -60,31 +152,34 @@ function pintarInicio(){
         '<button type="button" class="boton-op compra" data-a="op-nueva" data-tipo="compra">'+ico('compra')+'Comprar USDT</button>'+
         '<button type="button" class="boton-op venta" data-a="op-nueva" data-tipo="venta">'+ico('venta')+'Vender USDT</button></section>';
 
+    /* ── Actividad del período ── */
+    html+=htmlActividad(hoy);
+
     /* ── Cuentas ── */
     const vis=cuentasVisibles();
     const uyu=vis.filter(b=>(b.moneda||'UYU')==='UYU'),usd=vis.filter(b=>b.moneda==='USD');
-    const totUYU=roundMoney(uyu.reduce((s,b)=>s+saldoDe(b.nombre),0));
-    const totUSD=roundMoney(usd.reduce((s,b)=>s+saldoDe(b.nombre),0));
     html+='<section class="seccion"><div class="seccion-cab"><h2>Cuentas</h2><button type="button" class="ir" data-a="tab" data-tab="cuentas">Ver todas</button></div>';
     if(vis.length){
-        html+='<div class="totales">'+
-            '<div><div class="rot">En bancos</div><div class="cifra">'+dinero(totUYU,'UYU',{dec:0})+'</div></div>'+
-            (usd.length?'<div><div class="rot">En dólares</div><div class="cifra">'+dinero(totUSD,'USD',{dec:0})+'</div></div>':'')+
-            '<div><div class="rot">USDT</div><div class="cifra">'+usdtTxt(d.saldoUsdt,{unidad:false})+'</div></div></div>';
-        html+='<div class="tiles">'+vis.slice(0,6).map(tileCuenta).join('')+'</div>';
+        /* El total solo cuando hay más de una cuenta: con una sola repetiría su tarjeta */
+        const totales=[];
+        if(uyu.length>1)totales.push(['En bancos',dinero(uyu.reduce((s,b)=>s+saldoDe(b.nombre),0),'UYU')]);
+        if(usd.length>1)totales.push(['En dólares',dinero(usd.reduce((s,b)=>s+saldoDe(b.nombre),0),'USD')]);
+        if(totales.length)html+='<div class="totales">'+totales.map(([r,v])=>'<div><div class="rot">'+r+'</div><div class="cifra">'+v+'</div></div>').join('')+'</div>';
+        /* USDT siempre primero; después los bancos, de más plata a menos */
+        html+='<div class="tiles">'+tileUsdt()+vis.slice(0,5).map(tileCuenta).join('')+'</div>';
     }else{
-        html+='<div class="tiles"><button type="button" class="tile activar" data-a="activar-cuentas">Elegí las cuentas que usás para empezar</button></div>';
+        html+='<div class="tiles">'+tileUsdt()+'<button type="button" class="tile activar" data-a="activar-cuentas">Elegí las cuentas que usás para empezar</button></div>';
     }
     html+='</section>';
 
     /* ── Hoy ── */
-    const deHoy=itemsDelRegistro().filter(it=>it.fecha===hoy);
+    const movsHoy=itemsDelRegistro().filter(it=>it.fecha===hoy);
     html+='<section class="seccion"><div class="seccion-cab"><h2>Hoy</h2><button type="button" class="ir" data-a="tab" data-tab="registro">Ver registro</button></div>';
-    if(!deHoy.length){
+    if(!movsHoy.length){
         html+='<div class="bloque vacio"><b>Todavía no cargaste nada hoy</b><p>Con el botón + cargás una compra, una venta, un ingreso o un egreso.</p></div>';
     }else{
-        html+='<div class="bloque">'+deHoy.slice(0,4).map(it=>filaRegistroHtml(it)).join('')+'</div>';
-        if(deHoy.length>4)html+='<button type="button" class="ver-mas" data-a="ir-dia" data-fecha="'+hoy+'">Ver los '+deHoy.length+' movimientos de hoy</button>';
+        html+='<div class="bloque lista">'+movsHoy.slice(0,4).map(it=>filaRegistroHtml(it)).join('')+'</div>';
+        if(movsHoy.length>4)html+='<button type="button" class="ver-mas" data-a="ir-dia" data-fecha="'+hoy+'">Ver los '+movsHoy.length+' movimientos de hoy</button>';
     }
     html+='</section>';
     c.innerHTML=html;
@@ -93,12 +188,53 @@ function pintarInicio(){
 function tileCuenta(b){
     const n=b.nombre,cu=infoCupo(n),bk=AppState.datos.bancos[n]||{};
     const pie=cu
-        ?'<span class="barra'+(cu.disp<=0.5?' lleno':'')+'"><i style="width:'+cu.pct+'%"></i></span><span class="t-x">'+(cu.disp>0.5?'Quedan US$'+fmtNum(cu.disp,0)+' hoy':'Sin cupo por hoy')+'</span>'
+        ?'<span class="barra'+(cu.disp<0.005?' lleno':'')+'"><i style="width:'+cu.pct+'%"></i></span><span class="t-x">'+(cu.disp>=0.005?'Quedan US$'+fmtExacto(cu.disp)+' hoy':'Sin cupo por hoy')+'</span>'
         :'<span class="t-x solo">'+(bk.activo?'Sin límite diario':'Desactivada')+'</span>';
     return'<button type="button" class="tile" data-a="libro" data-cuenta="'+escHtml(n)+'">'+
         '<span class="t-n">'+mono(n)+'<b>'+escHtml(nombreCuenta(n))+'</b></span>'+
-        '<span class="t-s">'+dinero(saldoDe(n),b.moneda||'UYU',{dec:0})+'</span>'+pie+'</button>';
+        '<span class="t-s">'+dinero(saldoDe(n),b.moneda||'UYU')+'</span>'+pie+'</button>';
 }
+/* Tarjeta de USDT: cuántos hay y a cuánto salieron, en promedio, los que quedan */
+function tileUsdt(){
+    const s=roundMoney(AppState.datos.saldoUsdt||0);
+    let cant=0,costo=0;
+    (AppState.datos.lotes||[]).forEach(l=>{
+        if(!l||!(l.disponible>0.0049)||(l.moneda||'UYU')!=='UYU')return;
+        cant+=l.disponible;costo+=l.disponible*l.precioCompra;
+    });
+    const prom=cant>0?costo/cant:0;
+    return'<button type="button" class="tile" data-a="libro" data-cuenta="USDT">'+
+        '<span class="t-n">'+mono('USDT')+'<b>USDT</b></span>'+
+        '<span class="t-s">'+usdtTxt(s,{unidad:false})+'</span>'+
+        '<span class="t-x solo">'+(prom>0?'Costo promedio '+dinero(prom,'UYU'):'Sin USDT')+'</span></button>';
+}
+
+/* ─── Avisos sobre tus datos (v8.0.1) ──────────────────────────────────── */
+/* Si los cambios no se están subiendo, o si falta algo que estaba en la
+   última copia automática, se avisa arriba de todo y en grande. */
+function htmlAvisosDatos(){
+    let h='';
+    const pg=AppState.ui.problemaGuardado;
+    if(pg){
+        h+='<div class="alerta-datos" role="alert">'+ico('alerta')+'<div><b>Tus últimos cambios no se subieron a internet</b>'+
+            '<p>Están guardados en este teléfono y se suben solos apenas se pueda. Mientras tanto no cierres sesión ni borres los datos de la app.</p>'+
+            '<button type="button" class="btn-texto" data-a="sync-reintentar">Reintentar ahora</button></div></div>';
+    }
+    const fc=AppState.ui.faltanCopia;
+    if(fc&&fc.n>0){
+        const x=isoAUY(new Date(fc.ts).toISOString());
+        h+='<div class="alerta-datos" role="alert">'+ico('alerta')+'<div><b>'+(fc.n===1?'Falta 1 movimiento':'Faltan '+fc.n+' movimientos')+' que tenías '+escHtml(x?cuandoTexto(x.fecha,x.hora):'hace un rato')+'</b>'+
+            '<p>Están en una copia automática de este teléfono. Los podés recuperar sin borrar nada.</p>'+
+            '<button type="button" class="btn-texto" data-a="copias">Ver y recuperar</button></div></div>';
+    }
+    return h;
+}
+function pintarAvisoGuardado(){if(AppState.ui.tab==='inicio')pintarTab()}
+ACC['sync-reintentar']=()=>{
+    _syncErrors=0;_retryDelay=2000;clearTimeout(_retryTimer);
+    avisar('Reintentando…');
+    guardarDatos(true);
+};
 
 /* Ir al registro de un día puntual (desde el gráfico o "Ver los movimientos de hoy") */
 ACC['ir-dia']=t=>{
