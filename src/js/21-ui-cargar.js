@@ -75,12 +75,18 @@ function textoCupo(n){
 function frasesSaldos(ent,viejo,nuevo){
     let dif;
     try{dif=diferenciaDeEfecto(ent,viejo,nuevo).bancos||{}}catch(_){dif={}}
-    const partes=Object.entries(dif).filter(([,v])=>Math.abs(v)>=0.005).map(([c,v])=>{
-        const fin=roundMoney(saldoDe(c)+v);
-        const txt=nombreCuenta(c)+(fin<-0.004?' quedaría en ':' queda en ')+dinero(fin,monedaDeCuenta(c));
-        return{txt,mal:fin<-0.004};
-    });
-    return partes;
+    return Object.entries(dif).filter(([,v])=>Math.abs(v)>=0.005).map(([c,v])=>saldoQueQueda(c,v));
+}
+function saldoQueQueda(c,delta){
+    const fin=roundMoney(saldoDe(c)+delta);
+    return{c,delta,fin,mal:fin<-0.004};
+}
+/* v8.0.3 — "Itaú queda en $X", destacado: verde si a la cuenta le entra plata y
+   rojo si le sale. Si quedaría en negativo, además lo dice. */
+function htmlQuedan(lista){
+    return lista.map(f=>'<div class="queda '+(f.mal?'baja mal':f.delta>0?'sube':'baja')+'">'+mono(f.c,true)+
+        '<span class="q-t">'+escHtml(nombreCuenta(f.c))+(f.mal?' quedaría en':' queda en')+'</span>'+
+        '<b class="cifra">'+escHtml(montoEnCuenta(f.fin,f.c))+'</b></div>').join('');
 }
 /* Al guardar una edición: si se llegó desde el detalle, se vuelve a él con el
    cambio anotado; si se llegó deslizando la fila, se vuelve a la lista. */
@@ -122,11 +128,12 @@ function abrirOperacion(o){
             '<div><label class="rotulo" for="opMonto" data-r="rot-monto"></label>'+
                 '<div class="monto-grande" data-campo="monto"><span class="sim cifra" data-r="sim"></span>'+
                 '<input id="opMonto" data-r="monto" inputmode="decimal" autocomplete="off" placeholder="0" data-in="op-calc"><span class="mon" data-r="mon"></span></div></div>'+
-            '<div><label class="rotulo" for="opTasa">Tasa por USDT</label>'+
+            /* Las últimas tasas van al lado del rótulo: una fila menos */
+            '<div><div class="rotulo-fila"><label class="rotulo" for="opTasa">Tasa por USDT</label>'+
+                '<div class="tasas-rapidas" data-r="tasas" role="group" aria-label="Últimas tasas"></div></div>'+
                 '<div class="paso-tasa" data-campo="tasa"><button type="button" data-a="op-tasa-paso" data-d="-1" aria-label="Bajar la tasa">'+MENOS+'</button>'+
                 '<input id="opTasa" data-r="tasa" inputmode="decimal" autocomplete="off" placeholder="0,00" data-in="op-tasa">'+
-                '<button type="button" data-a="op-tasa-paso" data-d="1" aria-label="Subir la tasa">+</button></div>'+
-                '<div class="tasas-rapidas" data-r="tasas"></div></div>'+
+                '<button type="button" data-a="op-tasa-paso" data-d="1" aria-label="Subir la tasa">+</button></div></div>'+
             '<div data-campo="cuenta"><span class="rotulo" data-r="rot-cuenta"></span><div data-r="cuentas"></div>'+
                 '<div class="opciones-form"><button type="button" class="btn-opcion" data-a="op-dividir" data-r="dividir" aria-pressed="false">'+ico('dividir')+'<span>Dividir el pago</span></button>'+
                 '<button type="button" class="btn-opcion" data-a="op-extra" data-r="btn-extra" aria-expanded="false">'+ico('corregir')+'<span>Comisión y fecha</span>'+ico('abajo','ch')+'</button></div>'+
@@ -136,7 +143,7 @@ function abrirOperacion(o){
                     '<div class="fila-campo"><span>Cuándo</span>'+botonCuando(st,'op-cuando')+'</div>'+
                 '</div></div>'+
         '</div></div>'+
-        '<div class="hoja-pie"><div data-r="error"></div><div class="resumen-form" data-r="resumen"></div>'+
+        '<div class="hoja-pie"><div data-r="error"></div><div class="recibo" data-r="resumen"></div>'+
         '<button type="button" class="btn" data-a="op-guardar" data-r="guardar" data-primario></button></div>';
     abrirCapa({tipo:'hoja',clase:'alta',etiqueta:viejo?'Editar operación':'Comprar o vender',clave:'operacion',reemplazar:!!o.reemplazar,html,
         montar(cont,capa){
@@ -176,7 +183,13 @@ function opPintarTodo(capa){
 function opPintarTasas(capa){
     const st=capa.st,mon=opMoneda(st);
     const ts=tasasRecientesDe(st.tipo,mon,3);
-    q(capa.cont,'tasas').innerHTML=ts.length?'<span>Últimas</span>'+ts.map(t=>'<button type="button" class="pastilla chica" data-a="op-tasa-rapida" data-v="'+t+'">'+escHtml(fmtTasa(t,mon))+'</button>').join(''):'';
+    q(capa.cont,'tasas').innerHTML=ts.map(t=>'<button type="button" class="pastilla chica" data-a="op-tasa-rapida" data-v="'+t+'" aria-pressed="false">'+escHtml(fmtTasa(t,mon))+'</button>').join('');
+    opMarcarTasa(capa);
+}
+/* La tasa reciente que coincide con la escrita queda marcada */
+function opMarcarTasa(capa){
+    const v=parsearTasa(q(capa.cont,'tasa').value)||0;
+    capa.cont.querySelectorAll('[data-a="op-tasa-rapida"]').forEach(b=>b.setAttribute('aria-pressed',String(v>0&&Math.abs(Number(b.dataset.v)-v)<1e-9)));
 }
 function opLeer(capa){
     const st=capa.st,cont=capa.cont,mon=opMoneda(st);
@@ -235,39 +248,49 @@ function opActualizarResto(capa){
     if(r){const m=ap[ap.length-1].monto;r.textContent=dinero(m,v.mon);r.classList.toggle('baja',m<-0.004)}
     const tr=q(cont,'total-rep');if(tr)tr.textContent=dinero(roundMoney(v.monto+v.cb),v.mon);
 }
+/* v8.0.3 — La cuenta de abajo, con las mismas palabras y el mismo orden que el
+   detalle de la orden en Binance: así se compara de un vistazo. En una venta,
+   la cantidad total es lo liberado más la comisión; en una compra, lo recibido
+   más la comisión. Debajo, la ganancia y cómo queda cada cuenta, con color. */
+function partesBinance(tipo,base,com){
+    const neto=usdtNeto(base,com,tipo);
+    return tipo==='venta'?{total:neto,parte:base,rotParte:'Cantidad liberada'}:{total:base,parte:neto,rotParte:'Cantidad recibida'};
+}
+function filaRecibo(rot,val,cls){return'<div class="rc-fila'+(cls?' '+cls:'')+'"><span>'+rot+'</span><b>'+val+'</b></div>'}
 function opCalcular(capa){
     const st=capa.st,cont=capa.cont,v=opLeer(capa),mon=v.mon;
     if(st.dividir)opActualizarResto(capa);
+    opMarcarTasa(capa);
     const res=q(cont,'resumen'),g=q(cont,'guardar');
     const base=v.monto>0&&v.tasa>0?usdtBase(v.monto/v.tasa,st.tipo):0;
     const com=truncar(base*(v.pct/100),2);
     const neto=base>0?usdtNeto(base,com,st.tipo):0;
     const accion=st.tipo==='compra'?'Comprar':'Vender';
     g.textContent=st.id?'Guardar cambios':(neto>0?accion+' '+usdtTxt(neto):accion);
-    if(!(neto>0)){
-        res.innerHTML='<div class="r-1"><span>'+(st.tipo==='compra'?'Recibís':'Entregás')+'</span><b class="tenue">'+MENOS+'</b></div><div class="r-2">Escribí el monto y la tasa.</div>';
-        return;
-    }
-    let r2='';
+    const hay=neto>0,p=partesBinance(st.tipo,base,com);
+    const u=n=>hay?usdtTxt(n):'<span class="tenue">—</span>';
+    let h=filaRecibo('Cantidad total',u(p.total),'rc-total')+
+        '<div class="rc-rama">'+filaRecibo(p.rotParte,u(p.parte))+
+        /* Tocar la comisión lleva directo a cambiarla */
+        '<button type="button" class="rc-fila rc-com" data-a="op-pct" aria-label="Comisión de Binance: '+escHtml(pctTxt(v.pct))+'. Tocá para cambiarla">'+
+            '<span>Comisión <span class="rc-pct">'+escHtml(pctTxt(v.pct))+'</span></span><b>'+u(com)+'</b></button></div>';
+    if(!hay){res.innerHTML=h+'<p class="rc-nota">Escribí el monto y la tasa.</p>';return}
     if(st.tipo==='compra'){
-        r2=fmtTrunc(base,2)+' menos '+fmtTrunc(com,2)+' de comisión de Binance ('+pctTxt(v.pct)+'). Te sale a '+dinero(roundMoney(v.monto/neto,3),mon)+' cada uno.';
-    }else{
-        r2=fmtTrunc(base,2)+' más '+fmtTrunc(com,2)+' de comisión de Binance ('+pctTxt(v.pct)+').';
-        if(!st.id){
-            const disp=usdtDisponibleEn(mon);
-            if(neto>disp+0.005)r2+=' <span class="baja">Tenés '+usdtTxt(disp)+': te faltan '+usdtTxt(roundMoney(neto-disp))+'.</span>';
-            else{
-                const costo=previewFIFO(neto,mon).reduce((s,x)=>s+x.subtotal,0);
-                const gan=roundMoney(v.monto-costo);
-                r2+=' '+(gan>=0?'Ganás ':'Perdés ')+dinero(Math.abs(gan),mon)+'.';
-            }
+        h+=filaRecibo('Cada uno te sale a',dinero(roundMoney(v.monto/neto,3),mon),'rc-extra');
+    }else if(!st.id){
+        const disp=usdtDisponibleEn(mon);
+        if(neto>disp+0.005)h+='<p class="rc-nota baja">Tenés '+usdtTxt(disp)+': te faltan '+usdtTxt(roundMoney(neto-disp))+'.</p>';
+        else{
+            const costo=previewFIFO(neto,mon).reduce((s,x)=>s+x.subtotal,0);
+            const gan=roundMoney(v.monto-costo);
+            h+=filaRecibo(gan>=-0.004?'Ganás':'Perdés','<span class="'+(gan>=-0.004?'sube':'baja')+'">'+(gan>=-0.004?dinero(gan,mon,{signo:true}):dinero(Math.abs(gan),mon))+'</span>','rc-extra');
         }
     }
     const prov={tipo:st.tipo,monto:v.monto,banco:st.dividir?(st.reparto[0]||{}).banco:st.cuenta,comisionBanco:v.cb,
                 ...(st.dividir?{aportes:opAportes(capa,v)}:{})};
     const fr=st.cuenta||st.dividir?frasesSaldos('operaciones',capa.viejo,prov):[];
-    if(fr.length)r2+=' '+fr.map(f=>f.mal?'<span class="baja">'+escHtml(f.txt)+'.</span>':escHtml(f.txt)+'.').join(' ');
-    res.innerHTML='<div class="r-1"><span>'+(st.tipo==='compra'?'Recibís':'Entregás')+'</span><b class="'+(st.tipo==='compra'?'sube':'')+'">'+usdtTxt(neto)+'</b></div><div class="r-2">'+r2+'</div>';
+    if(fr.length)h+='<div class="quedan">'+htmlQuedan(fr)+'</div>';
+    res.innerHTML=h;
 }
 ACC['op-tipo']=t=>{
     const capa=capaDe(t),st=capa.st;
@@ -364,6 +387,18 @@ function alternarExtra(t){
     if(capa.st.extra)setTimeout(()=>{try{ex.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(_){}},30);
 }
 ACC['op-extra']=alternarExtra;
+/* Desde la cuenta de abajo: abre comisión y fecha y deja el cursor en la comisión */
+ACC['op-pct']=t=>{
+    const capa=capaDe(t);if(!capa)return;
+    const st=capa.st,inp=q(capa.cont,'pct');
+    if(!st.extra){
+        st.extra=true;
+        q(capa.cont,'extra').classList.remove('hidden');
+        q(capa.cont,'btn-extra').setAttribute('aria-expanded','true');
+    }
+    try{inp.focus({preventScroll:true});inp.select()}catch(_){}
+    setTimeout(()=>{try{inp.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}},30);
+};
 ACC['op-cuando']=t=>cambiarCuando(capaDe(t));
 ACC['op-guardar']=async t=>{
     const capa=capaDe(t),st=capa.st;
@@ -428,7 +463,7 @@ function abrirMovimiento(o){
                 '<input class="campo" id="mvNota" data-r="nota" placeholder="Opcional" maxlength="140" autocomplete="off"></div>'+
                 '<div><span class="rotulo">Cuándo</span>'+botonCuando(st,'mv-cuando')+'</div></div>'+
         '</div></div>'+
-        '<div class="hoja-pie"><div data-r="error"></div><div class="linea-pie" data-r="pie"></div>'+
+        '<div class="hoja-pie"><div data-r="error"></div><div class="quedan" data-r="pie"></div>'+
         '<button type="button" class="btn" data-a="mv-guardar" data-r="guardar" data-primario></button></div>';
     abrirCapa({tipo:'hoja',clase:'alta',etiqueta:viejo?'Editar movimiento':'Ingreso o egreso',clave:'movimiento',reemplazar:!!o.reemplazar,html,
         montar(cont,capa){
@@ -486,19 +521,13 @@ function mvCalcular(capa){
     const pie=q(cont,'pie');
     if(!st.cuenta||!(v.monto>0)){pie.textContent='';return}
     if(st.cuenta==='USDT'){
-        const antes=saldoDe('USDT');
         const viejoEf=capa.viejo?efectoEnUsdt('movimientos',capa.viejo):0;
-        const fin=roundMoney(antes-viejoEf+(st.tipo==='ingreso'?v.monto:-v.monto));
-        pie.innerHTML=fin<-0.004?'<span class="baja">USDT quedaría en '+usdtTxt(fin)+'</span>':escHtml('USDT pasa de '+usdtTxt(antes,{unidad:false})+' a '+usdtTxt(fin,{unidad:false}));
+        const delta=roundMoney(-viejoEf+(st.tipo==='ingreso'?v.monto:-v.monto));
+        pie.innerHTML=Math.abs(delta)>=0.005?htmlQuedan([saldoQueQueda('USDT',delta)]):'';
         return;
     }
     const prov={tipoMovimiento:st.tipo,tipoCuenta:'banco',banco:st.cuenta,monto:v.monto};
-    const fr=frasesSaldos('movimientos',capa.viejo,prov);
-    if(!capa.viejo&&fr.length===1&&!fr[0].mal){
-        const antes=saldoDe(st.cuenta),mon=monedaDeCuenta(st.cuenta);
-        const fin=roundMoney(antes+(st.tipo==='ingreso'?v.monto:-v.monto));
-        pie.textContent=nombreCuenta(st.cuenta)+' pasa de '+dinero(antes,mon)+' a '+dinero(fin,mon);
-    }else pie.innerHTML=fr.map(f=>f.mal?'<span class="baja">'+escHtml(f.txt)+'</span>':escHtml(f.txt)).join('. ');
+    pie.innerHTML=htmlQuedan(frasesSaldos('movimientos',capa.viejo,prov));
 }
 ACC['mv-tipo']=t=>{const capa=capaDe(t);capa.st.tipo=t.dataset.tipo;limpiarError(capa);mvPintarTodo(capa)};
 ACC['mv-cuenta']=t=>{const capa=capaDe(t);capa.st.cuenta=t.dataset.cuenta;limpiarError(capa);mvPintarTodo(capa)};
@@ -562,7 +591,7 @@ function abrirTransferencia(o){
                     '<div class="fila-campo"><span>Cuándo</span>'+botonCuando(st,'tr-cuando')+'</div>'+
                 '</div></div>'+
         '</div></div>'+
-        '<div class="hoja-pie"><div data-r="error"></div><div class="linea-pie" data-r="pie"></div>'+
+        '<div class="hoja-pie"><div data-r="error"></div><div class="quedan" data-r="pie"></div>'+
         '<button type="button" class="btn" data-a="tr-guardar" data-r="guardar" data-primario></button></div>';
     abrirCapa({tipo:'hoja',clase:'alta',etiqueta:viejo?'Editar transferencia':'Transferencia',clave:'transferencia',reemplazar:!!o.reemplazar,html,
         montar(cont,capa){
@@ -611,7 +640,7 @@ function trCalcular(capa){
     if(!(v.monto>0)||!st.origen||!st.destino||st.origen===st.destino){pie.textContent='';return}
     let prov,ent;
     if(cruce){
-        if(!(v.tasa>0)){pie.textContent='Escribí la tasa de la conversión.';return}
+        if(!(v.tasa>0)){pie.innerHTML='<p class="linea-pie">Escribí la tasa de la conversión.</p>';return}
         const mdest=mo==='UYU'&&md==='USD'?roundMoney(v.monto/v.tasa):roundMoney(v.monto*v.tasa);
         prov={origen:st.origen,destino:st.destino,montoOrigen:v.monto,montoDestino:mdest,tasa:v.tasa,monedaOrigen:mo,monedaDestino:md};
         ent='conversiones';
@@ -621,11 +650,9 @@ function trCalcular(capa){
     if(capa.viejo&&st.ent!==ent){
         const a=diferenciaDeEfecto(st.ent,capa.viejo,null).bancos||{},b=diferenciaDeEfecto(ent,null,prov).bancos||{};
         const tot={};[a,b].forEach(m=>Object.entries(m).forEach(([k,x])=>{tot[k]=roundMoney((tot[k]||0)+x)}));
-        fr=Object.entries(tot).filter(([,x])=>Math.abs(x)>=0.005).map(([c,x])=>{const fin=roundMoney(saldoDe(c)+x);return{txt:nombreCuenta(c)+(fin<-0.004?' quedaría en ':' queda en ')+dinero(fin,monedaDeCuenta(c)),mal:fin<-0.004}});
+        fr=Object.entries(tot).filter(([,x])=>Math.abs(x)>=0.005).map(([c,x])=>saldoQueQueda(c,x));
     }else fr=frasesSaldos(ent,capa.viejo&&st.ent===ent?capa.viejo:null,prov);
-    let txt=fr.map(f=>f.mal?'<span class="baja">'+escHtml(f.txt)+'</span>':escHtml(f.txt)).join(' y ');
-    if(cruce)txt='Entran '+escHtml(dinero(prov.montoDestino,md))+'. '+txt;
-    pie.innerHTML=txt;
+    pie.innerHTML=(cruce?'<p class="linea-pie">Entran '+escHtml(dinero(prov.montoDestino,md))+'.</p>':'')+htmlQuedan(fr);
 }
 ACC['tr-origen']=t=>{
     const capa=capaDe(t),st=capa.st;

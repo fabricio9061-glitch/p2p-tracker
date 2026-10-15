@@ -760,6 +760,8 @@ async function v2Guardar(forzar){
         _syncPending=Math.max(0,_syncPending-1);_syncErrors=0;_retryDelay=2000;
         if(_syncQueue.length===0)setSyncStatus('online');
         updateSyncBadge();
+        /* v8.0.3 — El detalle abierto pasa de "Guardando…" a "Guardada" */
+        if(typeof refrescarEstadoDetalles==='function')refrescarEstadoDetalles();
     }catch(e){
         _syncPending=Math.max(0,_syncPending-1);
         enVuelo.forEach(a=>{delete a.enVuelo});
@@ -775,6 +777,7 @@ async function v2Guardar(forzar){
                 if(!AppState.ui.problemaGuardado)AppState.ui.problemaGuardado={desde:Date.now()};
                 AppState.ui.problemaGuardado.permanente=!!permanente;
                 if(typeof pintarAvisoGuardado==='function')pintarAvisoGuardado();
+                if(typeof refrescarEstadoDetalles==='function')refrescarEstadoDetalles();
             }
             /* v8.0.1 — Se sigue reintentando solo (cada vez más espaciado, hasta un
                minuto) en vez de rendirse al tercer intento: lo pendiente está a

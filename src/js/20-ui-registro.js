@@ -207,7 +207,7 @@ function htmlEliminados(){
         '<div class="bloque" style="margin-top:10px">'+lista.map(x=>{
             const it=itemDeEliminado(x);
             return'<div class="fila-eliminado"><button type="button" class="fila" data-a="eliminado-ver" data-k="'+escHtml(x.k)+'">'+
-                '<span class="fila-t">'+escHtml(it.titulo)+'</span><span class="fila-m">'+escHtml(it.montoTxt)+'</span>'+
+                '<span class="fila-t'+claseTipo(it.tipo)+'">'+escHtml(it.titulo)+'</span><span class="fila-m">'+escHtml(it.montoTxt)+'</span>'+
                 '<span class="fila-s">'+it.cuentas.map(c=>mono(c)).join('')+'<span>'+escHtml(cuandoCorto(it.fecha,it.hora))+'</span></span></button>'+
                 '<button type="button" class="recuperar" data-a="recuperar" data-k="'+escHtml(x.k)+'">Recuperar</button></div>';
         }).join('')+'</div>';
@@ -302,30 +302,69 @@ function lineasDeCambios(ent,rec){
     if(rec.creado)L.push({cuando:cuandoIso(rec.creado),t:ent==='movimientos'?'Lo cargaste':'La cargaste'});
     return L;
 }
+/* Una fila del detalle. o.clase va en el valor (por ejemplo sube o baja) y
+   o.fila en la fila entera (fuerte, total). */
 function dato(rot,val,o){
     o=o||{};
-    return'<div class="dato"'+(o.estilo?' style="'+o.estilo+'"':'')+'><span'+(o.rotFuerte?' style="color:var(--tinta);font-weight:650"':'')+'>'+rot+(o.chicoRot?'<small>'+o.chicoRot+'</small>':'')+'</span>'+
+    return'<div class="dato'+(o.fila?' '+o.fila:'')+'"><span>'+rot+(o.chicoRot?'<small>'+o.chicoRot+'</small>':'')+'</span>'+
         '<b'+(o.clase?' class="'+o.clase+'"':'')+'>'+val+(o.chico?'<small>'+o.chico+'</small>':'')+'</b></div>';
 }
+/* Una cuenta con su logo, para el lado derecho de una fila del detalle */
+function cuentaDet(c){return'<span class="det-cuenta">'+mono(c)+'<span>'+escHtml(nombreCuenta(c))+'</span></span>'}
+/* v8.0.3 — Debajo del número grande va el estado, como el "Completado" de
+   Binance: si ya está guardado en internet, si se está subiendo o si se borró. */
+function estadoGuardado(rec,fem,elim){
+    if(elim)return{c:'mal',i:'borrar',t:fem?'Eliminada':'Eliminado'};
+    if(rec&&rec._syncState==='pending'){
+        if(AppState.ui.problemaGuardado)return{c:'mal',i:'alerta',t:'Todavía no se subió a internet'};
+        if(AppState.ui.syncState==='offline')return{c:'espera',i:'wifi',t:'Sin conexión: se guarda al volver'};
+        return{c:'espera',i:'reloj',t:'Guardando…'};
+    }
+    return{c:'ok',i:'ok',t:fem?'Guardada':'Guardado'};
+}
+function htmlEstado(e){return'<div class="det-estado '+e.c+'" data-r="estado">'+ico(e.i)+'<span>'+escHtml(e.t)+'</span></div>'}
+function esFemenino(ent){return!(ent==='movimientos'||ent==='lotes')}
+/* Cuando la subida se confirma (o falla), el estado del detalle abierto se
+   actualiza solo. Lo llaman 16-store-v2.js y el cambio de conexión. */
+function refrescarEstadoDetalles(){
+    if(typeof _capas==='undefined')return;
+    _capas.forEach(c=>{
+        if(c.def.clave!=='detalle'||!c.el.isConnected)return;
+        const el=c.cont.querySelector('[data-r="estado"]');if(!el)return;
+        const rec=buscarRegistro(c.ent,c.id);if(!rec)return;
+        el.outerHTML=htmlEstado(estadoGuardado(rec,esFemenino(c.ent),null));
+    });
+}
+/* v8.0.3 — El detalle se arma como "Detalles de la orden" de Binance: arriba
+   los USDT que entraron o salieron, con signo; debajo el estado; después las
+   mismas filas y en el mismo orden que Binance (importe en fiat, precio,
+   cantidad total y, colgando de ella, lo liberado o recibido y la comisión),
+   para comparar de un vistazo. Lo que agrega la app va en un bloque aparte. */
 function htmlDetalle(ent,rec,o){
     o=o||{};
     const elim=o.eliminado||null;
     const it=ent==='lotes'?itemLote(rec):itemRegistro(ent,rec);
     const tipo=it.tipo,titulo=tituloDetalle(it);
-    const cuando=cuandoTexto(rec.fecha||'',rec.hora||'');
-    const nom=c=>mono(c)+'<b>'+escHtml(nombreCuenta(c))+'</b>';
-    let cifra='',cifraClase='',donde='',datos='';
+    const fem=esFemenino(ent);
+    const cuando=escHtml(mayus(cuandoTexto(rec.fecha||'',rec.hora||'')));
+    const bloques=[];
+    let cifra='',cifraClase='';
     const mon=rec.moneda||'UYU';
     if(tipo==='venta'||tipo==='compra'){
         const base=Number(rec.usdt)||0,com=Number(rec.comisionPlataforma)||0,neto=usdtNeto(base,com,tipo);
+        const p=partesBinance(tipo,base,com);
         const pct=isFinite(rec.comisionPct)?pctTxt(rec.comisionPct):'';
+        cifra=usdtTxt(tipo==='venta'?-neto:neto,{signo:true});
+        cifraClase=tipo==='compra'?'sube':'';
+        bloques.push(dato('Importe en fiat',dinero(rec.monto,mon))+
+            dato('Precio de USDT',escHtml(fmtTasaMon(rec.tasa,mon)))+
+            dato('Cantidad total',usdtTxt(p.total),{fila:'fuerte'})+
+            '<div class="det-rama">'+dato(p.rotParte,usdtTxt(p.parte))+
+                dato('Comisión'+(pct?' <span class="det-pct">'+escHtml(pct)+'</span>':''),usdtTxt(com))+'</div>');
+        let b='';
         if(tipo==='venta'){
-            cifra=dinero(rec.monto,mon,{signo:true});cifraClase='sube';
-            donde='Entraron a '+nom(rec.banco)+' '+escHtml(cuando);
-            datos+=dato('Vendiste',usdtTxt(base));
-            datos+=dato('Tasa',escHtml(fmtTasaMon(rec.tasa,mon)));
-            datos+=dato('Comisión de Binance',escHtml(pct||'—'),{chico:com?usdtTxt(com):''});
-            datos+=dato('Salieron de tu inventario',usdtTxt(neto));
+            b+=dato('Entró a',cuentaDet(rec.banco));
+            b+=dato('Cuándo',cuando);
             if(!elim){
                 const lotes=Array.isArray(rec.consumedLots)?rec.consumedLots:[];
                 let nota='';
@@ -336,84 +375,84 @@ function htmlDetalle(ent,rec,o){
                     const ps=lotes.map(x=>x.precio);
                     nota='de '+lotes.length+' lotes, entre '+dinero(Math.min(...ps),mon)+' y '+dinero(Math.max(...ps),mon);
                 }
-                if(isFinite(rec.costoUsdt))datos+=dato('Lo que te habían costado',dinero(rec.costoUsdt,mon),{chicoRot:escHtml(nota)});
+                if(isFinite(rec.costoUsdt))b+=dato('Te habían costado',dinero(rec.costoUsdt,mon),{chicoRot:escHtml(nota)});
                 const g=Number(rec.ganancia)||0;
-                datos+=dato(g<=-0.005?'Pérdida':'Ganancia','<span class="cifra" style="font-size:24px;font-weight:760">'+dinero(g,mon,{signo:true})+'</span>',
-                    {clase:claseSigno(g),rotFuerte:true,estilo:'border-top:1px solid var(--linea);margin-top:4px;padding-top:12px'});
+                b+=dato(g<=-0.005?'Pérdida':'Ganancia','<span class="cifra">'+dinero(g,mon,{signo:true})+'</span>',{fila:'total',clase:claseSigno(g)});
                 const consumido=lotes.reduce((s,x)=>s+(Number(x.amount)||0),0);
-                if(consumido<neto-0.005)datos+='<div class="det-aviso">Cuando se cargó esta venta faltaban '+usdtTxt(neto-consumido)+' en tu inventario. La ganancia se calculó solo sobre lo que había.</div>';
+                if(consumido<neto-0.005)b+='<div class="det-aviso">Cuando se cargó esta venta faltaban '+usdtTxt(neto-consumido)+' en tu inventario. La ganancia se calculó solo sobre lo que había.</div>';
             }
         }else{
             const cb=Number(rec.comisionBanco)||0;
-            cifra=dinero(-(roundMoney((Number(rec.monto)||0)+cb)),mon);
-            const cs=it.cuentas;
-            donde='Salieron de '+cs.map(nom).join(' y ')+' '+escHtml(cuando);
-            datos+=dato('Pagaste',dinero(rec.monto,mon),{chico:esPagoDividido(rec)?escHtml(aportesDe(rec).map(a=>nombreCuenta(a.banco)+' '+dinero(a.monto,mon)).join(' y ')):''});
-            if(cb)datos+=dato('Comisión del banco',dinero(cb,mon));
-            datos+=dato('Tasa',escHtml(fmtTasaMon(rec.tasa,mon)));
-            datos+=dato('Compraste',usdtTxt(base));
-            datos+=dato('Comisión de Binance',escHtml(pct||'—'),{chico:com?usdtTxt(com):''});
-            datos+=dato('Recibiste','<span class="cifra sube" style="font-size:24px;font-weight:760">'+usdtTxt(neto)+'</span>',
-                {rotFuerte:true,estilo:'border-top:1px solid var(--linea);margin-top:4px;padding-top:12px'});
-            if(neto>0)datos+=dato('Te sale cada uno a',dinero(roundMoney((Number(rec.monto)||0)/neto,3),mon));
+            /* Pago dividido: cada cuenta con lo que puso */
+            b+=esPagoDividido(rec)
+                ?dato('Salió de','<span class="det-cuentas-v">'+aportesDe(rec).map(a=>'<span class="det-cuenta">'+mono(a.banco)+'<span>'+escHtml(nombreCuenta(a.banco))+
+                    '</span><span class="det-aporte">'+escHtml(dinero(a.monto,mon))+'</span></span>').join('')+'</span>')
+                :dato('Salió de',cuentaDet(rec.banco));
+            if(cb)b+=dato('Comisión del banco',dinero(cb,mon));
+            b+=dato('Cuándo',cuando);
             if(!elim){
                 const l=(AppState.datos.lotes||[]).find(x=>String(x.id)===String(rec.id)&&!x.manual);
-                if(l)datos+=dato('En tu inventario',l.disponible>0.0049?'quedan '+usdtTxt(l.disponible)+' de este lote':'ya se vendieron todos');
+                if(l)b+=l.disponible>0.0049?dato('Quedan sin vender',usdtTxt(l.disponible)):dato('Sin vender','ya se vendieron todos');
             }
+            if(neto>0)b+=dato('Cada uno te sale a',dinero(roundMoney((Number(rec.monto)||0)/neto,3),mon),{fila:'total'});
         }
+        bloques.push(b);
     }else if(tipo==='ingreso'||tipo==='egreso'){
         const cuenta=it.cuentas[0]||'';
         cifra=montoEnCuenta(tipo==='ingreso'?rec.monto:-rec.monto,cuenta,{signo:tipo==='ingreso'});
         cifraClase=tipo==='ingreso'?'sube':'';
-        donde=(tipo==='ingreso'?'Entraron a ':'Salieron de ')+nom(cuenta)+' '+escHtml(cuando);
-        datos+=dato('Categoría',escHtml(rec.descripcion||'sin categoría'));
-        if(rec.nota)datos+=dato('Nota',escHtml(rec.nota));
-        if(cuenta==='USDT'&&tipo==='ingreso'&&rec.tasaRef>0)datos+=dato('Te salió cada uno a',dinero(rec.tasaRef,'UYU'));
-        if(cuenta==='USDT'&&tipo==='egreso'&&!elim&&rec.valorUYU>0)datos+=dato('Lo que te habían costado',dinero(rec.valorUYU,'UYU'));
+        let b=dato(tipo==='ingreso'?'Entró a':'Salió de',cuentaDet(cuenta));
+        b+=dato('Categoría',escHtml(rec.descripcion||'sin categoría'));
+        if(rec.nota)b+=dato('Nota',escHtml(rec.nota));
+        b+=dato('Cuándo',cuando);
+        if(cuenta==='USDT'&&tipo==='ingreso'&&rec.tasaRef>0)b+=dato('Te salió cada uno a',dinero(rec.tasaRef,'UYU'));
+        if(cuenta==='USDT'&&tipo==='egreso'&&!elim&&rec.valorUYU>0)b+=dato('Te habían costado',dinero(rec.valorUYU,'UYU'));
+        bloques.push(b);
     }else if(tipo==='transferencia'){
         if(ent==='conversiones'){
             const mo=rec.monedaOrigen||monedaDeCuenta(rec.origen),md=rec.monedaDestino||monedaDeCuenta(rec.destino);
             cifra=dinero(rec.montoOrigen,mo);
-            donde='De '+nom(rec.origen)+' a '+nom(rec.destino)+', '+escHtml(cuando);
-            datos+=dato('Salieron',dinero(rec.montoOrigen,mo));
-            datos+=dato('Entraron',dinero(rec.montoDestino,md));
-            datos+=dato('Tasa',escHtml(fmtNum(rec.tasa,rec.tasa<10?3:2))+' por dólar');
+            bloques.push(dato('Salió de',cuentaDet(rec.origen))+dato('Salieron',dinero(rec.montoOrigen,mo))+
+                dato('Entró a',cuentaDet(rec.destino))+dato('Entraron',dinero(rec.montoDestino,md))+
+                dato('Tasa',escHtml(fmtNum(rec.tasa,rec.tasa<10?3:2))+' por dólar')+dato('Cuándo',cuando));
         }else{
             const mo=monedaDeCuenta(rec.origen);
             cifra=dinero(rec.monto,mo);
-            donde='De '+nom(rec.origen)+' a '+nom(rec.destino)+', '+escHtml(cuando);
-            datos+=dato('Monto',dinero(rec.monto,mo));
-            datos+=dato('Comisión',(Number(rec.comision)||0)>0?dinero(rec.comision,mo):'sin comisión');
+            bloques.push(dato('Salió de',cuentaDet(rec.origen))+dato('Entró a',cuentaDet(rec.destino))+
+                dato('Comisión',(Number(rec.comision)||0)>0?dinero(rec.comision,mo):'sin comisión')+dato('Cuándo',cuando));
         }
     }else if(tipo==='lote'){
         cifra=usdtTxt(rec.cantidad,{signo:true});cifraClase='sube';
-        donde='Cargados a mano para el '+escHtml(fmtFechaCorta(rec.fecha||''));
-        datos+=dato('Te salió cada uno a',dinero(rec.precioCompra,rec.moneda||'UYU'));
+        bloques.push(dato('Te salió cada uno a',dinero(rec.precioCompra,rec.moneda||'UYU'))+
+            dato('Cargados a mano para el',escHtml(fmtFechaCorta(rec.fecha||''))));
     }else{
         const mo=monedaDeCuenta(rec.cuenta);
         cifra=dinero(rec.delta,mo,{signo:true});
-        donde='En '+nom(rec.cuenta)+', '+escHtml(cuando);
-        datos+=dato('Diferencia',dinero(rec.delta,mo,{signo:true}));
-        datos+=dato('Motivo',escHtml(rec.motivo||'sin motivo'));
+        bloques.push(dato('Cuenta',cuentaDet(rec.cuenta))+dato('Motivo',escHtml(rec.motivo||'sin motivo'))+dato('Cuándo',cuando));
     }
 
-    let html=cabHoja(titulo,{chico:true})+'<div class="hoja-cuerpo">'+
+    const claseTitulo=tipo==='venta'?'t-venta':tipo==='compra'?'t-compra':'';
+    let html=cabHoja(titulo,{chico:true,clase:claseTitulo})+'<div class="hoja-cuerpo">'+
         '<div class="det-cifra cifra '+cifraClase+' '+tamCifra(cifra,11,14)+'">'+escHtml(cifra)+'</div>'+
-        '<div class="det-donde">'+donde+'</div>'+
-        '<div class="corte"></div>'+datos;
+        htmlEstado(estadoGuardado(rec,fem,elim))+
+        bloques.filter(Boolean).map(b=>'<div class="det-bloque">'+b+'</div>').join('');
     if(!elim){
+        /* Cómo quedó cada cuenta: verde si le entró plata, rojo si le salió */
         const cc=cambiosDeCuentas(ent,rec);
         if(cc.length){
-            html+='<div class="corte" style="margin:14px 0 16px"></div><h3 class="h3">Cómo cambió cada cuenta</h3><div class="det-cuentas">'+
-                cc.map(x=>mono(x.c)+'<span>'+escHtml(nombreCuenta(x.c))+'</span><span><span class="tenue">'+escHtml(montoEnCuenta(x.a,x.c,{unidad:false}))+' → </span><b>'+escHtml(montoEnCuenta(x.d,x.c,{unidad:false}))+'</b></span>').join('')+'</div>';
+            html+='<h3 class="h3 det-sub">Cómo cambió cada cuenta</h3><div class="det-bloque det-cuentas">'+
+                cc.map(x=>{
+                    const d=roundMoney((Number(x.d)||0)-(Number(x.a)||0));
+                    return mono(x.c)+'<span>'+escHtml(nombreCuenta(x.c))+'</span><span><span class="tenue">'+escHtml(montoEnCuenta(x.a,x.c,{unidad:false}))+' → </span>'+
+                        '<b class="'+claseSigno(d)+'">'+escHtml(montoEnCuenta(x.d,x.c,{unidad:false}))+'</b></span>';
+                }).join('')+'</div>';
         }
     }
     const lc=lineasDeCambios(ent,rec);
     if(lc.length){
-        html+='<h3 class="h3" style="margin-top:26px">Cambios</h3><ol class="det-cambios">'+
+        html+='<h3 class="h3 det-sub">Cambios</h3><ol class="det-cambios">'+
             lc.map(l=>'<li><span>'+escHtml(l.cuando)+'</span><span>'+escHtml(l.t)+'</span></li>').join('')+'</ol>';
     }
-    const fem=!(ent==='movimientos'||ent==='lotes');
     const la=fem?'la':'lo';
     if(!elim&&ent!=='lotes')html+='<p class="det-pista solo-tactil">'+ico('desliza')+'<span>En la lista, desliza'+la+' a la derecha para editar'+la+
         ' o a la izquierda para eliminar'+la+'. Lo eliminado queda 30 días en Eliminados.</span></p>';

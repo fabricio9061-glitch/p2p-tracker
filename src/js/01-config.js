@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.0.2',
+    APP_VERSION: '8.0.3',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,14 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.0.3', date:'2026-10-15', headline:'Las operaciones se leen como en Binance, lo que queda en cada cuenta se ve en color y las listas son más compactas.', changes:[
+        {type:'improve', title:'La cuenta, como en Binance', desc:'Al comprar o vender, abajo ves la cantidad total y, colgando de ella, lo liberado (o recibido) y la comisión, con las mismas palabras que el detalle de la orden en Binance. Si tocás la comisión, la cambiás.'},
+        {type:'improve', title:'Cuánto queda en cada cuenta, en color', desc:'"Itaú queda en…" se destaca en verde cuando entra plata y en rojo cuando sale. También al cargar ingresos, egresos y transferencias.'},
+        {type:'improve', title:'El detalle, como el de Binance', desc:'Arriba los USDT que entraron o salieron y si ya está guardado en internet. Después el importe en fiat, el precio, la cantidad total, lo liberado o recibido y la comisión; aparte, la cuenta, la ganancia y cómo cambió cada cuenta.'},
+        {type:'improve', title:'Listas más compactas', desc:'Cada movimiento ocupa menos alto y entran más en la pantalla. La hora va a la derecha del texto, las ventas se ven en rojo y las compras en verde.'},
+        {type:'feature', title:'Ocultar el detalle de hoy', desc:'Debajo de la ganancia de hoy, el spread, las comisiones, ayer y el mes se pueden ocultar y mostrar. La app recuerda cómo los dejaste.'},
+        {type:'improve', title:'Tasas más a mano', desc:'Las últimas tasas van al lado de "Tasa por USDT" y la que estás usando queda marcada.'}
+    ]},
     {version:'8.0.2', date:'2026-10-14', headline:'Inicio más práctico: lo de hoy en una sola tarjeta y todo a la vista sin bajar.', changes:[
         {type:'improve', title:'Todo lo de hoy en una tarjeta', desc:'La ganancia de hoy con la semana al lado y, en la misma tarjeta, el spread, las comisiones y los otros ingresos de hoy, más lo de ayer, el mes y el promedio de 7 días.'},
         {type:'improve', title:'Menos espacio, más a la vista', desc:'La actividad del período en una sola tarjeta, los botones de comprar y vender debajo de ella y las cuentas de a tres. Hasta los botones, todo entra en la primera pantalla.'},
