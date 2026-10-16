@@ -39,7 +39,7 @@ function pintarMas(){
         '</div>'+
         '<h2 class="grupo">Ajustes</h2><div class="bloque">'+
             opc('comision','porcentaje','Comisión de Binance',{valor:escHtml(pctTxt(comisionConfigurada('UYU')))})+
-            opc('categorias','etiqueta','Categorías',{valor:String((d.tags||[]).length)})+
+            opc('categorias','etiqueta','Categorías',{valor:String(Object.keys(catalogoCategorias()).length)})+
             opc('novedades','campana','Novedades',{valor:'versión '+escHtml(CONFIG.APP_VERSION.split('.').slice(0,2).join('.'))})+
         '</div>'+
         '<div class="bloque" style="margin-top:24px">'+opc('salir','salir','Cerrar sesión',{sinFlecha:true})+'</div>'+
@@ -316,24 +316,24 @@ function htmlDona(lista,total,o){
         else if(c.total>=0.005)resto.push(c);
     });
     /* Lo que no tiene color va junto, en gris; si es una sola, con su nombre */
-    if(resto.length)segs.push({nombre:resto.length===1?(resto[0].nombre||'sin categoría'):'Otras',
+    if(resto.length)segs.push({nombre:resto.length===1?resto[0].nombre:'Otras',
         total:roundMoney(resto.reduce((s,c)=>s+c.total,0)),color:'var(--cat-otras)',otras:true});
     const R=48,CIRC=2*Math.PI*R,HUECO=segs.length>1?1.6:0;
     let off=0,arcos='';
     segs.forEach((s,i)=>{
         const largo=total>0?s.total/total*CIRC:0;
         const trazo=Math.max(0.01,largo-HUECO);
-        arcos+='<circle class="dona-seg" data-a="dona-seg" data-n="'+escHtml(s.nombre||'sin categoría')+'" data-v="'+escHtml(dinero(s.total,'UYU'))+'" data-p="'+escHtml(pctTexto(s.total,total))+'"'+
+        arcos+='<circle class="dona-seg" data-a="dona-seg" data-n="'+escHtml(nombreCat(s.nombre))+'" data-v="'+escHtml(dinero(s.total,'UYU'))+'" data-p="'+escHtml(pctTexto(s.total,total))+'"'+
             ' cx="60" cy="60" r="'+R+'" style="stroke:'+s.color+'" stroke-dasharray="'+trazo.toFixed(2)+' '+(CIRC-trazo).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'"/>';
         off+=largo;
     });
-    const resumen=segs.map(s=>(s.nombre||'sin categoría')+' '+pctTexto(s.total,total)).join(', ');
+    const resumen=segs.map(s=>nombreCat(s.nombre)+' '+pctTexto(s.total,total)).join(', ');
     const dona='<div class="dona'+(o.chica?' chica':'')+'" role="img" aria-label="'+escHtml('Egresos: '+dinero(total,'UYU')+'. '+resumen)+'">'+
         '<svg viewBox="0 0 120 120" aria-hidden="true"><g transform="rotate(-90 60 60)">'+arcos+'</g></svg>'+
         '<div class="dona-centro"><b class="cifra" data-r="dona-v">'+escHtml(dinero(total,'UYU'))+'</b><span data-r="dona-t">'+(o.chica?'egresos':'en egresos')+'</span></div></div>';
     const punto=c=>'<span class="punto" style="background:'+(col[c.k]!==undefined?COLORES_CAT[col[c.k]]:'var(--cat-otras)')+'"></span>';
     if(o.chica){
-        const filas=segs.map(s=>'<div class="dona-ley"><span class="punto" style="background:'+s.color+'"></span><span class="n">'+escHtml(s.nombre||'sin categoría')+'</span>'+
+        const filas=segs.map(s=>'<div class="dona-ley"><span class="punto" style="background:'+s.color+'"></span><span class="n">'+escHtml(nombreCat(s.nombre))+'</span>'+
             '<b>'+escHtml(dinero(s.total,'UYU'))+'<small>'+escHtml(pctTexto(s.total,total))+'</small></b></div>').join('');
         return'<div class="dona-fila">'+dona+'<div class="dona-leyenda">'+filas+'</div></div>';
     }
@@ -341,7 +341,7 @@ function htmlDona(lista,total,o){
     const filas=lista.map(c=>{
         const color=col[c.k]!==undefined?COLORES_CAT[col[c.k]]:'var(--cat-otras)';
         const abre=o.accion?'<button type="button" class="cat" data-a="'+o.accion+'" data-cat="'+escHtml(c.nombre)+'">':'<div class="cat">';
-        return abre+'<span class="cat-n">'+punto(c)+'<span>'+escHtml(c.nombre||'sin categoría')+'</span></span>'+
+        return abre+'<span class="cat-n">'+punto(c)+'<span>'+escHtml(nombreCat(c.nombre))+'</span></span>'+
             '<i style="width:'+Math.max(2,Math.round(c.total/mx*100))+'%;background:'+color+'"></i>'+
             '<b>'+dinero(c.total,'UYU')+'<small>'+escHtml(pctTexto(c.total,total))+' · '+c.n+(c.n===1?' vez':' veces')+'</small></b>'+(o.accion?'</button>':'</div>');
     }).join('');
@@ -403,7 +403,7 @@ function pintarEgresosCat(cont){
             if(ant>=0.005&&Math.abs(dif)>=0.005)notas+='<p>'+escHtml(dinero(Math.abs(dif),'UYU'))+(dif>0?' más ':' menos ')+escHtml(r.contra)+'.</p>';
         }
         const masVeces=lista.filter(c=>c.k).sort((a,b)=>b.n-a.n)[0];
-        if(masVeces&&masVeces.n>1&&masVeces.k!==(lista[0]&&lista[0].k))notas+='<p>Lo más seguido: '+escHtml(masVeces.nombre)+' ('+masVeces.n+' veces).</p>';
+        if(masVeces&&masVeces.n>1&&masVeces.k!==(lista[0]&&lista[0].k))notas+='<p>Lo más seguido: '+escHtml(nombreCat(masVeces.nombre))+' ('+masVeces.n+' veces).</p>';
         html+='<div class="bloque dona-bloque">'+d.dona+(notas?'<div class="dona-notas">'+notas+'</div>':'')+'</div>'+
             '<div class="bloque cats">'+d.filas+'</div>'+
             '<p class="texto-ayuda">Tocá una porción de la dona para ver cuánto es, o una categoría para ver sus egresos.</p></div>';
@@ -420,71 +420,180 @@ ACC['cat-periodo']=t=>{
     if(b){const izq=b.offsetLeft-ch.offsetLeft;if(izq<ch.scrollLeft||izq+b.offsetWidth>ch.scrollLeft+ch.clientWidth)ch.scrollLeft=Math.max(0,izq-20)}
 };
 ACC['cat-ver']=t=>{
-    const r=AppState.ui.registro,p=AppState.ui.tagPeriodo||'mes';
-    Object.assign(r,{tipo:'egreso',buscar:t.dataset.cat||'',cuenta:'',dia:'',limite:60,periodo:p==='tres'?'todo':p});
-    cerrarTodasLasCapas();irATab('registro');
+    const p=AppState.ui.tagPeriodo||'mes';
+    verCategoriaEnRegistro(tagKey(t.dataset.cat||''),'egreso',p==='tres'?'todo':p);
 };
 
-/* ─── Categorías ───────────────────────────────────────────────────────── */
+/* ─── Categorías (v8.0.6) ──────────────────────────────────────────────── */
+/* Egresos e ingresos por separado, de la que más se usó este mes a la que
+   menos, con cuánto se gastó (o entró) este mes. Tocando una se ve todo lo
+   que se puede hacer con ella: ver sus movimientos, cambiarle el nombre,
+   pasar sus movimientos a otra o borrarla de verdad. */
 ACC['categorias']=()=>abrirCapa({tipo:'vista',etiqueta:'Categorías',clave:'categorias',
     montar:pintarCategorias,actualizar:pintarCategorias});
-function pintarCategorias(cont){
-    const st=getTagStats();
-    const lista=Object.values(st).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
-    cont.innerHTML=cabVista('Categorías')+'<div class="vista-cuerpo">'+
-        '<div class="buscar-fila" style="margin-top:0"><input class="campo" data-r="nueva" maxlength="24" placeholder="Nueva categoría" autocomplete="off" aria-label="Nueva categoría">'+
-        '<button type="button" class="btn chico" style="width:auto;padding:0 18px" data-a="cat-agregar" data-primario>Agregar</button></div>'+
-        (lista.length?'<div class="bloque" style="margin-top:16px">'+lista.map(c=>
-            '<button type="button" class="opc" data-a="cat-editar" data-cat="'+escHtml(c.nombre)+'">'+ico('etiqueta')+'<span class="t">'+escHtml(c.nombre)+'</span>'+
-            '<span class="v">'+(c.usos?c.usos+(c.usos===1?' uso':' usos'):'sin usar')+'</span>'+ico('sig','ch')+'</button>').join('')+'</div>'
-            :'<div class="bloque vacio" style="margin-top:16px"><b>Todavía no hay categorías</b><p>Se crean solas al cargar un egreso, o agregalas acá.</p></div>')+
-        '</div>';
+/* Los movimientos sin categoría de un tipo: cuántos, cuánto este mes y cuándo fue el último */
+function sinCategoria(tipo){
+    const mes=getUDateStr().slice(0,7),r={k:'',nombre:'',total:0,mes:0,nMes:0,ultima:''};
+    (AppState.datos.movimientos||[]).forEach(m=>{
+        if(!m||m.descripcion||m.tipoMovimiento!==tipo)return;
+        const f=String(m.fecha||'');r.total++;
+        if(f.startsWith(mes)){r.mes=roundMoney(r.mes+movimientoValorUYU(m));r.nMes++}
+        if(f>r.ultima)r.ultima=f;
+    });
+    return r;
 }
-ACC['cat-agregar']=t=>{
-    const c=capaDe(t),inp=c.cont.querySelector('[data-r="nueva"]');
-    const v=normalizarTag(inp.value);
-    if(v.length<2){avisar('Escribí un nombre de al menos 2 letras.',{error:true});return}
-    if((AppState.datos.tags||[]).some(x=>tagKey(x)===tagKey(v))){avisar('Esa categoría ya existe.',{error:true});return}
-    agregarTag(v);inp.value='';invalidarItems();pintarCategorias(c.cont);avisar('Categoría agregada.');
+function pintarCategorias(cont){
+    const ing=AppState.ui.catTipo==='ingreso',tipo=ing?'ingreso':'egreso';
+    const cat=Object.values(catalogoCategorias());
+    const mesDe=c=>ing?c.mesIng:c.mesEg,nMesDe=c=>ing?c.nMesIng:c.nMesEg;
+    const deTipo=cat.filter(c=>ing?c.ingresos>0:c.egresos>0)
+        .sort((a,b)=>(mesDe(b)-mesDe(a))||b.ultima.localeCompare(a.ultima)||a.nombre.localeCompare(b.nombre,'es'));
+    const sinUsar=cat.filter(c=>!c.egresos&&!c.ingresos).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+    const sin=sinCategoria(tipo);
+    /* El punto tiene el mismo color que esa categoría en la dona de este mes */
+    const col=ing?null:coloresDona(deTipo.map(c=>({k:c.k,total:c.mesEg})));
+    const punto=c=>col?'<span class="punto" style="background:'+(col[c.k]!==undefined?COLORES_CAT[col[c.k]]:'var(--cat-otras)')+'"></span>':'';
+    const subDe=(n,ultima)=>n?n+(n===1?' vez':' veces')+' este mes':'La última vez fue el '+fmtFechaCorta(ultima);
+    const fila=c=>{
+        const usada=c.egresos||c.ingresos;
+        return'<button type="button" class="cat-fila" data-a="cat-editar" data-k="'+escHtml(c.k)+'">'+(usada?punto(c):'')+
+            '<span class="cf-t"><b>'+escHtml(nombreCat(c.nombre))+'</b>'+(usada?'<small>'+escHtml(subDe(nMesDe(c),c.ultima))+'</small>':'')+'</span>'+
+            '<span class="cf-v">'+(mesDe(c)>=0.005?escHtml(dinero(mesDe(c),'UYU')):'')+'</span>'+ico('sig','ch')+'</button>';
+    };
+    const total=roundMoney(deTipo.reduce((s,c)=>s+mesDe(c),0)+sin.mes);
+    let html=cabVista('Categorías',{derecha:'<button type="button" class="vista-accion" data-a="cat-nueva">'+ico('sumar')+'<span>Nueva</span></button>'})+
+        '<div class="vista-cuerpo"><div class="segmento ancho" role="tablist" aria-label="Qué categorías ver">'+
+            '<button type="button" role="tab" data-a="cat-tipo" data-tipo="egreso" aria-selected="'+!ing+'">Egresos</button>'+
+            '<button type="button" role="tab" data-a="cat-tipo" data-tipo="ingreso" aria-selected="'+ing+'">Ingresos</button></div>';
+    if(deTipo.length||sin.total){
+        if(total>=0.005)html+='<p class="cat-total">'+(ing?'Este mes tuviste <b>'+escHtml(dinero(total,'UYU'))+'</b> de ingresos.':'Este mes gastaste <b>'+escHtml(dinero(total,'UYU'))+'</b>.')+'</p>';
+        html+='<div class="bloque cat-lista">'+deTipo.map(fila).join('')+
+            /* Los que no tienen categoría, al final: tocándolos se ven para ponerles una */
+            (sin.total?'<button type="button" class="cat-fila sin-cat" data-a="cat-sin" data-tipo="'+tipo+'">'+(col?'<span class="punto"></span>':'')+
+                '<span class="cf-t"><b>Sin categoría</b><small>'+escHtml(subDe(sin.nMes,sin.ultima))+'</small></span>'+
+                '<span class="cf-v">'+(sin.mes>=0.005?escHtml(dinero(sin.mes,'UYU')):'')+'</span>'+ico('sig','ch')+'</button>':'')+'</div>';
+    }else{
+        html+='<div class="bloque vacio cat-vacio"><b>'+(ing?'Todavía no cargaste ingresos':'Todavía no cargaste egresos')+'</b>'+
+            '<p>La categoría que elijas al cargar '+(ing?'un ingreso':'un egreso')+' va a aparecer acá.</p></div>';
+    }
+    if(sinUsar.length)html+='<h2 class="h3 cat-sub">Sin usar</h2><div class="bloque cat-lista">'+sinUsar.map(fila).join('')+'</div>';
+    html+='<p class="texto-ayuda">Tocá una categoría para ver sus movimientos, cambiarle el nombre, pasar sus movimientos a otra o borrarla.</p></div>';
+    cont.innerHTML=html;
+}
+ACC['cat-tipo']=t=>{
+    AppState.ui.catTipo=t.dataset.tipo;
+    const c=capaDe(t);if(!c)return;
+    pintarCategorias(c.cont);c.cont.scrollTop=0;
 };
+
+/* Una categoría: todo lo que se puede hacer con ella */
 ACC['cat-editar']=t=>{
-    const nombre=t.dataset.cat;
-    const otras=(AppState.datos.tags||[]).filter(x=>tagKey(x)!==tagKey(nombre)).sort((a,b)=>a.localeCompare(b,'es'));
-    const usos=(getTagStats()[tagKey(nombre)]||{}).usos||0;
-    abrirCapa({tipo:'hoja',etiqueta:'Categoría',
-        html:cabHoja(mayus(nombre),{chico:true})+'<div class="hoja-cuerpo"><div class="grupo-campos">'+
-            '<div><label class="rotulo" for="ctNombre">Cambiar el nombre</label><div class="buscar-fila" style="margin-top:0">'+
-                '<input class="campo" id="ctNombre" data-r="nombre" maxlength="24" autocomplete="off" value="'+escHtml(nombre)+'">'+
-                '<button type="button" class="btn chico" style="width:auto;padding:0 18px" data-a="cat-renombrar">Guardar</button></div>'+
-                '<p class="nota-campo">Cambia también en '+(usos===1?'el egreso que la usa':'los '+usos+' movimientos que la usan')+'.</p></div>'+
-            (otras.length?'<div><label class="rotulo" for="ctUnir">Unir con otra</label><div class="buscar-fila" style="margin-top:0">'+
-                '<select class="campo" id="ctUnir" data-r="unir">'+otras.map(x=>'<option value="'+escHtml(x)+'">'+escHtml(x)+'</option>').join('')+'</select>'+
-                '<button type="button" class="btn chico gris" style="width:auto;padding:0 18px" data-a="cat-unir">Unir</button></div>'+
-                '<p class="nota-campo">Sus movimientos pasan a la otra y esta desaparece.</p></div>':'')+
-            '<button type="button" class="btn peligro chico" data-a="cat-borrar">'+ico('borrar')+'Borrar categoría</button>'+
-            '<p class="nota-campo" style="margin-top:-8px">Los movimientos que la usan no se borran: conservan el nombre.</p>'+
-        '</div></div>',
-        montar(cont,capa){capa.cat=nombre}});
+    const k=t.dataset.k;
+    abrirCapa({tipo:'hoja',etiqueta:'Categoría',clave:'categoria',
+        montar(cont,capa){capa.k=k;pintarCategoria(cont,capa)},
+        /* Si llega algo de otro dispositivo mientras se escribe o se elige, no se pisa */
+        actualizar(cont,capa){if(!_catEditando(cont))pintarCategoria(cont,capa)}});
 };
-function _trasCambioCategorias(capa,texto){invalidarItems();cerrarCapa(capa);actualizarVista();avisar(texto)}
+function _catEditando(cont){
+    const a=document.activeElement,nom=cont.querySelector('[data-r="nombre"]'),pas=cont.querySelector('[data-r="pasar"]');
+    return!!(a&&cont.contains(a)&&(a.tagName==='INPUT'||a.tagName==='SELECT'))||
+        !!(nom&&nom.value!==nom.defaultValue)||!!(pas&&pas.value);
+}
+function pintarCategoria(cont,capa){
+    const todas=catalogoCategorias(),c=todas[capa.k];
+    if(!c){cont.innerHTML=cabHoja('Categoría',{chico:true})+'<div class="hoja-cuerpo"><div class="vacio"><b>Esta categoría ya no existe</b><p>Se borró o se pasó a otra desde otro dispositivo.</p></div></div>';return}
+    const usos=c.egresos+c.ingresos,nom=nombreCat(c.nombre);
+    const partes=[];
+    if(c.egresos)partes.push(c.egresos+(c.egresos===1?' egreso':' egresos'));
+    if(c.ingresos)partes.push(c.ingresos+(c.ingresos===1?' ingreso':' ingresos'));
+    const resumen=usos?(usos===1?'La usa ':'La usan ')+unirConY(partes)+'.'+(c.ultima?' La última vez fue '+cuandoTexto(c.ultima,'')+'.':''):'Todavía no la usa ningún movimiento.';
+    /* A dónde se pueden pasar: las del mismo tipo y las que no se usaron */
+    const otras=Object.values(todas).filter(x=>x.k!==c.k&&(c.ingresos&&c.egresos||(c.egresos?x.egresos>0:x.ingresos>0)||!x.egresos&&!x.ingresos))
+        .sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+    const sus=usos===1?'su movimiento':'sus '+usos+' movimientos';
+    let h=cabHoja(nom,{chico:true})+'<div class="hoja-cuerpo">'+
+        '<p class="cat-resumen">'+escHtml(resumen)+'</p>'+
+        (usos?'<button type="button" class="btn claro chico cat-ver-movs" data-a="cat-movs">'+ico('registro')+'Ver sus movimientos</button>':'')+
+        '<section class="cat-seccion"><label class="rotulo" for="ctNombre">Nombre</label>'+
+            '<div class="cat-accion"><input class="campo" id="ctNombre" data-r="nombre" maxlength="'+TAG_MAX_LEN+'" autocomplete="off" autocapitalize="sentences" value="'+escHtml(nom)+'" data-in="cat-nombre">'+
+            '<button type="button" class="btn chico" data-a="cat-renombrar" data-r="guardar" data-primario disabled>Guardar</button></div>'+
+            '<p class="nota-campo">'+(usos?'También cambia en '+escHtml(sus)+'. ':'')+'Podés usar mayúsculas y tildes.</p></section>';
+    if(usos&&otras.length){
+        h+='<section class="cat-seccion"><label class="rotulo" for="ctPasar">Pasar sus movimientos a otra</label>'+
+            '<div class="cat-accion"><div class="campo-elegir"><select class="campo" id="ctPasar" data-r="pasar" data-ch="cat-pasar-elegir" required>'+
+                '<option value="" selected disabled>Elegí una categoría</option>'+
+                otras.map(x=>'<option value="'+escHtml(x.k)+'">'+escHtml(nombreCat(x.nombre))+'</option>').join('')+'</select>'+ico('abajo')+'</div>'+
+            '<button type="button" class="btn chico" data-a="cat-pasar" data-r="pasar-btn" disabled>Pasar</button></div>'+
+            '<p class="nota-campo">Sirve para juntar dos categorías: '+escHtml(nom)+' deja de existir y '+(usos===1?'su movimiento queda':'sus movimientos quedan')+' en la que elijas.</p></section>';
+    }
+    h+='<section class="cat-seccion"><button type="button" class="btn peligro chico" data-a="cat-borrar">'+ico('borrar')+'Borrar categoría</button>'+
+        (usos?'<p class="nota-campo">'+(usos===1?'El movimiento no se borra: solo queda sin categoría.':'Los movimientos no se borran: solo quedan sin categoría.')+'</p>':'')+'</section></div>';
+    cont.innerHTML=h;
+}
+/* La categoría de la hoja donde se tocó; si ya no existe, se avisa y se cierra */
+function _catDe(t){
+    const capa=capaDe(t);if(!capa)return{};
+    const cat=catalogoCategorias()[capa.k];
+    if(!cat){avisar('Esta categoría ya no existe.',{error:true});cerrarCapa(capa);return{}}
+    return{capa,cat};
+}
+function _trasCambioCategorias(capa,texto){invalidarItems();invalidarGananciaCache();cerrarCapa(capa);actualizarVista();avisar(texto)}
+ENT['cat-nombre']=el=>{
+    const c=capaDe(el),cat=c&&catalogoCategorias()[c.k];if(!cat)return;
+    const v=nombreDeCategoria(el.value);
+    q(c.cont,'guardar').disabled=v.length<2||v===cat.nombre;
+};
+ENT['cat-pasar-elegir']=el=>{const c=capaDe(el);if(c)q(c.cont,'pasar-btn').disabled=!el.value};
 ACC['cat-renombrar']=t=>{
-    const c=capaDe(t),nuevo=c.cont.querySelector('[data-r="nombre"]').value;
-    if(normalizarTag(nuevo)===c.cat){cerrarCapa(c);return}
-    if(!editarTag(c.cat,nuevo)){avisar('Ese nombre no sirve o ya existe.',{error:true});return}
-    _trasCambioCategorias(c,'Categoría renombrada.');
+    const {capa,cat}=_catDe(t);if(!cat)return;
+    const r=renombrarCategoria(cat.nombre,q(capa.cont,'nombre').value);
+    if(!r.ok){avisar(r.error,{error:true});return}
+    _trasCambioCategorias(capa,'Ahora se llama '+r.nombre+'.');
 };
-ACC['cat-unir']=async t=>{
-    const c=capaDe(t),dest=c.cont.querySelector('[data-r="unir"]').value;
-    const si=await preguntar({titulo:'¿Unir "'+c.cat+'" con "'+dest+'"?',texto:'Todos sus movimientos pasan a "'+dest+'".',si:'Unir'});
-    if(!si)return;
-    if(!mergeTag(c.cat,dest)){avisar('No se pudo unir.',{error:true});return}
-    _trasCambioCategorias(c,'Categorías unidas.');
+ACC['cat-pasar']=async t=>{
+    const {capa,cat}=_catDe(t);if(!cat)return;
+    const dest=catalogoCategorias()[q(capa.cont,'pasar').value];if(!dest)return;
+    const usos=cat.egresos+cat.ingresos,a=nombreCat(cat.nombre),b=nombreCat(dest.nombre);
+    const si=await preguntar({titulo:'¿Pasar '+(usos===1?'su movimiento':'sus '+usos+' movimientos')+' a '+b+'?',
+        texto:a+' deja de existir y '+(usos===1?'su movimiento queda':'sus movimientos quedan')+' en '+b+'.',si:'Pasar'});
+    if(!si||!capa.el.isConnected)return;
+    const r=pasarCategoria(cat.nombre,dest.nombre);
+    if(!r.ok){avisar(r.error,{error:true});return}
+    _trasCambioCategorias(capa,r.n===1?'Listo: el movimiento ahora es de '+b+'.':'Listo: los '+r.n+' movimientos ahora son de '+b+'.');
 };
 ACC['cat-borrar']=async t=>{
-    const c=capaDe(t);
-    const si=await preguntar({titulo:'¿Borrar "'+c.cat+'"?',texto:'Deja de aparecer para elegir. Los movimientos que la usan conservan el nombre.',si:'Borrar',peligro:true});
-    if(!si)return;
-    eliminarTag(c.cat);_trasCambioCategorias(c,'Categoría borrada.');
+    const {capa,cat}=_catDe(t);if(!cat)return;
+    const usos=cat.egresos+cat.ingresos,a=nombreCat(cat.nombre);
+    if(usos){
+        const si=await preguntar({titulo:'¿Borrar '+a+'?',texto:(usos===1?'Su movimiento queda':'Sus '+usos+' movimientos quedan')+' sin categoría. No se borra ningún movimiento.',si:'Borrar',peligro:true});
+        if(!si||!capa.el.isConnected)return;
+    }
+    borrarCategoria(cat.nombre);
+    _trasCambioCategorias(capa,'Se borró '+a+'.');
+};
+/* Al registro, solo con los movimientos de esa categoría (de todas las fechas) */
+function verCategoriaEnRegistro(k,tipo,periodo){
+    Object.assign(AppState.ui.registro,{tipo:tipo||'todo',categoria:k,buscar:'',cuenta:'',dia:'',periodo:periodo||'todo',limite:REG_PAGINA});
+    const inp=$('regBuscar');if(inp)inp.value='';
+    cerrarTodasLasCapas();irATab('registro');
+}
+ACC['cat-movs']=t=>{
+    const {cat}=_catDe(t);if(!cat)return;
+    verCategoriaEnRegistro(cat.k,cat.egresos&&!cat.ingresos?'egreso':cat.ingresos&&!cat.egresos?'ingreso':'todo');
+};
+ACC['cat-sin']=t=>verCategoriaEnRegistro('',t.dataset.tipo);
+ACC['cat-nueva']=()=>abrirCapa({tipo:'hoja',etiqueta:'Nueva categoría',clave:'cat-nueva',
+    html:cabHoja('Nueva categoría',{chico:true})+'<div class="hoja-cuerpo"><label class="rotulo" for="ctNueva">Nombre</label>'+
+        '<div class="cat-accion"><input class="campo" id="ctNueva" data-r="nueva" maxlength="'+TAG_MAX_LEN+'" autocomplete="off" autocapitalize="sentences" placeholder="Por ejemplo, Barbería">'+
+        '<button type="button" class="btn chico" data-a="cat-agregar" data-primario>Agregar</button></div>'+
+        '<p class="nota-campo">También se crean solas cuando cargás un egreso o un ingreso con una categoría nueva.</p></div>'});
+ACC['cat-agregar']=t=>{
+    const c=capaDe(t);if(!c)return;
+    const v=nombreDeCategoria(q(c.cont,'nueva').value);
+    if(v.length<2){avisar('Escribí un nombre de al menos 2 letras.',{error:true});return}
+    if(_existeCategoria(tagKey(v))){avisar('Ya hay una categoría con ese nombre.',{error:true});return}
+    agregarTag(v);
+    _trasCambioCategorias(c,'Se agregó '+v+'.');
 };
 
 /* ─── Verificar que todo cuadre ────────────────────────────────────────── */

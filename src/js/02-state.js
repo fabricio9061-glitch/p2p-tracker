@@ -14,7 +14,7 @@ const AppState = {
     /* Estado de la pantalla: qué se está viendo y los filtros elegidos.
        No se guarda en ningún lado. */
     ui: { tab:'inicio', syncState:'offline',
-          registro:{tipo:'todo',periodo:'mes',cuenta:'',buscar:'',dia:'',limite:60},
+          registro:{tipo:'todo',periodo:'mes',cuenta:'',buscar:'',dia:'',categoria:null,limite:60},
           tagPeriodo:'mes' }
 };
 

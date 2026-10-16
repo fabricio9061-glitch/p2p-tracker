@@ -453,6 +453,8 @@ function fueEditado(rec){
     return Array.isArray(rec&&rec.cambios)&&rec.cambios.some(c=>itemsDeCambio(c).some(x=>x.f!=='recuperado'&&x.f!=='copia'));
 }
 function tituloCategoria(desc,porDefecto){return desc?mayus(desc):porDefecto}
+/* v8.0.6 — Una categoría, como se muestra en todos lados */
+function nombreCat(s){return s?mayus(s):'sin categoría'}
 function itemRegistro(ent,rec){
     const tipo=tipoDeRegistro(ent,rec);
     const it={ent,id:rec.id,rec,tipo,fecha:rec.fecha||'',hora:rec.hora||'',clave:_claveOrden(rec),

@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.0.5',
+    APP_VERSION: '8.0.6',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,13 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.0.6', date:'2026-10-16', headline:'Las categorías, rehechas: egresos e ingresos por separado y todo lo que se puede hacer con cada una.', changes:[
+        {type:'improve', title:'Como las escribís', desc:'Los nombres quedan con mayúscula y tildes: "Barbería", no "barberia". Si escribís una que ya existe de otra forma, se usa la que ya está.'},
+        {type:'feature', title:'Egresos e ingresos por separado', desc:'En Categorías elegís Egresos o Ingresos. Cada una muestra cuánto sumó este mes y cuántas veces, de la que más a la que menos, con el mismo color que en la dona.'},
+        {type:'feature', title:'Todo desde la categoría', desc:'Al tocar una, ves sus movimientos, le cambiás el nombre (también en sus movimientos), pasás sus movimientos a otra para juntarlas o la borrás de verdad: sus movimientos quedan sin categoría y no vuelve a aparecer.'},
+        {type:'improve', title:'Al cargar, las que corresponden', desc:'Al cargar un egreso solo aparecen las categorías de egresos, y al cargar un ingreso, las de ingresos.'},
+        {type:'fix', title:'Ver los de una categoría', desc:'"Ver sus movimientos" y la lista de la dona muestran justo esa categoría: "Comida" ya no trae también "Comida / Salidas". El filtro se ve arriba del registro y se quita tocándolo.'}
+    ]},
     {version:'8.0.5', date:'2026-10-15', headline:'Vuelven las donas: en qué gastaste hoy, en la semana o en el mes.', changes:[
         {type:'feature', title:'Las donas de egresos', desc:'En Egresos por categoría, una dona muestra en qué se fue la plata y qué porcentaje es cada categoría. Si tocás una porción, ves cuánto es. Se puede ver hoy, 7 días, este mes, el mes pasado, 3 meses o todo. El resumen del mes también la trae.'},
         {type:'feature', title:'En qué gastaste cada día', desc:'En el calendario, el día que tocás muestra su dona de egresos. En el inicio, "En qué gastaste" te lleva a los egresos de hoy.'},

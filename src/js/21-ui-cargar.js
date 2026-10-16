@@ -429,14 +429,21 @@ ACC['op-guardar']=async t=>{
 };
 
 /* ═══ Ingresos y egresos ═════════════════════════════════════════════════ */
+/* Si la categoría ya existe (aunque se escriba distinto), se usa esa; si
+   no, la nueva queda como se escribió, con la primera letra en mayúscula */
 function categoriaCanonica(txt){
     const t=normalizarTag(txt||'');if(!t)return'';
-    const ex=(AppState.datos.tags||[]).find(x=>tagKey(x)===tagKey(t));
-    return ex||stripAccents(t).toLowerCase();
+    const ex=catalogoCategorias()[tagKey(t)];
+    return ex?ex.nombre:nombreDeCategoria(t);
 }
-function categoriasOrdenadas(){
-    const st=getTagStats();
-    return Object.values(st).sort((a,b)=>(b.usos-a.usos)||a.nombre.localeCompare(b.nombre,'es')).map(x=>x.nombre);
+/* v8.0.6 — Al cargar un egreso se ofrecen las categorías de egresos y al
+   cargar un ingreso las de ingresos (más las que todavía no se usaron), de
+   la más usada a la menos usada. */
+function categoriasPara(tipo){
+    const cat=catalogoCategorias();
+    return Object.values(cat).filter(c=>tipo==='ingreso'?(c.ingresos>0||!c.egresos):(c.egresos>0||!c.ingresos))
+        .sort((a,b)=>((tipo==='ingreso'?b.ingresos-a.ingresos:b.egresos-a.egresos))||a.nombre.localeCompare(b.nombre,'es'))
+        .map(c=>c.nombre);
 }
 function abrirMovimiento(o){
     o=o||{};
@@ -499,12 +506,12 @@ function mvPintarCuentas(capa){
     q(capa.cont,'cuentas').innerHTML=tilesCuentas(lista,st.cuenta,{accion:'mv-cuenta'});
 }
 function mvPintarCategorias(capa){
-    const st=capa.st,todas=categoriasOrdenadas();
+    const st=capa.st,todas=categoriasPara(st.tipo);
     const elegida=st.desc&&!st.nuevaCat?st.desc:'';
     let visibles=st.todas?todas:todas.slice(0,8);
     if(elegida&&!visibles.some(x=>tagKey(x)===tagKey(elegida)))visibles=[elegida,...visibles];
     q(capa.cont,'cats').innerHTML='<div class="pastillas">'+visibles.map(c=>
-        '<button type="button" class="pastilla" data-a="mv-cat" data-cat="'+escHtml(c)+'" aria-pressed="'+(!!elegida&&tagKey(c)===tagKey(elegida))+'">'+escHtml(c)+'</button>').join('')+
+        '<button type="button" class="pastilla" data-a="mv-cat" data-cat="'+escHtml(c)+'" aria-pressed="'+(!!elegida&&tagKey(c)===tagKey(elegida))+'">'+escHtml(nombreCat(c))+'</button>').join('')+
         (!st.todas&&todas.length>8?'<button type="button" class="pastilla nueva" data-a="mv-cat-todas">Ver todas ('+todas.length+')</button>':'')+
         '<button type="button" class="pastilla nueva" data-a="mv-cat-nueva" aria-pressed="'+st.nuevaCat+'">Nueva</button></div>';
     q(capa.cont,'cat-nueva').classList.toggle('hidden',!st.nuevaCat);

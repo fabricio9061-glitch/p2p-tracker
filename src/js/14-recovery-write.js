@@ -22,7 +22,7 @@ function cerrarSesion(){
         _syncQueue.length=0;
         /* La pantalla vuelve a cero */
         cerrarTodasLasCapas();
-        Object.assign(AppState.ui.registro,{tipo:'todo',periodo:'mes',cuenta:'',buscar:'',dia:'',limite:60});
+        Object.assign(AppState.ui.registro,{tipo:'todo',periodo:'mes',cuenta:'',buscar:'',dia:'',categoria:null,limite:60});
         AppState.ui.verificacion=null;AppState.ui.hayNovedad=false;AppState.ui.todosLosLotes=false;
         AppState.ui._noticiasInicializadas=false;
         irATab('inicio',{sinHistoria:true});

@@ -34,9 +34,13 @@ function filtrarRegistro(){
     const r=AppState.ui.registro;
     const[desde,hasta]=rangoRegistro(r);
     const q=tagKey(String(r.buscar||'').trim());
+    /* v8.0.6 — Una categoría exacta (desde Categorías o la dona): "Comida" no
+       trae "Comida / Salidas". La clave vacía son los que no tienen categoría. */
+    const cat=typeof r.categoria==='string'?r.categoria:null;
     return itemsDelRegistro().filter(it=>{
         if(r.tipo==='operaciones'){if(!esOperacion(it))return false}
         else if(r.tipo!=='todo'&&it.tipo!==r.tipo)return false;
+        if(cat!==null&&(!(it.tipo==='ingreso'||it.tipo==='egreso')||tagKey(it.rec.descripcion||'')!==cat))return false;
         if(it.fecha<desde||it.fecha>hasta)return false;
         if(r.cuenta){
             if(r.cuenta==='USDT'){if(!(it.ent==='operaciones'||(it.ent==='movimientos'&&it.rec.tipoCuenta==='usdt')))return false}
@@ -78,8 +82,16 @@ function pintarRegistro(){
             '<button type="button" class="chip" data-a="reg-tipo" data-tipo="'+k+'" aria-pressed="'+(r.tipo===k)+'">'+t+'</button>').join('')+'</div>'+
         (r.tipo==='eliminados'?'':'<div class="selectores">'+
             '<button type="button" class="selector" data-a="reg-periodo"><span>'+escHtml(etiquetaPeriodo(r))+'</span>'+ico('abajo')+'</button>'+
-            '<button type="button" class="selector" data-a="reg-cuenta"><span>'+escHtml(r.cuenta?nombreCuenta(r.cuenta):'Todas las cuentas')+'</span>'+ico('abajo')+'</button></div>');
-    const chips=f.querySelector('.chips');if(chips)chips.scrollLeft=sl;
+            '<button type="button" class="selector" data-a="reg-cuenta"><span>'+escHtml(r.cuenta?nombreCuenta(r.cuenta):'Todas las cuentas')+'</span>'+ico('abajo')+'</button>'+
+            (typeof r.categoria==='string'?'<button type="button" class="selector filtro" data-a="reg-sin-cat" aria-label="'+escHtml('Ver todas las categorías, no solo '+nombreDeClave(r.categoria))+'">'+
+                '<span>'+escHtml(mayus(nombreDeClave(r.categoria)))+'</span>'+ico('cerrar')+'</button>':'')+'</div>');
+    const chips=f.querySelector('.chips');
+    if(chips){
+        chips.scrollLeft=sl;
+        /* v8.0.6 — Que el tipo elegido se vea (al llegar desde Categorías quedaba fuera de la fila) */
+        const b=chips.querySelector('[aria-pressed="true"]');
+        if(b){const izq=b.offsetLeft-chips.offsetLeft;if(izq<chips.scrollLeft||izq+b.offsetWidth>chips.scrollLeft+chips.clientWidth)chips.scrollLeft=Math.max(0,izq-20)}
+    }
 
     if(r.tipo==='eliminados'){cuerpo.innerHTML=htmlEliminados();return}
 
@@ -133,15 +145,21 @@ ACC['reg-tipo']=t=>{
     const r=AppState.ui.registro;
     r.tipo=t.dataset.tipo||'todo';r.limite=REG_PAGINA;
     pintarRegistro();
-    const b=$('registroFiltros').querySelector('[aria-pressed="true"]');
-    if(b&&b.scrollIntoView)b.scrollIntoView({block:'nearest',inline:'nearest'});
 };
 ACC['reg-mas']=()=>{AppState.ui.registro.limite=(AppState.ui.registro.limite||REG_PAGINA)+REG_PAGINA;pintarRegistro()};
 ACC['reg-limpiar']=()=>{
-    Object.assign(AppState.ui.registro,{tipo:'todo',periodo:'todo',cuenta:'',buscar:'',dia:'',limite:REG_PAGINA});
+    Object.assign(AppState.ui.registro,{tipo:'todo',periodo:'todo',cuenta:'',buscar:'',dia:'',categoria:null,limite:REG_PAGINA});
     const inp=$('regBuscar');if(inp)inp.value='';
     pintarRegistro();
 };
+/* El nombre de una categoría a partir de su clave, como se muestra */
+function nombreDeClave(k){
+    if(!k)return'sin categoría';
+    const t=(AppState.datos.tags||[]).find(x=>tagKey(x)===k);if(t)return t;
+    const m=(AppState.datos.movimientos||[]).find(x=>x&&x.descripcion&&tagKey(x.descripcion)===k);
+    return m?m.descripcion:k;
+}
+ACC['reg-sin-cat']=()=>{const r=AppState.ui.registro;r.categoria=null;r.limite=REG_PAGINA;pintarRegistro()};
 let _regBuscarT=0;
 ACC['reg-buscar']=t=>{
     const fila=$('regBuscarFila'),inp=$('regBuscar');
@@ -191,7 +209,7 @@ ACC['reg-cuenta-elegir']=t=>{
     cerrarCapa(capaDe(t));pintarRegistro();
 };
 ACC['ver-eliminados']=t=>{
-    const r=AppState.ui.registro;r.tipo='eliminados';
+    const r=AppState.ui.registro;r.tipo='eliminados';r.categoria=null;
     cerrarTodasLasCapas();irATab('registro');
 };
 
@@ -403,7 +421,7 @@ function htmlDetalle(ent,rec,o){
         const cuenta=it.cuentas[0]||'';
         cifra=montoEnCuenta(tipo==='ingreso'?rec.monto:-rec.monto,cuenta,{signo:tipo==='ingreso'});
         let b=dato(tipo==='ingreso'?'Entró a':'Salió de',cuentaDet(cuenta));
-        b+=dato('Categoría',escHtml(rec.descripcion||'sin categoría'));
+        b+=dato('Categoría',escHtml(nombreCat(rec.descripcion)));
         if(rec.nota)b+=dato('Nota',escHtml(rec.nota));
         b+=dato('Cuándo',cuando);
         if(cuenta==='USDT'&&tipo==='ingreso'&&rec.tasaRef>0)b+=dato('Te salió cada uno a',dinero(rec.tasaRef,'UYU'));
