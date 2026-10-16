@@ -281,7 +281,7 @@ ACC['sync-reintentar']=()=>{
 /* Ir al registro de un día puntual (desde el gráfico o "Ver los movimientos de hoy") */
 ACC['ir-dia']=t=>{
     const r=AppState.ui.registro;
-    r.dia=t.dataset.fecha||'';r.tipo=t.dataset.tipo||'todo';r.cuenta='';r.buscar='';r.limite=60;
+    r.dia=t.dataset.fecha||'';r.tipo=t.dataset.tipo||'todo';r.cuenta='';r.buscar='';r.categoria=null;r.limite=60;
     const inp=$('regBuscar');if(inp)inp.value='';
     cerrarTodasLasCapas();
     irATab('registro');

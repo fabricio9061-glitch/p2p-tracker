@@ -198,6 +198,9 @@ button.rc-fila:active{background:var(--papel-2)}
 .buscar-fila .campo{background:var(--blanco)}
 .filtros{margin-top:14px}
 .selectores{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+/* v8.0.6 — Filtro por una categoría: oscuro para que se note; tocarlo lo quita */
+.selector.filtro{background:var(--tinta);color:var(--blanco)}
+.selector.filtro .i{width:14px;height:14px;stroke-width:2.6;color:var(--blanco);opacity:.75}
 .resumen-reg{display:grid;grid-template-columns:minmax(0,1fr) auto;row-gap:6px;margin-top:14px;padding:14px 16px;font-size:14.5px;font-variant-numeric:tabular-nums}
 .resumen-reg>span{color:var(--tenue)}
 .resumen-reg>b{font-weight:650;text-align:right}
@@ -358,6 +361,42 @@ button.rc-fila:active{background:var(--papel-2)}
 .dona-ley b{font-weight:650;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .dona-ley small{display:block;font-size:11.5px;font-weight:450;color:var(--tenue)}
 @media (prefers-reduced-motion:reduce){.dona-seg{transition:none}}
+
+/* v8.0.6 — Categorías: egresos e ingresos por separado, con lo de este mes */
+.vista-accion{flex:none;margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:40px;padding:0 15px 0 11px;border:none;border-radius:20px;background:var(--blanco);font-size:14.5px;font-weight:650;color:var(--tinta)}
+.vista-accion .i{width:18px;height:18px;stroke-width:2.3}
+.segmento.ancho{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));background:var(--papel-2)}
+.segmento.ancho button{padding:0 8px}
+.cat-total{margin:16px 4px 10px;font-size:15px;line-height:1.4;color:var(--tinta-2)}
+.cat-total b{font-weight:720;color:var(--tinta);font-variant-numeric:tabular-nums}
+.cat-lista{padding:2px 0}
+.cat-total+.cat-lista{margin-top:0}
+.segmento+.cat-lista{margin-top:16px}
+.cat-sub{margin:24px 4px 8px}
+.cat-vacio{margin-top:16px}
+.cat-fila{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:9px 12px 9px 16px;border:none;background:none;text-align:left;color:var(--tinta)}
+.cat-fila+.cat-fila{border-top:1px solid var(--linea)}
+.cat-fila .punto{width:10px;height:10px}
+.cf-t{flex:1 1 auto;min-width:0}
+.cf-t b{display:block;font-size:15.5px;font-weight:620;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cf-t small{display:block;margin-top:2px;font-size:12.5px;color:var(--tenue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cf-v{flex:none;font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cf-v:empty{display:none}
+.cat-fila .ch{flex:none;width:16px;height:16px;stroke-width:2.4;color:var(--apagado)}
+/* Sin categoría: al final y con un punto vacío, porque no es una categoría */
+.cat-fila.sin-cat .punto{background:none;box-shadow:inset 0 0 0 1.5px var(--borde-3)}
+.cat-fila.sin-cat .cf-t b{font-weight:560;color:var(--tinta-2)}
+/* Hoja de una categoría */
+.cat-resumen{font-size:15px;line-height:1.45;color:var(--tinta-2)}
+.cat-ver-movs{margin-top:14px}
+.cat-seccion{margin-top:20px;padding-top:18px;border-top:1px solid var(--linea)}
+.cat-accion{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.cat-accion .btn{width:auto;min-width:96px;height:50px;padding:0 18px}
+.campo-elegir{position:relative;min-width:0}
+.campo-elegir .campo{padding-right:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.campo-elegir select:invalid{color:var(--apagado);font-weight:500}
+.campo-elegir option{color:var(--tinta)}
+.campo-elegir>.i{position:absolute;right:14px;top:50%;width:16px;height:16px;margin-top:-8px;stroke-width:2.2;color:var(--tenue);pointer-events:none}
 
 .calendario{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:16px}
 .calendario .cab-dia{font-size:12px;font-weight:650;color:var(--tenue);text-align:center;padding-bottom:4px}

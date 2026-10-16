@@ -587,13 +587,17 @@ function stripAccents(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,''
 function tagKey(t){return stripAccents(t).toLowerCase()}
 
 
+/* v8.0.6 — Los nombres se guardan como se escriben, con tildes y la primera
+   letra en mayúscula ("Barbería"). Antes se pasaban a minúscula y sin tildes
+   ("barberia"). Para comparar se siguen ignorando mayúsculas y tildes: así
+   "barberia" y "Barbería" son la misma categoría. */
+function nombreDeCategoria(t){const n=normalizarTag(t);return n?n.charAt(0).toUpperCase()+n.slice(1):''}
+function _ordenarCategorias(){AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'))}
 function agregarTag(texto){
-    const raw=normalizarTag(texto);if(!raw||raw.length<2)return;
-    /* Always store lowercase, accent-stripped */
-    const t=stripAccents(raw).toLowerCase();
+    const t=nombreDeCategoria(texto);if(!t||t.length<2)return;
     const key=tagKey(t);
     const existe=AppState.datos.tags.find(x=>tagKey(x)===key);
-    if(!existe){AppState.datos.tags.push(t);AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'));_guardarCambioDeCategorias([])}
+    if(!existe){AppState.datos.tags.push(t);_ordenarCategorias();_guardarCambioDeCategorias([])}
 }
 /* ═══ v7.3.0 — Cambiar una categoría se guarda de verdad ═══
    Las categorías viven en el documento de configuración, pero el nombre que
@@ -605,53 +609,78 @@ function _guardarCambioDeCategorias(idsAjustes){
     (idsAjustes||[]).forEach(id=>enqueueSync('update','movimientos',id));
     guardaOptimista('update','tags','categorias');
 }
-function eliminarTag(texto){
-    AppState.datos.tags=AppState.datos.tags.filter(t=>tagKey(t)!==tagKey(texto));
-    _guardarCambioDeCategorias([]);
+/* ═══ v8.0.6 — Cambiar, pasar y borrar categorías de verdad ═══
+   Una categoría existe si está en la lista o si algún movimiento la usa
+   (antes, "borrar" la sacaba de la lista pero los movimientos la seguían
+   usando y volvía a aparecer en los gráficos). Estas tres funciones tocan la
+   lista y los movimientos a la vez, y suben los movimientos que cambiaron. */
+function _existeCategoria(k){
+    return(AppState.datos.tags||[]).some(t=>tagKey(t)===k)||
+        (AppState.datos.movimientos||[]).some(m=>m&&m.descripcion&&tagKey(m.descripcion)===k);
 }
-function editarTag(viejo,nuevo){
-    const nv=normalizarTag(nuevo);if(!nv||nv.length<2)return false;
-    const nvKey=tagKey(nv),vjKey=tagKey(viejo);
-    const dup=AppState.datos.tags.find(t=>tagKey(t)===nvKey&&tagKey(t)!==vjKey);
-    if(dup)return false;
-    const idx=AppState.datos.tags.findIndex(t=>tagKey(t)===vjKey);
+/* Cambiar el nombre, también en sus movimientos. Sirve para corregir
+   mayúsculas o tildes de la misma ("barberia" → "Barbería"). */
+function renombrarCategoria(viejo,nuevo){
+    const nv=nombreDeCategoria(nuevo);
+    if(!nv||nv.length<2)return{ok:false,error:'Escribí un nombre de al menos 2 letras.'};
+    const vk=tagKey(viejo),nk=tagKey(nv);
+    if(nk!==vk&&_existeCategoria(nk))return{ok:false,error:'Ya hay una categoría con ese nombre. Para juntarlas, usá "Pasar sus movimientos a otra".'};
     const tocados=[];
-    if(idx>=0){
-        AppState.datos.tags[idx]=nv;AppState.datos.tags.sort((a,b)=>a.localeCompare(b,'es'));
-        AppState.datos.movimientos.forEach(m=>{
-            if(m.descripcion&&tagKey(m.descripcion)===vjKey){m.descripcion=nv;tocados.push(m.id)}
-        });
-    }
-    _guardarCambioDeCategorias(tocados);
-    return true;
-}
-function mergeTag(origen,destino){
-    /* Fusionar: todas las refs de origen → destino, luego eliminar origen */
-    const orKey=tagKey(origen),dsKey=tagKey(destino);
-    if(orKey===dsKey)return false;
-    if(!AppState.datos.tags.some(t=>tagKey(t)===dsKey))return false;
-    const tocados=[];
-    const nombre=AppState.datos.tags.find(t=>tagKey(t)===dsKey)||destino;
-    AppState.datos.movimientos.forEach(m=>{
-        if(m.descripcion&&tagKey(m.descripcion)===orKey){m.descripcion=nombre;tocados.push(m.id)}
+    (AppState.datos.movimientos||[]).forEach(m=>{
+        if(m&&m.descripcion&&tagKey(m.descripcion)===vk&&m.descripcion!==nv){m.descripcion=nv;tocados.push(m.id)}
     });
-    AppState.datos.tags=AppState.datos.tags.filter(t=>tagKey(t)!==orKey);
+    AppState.datos.tags=(AppState.datos.tags||[]).filter(t=>tagKey(t)!==vk);
+    AppState.datos.tags.push(nv);_ordenarCategorias();
     _guardarCambioDeCategorias(tocados);
-    return true;
+    return{ok:true,n:tocados.length,nombre:nv};
+}
+/* Pasar todos los movimientos de una categoría a otra; la primera deja de existir */
+function pasarCategoria(origen,destino){
+    const ok=tagKey(origen),dk=tagKey(destino||'');
+    if(!dk||ok===dk)return{ok:false,error:'Elegí otra categoría.'};
+    const nombre=(AppState.datos.tags||[]).find(t=>tagKey(t)===dk)||
+        ((AppState.datos.movimientos||[]).find(m=>m&&m.descripcion&&tagKey(m.descripcion)===dk)||{}).descripcion||nombreDeCategoria(destino);
+    const tocados=[];
+    (AppState.datos.movimientos||[]).forEach(m=>{
+        if(m&&m.descripcion&&tagKey(m.descripcion)===ok){m.descripcion=nombre;tocados.push(m.id)}
+    });
+    AppState.datos.tags=(AppState.datos.tags||[]).filter(t=>tagKey(t)!==ok);
+    if(!AppState.datos.tags.some(t=>tagKey(t)===dk))AppState.datos.tags.push(nombre);
+    _ordenarCategorias();
+    _guardarCambioDeCategorias(tocados);
+    return{ok:true,n:tocados.length,nombre};
+}
+/* Borrar de verdad: deja de existir y sus movimientos quedan sin categoría */
+function borrarCategoria(nombre){
+    const k=tagKey(nombre),tocados=[];
+    (AppState.datos.movimientos||[]).forEach(m=>{
+        if(m&&m.descripcion&&tagKey(m.descripcion)===k){m.descripcion='';tocados.push(m.id)}
+    });
+    AppState.datos.tags=(AppState.datos.tags||[]).filter(t=>tagKey(t)!==k);
+    _ordenarCategorias();
+    _guardarCambioDeCategorias(tocados);
+    return{ok:true,n:tocados.length};
 }
 
-/* Conteo de usos y tipo dominante por tag */
-function getTagStats(){
-    const stats={};
-    (AppState.datos.tags||[]).forEach(t=>{stats[tagKey(t)]={nombre:t,usos:0,ingresos:0,egresos:0}});
-    AppState.datos.movimientos.forEach(m=>{
-        if(!m.descripcion)return;
-        const k=tagKey(m.descripcion),s=stats[k];
-        if(!s)return;
-        s.usos++;
-        if(m.tipoMovimiento==='ingreso')s.ingresos++;else s.egresos++;
+/* v8.0.6 — Todas las categorías: las de la lista y las que solo aparecen en
+   movimientos. Para cada una: cuántos egresos e ingresos la usan, cuánto
+   suman este mes y la fecha de la última vez. Las claves ignoran mayúsculas
+   y tildes. */
+function catalogoCategorias(){
+    const mes=getUDateStr().slice(0,7),cat={};
+    const alta=n=>{const k=tagKey(n);return cat[k]||(cat[k]={k,nombre:n,enLista:false,egresos:0,ingresos:0,mesEg:0,mesIng:0,nMesEg:0,nMesIng:0,ultima:''})};
+    (AppState.datos.tags||[]).forEach(t=>{if(t){const c=alta(t);c.enLista=true;c.nombre=t}});
+    (AppState.datos.movimientos||[]).forEach(m=>{
+        if(!m||!m.descripcion)return;
+        const c=alta(m.descripcion),eg=m.tipoMovimiento==='egreso',f=String(m.fecha||'');
+        if(eg)c.egresos++;else c.ingresos++;
+        if(f.startsWith(mes)){
+            const v=movimientoValorUYU(m);
+            if(eg){c.mesEg=roundMoney(c.mesEg+v);c.nMesEg++}else{c.mesIng=roundMoney(c.mesIng+v);c.nMesIng++}
+        }
+        if(f>c.ultima)c.ultima=f;
     });
-    return stats;
+    return cat;
 }
 /* ═══ v7.3.0 — Tasas rápidas desde las operaciones reales ═══
    Se guardaba una lista aparte, a la que se agregaba cada tasa al cargar una

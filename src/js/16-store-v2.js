@@ -727,9 +727,20 @@ async function v2Guardar(forzar){
         if(!navigator.onLine){setSyncStatus('offline','Sin conexión');throw{code:'offline-deferred'}}
         try{if(typeof backupToLocal==='function')backupToLocal()}catch(_){}
         const nueva=Math.max(AppState._localVersion||0,AppState._versionServidor||0)+1;
-        const evRef=_v2EvRef(),batch=AppState.db.batch();
-        plan.sets.forEach(x=>batch.set(evRef.doc(x.id),x.data));
-        plan.deletes.forEach(id=>batch.delete(evRef.doc(id)));
+        const evRef=_v2EvRef();
+        /* v8.0.6 — Firestore acepta hasta 500 escrituras por vez. Si hay más
+           (por ejemplo, al cambiar el nombre de una categoría muy usada), los
+           movimientos suben en tandas y el estado va con la última. Si una tanda
+           falla, todo sigue en la cola y se vuelve a mandar (escribir lo mismo
+           dos veces no cambia nada). */
+        const ops=[...plan.sets.map(x=>({x})),...plan.deletes.map(id=>({id}))];
+        while(ops.length>V2_BATCH_MAX-1){
+            const tanda=ops.splice(0,V2_BATCH_MAX),b=AppState.db.batch();
+            tanda.forEach(o=>o.x?b.set(evRef.doc(o.x.id),o.x.data):b.delete(evRef.doc(o.id)));
+            await _v2ConTimeout(b.commit(),30000,'escritura');
+        }
+        const batch=AppState.db.batch();
+        ops.forEach(o=>o.x?batch.set(evRef.doc(o.x.id),o.x.data):batch.delete(evRef.doc(o.id)));
         const estado=v2ExtraerEstado(AppState.datos,nueva);
         estado.ultimaActualizacion=firebase.firestore.FieldValue.serverTimestamp();
         /* ═══ v5.2.2 — SIN merge ═══
