@@ -400,11 +400,18 @@ ACC['op-pct']=t=>{
     setTimeout(()=>{try{inp.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}},30);
 };
 ACC['op-cuando']=t=>cambiarCuando(capaDe(t));
+/* "¿Solo esta orden o siempre?" — true si es para siempre */
+function preguntarComision(pct,defecto,moneda){
+    const mon=moneda==='USD'?'dólares':'pesos',p=x=>pctTxt(x).replace(' %','\u00a0%');
+    return preguntar({titulo:'¿'+p(pct)+' solo en esta orden o siempre?',
+        texto:'Siempre: las próximas órdenes en '+mon+' también van con '+p(pct)+'. Hasta ahora era '+p(defecto)+'.',
+        si:'Siempre',no:'Solo esta orden'});
+}
 ACC['op-guardar']=async t=>{
     const capa=capaDe(t),st=capa.st;
     if(st.guardando)return;
     const v=opLeer(capa);
-    if(v.pctInvalida){st.hayError=true;st.extra=true;opPintarTodo(capa);mostrarError(capa,'Revisá la comisión de Binance: tiene que ser un número entre 0 y 5.','comisiones');return}
+    if(v.pctInvalida||(!v.pctVacia&&v.pct>5)){st.hayError=true;st.extra=true;opPintarTodo(capa);mostrarError(capa,'Revisá la comisión de Binance: tiene que ser un número entre 0 y 5.','comisiones');return}
     let aportes=null;
     if(st.dividir){
         aportes=opAportes(capa,v);
@@ -415,11 +422,30 @@ ACC['op-guardar']=async t=>{
              ...(st.fecha?{fecha:st.fecha,hora:st.hora}:{})};
     st.guardando=true;t.disabled=true;
     try{
+        /* v8.1.0 — En una orden nueva con otra comisión que la de siempre, se
+           pregunta si es solo para esta orden o para todas las de esa moneda.
+           La respuesta se recuerda por si hay que corregir algo y volver a guardar. */
+        const defecto=comisionConfigurada(v.mon);
+        let siempre=false;
+        const completa=v.monto>0&&v.tasa>0&&(st.dividir||!!st.cuenta);   /* si falta algo, primero se avisa eso */
+        if(completa&&!st.id&&!v.pctVacia&&Math.abs(v.pct-defecto)>1e-9){
+            if(st.comisionRespondida&&Math.abs(st.comisionRespondida.pct-v.pct)<1e-9)siempre=st.comisionRespondida.siempre;
+            else{
+                siempre=await preguntarComision(v.pct,defecto,v.mon);
+                if(!capa.el.isConnected)return;
+                st.comisionRespondida={pct:v.pct,siempre};
+            }
+        }
         const r=await conConfirmacion(o=>guardarOperacion(d,{...o,id:st.id}));
         if(r.ok){
             if(!st.dividir)recordarCuenta(st.tipo,st.cuenta);
+            if(siempre)guardarComisionBinance(v.mon==='USD'?comisionConfigurada('UYU'):v.pct,v.mon==='USD'?v.pct:comisionConfigurada('USD'));
             if(st.id)trasEditar(capa,'operaciones',r.id);
-            else{cerrarCapa(capa);avisar(st.tipo==='compra'?'Compra guardada.':'Venta guardada.')}
+            else{
+                cerrarCapa(capa);
+                avisar((st.tipo==='compra'?'Compra guardada.':'Venta guardada.')+
+                    (siempre?' Las próximas en '+(v.mon==='USD'?'dólares':'pesos')+' van con '+pctTxt(v.pct)+'.':''));
+            }
         }else if(!r.cancelado){
             st.hayError=true;
             if(r.campo==='comisiones'||r.campo==='fecha'){st.extra=true;q(capa.cont,'extra').classList.remove('hidden')}

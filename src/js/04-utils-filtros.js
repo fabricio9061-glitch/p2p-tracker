@@ -132,9 +132,83 @@ function getMesActivo(){const d=getUDate();return`${d.getFullYear()}-${String(d.
 
 function getUTimeStr(){const d=getUDate();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function fmtFechaCorta(f){if(!f)return'-';const p=f.split('-');return p.length===3?`${p[2]}/${p[1]}`:f}
-function getBancoInfo(n){return CONFIG.BANCOS.find(b=>b.nombre===n)}
+/* ═══ v8.1.0 — Varias cuentas por banco, en pesos o en dólares ═══
+   Las cuentas de siempre se identifican con el nombre del banco ("Itau") y son
+   las de CONFIG.BANCOS. Las que agrega la persona ("Itaú empresa", "Itaú
+   dólares") tienen una clave que dice de qué banco son y en qué moneda:
+   "Itau_USD_mh3k2a1b". Así, aunque se perdiera su ficha, cada registro que la
+   usa sigue sabiendo su banco y su moneda. El nombre que se ve vive en la ficha
+   (bancos[clave].nombre); las de siempre también pueden tener uno ("Itaú
+   personal"). */
+const _BANCO_FIJO=(()=>{const m={};CONFIG.BANCOS.forEach(b=>{m[b.nombre]=b});return m})();
+/* 'Itau_USD_mh3k2a1b' → {banco:'Itau',moneda:'USD'}; null si no es una cuenta agregada */
+function parteDeClave(n){
+    if(typeof n!=='string'||n.indexOf('_')<0)return null;
+    const p=n.split('_');
+    if(p.length<3)return null;
+    const id=p.pop(),moneda=p.pop(),banco=p.join('_');
+    if(!id||!_BANCO_FIJO[banco]||(moneda!=='UYU'&&moneda!=='USD'))return null;
+    return{banco,moneda};
+}
+function esCuentaAgregada(n){return!!parteDeClave(n)}
+function _bancosGuardados(){return(typeof AppState!=='undefined'&&AppState.datos&&AppState.datos.bancos)||null}
+/* El nombre que se pone solo, si la cuenta todavía no tiene uno */
+function nombrePorDefecto(banco,moneda){
+    const b=_BANCO_FIJO[banco];if(!b)return String(banco||'');
+    const n=b.etiqueta||b.nombre;
+    return moneda==='USD'&&b.moneda!=='USD'?n+' dólares':n+' 2';
+}
+const _infoCuentas={};
+function getBancoInfo(n){
+    const fija=_BANCO_FIJO[n],bs=_bancosGuardados(),bk=bs?bs[n]:null;
+    if(fija){
+        if(!bk||!bk.nombre)return fija;
+        const c=_infoCuentas[n];
+        if(c&&c.etiqueta===bk.nombre&&c._de===fija)return c;
+        return(_infoCuentas[n]={...fija,etiqueta:bk.nombre,_de:fija});
+    }
+    const p=parteDeClave(n);
+    if(!p)return undefined;
+    const base=_BANCO_FIJO[p.banco];
+    const etiqueta=(bk&&bk.nombre)||nombrePorDefecto(p.banco,p.moneda);
+    const c=_infoCuentas[n];
+    if(c&&c.etiqueta===etiqueta)return c;
+    return(_infoCuentas[n]={...base,nombre:n,etiqueta,moneda:p.moneda,base:p.banco,agregada:true,_de:base});
+}
 /* Nombre para mostrar: "Itaú" aunque internamente se guarde "Itau" */
 function nombreCuenta(n){if(n==='USDT')return'USDT';const b=getBancoInfo(n);return(b&&(b.etiqueta||b.nombre))||String(n||'')}
+/* El banco al que pertenece una cuenta ("Itau" también para "Itau_USD_…") */
+function bancoDeCuenta(n){const p=parteDeClave(n);return p?p.banco:n}
+/* Todas las cuentas de banco: las de siempre, cada una seguida de las que se
+   le agregaron, en el orden en que se crearon. */
+function todasLasCuentas(){
+    const bs=_bancosGuardados()||{},agregadas={};
+    Object.keys(bs).forEach(k=>{const p=parteDeClave(k);if(p)(agregadas[p.banco]=agregadas[p.banco]||[]).push(k)});
+    const out=[];
+    CONFIG.BANCOS.forEach(b=>{
+        out.push(getBancoInfo(b.nombre));
+        (agregadas[b.nombre]||[]).sort((x,y)=>{const a=x.split('_').pop(),c=y.split('_').pop();return a.length-c.length||(a<c?-1:a>c?1:0)})
+            .forEach(k=>out.push(getBancoInfo(k)));
+    });
+    return out;
+}
+/* ¿Este banco tiene más de una cuenta? Entonces en las listas hace falta decir cuál es */
+function bancoConVariasCuentas(banco){
+    const bs=_bancosGuardados();if(!bs)return false;
+    return Object.keys(bs).some(k=>{const p=parteDeClave(k);return p&&p.banco===banco});
+}
+/* Nombre corto para las listas: "Itaú empresa" → "Empresa"; si no empieza con
+   el nombre del banco, el nombre entero */
+function nombreCortoCuenta(n){
+    const nom=nombreCuenta(n),b=_BANCO_FIJO[bancoDeCuenta(n)];
+    const pre=b?(b.etiqueta||b.nombre):'';
+    const sin=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+    if(pre&&nom.length>pre.length+1&&sin(nom).startsWith(sin(pre)+' ')){
+        const r=nom.slice(pre.length+1).trim();
+        return r.charAt(0).toUpperCase()+r.slice(1);
+    }
+    return nom;
+}
 /* v4.8.2 FIX SEGURIDAD: la versión anterior (div.textContent → innerHTML) NO escapaba
    comillas. Como escHtml se usa dentro de atributos (data-tag="...", data-banco="..."),
    un texto con `"` rompía el atributo y permitía inyectar atributos/handlers (self-XSS

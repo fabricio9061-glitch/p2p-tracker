@@ -533,6 +533,81 @@ function activarCuenta(cuenta,activa){
     confirmarCambios([{tipo:'update',entidad:'bancos',id:cuenta}]);
     return{ok:true};
 }
+/* ─── v8.1.0 — Cuentas agregadas y nombres de cuenta ────────────────────── */
+/* Una persona puede tener varias cuentas en el mismo banco (Itaú empresa e
+   Itaú personal) y alguna en dólares (Itaú dólares). Cada una lleva su saldo,
+   su límite y su libro, igual que las de siempre. */
+const CUENTA_NOMBRE_MAX=24;
+function _claveNombreCuenta(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim()}
+/* El nombre como se escribió, sin espacios de más; error si es corto o repetido */
+function revisarNombreCuenta(nombre,excepto){
+    const n=String(nombre||'').trim().replace(/\s+/g,' ').slice(0,CUENTA_NOMBRE_MAX);
+    if(n.length<2)return{ok:false,error:'Escribí un nombre de al menos 2 letras.',campo:'nombre'};
+    const k=_claveNombreCuenta(n);
+    const otra=todasLasCuentas().find(b=>b.nombre!==excepto&&_claveNombreCuenta(b.etiqueta||b.nombre)===k);
+    if(otra)return{ok:false,error:'Ya tenés una cuenta que se llama '+nombreCuenta(otra.nombre)+'.',campo:'nombre'};
+    return{ok:true,nombre:n};
+}
+/* d = {banco, moneda, nombre, saldo}. La cuenta queda activa; si se dice
+   cuánto tiene, se anota como su saldo inicial (una corrección, igual que
+   "Corregir saldo"). */
+function crearCuenta(d){
+    d=d||{};
+    const base=CONFIG.BANCOS.find(b=>b.nombre===d.banco);
+    if(!base)return{ok:false,error:'Elegí el banco.',campo:'banco'};
+    const moneda=d.moneda==='USD'?'USD':'UYU';
+    const r=revisarNombreCuenta(d.nombre);if(!r.ok)return r;
+    const saldo=(d.saldo===undefined||d.saldo===null||d.saldo==='')?0:roundMoney(Number(d.saldo));
+    if(!isFinite(saldo)||saldo<0)return{ok:false,error:'El saldo no puede ser negativo.',campo:'saldo'};
+    let clave;
+    do{clave=base.nombre+'_'+moneda+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,4)}while(AppState.datos.bancos[clave]);
+    const ahora=new Date().toISOString();
+    AppState.datos.bancos[clave]={nombre:r.nombre,activo:true,saldo:0,saldoApertura:0,saldoAperturaTs:ahora,
+        limiteDiarioUSD:0,limiteUsadoUSD:0,ultimoResetLimite:null,creada:ahora};
+    confirmarCambios([{tipo:'update',entidad:'bancos',id:clave}]);
+    if(saldo>=0.005)corregirSaldo(clave,saldo,'Saldo inicial');
+    return{ok:true,clave,nombre:r.nombre};
+}
+/* Cambiar el nombre. En las cuentas de siempre, dejarlo vacío o igual al del
+   banco le devuelve el nombre del banco. */
+function renombrarCuenta(cuenta,nombre){
+    const bk=AppState.datos.bancos[cuenta];
+    if(!bk||!getBancoInfo(cuenta))return{ok:false,error:'Esa cuenta no existe.'};
+    const fija=CONFIG.BANCOS.find(b=>b.nombre===cuenta);
+    const txt=String(nombre||'').trim();
+    if(fija&&(!txt||_claveNombreCuenta(txt)===_claveNombreCuenta(fija.etiqueta||fija.nombre))){
+        delete bk.nombre;
+    }else{
+        const r=revisarNombreCuenta(txt,cuenta);if(!r.ok)return r;
+        bk.nombre=r.nombre;
+    }
+    confirmarCambios([{tipo:'update',entidad:'bancos',id:cuenta}]);
+    return{ok:true,nombre:nombreCuenta(cuenta)};
+}
+/* Cuántas operaciones, ingresos, egresos, transferencias y conversiones usan una cuenta */
+function usosDeCuenta(cuenta){
+    let n=0;
+    (AppState.datos.operaciones||[]).forEach(o=>{if(o&&(o.banco===cuenta||(Array.isArray(o.aportes)&&o.aportes.some(a=>a&&a.banco===cuenta))))n++});
+    (AppState.datos.movimientos||[]).forEach(m=>{if(m&&m.tipoCuenta!=='usdt'&&m.banco===cuenta)n++});
+    ['transferencias','conversiones'].forEach(e=>(AppState.datos[e]||[]).forEach(t=>{if(t&&(t.origen===cuenta||t.destino===cuenta))n++}));
+    return n;
+}
+/* Borrar una cuenta agregada que no tiene movimientos. Sus correcciones de
+   saldo (por ejemplo, el saldo inicial) se van con ella. Si algo de Eliminados
+   la usaba y se recupera, la cuenta vuelve sola (ver inicializarBancos). */
+function borrarCuenta(cuenta){
+    const bk=AppState.datos.bancos[cuenta];
+    if(!bk||!esCuentaAgregada(cuenta))return{ok:false,error:'Esta cuenta no se puede borrar. Si no la usás, desactivala.'};
+    const n=usosDeCuenta(cuenta);
+    if(n>0)return{ok:false,error:'Tiene '+(n===1?'un movimiento':n+' movimientos')+': no se puede borrar. Si no la usás más, desactivala.'};
+    /* Movimientos de meses archivados: su efecto vive en el saldo de apertura */
+    if(Math.abs(Number(bk.saldoApertura)||0)>=0.005)return{ok:false,error:'Tiene movimientos de meses archivados: no se puede borrar. Si no la usás más, desactivala.'};
+    const ajustes=(AppState.datos.ajustesSaldo||[]).filter(a=>a&&a.cuenta===cuenta);
+    AppState.datos.ajustesSaldo=(AppState.datos.ajustesSaldo||[]).filter(a=>!(a&&a.cuenta===cuenta));
+    delete AppState.datos.bancos[cuenta];
+    confirmarCambios([...ajustes.map(a=>({tipo:'delete',entidad:'ajustesSaldo',id:a.id})),{tipo:'update',entidad:'bancos',id:cuenta}]);
+    return{ok:true};
+}
 function guardarComisionBinance(pctPesos,pctDolares){
     const a=Number(pctPesos),b=Number(pctDolares);
     if(!(a>=0&&a<=5)||!(b>=0&&b<=5))return{ok:false,error:'La comisión tiene que estar entre 0 y 5 %.'};

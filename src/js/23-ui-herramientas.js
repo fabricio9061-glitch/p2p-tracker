@@ -38,7 +38,10 @@ function pintarMas(){
             (meses.length?opc('meses-archivados','caja','Meses archivados',{valor:String(meses.length)}):'')+
         '</div>'+
         '<h2 class="grupo">Ajustes</h2><div class="bloque">'+
-            opc('comision','porcentaje','Comisión de Binance',{valor:escHtml(pctTxt(comisionConfigurada('UYU')))})+
+            /* v8.1.0 — Con cuentas en dólares se ven las dos comisiones */
+            opc('comision','porcentaje','Comisión de Binance',hayBancosUSD()
+                ?{sub:'En pesos '+pctTxt(comisionConfigurada('UYU'))+', en dólares '+pctTxt(comisionConfigurada('USD'))}
+                :{valor:escHtml(pctTxt(comisionConfigurada('UYU')))})+
             opc('categorias','etiqueta','Categorías',{valor:String(Object.keys(catalogoCategorias()).length)})+
             opc('novedades','campana','Novedades',{valor:'versión '+escHtml(CONFIG.APP_VERSION.split('.').slice(0,2).join('.'))})+
         '</div>'+

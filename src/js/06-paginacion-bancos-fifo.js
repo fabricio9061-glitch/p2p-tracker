@@ -7,13 +7,29 @@ function inicializarBancos(){
     CONFIG.BANCOS.forEach(b=>{
         if(!AppState.datos.bancos[b.nombre])
             AppState.datos.bancos[b.nombre]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0,ultimoResetLimite:null};
-        else{
-            const bk=AppState.datos.bancos[b.nombre];
-            if(bk.limiteDiarioUSD===undefined)bk.limiteDiarioUSD=bk.limiteDiario||0;
-            if(bk.limiteUsadoUSD===undefined)bk.limiteUsadoUSD=bk.limiteUsado||0;
-            if(bk.ultimoResetLimite===undefined)bk.ultimoResetLimite=null;
-            /* NEVER override activo here — user's choice is the source of truth */
-        }
+    });
+    /* v8.1.0 — Una cuenta agregada que algún registro usa pero cuya ficha no
+       está (por ejemplo, la creó otro dispositivo sin conexión y el estado de
+       este la pisó): se vuelve a crear, para que sus registros sigan sumando.
+       De la clave sale el banco y la moneda; el nombre queda el de siempre. */
+    const faltan=new Set();
+    const ver=k=>{if(k&&!AppState.datos.bancos[k]&&esCuentaAgregada(k))faltan.add(k)};
+    (AppState.datos.operaciones||[]).forEach(o=>{if(!o)return;ver(o.banco);if(Array.isArray(o.aportes))o.aportes.forEach(a=>a&&ver(a.banco))});
+    (AppState.datos.movimientos||[]).forEach(m=>{if(m&&m.tipoCuenta!=='usdt')ver(m.banco)});
+    ['transferencias','conversiones'].forEach(e=>(AppState.datos[e]||[]).forEach(t=>{if(t){ver(t.origen);ver(t.destino)}}));
+    (AppState.datos.ajustesSaldo||[]).forEach(a=>{if(a)ver(a.cuenta)});
+    faltan.forEach(k=>{
+        AppState.datos.bancos[k]={activo:true,saldo:0,saldoApertura:0,saldoAperturaTs:new Date().toISOString(),limiteDiarioUSD:0,limiteUsadoUSD:0,ultimoResetLimite:null};
+        console.warn('[P2P] Cuenta recuperada desde sus registros: '+k);
+    });
+    /* Y se guarda, para que no haya que recuperarla otra vez */
+    if(faltan.size&&typeof guardaOptimista==='function')guardaOptimista('update','bancos',[...faltan][0]);
+    Object.keys(AppState.datos.bancos).forEach(n=>{
+        const bk=AppState.datos.bancos[n];if(!bk||typeof bk!=='object')return;
+        if(bk.limiteDiarioUSD===undefined)bk.limiteDiarioUSD=bk.limiteDiario||0;
+        if(bk.limiteUsadoUSD===undefined)bk.limiteUsadoUSD=bk.limiteUsado||0;
+        if(bk.ultimoResetLimite===undefined)bk.ultimoResetLimite=null;
+        /* NEVER override activo here — user's choice is the source of truth */
     });
 }
 
@@ -37,7 +53,7 @@ function getDiasReset(nombreBanco){
    _cupoDesde (días marcados + las 0:30); acá solo se deja registrada. */
 function verificarResetLimites(){
     let renovo=false;
-    CONFIG.BANCOS.forEach(b=>{
+    todasLasCuentas().forEach(b=>{
         const bk=AppState.datos.bancos[b.nombre];if(!bk)return;
         const desde=_cupoDesde(b.nombre);
         if(bk.ultimoResetLimite===desde)return;
@@ -60,11 +76,12 @@ function _saldoDeBanco(nombre){
 }
 function ordenarBancosPorSaldo(lista){
     const idx=new Map(),ordenMoneda={};let m=0;
-    CONFIG.BANCOS.forEach((b,i)=>{
-        idx.set(b.nombre,i);
+    CONFIG.BANCOS.forEach(b=>{
         const mo=b.moneda||'UYU';
         if(ordenMoneda[mo]===undefined)ordenMoneda[mo]=m++;
     });
+    /* v8.1.0 — Las cuentas agregadas van después de la de su banco */
+    todasLasCuentas().forEach((b,i)=>idx.set(b.nombre,i));
     return lista.slice().sort((a,b)=>{
         const ma=ordenMoneda[a.moneda||'UYU'],mb=ordenMoneda[b.moneda||'UYU'];
         if(ma!==mb)return ma-mb;
@@ -73,7 +90,7 @@ function ordenarBancosPorSaldo(lista){
         return (idx.get(a.nombre)||0)-(idx.get(b.nombre)||0);
     });
 }
-function getBancosActivos(){return ordenarBancosPorSaldo(CONFIG.BANCOS.filter(b=>AppState.datos.bancos[b.nombre]?.activo))}
+function getBancosActivos(){return ordenarBancosPorSaldo(todasLasCuentas().filter(b=>AppState.datos.bancos[b.nombre]?.activo))}
 
 
 /* ═══════════════════════════════════════

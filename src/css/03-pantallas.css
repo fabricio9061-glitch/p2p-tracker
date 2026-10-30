@@ -291,6 +291,16 @@ button.rc-fila:active{background:var(--papel-2)}
 .lote>span:last-child{text-align:right}
 .lotes-nota{font-size:12.5px;color:var(--tenue);margin:6px 0 0 36px}
 .boton-punteado{width:100%;height:52px;border:1.5px dashed var(--borde-3);border-radius:var(--r-tile);background:transparent;font-size:15px;font-weight:650;color:var(--tinta)}
+/* v8.1.0 — Cuentas agregadas */
+.boton-punteado.con-icono{display:flex;align-items:center;justify-content:center;gap:8px}
+.boton-punteado .i{width:18px;height:18px;stroke-width:2.3}
+.pastilla.con-mono{display:inline-flex;align-items:center;gap:7px;padding:0 13px 0 9px}
+.pastilla.con-mono .mono{width:20px;height:20px;border-radius:5px;font-size:9px}
+.pastilla.con-mono[aria-pressed="true"] .mono.logo{background:var(--blanco);border-radius:5px}
+.hoja .segmento.ancho{background:var(--papel)}
+/* En las listas, cuál de las cuentas del banco es (al lado del logo) */
+.fila .fila-s .cta-etq{flex:none;max-width:42%;margin-left:-1px;font-weight:620;color:var(--tinta-2)}
+.fila .fila-s .cta-etq+.i{margin-left:2px}
 
 /* ─── Libro de una cuenta ──────────────────────────────────────────────── */
 .libro-saldo .rot{font-size:14px;font-weight:550;color:var(--tinta-2)}
