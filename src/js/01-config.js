@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.0.6',
+    APP_VERSION: '8.1.0',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,13 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.1.0', date:'2026-10-29', headline:'Varias cuentas en el mismo banco, cuentas en dólares y la comisión de Binance para cada moneda.', changes:[
+        {type:'feature', title:'Más de una cuenta por banco', desc:'En Cuentas → Agregar o quitar cuentas → Agregar otra cuenta, elegís el banco, si es en pesos o en dólares, le ponés un nombre (por ejemplo, Itaú empresa o Itaú dólares) y cuánto tiene hoy. Cada una tiene su saldo, su límite diario y su libro.'},
+        {type:'feature', title:'Cada cuenta con su nombre', desc:'En el libro de una cuenta, con Editar, le cambiás el nombre: por ejemplo, la Itaú de siempre puede pasar a llamarse Itaú personal. En las listas, al lado del logo, dice de cuál cuenta es cada movimiento.'},
+        {type:'feature', title:'Comisión: ¿solo esta orden o siempre?', desc:'Si al cargar una orden cambiás la comisión de Binance, la app te pregunta si es solo para esa orden o para siempre. Si elegís Siempre, queda para las próximas órdenes en esa moneda: podés tener 0,24 % en dólares y 0,14 % en pesos.'},
+        {type:'improve', title:'Borrar una cuenta agregada', desc:'Si la creaste por error y no tiene movimientos, la borrás desde Editar. Si tiene movimientos, la desactivás.'},
+        {type:'improve', title:'Las órdenes en dólares también cuentan', desc:'En el inicio y en el calendario, la línea de operaciones del día dice también cuántas fueron en dólares.'}
+    ]},
     {version:'8.0.6', date:'2026-10-16', headline:'Las categorías, rehechas: egresos e ingresos por separado y todo lo que se puede hacer con cada una.', changes:[
         {type:'improve', title:'Como las escribís', desc:'Los nombres quedan con mayúscula y tildes: "Barbería", no "barberia". Si escribís una que ya existe de otra forma, se usa la que ya está.'},
         {type:'feature', title:'Egresos e ingresos por separado', desc:'En Categorías elegís Egresos o Ingresos. Cada una muestra cuánto sumó este mes y cuántas veces, de la que más a la que menos, con el mismo color que en la dona.'},

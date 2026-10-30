@@ -147,12 +147,20 @@ function cuandoIso(iso){const x=isoAUY(iso);return x?cuandoCorto(x.fecha,x.hora)
 /* Monograma de color: la sigla del banco, o ₮ para USDT */
 function mono(cuenta,grande){
     const cls='mono'+(grande?' m':'');
-    /* Las cuentas con logo (USDT, Itaú, Mercado Pago) muestran el logo */
-    if(typeof LOGOS!=='undefined'&&LOGOS[cuenta])return'<img class="'+cls+' logo" src="'+LOGOS[cuenta]+'" alt="" aria-hidden="true">';
+    /* Las cuentas con logo (USDT, Itaú, Mercado Pago) muestran el logo; las
+       agregadas, el de su banco (v8.1.0) */
+    const banco=cuenta==='USDT'?cuenta:bancoDeCuenta(cuenta);
+    if(typeof LOGOS!=='undefined'&&LOGOS[banco])return'<img class="'+cls+' logo" src="'+LOGOS[banco]+'" alt="" aria-hidden="true">';
     if(cuenta==='USDT')return'<span class="'+cls+' usdt" aria-hidden="true">₮</span>';
     const b=getBancoInfo(cuenta);
     const sig=(b&&b.sigla)||String(cuenta||'?').slice(0,2).toUpperCase();
     return'<span class="'+cls+'" style="background:'+((b&&b.color)||'#445066')+'" aria-hidden="true">'+escHtml(sig)+'</span>';
+}
+/* v8.1.0 — Si el banco tiene más de una cuenta, al lado del logo va cuál es:
+   "Empresa", "Dólares", "Itaú". Con una sola, alcanza con el logo. */
+function monoCuenta(cuenta){
+    if(!cuenta||cuenta==='USDT'||!bancoConVariasCuentas(bancoDeCuenta(cuenta)))return mono(cuenta);
+    return mono(cuenta)+'<span class="cta-etq">'+escHtml(nombreCortoCuenta(cuenta))+'</span>';
 }
 function saldoDe(cuenta){
     if(cuenta==='USDT')return roundMoney(AppState.datos.saldoUsdt||0);
@@ -161,7 +169,7 @@ function saldoDe(cuenta){
 }
 /* Cuentas para mostrar: las activas y las desactivadas que tienen plata */
 function cuentasVisibles(){
-    return ordenarBancosPorSaldo(CONFIG.BANCOS.filter(b=>{
+    return ordenarBancosPorSaldo(todasLasCuentas().filter(b=>{
         const bk=AppState.datos.bancos[b.nombre];
         return bk&&(bk.activo||Math.abs(bk.saldo||0)>=0.005);
     }));
@@ -459,7 +467,7 @@ function itemRegistro(ent,rec){
     const tipo=tipoDeRegistro(ent,rec);
     const it={ent,id:rec.id,rec,tipo,fecha:rec.fecha||'',hora:rec.hora||'',clave:_claveOrden(rec),
               cuentas:cuentasDeRegistro(ent,rec).filter(Boolean)};
-    const monos=it.cuentas.map(c=>mono(c)).join('');
+    const monos=it.cuentas.map(c=>monoCuenta(c)).join('');
     const lapiz=fueEditado(rec)?'<span class="marca" title="Editado">'+ico('lapiz')+'</span>':'';
     let buscable='';
     if(tipo==='venta'||tipo==='compra'){
@@ -487,7 +495,7 @@ function itemRegistro(ent,rec){
         buscable=[tipo,rec.descripcion,rec.nota,fmtNum(rec.monto),String(rec.monto)].join(' ');
     }else if(tipo==='transferencia'){
         const mo=monedaDeCuenta(rec.origen);
-        it.sub=mono(rec.origen)+ico('flecha')+mono(rec.destino)+lapiz;
+        it.sub=monoCuenta(rec.origen)+ico('flecha')+monoCuenta(rec.destino)+lapiz;
         if(ent==='conversiones'){
             it.titulo='Conversión';
             it.montoTxt=dinero(rec.montoOrigen,rec.monedaOrigen||mo);
@@ -503,7 +511,7 @@ function itemRegistro(ent,rec){
         const cuenta=rec.cuenta||'';
         it.titulo='Corrección de saldo';
         it.montoTxt=dinero(rec.delta,monedaDeCuenta(cuenta),{signo:true});
-        it.sub=mono(cuenta)+'<span>'+escHtml(rec.motivo||'sin motivo')+'</span>'+lapiz;
+        it.sub=monoCuenta(cuenta)+'<span>'+escHtml(rec.motivo||'sin motivo')+'</span>'+lapiz;
         buscable=['corrección',rec.motivo,fmtNum(Math.abs(rec.delta||0)),String(Math.abs(rec.delta||0))].join(' ');
     }
     it.buscable=tagKey(buscable+' '+it.cuentas.map(nombreCuenta).join(' '));

@@ -4,7 +4,7 @@
    Los ingresos, egresos y transferencias se guardan con 17-registros.js; sus
    formularios están en 21-ui-cargar.js. Acá quedan las cuentas que usan el
    inicio, el resumen del mes y el calendario. */
-function hayBancosUSD(){return CONFIG.BANCOS.some(b=>AppState.datos.bancos[b.nombre]?.activo&&b.moneda==='USD')}
+function hayBancosUSD(){return todasLasCuentas().some(b=>AppState.datos.bancos[b.nombre]?.activo&&b.moneda==='USD')}
 
 
 /* ═══════════════════════════════════════

@@ -101,7 +101,9 @@ function pintarLibro(cont,capa){
     if(!esUsdt&&!bk){cont.innerHTML=cabVista(nombreCuenta(cuenta))+'<div class="vista-cuerpo"><div class="vacio"><b>Esta cuenta no existe</b></div></div>';return}
     const saldo=saldoDe(cuenta);
     const tS=montoEnCuenta(saldo,cuenta,{unidad:false});
-    let html=cabVista(nombreCuenta(cuenta),{mono:mono(cuenta,true)})+'<div class="vista-cuerpo">'+
+    /* v8.1.0 — Nombre de la cuenta (y borrarla, si es una agregada sin movimientos) */
+    const editar=esUsdt?'':'<button type="button" class="vista-accion" data-a="cuenta-editar" data-cuenta="'+escHtml(cuenta)+'">'+ico('lapiz')+'<span>Editar</span></button>';
+    let html=cabVista(nombreCuenta(cuenta),{mono:mono(cuenta,true),derecha:editar})+'<div class="vista-cuerpo">'+
         '<section class="libro-saldo"><div class="rot">Saldo</div><div class="cifra '+tamCifra(tS,12,15)+'">'+escHtml(tS)+(esUsdt?' <span style="font-size:.4em;font-weight:650">USDT</span>':'')+'</div>';
     if(!esUsdt){
         const cu=infoCupo(cuenta);
@@ -142,7 +144,7 @@ function filaLibro(l,cuenta){
     if(l.tipo==='transferencias'||l.tipo==='conversiones'){
         const otra=l.variacion>0?r.origen:r.destino;
         titulo=(l.tipo==='conversiones'?'Conversión ':'Transferencia ')+(l.variacion>0?'de ':'a ')+nombreCuenta(otra);
-        sub=mono(otra)+'<span>'+(l.tipo==='conversiones'?'a '+escHtml(fmtNum(r.tasa,r.tasa<10?3:2))+' por dólar':((Number(r.comision)||0)>0&&l.variacion<0?'con comisión de '+escHtml(dinero(r.comision,monedaDeCuenta(cuenta))):'entre tus cuentas'))+'</span>';
+        sub=monoCuenta(otra)+'<span>'+(l.tipo==='conversiones'?'a '+escHtml(fmtNum(r.tasa,r.tasa<10?3:2))+' por dólar':((Number(r.comision)||0)>0&&l.variacion<0?'con comisión de '+escHtml(dinero(r.comision,monedaDeCuenta(cuenta))):'entre tus cuentas'))+'</span>';
     }else if(l.tipo==='operaciones'){
         sub='<span>a '+escHtml(fmtTasaMon(r.tasa,r.moneda||'UYU'))+'</span>'+(isFinite(r.comisionPct)?'<span class="marca">'+escHtml(pctTxt(r.comisionPct))+'</span>':'');
         if(cuenta!=='USDT'&&esPagoDividido(r))sub+='<span class="marca">dividida</span>';
@@ -185,17 +187,21 @@ ACC['li-guardar']=t=>{
 };
 
 /* ─── Agregar o quitar cuentas ─────────────────────────────────────────── */
+/* v8.1.0 — Además de las de siempre, se pueden agregar otras: una segunda
+   cuenta del mismo banco (Itaú empresa) o una en dólares (Itaú dólares). */
 ACC['activar-cuentas']=t=>{
     const html=cabHoja('Tus cuentas',{chico:true})+'<div class="hoja-cuerpo" style="padding-bottom:calc(24px + var(--seg-abajo))">'+
-        '<p class="tenue" style="font-size:14px;margin-bottom:8px">Activá las cuentas que usás. Para cargar cuánto tiene cada una, usá Corregir saldo.</p><div data-r="lista"></div></div>';
-    abrirCapa({tipo:'hoja',etiqueta:'Tus cuentas',reemplazar:desdeAcciones(t),html,
+        '<p class="tenue" style="font-size:14px;margin-bottom:12px">Activá las cuentas que usás. Si tenés dos en el mismo banco, o una en dólares, agregala acá.</p>'+
+        '<button type="button" class="boton-punteado con-icono" data-a="cuenta-nueva">'+ico('sumar')+'Agregar otra cuenta</button>'+
+        '<div data-r="lista" style="margin-top:8px"></div></div>';
+    abrirCapa({tipo:'hoja',etiqueta:'Tus cuentas',clave:'tus-cuentas',reemplazar:desdeAcciones(t),html,
         montar(cont,capa){pintarActivar(capa)},actualizar(cont,capa){pintarActivar(capa)}});
 };
 function pintarActivar(capa){
-    q(capa.cont,'lista').innerHTML=CONFIG.BANCOS.map(b=>{
-        const bk=AppState.datos.bancos[b.nombre]||{};
-        return'<button type="button" class="opc" role="switch" aria-checked="'+!!bk.activo+'" data-a="cuenta-activa" data-cuenta="'+escHtml(b.nombre)+'">'+
-            mono(b.nombre,true)+'<span class="t">'+escHtml(nombreCuenta(b.nombre))+'<small>'+(b.moneda==='USD'?'Dólares':'Pesos')+
+    q(capa.cont,'lista').innerHTML=todasLasCuentas().map(b=>{
+        const n=b.nombre,bk=AppState.datos.bancos[n]||{};
+        return'<button type="button" class="opc'+(b.agregada?' agregada':'')+'" role="switch" aria-checked="'+!!bk.activo+'" data-a="cuenta-activa" data-cuenta="'+escHtml(n)+'">'+
+            mono(n,true)+'<span class="t">'+escHtml(nombreCuenta(n))+'<small>'+(b.moneda==='USD'?'Dólares':'Pesos')+
             (Math.abs(bk.saldo||0)>=0.005?', '+escHtml(dinero(bk.saldo,b.moneda||'UYU')):'')+'</small></span><span class="interruptor"></span></button>';
     }).join('');
 }
@@ -208,4 +214,125 @@ ACC['cuenta-activa']=async t=>{
         if(!si)return;
     }
     activarCuenta(n,activar);
+};
+
+/* ─── Nueva cuenta ─────────────────────────────────────────────────────── */
+ACC['cuenta-nueva']=()=>{
+    const bancos=CONFIG.BANCOS.map(b=>'<button type="button" class="pastilla con-mono" data-a="cn-banco" data-banco="'+escHtml(b.nombre)+'" aria-pressed="false">'+
+        mono(b.nombre)+'<span>'+escHtml(b.etiqueta||b.nombre)+'</span></button>').join('');
+    const html=cabHoja('Nueva cuenta',{chico:true})+'<div class="hoja-cuerpo"><div class="grupo-campos">'+
+            '<div data-campo="banco"><span class="rotulo">Banco</span><div class="pastillas" role="group" aria-label="Banco">'+bancos+'</div></div>'+
+            '<div><span class="rotulo">Moneda</span><div class="segmento ancho" role="tablist" aria-label="Moneda">'+
+                '<button type="button" role="tab" data-a="cn-moneda" data-moneda="UYU" aria-selected="true">Pesos</button>'+
+                '<button type="button" role="tab" data-a="cn-moneda" data-moneda="USD" aria-selected="false">Dólares</button></div></div>'+
+            '<div data-campo="nombre"><label class="rotulo" for="cnNombre">Nombre</label>'+
+                '<input class="campo" id="cnNombre" data-r="nombre" maxlength="'+CUENTA_NOMBRE_MAX+'" autocomplete="off" autocapitalize="sentences" placeholder="Por ejemplo, Itaú empresa" data-in="cn-nombre">'+
+                '<p class="nota-campo">Así la vas a ver en todos lados.</p></div>'+
+            '<div data-campo="saldo"><label class="rotulo" for="cnSaldo">Cuánto tiene hoy</label>'+
+                '<div class="monto-grande"><span class="sim cifra" data-r="sim">$</span><input id="cnSaldo" data-r="saldo" inputmode="decimal" autocomplete="off" placeholder="0"></div>'+
+                '<p class="nota-campo">Si la dejás en 0, después lo cargás con Corregir saldo.</p></div>'+
+        '</div></div>'+
+        '<div class="hoja-pie"><div data-r="error"></div><button type="button" class="btn" data-a="cn-guardar" data-primario>Agregar cuenta</button></div>';
+    abrirCapa({tipo:'hoja',clase:'alta',etiqueta:'Nueva cuenta',clave:'cuenta-nueva',html,
+        montar(cont,capa){capa.st={banco:'',moneda:'UYU',nombreTocado:false};formatearAlSalir(q(cont,'saldo'))}});
+};
+/* El nombre se propone solo mientras no se haya escrito uno: "Itaú dólares"
+   para una cuenta en dólares de un banco de pesos; si no, se deja para escribir. */
+function cnProponerNombre(capa){
+    const st=capa.st,inp=q(capa.cont,'nombre');
+    if(st.nombreTocado||!st.banco)return;
+    const b=CONFIG.BANCOS.find(x=>x.nombre===st.banco),et=b?(b.etiqueta||b.nombre):'';
+    let v=st.moneda==='USD'&&b&&b.moneda!=='USD'?et+' dólares':'';
+    if(v&&!revisarNombreCuenta(v).ok)v='';
+    inp.value=v;
+    inp.placeholder='Por ejemplo, '+et+(st.moneda==='USD'&&b&&b.moneda!=='USD'?' dólares':' empresa');
+}
+ACC['cn-banco']=t=>{
+    const capa=capaDe(t);if(!capa)return;
+    const st=capa.st,b=CONFIG.BANCOS.find(x=>x.nombre===t.dataset.banco);if(!b)return;
+    st.banco=b.nombre;
+    capa.cont.querySelectorAll('[data-a="cn-banco"]').forEach(x=>x.setAttribute('aria-pressed',String(x===t)));
+    /* Los bancos de dólares (Zelle, Zinli, Skrill) solo tienen cuentas en dólares */
+    const soloUSD=b.moneda==='USD';
+    if(soloUSD)st.moneda='USD';
+    capa.cont.querySelectorAll('[data-a="cn-moneda"]').forEach(x=>{
+        x.setAttribute('aria-selected',String(x.dataset.moneda===st.moneda));
+        x.disabled=soloUSD&&x.dataset.moneda==='UYU';
+    });
+    q(capa.cont,'sim').textContent=st.moneda==='USD'?'US$':'$';
+    limpiarError(capa);cnProponerNombre(capa);
+};
+ACC['cn-moneda']=t=>{
+    const capa=capaDe(t);if(!capa)return;
+    capa.st.moneda=t.dataset.moneda==='USD'?'USD':'UYU';
+    capa.cont.querySelectorAll('[data-a="cn-moneda"]').forEach(x=>x.setAttribute('aria-selected',String(x===t)));
+    q(capa.cont,'sim').textContent=capa.st.moneda==='USD'?'US$':'$';
+    limpiarError(capa);cnProponerNombre(capa);
+};
+ENT['cn-nombre']=el=>{const capa=capaDe(el);if(!capa)return;capa.st.nombreTocado=el.value.trim()!=='';limpiarError(capa)};
+ACC['cn-guardar']=t=>{
+    const capa=capaDe(t);if(!capa)return;
+    const st=capa.st,cont=capa.cont;
+    const txt=q(cont,'saldo').value.trim();
+    const r=crearCuenta({banco:st.banco,moneda:st.moneda,nombre:q(cont,'nombre').value,saldo:txt?parseMonto(txt):0});
+    if(!r.ok){st.hayError=true;mostrarError(capa,r.error,r.campo);return}
+    cerrarCapa(capa);
+    avisar('Se agregó '+r.nombre+'.');
+};
+
+/* ─── Editar una cuenta: nombre y, si es agregada, borrarla ────────────── */
+ACC['cuenta-editar']=t=>{
+    const cuenta=t.dataset.cuenta;
+    if(!AppState.datos.bancos[cuenta])return;
+    abrirCapa({tipo:'hoja',etiqueta:'Cuenta',clave:'cuenta-editar',
+        montar(cont,capa){capa.cuenta=cuenta;pintarEditarCuenta(cont,capa)},
+        actualizar(cont,capa){const a=document.activeElement;if(a&&cont.contains(a)&&a.tagName==='INPUT')return;pintarEditarCuenta(cont,capa)}});
+};
+function pintarEditarCuenta(cont,capa){
+    const n=capa.cuenta,b=getBancoInfo(n);
+    if(!b||!AppState.datos.bancos[n]){cont.innerHTML=cabHoja('Cuenta',{chico:true})+'<div class="hoja-cuerpo"><div class="vacio"><b>Esta cuenta ya no está</b></div></div>';return}
+    const banco=CONFIG.BANCOS.find(x=>x.nombre===bancoDeCuenta(n))||{};
+    const etBanco=banco.etiqueta||banco.nombre||'';
+    const nom=nombreCuenta(n),bk=AppState.datos.bancos[n];
+    /* Con movimientos (o con meses archivados) no se borra: se desactiva */
+    const usos=b.agregada?usosDeCuenta(n):0,archivada=b.agregada&&Math.abs(Number(bk.saldoApertura)||0)>=0.005;
+    let h=cabHoja(nom,{chico:true})+'<div class="hoja-cuerpo">'+
+        '<p class="cat-resumen">Cuenta en '+(b.moneda==='USD'?'dólares':'pesos')+' de '+escHtml(etBanco)+'.</p>'+
+        '<section class="cat-seccion"><label class="rotulo" for="ceNombre">Nombre</label>'+
+            '<div class="cat-accion"><input class="campo" id="ceNombre" data-r="nombre" maxlength="'+CUENTA_NOMBRE_MAX+'" autocomplete="off" autocapitalize="sentences" value="'+escHtml(nom)+'" data-in="ce-nombre">'+
+            '<button type="button" class="btn chico" data-a="ce-renombrar" data-r="guardar" data-primario disabled>Guardar</button></div>'+
+            '<p class="nota-campo">'+(b.agregada?'Por ejemplo, '+escHtml(etBanco)+' empresa.':'Por ejemplo, '+escHtml(etBanco)+' personal. Si lo dejás vacío, vuelve a llamarse '+escHtml(etBanco)+'.')+'</p></section>';
+    if(b.agregada){
+        h+='<section class="cat-seccion">'+(usos||archivada
+            ?'<p class="nota-campo" style="margin-top:0">'+(usos?'Tiene '+(usos===1?'un movimiento':usos+' movimientos'):'Tiene movimientos de meses archivados')+': no se puede borrar. Si no la usás más, desactivala en Agregar o quitar cuentas.</p>'
+            :'<button type="button" class="btn peligro chico" data-a="ce-borrar">'+ico('borrar')+'Borrar cuenta</button>'+
+             '<p class="nota-campo">No tiene movimientos.'+(Math.abs(saldoDe(n))>=0.005?' Su saldo inicial se borra con ella.':'')+'</p>')+'</section>';
+    }
+    h+='</div>';
+    cont.innerHTML=h;
+}
+ENT['ce-nombre']=el=>{
+    const capa=capaDe(el);if(!capa)return;
+    const v=el.value.trim().replace(/\s+/g,' ');
+    const fija=!esCuentaAgregada(capa.cuenta);
+    q(capa.cont,'guardar').disabled=(v.length<2&&!(fija&&v===''))||v===nombreCuenta(capa.cuenta);
+};
+ACC['ce-renombrar']=t=>{
+    const capa=capaDe(t);if(!capa)return;
+    const r=renombrarCuenta(capa.cuenta,q(capa.cont,'nombre').value);
+    if(!r.ok){avisar(r.error,{error:true});return}
+    cerrarCapa(capa);actualizarVista();
+    avisar('Ahora se llama '+r.nombre+'.');
+};
+ACC['ce-borrar']=async t=>{
+    const capa=capaDe(t);if(!capa)return;
+    const n=capa.cuenta,nom=nombreCuenta(n);
+    const si=await preguntar({titulo:'¿Borrar '+nom+'?',texto:'La cuenta deja de aparecer en la app.',si:'Borrar',peligro:true});
+    if(!si||!capa.el.isConnected)return;
+    const r=borrarCuenta(n);
+    if(!r.ok){avisar(r.error,{error:true});return}
+    /* Se cierran la hoja y el libro de la cuenta, que ya no existe */
+    _capas.slice().reverse().forEach(c=>{if(c===capa||c.def.clave==='libro:'+n)cerrarCapa(c)});
+    actualizarVista();
+    avisar('Se borró '+nom+'.');
 };

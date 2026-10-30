@@ -228,7 +228,7 @@ function htmlEliminados(){
             const it=itemDeEliminado(x);
             return'<div class="fila-eliminado"><button type="button" class="fila" data-a="eliminado-ver" data-k="'+escHtml(x.k)+'">'+
                 '<span class="fila-t'+claseTipo(it.tipo)+'">'+escHtml(it.titulo)+'</span><span class="fila-m">'+escHtml(it.montoTxt)+'</span>'+
-                '<span class="fila-s">'+it.cuentas.map(c=>mono(c)).join('')+'<span>'+escHtml(cuandoCorto(it.fecha,it.hora))+'</span></span></button>'+
+                '<span class="fila-s">'+it.cuentas.map(c=>monoCuenta(c)).join('')+'<span>'+escHtml(cuandoCorto(it.fecha,it.hora))+'</span></span></button>'+
                 '<button type="button" class="recuperar" data-a="recuperar" data-k="'+escHtml(x.k)+'">Recuperar</button></div>';
         }).join('')+'</div>';
 }

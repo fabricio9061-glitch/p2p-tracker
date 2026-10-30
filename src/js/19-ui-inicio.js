@@ -82,12 +82,15 @@ function ficha(rot,valor,clase,nota){
 }
 /* "6 operaciones: 3 compras y 3 ventas. Operado $X." (lo usan el inicio y el calendario) */
 function lineaOperaciones(a,vacio){
-    if(!a.total)return vacio;
+    /* v8.1.0 — Las órdenes en dólares también se cuentan (aparte: su plata es otra) */
+    const nU=a.opsUSD||0;
+    if(!a.total)return nU?(nU===1?'1 operación en dólares.':nU+' operaciones en dólares.'):vacio;
     const operado=roundMoney(a.compras.pagado+a.ventas.cobrado);
     return a.total+(a.total===1?' operación':' operaciones')+': '+
         [a.compras.n?a.compras.n+(a.compras.n===1?' compra':' compras'):'',
          a.ventas.n?a.ventas.n+(a.ventas.n===1?' venta':' ventas'):''].filter(Boolean).join(' y ')+
-        '. <span class="nw">Operado '+dinero(operado,'UYU')+'.</span>';
+        '. <span class="nw">Operado '+dinero(operado,'UYU')+'.</span>'+
+        (nU?' <span class="nw">Y '+nU+' en dólares.</span>':'');
 }
 /* El spread, las comisiones y los otros ingresos de un día */
 function fichasDelDia(a){
@@ -216,7 +219,8 @@ function tileCuenta(b){
         ?'<span class="barra'+(cu.disp<0.005?' lleno':'')+'"><i style="width:'+cu.pct+'%"></i></span><span class="t-x">'+(cu.disp>=0.005?'Quedan US$'+fmtExacto(cu.disp):'Sin cupo hoy')+'</span>'
         :'<span class="t-x solo">'+(bk.activo?'Sin límite':'Desactivada')+'</span>';
     return'<button type="button" class="tile" data-a="libro" data-cuenta="'+escHtml(n)+'">'+
-        '<span class="t-n">'+mono(n)+'<b>'+escHtml(nombreCuenta(n))+'</b></span>'+
+        /* v8.1.0 — Si el banco tiene varias cuentas, el logo dice el banco y el texto cuál es */
+        '<span class="t-n">'+mono(n)+'<b>'+escHtml(bancoConVariasCuentas(bancoDeCuenta(n))?nombreCortoCuenta(n):nombreCuenta(n))+'</b></span>'+
         '<span class="t-s">'+dinero(saldoDe(n),b.moneda||'UYU')+'</span>'+pie+'</button>';
 }
 /* Tarjeta de USDT: cuántos hay y a cuánto salieron, en promedio, los que quedan */
