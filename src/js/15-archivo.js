@@ -263,6 +263,8 @@ async function archivarHistorial(opts){
     if(!AppState.currentUser||!AppState.db){alert('Sin sesión activa.');return{ok:false,motivo:'sin-sesion'}}
     if(!navigator.onLine){alert('Necesitás conexión para archivar (se escriben documentos nuevos en Firestore).');return{ok:false,motivo:'offline'}}
     _archivoRunning=true;
+    /* v8.2.0 — Si llegó algo del servidor y su recálculo está pendiente, se hace ahora */
+    if(typeof v2AlDia==='function')v2AlDia();
     const mesesAMantener=opts.mesesAMantener||ARCHIVO_MESES_MANTENER_DEFAULT;
     try{
         if(ui.ensure)ui.ensure();

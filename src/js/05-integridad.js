@@ -211,42 +211,63 @@ function recalcularSaldosBancos(){
    sumando compras de días anteriores y frenaba compras que el banco permitía;
    y con un límite recién puesto contaba toda la historia. */
 function _cupoDesde(nombre){
-    const dias=getDiasReset(nombre);
+    const dias=getDiasReset(nombre);   /* v8.2.0: los días de la cuenta dueña del límite */
     const d=getUDate();
     if(d.getHours()*60+d.getMinutes()<30)d.setDate(d.getDate()-1);   /* antes de las 0:30 sigue el día anterior */
     for(let i=0;i<6&&!dias.includes(d.getDay());i++)d.setDate(d.getDate()-1);
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-/* Consumo de cupo de cada cuenta con límite, sumando compras y transferencias
-   salientes desde su última renovación. `excluir` ({tipo,id}) deja afuera un
-   registro: sirve para validar una edición sin contar el valor viejo. */
+/* ═══ v8.2.0 — Las cuentas de un mismo banco comparten el límite ═══
+   El banco pone un solo límite diario por cliente: lo que se paga desde Itaú
+   empresa y desde Itaú personal sale del mismo cupo. Una cuenta agregada usa
+   el límite de la cuenta de siempre de su banco, salvo que se le haya puesto
+   uno propio (bancos[cuenta].limitePropio===true). Devuelve la cuenta en la
+   que vive el límite: su monto, sus días de renovación y lo consumido. */
+function cuentaDelLimite(nombre){
+    const p=parteDeClave(nombre);
+    if(!p)return nombre;
+    const bs=AppState.datos&&AppState.datos.bancos,bk=bs&&bs[nombre];
+    if(bk&&bk.limitePropio===true)return nombre;
+    return p.banco;
+}
+/* Las otras cuentas que usan el límite de esta (sin contar a ella misma) */
+function cuentasQueComparten(duena){
+    const bs=(AppState.datos&&AppState.datos.bancos)||{};
+    return Object.keys(bs).filter(k=>k!==duena&&cuentaDelLimite(k)===duena);
+}
+/* Cómo se llama el cupo: el nombre de la cuenta, o el del banco si lo usan varias */
+function nombreDelCupo(nombre){
+    const d=cuentaDelLimite(nombre);
+    if(!cuentasQueComparten(d).length)return nombreCuenta(d);
+    const b=CONFIG.BANCOS.find(x=>x.nombre===bancoDeCuenta(d));
+    return b?(b.etiqueta||b.nombre):nombreCuenta(d);
+}
+
+/* Consumo de cupo de cada límite, sumando las compras desde su última
+   renovación. `excluir` ({tipo,id}) deja afuera un registro: sirve para
+   validar una edición sin contar el valor viejo.
+   v8.2.0 — Las transferencias ya no cuentan: son entre cuentas propias y el
+   banco no las descuenta del límite. Y lo que paga una cuenta que comparte
+   límite se suma en la cuenta dueña. */
 function _consumoDeCupos(excluir){
-    const usado={};
+    const usado={},desde={};
     Object.keys(AppState.datos.bancos).forEach(n=>{
+        if(cuentaDelLimite(n)!==n)return;   /* usa el límite de otra */
         const bk=AppState.datos.bancos[n];
         usado[n]=(bk&&bk.limiteDiarioUSD>0)?0:null;   /* null = sin límite, no se calcula */
     });
     const excluido=(tipo,ev)=>excluir&&excluir.tipo===tipo&&String(excluir.id)===String(ev.id);
-    /* Las transferencias salientes también consumen cupo de la cuenta de origen:
-       es dinero que sale igual que en una compra. */
-    (AppState.datos.transferencias||[]).forEach(tr=>{
-        if(!tr||!tr.origen||excluido('transferencias',tr))return;
-        if(usado[tr.origen]===undefined||usado[tr.origen]===null)return;
-        const desde=_cupoDesde(tr.origen);
-        if(desde&&String(tr.fecha||'')<String(desde))return;
-        const u=_montoEnUSDLimite(tr.origen,(tr.monto||0)+(tr.comision||0));
-        if(u>0)usado[tr.origen]=roundMoney(usado[tr.origen]+u);
-    });
     (AppState.datos.operaciones||[]).forEach(op=>{
         if(!op||op.tipo!=='compra'||excluido('operaciones',op))return;
         /* Cada cuenta que aportó consume su parte; sin pago dividido, todo el monto */
         aportesDe(op).forEach(p=>{
-            if(usado[p.banco]===undefined||usado[p.banco]===null)return;
-            const desde=_cupoDesde(p.banco);
-            if(desde&&String(op.fecha||'')<String(desde))return;   /* anterior a la renovación */
+            const d=cuentaDelLimite(p.banco);
+            if(usado[d]===undefined||usado[d]===null)return;
+            const f=desde[d]||(desde[d]=_cupoDesde(d));
+            if(f&&String(op.fecha||'')<String(f))return;   /* anterior a la renovación */
             const u=_montoEnUSDLimite(p.banco,p.monto);
-            if(u>0)usado[p.banco]=roundMoney(usado[p.banco]+u);
+            if(u>0)usado[d]=roundMoney(usado[d]+u);
         });
     });
     return usado;
@@ -259,11 +280,13 @@ function recalcularCuposDiarios(){
         AppState.datos.bancos[n].limiteUsadoUSD=usado[n];
     });
 }
-/* Cupo que le queda a una cuenta, en dólares. Infinity si no tiene límite. */
+/* Cupo que le queda a una cuenta, en dólares. Infinity si no tiene límite.
+   Si comparte el límite, es el que queda en la cuenta dueña. */
 function cupoDisponibleUSD(nombre,excluir){
-    const bk=AppState.datos.bancos[nombre];
+    const d=cuentaDelLimite(nombre);
+    const bk=AppState.datos.bancos[d];
     if(!bk||!(bk.limiteDiarioUSD>0))return Infinity;
-    const usado=_consumoDeCupos(excluir)[nombre]||0;
+    const usado=_consumoDeCupos(excluir)[d]||0;
     return roundMoney(bk.limiteDiarioUSD-usado);
 }
 
