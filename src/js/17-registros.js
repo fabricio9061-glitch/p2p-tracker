@@ -18,10 +18,13 @@
    Las funciones de guardado devuelven siempre un objeto:
      {ok:true, id}                      quedó guardado
      {ok:false, error, campo?}          no se puede: el texto dice por qué
-     {ok:false, confirmar}              se puede, pero algo queda raro (un saldo
-                                        en negativo, por ejemplo): la pantalla
-                                        pregunta y, si la persona acepta, vuelve
-                                        a llamar con {forzar:true}.             */
+     {ok:false, error, negativo:true}   no se puede porque una cuenta o los USDT
+                                        quedarían en negativo (v8.2.0: esto ya no
+                                        se puede forzar)
+     {ok:false, confirmar}              se puede, pero algo queda raro (el cupo
+                                        del día, al editar una compra): la
+                                        pantalla pregunta y, si la persona
+                                        acepta, vuelve a llamar con {forzar:true}. */
 
 const ENTIDADES_REGISTRO=['operaciones','movimientos','transferencias','conversiones','ajustesSaldo'];
 const ELIMINADOS_MAX=80,ELIMINADOS_DIAS=30,CAMBIOS_MAX=20;
@@ -151,40 +154,221 @@ function anotarCambios(entidad,antes,despues){
     return c.length;
 }
 
-/* ─── Problemas de saldo, en palabras ──────────────────────────────────── */
-/* deltas = {bancos:{cuenta:variación}, usdt, usdtMoneda} */
-function problemasDeSaldo(deltas){
-    const lineas=[];
-    Object.entries((deltas&&deltas.bancos)||{}).forEach(([n,dl])=>{
-        const bk=AppState.datos.bancos[n];if(!bk||!(dl<0))return;
-        const nuevo=roundMoney((bk.saldo||0)+dl);
-        if(nuevo<-INTEG_EPSILON)lineas.push(nombreCuenta(n)+' quedaría en −'+fmtMonto(Math.abs(nuevo),monedaDeCuenta(n)));
-    });
-    if(deltas&&deltas.usdt<0){
-        const disp=deltas.usdtMoneda?usdtDisponibleEn(deltas.usdtMoneda):roundMoney(AppState.datos.saldoUsdt||0);
-        const falta=roundMoney(-deltas.usdt-disp);
-        if(falta>INTEG_EPSILON)lineas.push('Te faltarían '+fmtTrunc(falta,2)+' USDT (tenés '+fmtTrunc(Math.max(0,disp),2)+')');
-    }
-    return lineas;
+/* ═══ v8.2.0 — Ninguna cuenta queda en negativo, en ningún momento ═══════════
+   Antes se miraba solo cómo terminaba el saldo, y si una edición o un borrado
+   dejaba una cuenta en negativo se preguntaba "¿Guardar igual?". Así se podía
+   borrar una transferencia cuya plata ya se había gastado, o bajar un ingreso
+   que ya se había usado, y la cuenta quedaba en negativo. Tampoco se veía un
+   negativo en el medio: un egreso cargado con fecha de ayer podía dejar la
+   cuenta en rojo ayer a la tarde aunque hoy, con lo que entró después, cerrara
+   en positivo.
+
+   Ahora se recorre el libro de cada cuenta que el cambio toca, en el orden de
+   fecha y hora del libro, como quedaría con el cambio y como estaba antes. Si
+   en algún momento el saldo queda por debajo de cero, no se guarda: ni al
+   cargar, ni al editar, ni al borrar, ni al recuperar, y no hay "guardar
+   igual". Lo mismo con los USDT de cada moneda: no se puede vender ni sacar lo
+   que todavía no se había comprado.
+
+   Si una cuenta ya venía en negativo por datos de antes, se la deja mejorar
+   —cualquier cambio que la acerque a cero se acepta— pero nunca empeorar.
+
+   cambios = [{entidad, antes, despues}]: antes es el registro como está
+   guardado (null si es nuevo) y despues como quedaría (null si se borra).
+   Devuelve la lista de problemas; vacía si se puede guardar. */
+const _NEG=0.005;
+const _DIAS_LIBRO=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+function _idOrden(id){return String(Number(id)||0).padStart(20,'0')}
+/* Mismo orden que el libro de la cuenta: momento y, si coincide, id */
+function _ordenEnCuenta(ev){return _marcaEvento(ev)+'|'+_idOrden(ev&&ev.id)}
+/* Mismo orden que el recálculo de los lotes */
+function _ordenEnUsdt(entidad,ev){
+    const f=entidad==='lotes'?(ev.fecha||'2000-01-01'):(ev.fecha||'');
+    return f+(ev.hora||'00:00')+'|'+_idOrden(ev.id);
 }
+/* USDT que mueve un registro, y con qué moneda se compraron esos USDT */
 function _usdtDe(entidad,rec){
     if(!rec)return 0;
-    if(entidad==='lotes')return roundMoney(rec.cantidad||0);
+    if(entidad==='lotes')return roundMoney(Number(rec.cantidad)||0);
     return efectoEnUsdt(entidad,rec)||0;
 }
 function _monedaUsdtDe(entidad,rec){
-    if(entidad==='operaciones')return rec.moneda||'UYU';
-    if(entidad==='lotes')return rec.moneda||'UYU';
-    return'UYU';   /* los movimientos de USDT van contra lotes en pesos, por convención */
+    if(entidad==='operaciones'||entidad==='lotes')return(rec&&rec.moneda)||'UYU';
+    return'UYU';   /* los movimientos de USDT van contra lotes en pesos, igual que en el recálculo */
 }
-/* Diferencia completa (cuentas y USDT) entre dos versiones de un registro */
-function deltasEntre(entidad,antes,despues){
-    const d=entidad==='lotes'?{bancos:{}}:diferenciaDeEfecto(entidad,antes,despues);
-    const ref=despues||antes;
-    const du=roundMoney(_usdtDe(entidad,despues)-_usdtDe(entidad,antes));
-    if(Math.abs(du)>=0.005){d.usdt=du;if(du<0)d.usdtMoneda=_monedaUsdtDe(entidad,ref)}
-    return d;
+/* "hoy a las 15:30", "ayer a las 9:10", "el martes 3 a las 18:00" */
+function _cuandoFue(f,h){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(f||'')||f<='2000-01-01')return'';
+    const hoy=getUDateStr(),hora=h?' a las '+h:'';
+    const fe=s=>new Date(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10),12);
+    const ay=fe(hoy);ay.setDate(ay.getDate()-1);
+    const ayer=ay.getFullYear()+'-'+String(ay.getMonth()+1).padStart(2,'0')+'-'+String(ay.getDate()).padStart(2,'0');
+    if(f===hoy)return'hoy'+hora;
+    if(f===ayer)return'ayer'+hora;
+    const d=fe(f);
+    let t='el '+_DIAS_LIBRO[d.getDay()]+' '+d.getDate();
+    if(f.slice(0,7)!==hoy.slice(0,7))t+=' de '+_MESES_LARGO[d.getMonth()];
+    if(f.slice(0,4)!==hoy.slice(0,4))t+=' de '+d.getFullYear();
+    return t+hora;
 }
+/* Recorre una lista de asientos {k, a, d, ev} en orden, sumando lo de antes
+   (a) y lo de después (d) desde el mismo punto de partida. Los asientos con
+   el mismo orden se suman juntos (la versión vieja y la nueva de un registro
+   que no cambió de momento). Devuelve el problema más claro: cómo termina, si
+   termina mal; si no, el primer momento en que queda en negativo. */
+function _recorrerSaldo(lista,inicio){
+    lista.sort((x,y)=>x.k<y.k?-1:x.k>y.k?1:0);
+    let sa=roundMoney(inicio),sd=sa,primero=null;
+    const peor=()=>sd<-_NEG&&sd<sa-_NEG;
+    for(let i=0;i<lista.length;){
+        const k=lista[i].k;let ev=null;
+        while(i<lista.length&&lista[i].k===k){
+            const x=lista[i];
+            sa=roundMoney(sa+x.a);sd=roundMoney(sd+x.d);
+            if(!ev||x.d)ev=x.ev;
+            i++;
+        }
+        if(!primero&&peor())primero={valor:sd,ev};
+    }
+    if(peor())return{final:true,valor:sd,antes:sa};
+    return primero?{final:false,valor:primero.valor,ev:primero.ev,antes:sa}:null;
+}
+/* ═══ v8.2.1 — Los USDT se cuentan como el inventario: nunca bajan de cero ═══
+   La 8.2.0 sumaba todo lo que entró y salió desde el principio. Pero el
+   inventario (recalcularLotesYGanancias) no baja de cero: si una venta de hace
+   meses salió de USDT que nunca se cargaron como compra, esa parte queda sin
+   lote y no se resta de nada. Con una sola venta así en la historia, la suma
+   quedaba negativa para siempre —aunque hoy hubiera USDT de sobra— y cualquier
+   venta nueva "la empeoraba": no se podía vender.
+
+   Ahora se recorre igual que el inventario, moneda por moneda: lo que entra
+   suma, lo que sale toma lo que hay, y lo que no alcanza queda como faltante.
+   Se hace con el cambio y sin el cambio, y solo si el cambio agrega faltante no
+   se guarda. Lo que ya faltaba de antes no frena nada.
+   lista = [{k, a, d, ev}] como en _recorrerSaldo. Devuelve null si se puede, o
+   cuánto faltaría en total, en qué registro empieza a faltar y cuánto había
+   en ese momento. */
+function _recorrerUsdt(lista){
+    lista.sort((x,y)=>x.k<y.k?-1:x.k>y.k?1:0);
+    let ia=0,idp=0,fa=0,fd=0,primero=null,ultimo=null;
+    for(let i=0;i<lista.length;){
+        const k=lista[i].k,fa0=fa,fd0=fd;let ev=null,habia=null;
+        while(i<lista.length&&lista[i].k===k){
+            const x=lista[i];
+            if(x.a>0)ia=roundMoney(ia+x.a);
+            else if(x.a<0){const c=Math.min(ia,-x.a);fa=roundMoney(fa-x.a-c);ia=roundMoney(ia-c)}
+            if(x.d>0)idp=roundMoney(idp+x.d);
+            else if(x.d<0){if(habia===null)habia=idp;const c=Math.min(idp,-x.d);fd=roundMoney(fd-x.d-c);idp=roundMoney(idp-c)}
+            if(!ev||x.d)ev=x.ev;
+            i++;
+        }
+        ultimo=ev;
+        const mas=roundMoney((fd-fd0)-(fa-fa0));
+        if(!primero&&mas>_NEG)primero={ev,habia:habia===null?idp:habia};
+    }
+    const falta=roundMoney(fd-fa);
+    if(falta<=_NEG||!primero)return null;
+    return{falta,ev:primero.ev,habia:Math.max(0,primero.habia),alFinal:primero.ev===ultimo};
+}
+function revisarNegativos(cambios){
+    const D=AppState.datos;
+    const cs=(cambios||[]).filter(c=>c&&c.entidad&&(c.antes||c.despues));
+    if(!D||!cs.length)return[];
+    /* Las versiones viejas salen de "lo que hay": entran como asiento de antes */
+    const fuera=new Set(cs.filter(c=>c.antes&&c.antes.id!=null).map(c=>c.entidad+':'+c.antes.id));
+    const queda=(ent,ev)=>!fuera.has(ent+':'+ev.id);
+    const cuentas={},monedas={};
+    cs.forEach(c=>[c.antes,c.despues].forEach(r=>{
+        if(!r)return;
+        if(c.entidad!=='lotes')Object.keys(efectoEnBancos(c.entidad,r)).forEach(k=>{cuentas[k]=[]});
+        if(Math.abs(_usdtDe(c.entidad,r))>=_NEG)monedas[_monedaUsdtDe(c.entidad,r)]=[];
+    }));
+    const hayCuentas=Object.keys(cuentas).length>0,hayUsdt=Object.keys(monedas).length>0;
+    if(!hayCuentas&&!hayUsdt)return[];
+    /* Un solo recorrido por los registros */
+    ENTIDADES_REGISTRO.forEach(ent=>(D[ent]||[]).forEach(ev=>{
+        if(!ev||!queda(ent,ev))return;
+        if(hayCuentas){
+            const ef=efectoEnBancos(ent,ev);
+            for(const k in ef)if(cuentas[k])cuentas[k].push({k:_ordenEnCuenta(ev),a:ef[k],d:ef[k],ev});
+        }
+        if(hayUsdt&&(ent==='operaciones'||ent==='movimientos')){
+            const u=_usdtDe(ent,ev);
+            if(u){const m=monedas[_monedaUsdtDe(ent,ev)];if(m)m.push({k:_ordenEnUsdt(ent,ev),a:u,d:u,ev})}
+        }
+    }));
+    if(hayUsdt){
+        const lote=l=>{
+            if(!l||!queda('lotes',l))return;
+            const m=monedas[l.moneda||'UYU'],u=roundMoney(Number(l.cantidad)||0);
+            if(m&&u)m.push({k:_ordenEnUsdt('lotes',l),a:u,d:u,ev:l});
+        };
+        (D.lotes||[]).forEach(l=>{if(l&&l.manual&&!l.carryover)lote(l)});
+        (D._archivoCarryover||[]).forEach(lote);
+    }
+    /* Las dos versiones de lo que cambia */
+    cs.forEach(c=>{
+        const poner=(r,lado)=>{
+            if(!r)return;
+            if(c.entidad!=='lotes'){
+                const ef=efectoEnBancos(c.entidad,r);
+                for(const k in ef)cuentas[k].push({k:_ordenEnCuenta(r),a:lado?0:ef[k],d:lado?ef[k]:0,ev:r});
+            }
+            const u=_usdtDe(c.entidad,r);
+            if(Math.abs(u)>=_NEG)monedas[_monedaUsdtDe(c.entidad,r)].push({k:_ordenEnUsdt(c.entidad,r),a:lado?0:u,d:lado?u:0,ev:r});
+        };
+        poner(c.antes,false);poner(c.despues,true);
+    });
+    const out=[];
+    Object.keys(cuentas).forEach(k=>{
+        const bk=D.bancos&&D.bancos[k];
+        const lista=cuentas[k];
+        let inicio=bk?Number(bk.saldoApertura):0;
+        if(!isFinite(inicio))inicio=roundMoney((Number(bk&&bk.saldo)||0)-lista.reduce((s,x)=>s+x.a,0));
+        const p=_recorrerSaldo(lista,inicio);
+        if(!p)return;
+        const cuanto='−'+fmtMonto(Math.abs(p.valor),monedaDeCuenta(k));
+        let texto;
+        if(p.final)texto=nombreCuenta(k)+' quedaría en '+cuanto;
+        else{const w=_cuandoFue(p.ev&&p.ev.fecha,p.ev&&p.ev.hora);texto=nombreCuenta(k)+' habría quedado en '+cuanto+(w?' '+w:'')}
+        out.push({texto,cuenta:k,valor:p.valor,final:p.final});
+    });
+    const conDolares=Object.keys(monedas).length>1||!!monedas.USD||(D.operaciones||[]).some(o=>o&&o.moneda==='USD');
+    const nuevos=new Set(cs.map(c=>c.despues).filter(Boolean));
+    Object.keys(monedas).forEach(m=>{
+        const p=_recorrerUsdt(monedas[m]);
+        if(!p)return;
+        const cual=conDolares?(m==='USD'?' comprados con dólares':' comprados con pesos'):'';
+        const falta=fmtTrunc(p.falta,2),habia=fmtTrunc(p.habia,2);
+        const ev=p.ev||{},w=_cuandoFue(ev.fecha,ev.hora);
+        let texto;
+        if(nuevos.has(p.ev)){
+            /* Falta en lo mismo que se está guardando */
+            if(p.alFinal)texto='Te faltarían '+falta+' USDT'+cual+' (tenés '+habia+')';
+            else texto='Te faltarían '+falta+' USDT'+cual+(w?' '+w:'')+': a esa hora tenías '+habia;
+        }else{
+            /* Lo que se cambia deja sin USDT a algo que ya salió después */
+            const cosa=ev.tipoCuenta==='usdt'?'la salida de USDT':'la venta';
+            const de=!w?'':/^el /.test(w)?' del '+w.slice(3):' de '+w;
+            texto='Te faltarían '+falta+' USDT'+cual+': '+cosa+de+' ya los usó';
+        }
+        out.push({texto,usdt:m,valor:-p.falta,final:!!p.alFinal});
+    });
+    return out;
+}
+/* Respuesta de "no se puede" con los problemas, una línea cada uno */
+function _bloqueoNegativo(problemas,o){
+    o=o||{};
+    const r={ok:false,negativo:true,problemas,error:problemas.map(x=>x.texto+'.').join('\n')};
+    if(o.borrar)r.pista=problemas.some(x=>x.cuenta)
+        ?'Esa plata ya se usó: primero cambiá o borrá lo que se pagó con ella.'
+        :'Esos USDT ya se usaron: primero cambiá o borrá las ventas que salieron de ellos.';
+    if(o.campo)r.campo=o.campo;
+    return r;
+}
+/* Antes de cualquier cambio: si llegó algo del servidor y su recálculo está
+   pendiente, se hace ahora, para validar con los saldos de verdad. */
+function _alDia(){if(typeof v2AlDia==='function')v2AlDia()}
 
 /* ─── Eliminados ────────────────────────────────────────────────────────── */
 function eliminadosLista(){
@@ -204,23 +388,23 @@ function _copiaLimpia(rec){
     return r;
 }
 /* Mover a Eliminados y sacar de su lista. Devuelve la clave para deshacer. */
-function eliminarRegistro(entidad,id,opts){
-    opts=opts||{};
+function eliminarRegistro(entidad,id){
+    _alDia();
     const rec=entidad==='lotes'
         ?(AppState.datos.lotes||[]).find(l=>l&&String(l.id)===String(id))
         :buscarRegistro(entidad,id);
     if(!rec)return{ok:false,error:'Ese movimiento ya no existe.'};
     if(entidad==='lotes'&&!rec.manual)return{ok:false,error:'Este lote viene de una compra: para sacarlo, borrá la compra.'};
-    if(!opts.forzar){
-        const probs=problemasDeSaldo(deltasEntre(entidad,rec,null));
-        if(probs.length)return{ok:false,confirmar:'Si lo borrás:\n'+probs.join('\n')};
-    }
+    /* Los lotes de arrastre se declaran aparte: lo que vale es su declaración
+       (el lote calculado puede tener sumadas compras al mismo precio) */
+    const decl=entidad==='lotes'&&rec.carryover?(AppState.datos._archivoCarryover||[]).find(x=>String(x.id)===String(rec.id)):null;
+    const probs=revisarNegativos([{entidad,antes:decl||rec,despues:null}]);
+    if(probs.length)return _bloqueoNegativo(probs,{borrar:true});
     const clave=entidad+':'+rec.id+':'+Date.now();
     let copia=_copiaLimpia(rec);
     if(entidad==='lotes'){
-        /* Los de arrastre se declaran aparte: hay que sacar su declaración, si no
-           el recálculo los vuelve a crear */
-        const decl=rec.carryover?(AppState.datos._archivoCarryover||[]).find(x=>String(x.id)===String(rec.id)):null;
+        /* Hay que sacar también la declaración del de arrastre: si no, el
+           recálculo lo vuelve a crear */
         if(decl)copia=_copiaLimpia(decl);
         if(rec.carryover&&Array.isArray(AppState.datos._archivoCarryover))
             AppState.datos._archivoCarryover=AppState.datos._archivoCarryover.filter(x=>String(x.id)!==String(rec.id));
@@ -233,8 +417,8 @@ function eliminarRegistro(entidad,id,opts){
     confirmarCambios([{tipo:'delete',entidad,id:rec.id},{tipo:'update',entidad:'config',id:'eliminados'}]);
     return{ok:true,clave};
 }
-function restaurarEliminado(clave,opts){
-    opts=opts||{};
+function restaurarEliminado(clave){
+    _alDia();
     const lista=eliminadosLista();
     const i=lista.findIndex(x=>x&&x.k===clave);
     if(i<0)return{ok:false,error:'Ya no está en Eliminados.'};
@@ -250,10 +434,8 @@ function restaurarEliminado(clave,opts){
         const arch=ultimoMesArchivado();
         if(arch&&String(rec.fecha||'').slice(0,7)<=arch)return{ok:false,error:'Es de un mes que ya se archivó: no se puede recuperar.'};
     }
-    if(!opts.forzar){
-        const probs=problemasDeSaldo(deltasEntre(entidad,null,rec));
-        if(probs.length)return{ok:false,confirmar:'Si lo recuperás:\n'+probs.join('\n')};
-    }
+    const probs=revisarNegativos([{entidad,antes:null,despues:rec}]);
+    if(probs.length)return _bloqueoNegativo(probs);
     const copia=JSON.parse(JSON.stringify(rec));
     copia.cambios=[{t:new Date().toISOString(),c:[{f:'recuperado',a:'',d:''}]},...normalizarCambios(copia.cambios)].slice(0,CAMBIOS_MAX);
     if(entidad==='lotes'){
@@ -272,14 +454,11 @@ function restaurarEliminado(clave,opts){
 }
 
 /* ─── Guardado común ────────────────────────────────────────────────────── */
-/* Valida saldos con la regla del libro: lo nuevo se bloquea, una edición o
-   un borrado se pregunta (si no, un error viejo quedaría atrapado). */
-function _chequeoSaldos(entidad,viejo,nuevo,opts){
-    const probs=problemasDeSaldo(deltasEntre(entidad,viejo,nuevo));
-    if(!probs.length)return null;
-    if(!viejo)return{ok:false,error:probs.join('. ')+'.'};
-    if(opts.forzar)return null;
-    return{ok:false,confirmar:'Con este cambio:\n'+probs.join('\n')};
+/* v8.2.0 — Ni lo nuevo ni una edición pueden dejar algo en negativo, en
+   ningún momento del libro (ver revisarNegativos). No se puede forzar. */
+function _chequeoSaldos(entidad,viejo,nuevo){
+    const probs=revisarNegativos([{entidad,antes:viejo,despues:nuevo}]);
+    return probs.length?_bloqueoNegativo(probs):null;
 }
 function _fechaHoraDe(d,viejo){
     const ahora=ahoraUY();
@@ -310,6 +489,7 @@ function _limpiarParaGuardar(rec){
         comisionPct, fecha, hora}. En una edición el tipo no cambia. */
 function guardarOperacion(d,opts){
     opts=opts||{};
+    _alDia();
     const viejo=opts.id!=null?buscarRegistro('operaciones',opts.id):null;
     if(opts.id!=null&&!viejo)return{ok:false,error:'Esa operación ya no existe.'};
     const tipo=viejo?viejo.tipo:(d.tipo==='venta'?'venta':'compra');
@@ -352,16 +532,24 @@ function guardarOperacion(d,opts){
         timestamp:_marcaDe(fecha,hora)});
     if(aportes)nuevo.aportes=aportes;else delete nuevo.aportes;
     if(!viejo){nuevo.creado=new Date().toISOString();nuevo.ganancia=0}
-    const sal=_chequeoSaldos('operaciones',viejo,nuevo,opts);if(sal)return sal;
-    /* Cupo diario de cada cuenta que paga, solo si cae en el cupo de hoy */
+    const sal=_chequeoSaldos('operaciones',viejo,nuevo);if(sal)return sal;
+    /* Cupo diario, solo si cae en el cupo de hoy. v8.2.0 — Las cuentas que
+       comparten límite (Itaú personal e Itaú empresa) suman juntas: un pago
+       dividido entre las dos se compara entero contra el mismo cupo. */
     if(tipo==='compra'){
+        const pide={};
         for(const a of aportesDe(nuevo)){
-            if(fecha<_cupoDesde(a.banco))continue;
-            const disp=cupoDisponibleUSD(a.banco,viejo?{tipo:'operaciones',id:viejo.id}:null);
-            if(disp===Infinity)continue;
+            const duena=cuentaDelLimite(a.banco);
+            if(fecha<_cupoDesde(duena))continue;
             const req=moneda==='USD'?roundMoney(a.monto):truncar(a.monto/tasa);
+            pide[duena]=roundMoney((pide[duena]||0)+req);
+        }
+        for(const duena of Object.keys(pide)){
+            const disp=cupoDisponibleUSD(duena,viejo?{tipo:'operaciones',id:viejo.id}:null);
+            if(disp===Infinity)continue;
+            const req=pide[duena];
             if(req>disp+0.005){
-                const txt=nombreCuenta(a.banco)+': el cupo de hoy no alcanza. Quedan US$'+fmtNum(Math.max(0,disp),0)+' y esta compra usa US$'+fmtNum(req,0)+'.';
+                const txt=nombreDelCupo(duena)+': el cupo de hoy no alcanza. Quedan US$'+fmtNum(Math.max(0,disp),0)+' y esta compra usa US$'+fmtNum(req,0)+'.';
                 if(!viejo)return{ok:false,error:txt,campo:'cuenta'};
                 if(!opts.forzar)return{ok:false,confirmar:txt};
             }
@@ -375,6 +563,7 @@ function guardarOperacion(d,opts){
         nota, fecha, hora} */
 function guardarMovimiento(d,opts){
     opts=opts||{};
+    _alDia();
     const viejo=opts.id!=null?buscarRegistro('movimientos',opts.id):null;
     if(opts.id!=null&&!viejo)return{ok:false,error:'Ese movimiento ya no existe.'};
     const tipoMovimiento=d.tipoMovimiento==='ingreso'?'ingreso':'egreso';
@@ -394,7 +583,7 @@ function guardarMovimiento(d,opts){
         monto,valorUYU:0,tasaRef,descripcion,fecha,hora,timestamp:_marcaDe(fecha,hora)});
     if(nota)nuevo.nota=nota;else delete nuevo.nota;
     if(!viejo)nuevo.creado=new Date().toISOString();
-    const sal=_chequeoSaldos('movimientos',viejo,nuevo,opts);if(sal)return sal;
+    const sal=_chequeoSaldos('movimientos',viejo,nuevo);if(sal)return sal;
     if(descripcion&&!(AppState.datos.tags||[]).some(t=>tagKey(t)===tagKey(descripcion)))agregarTag(descripcion);
     return _terminar('movimientos',viejo,nuevo);
 }
@@ -405,6 +594,7 @@ function guardarMovimiento(d,opts){
    opts.id + opts.entidad para editar (puede cambiar de una a la otra). */
 function guardarTransferencia(d,opts){
     opts=opts||{};
+    _alDia();
     const entViejo=opts.entidad==='conversiones'?'conversiones':'transferencias';
     const viejo=opts.id!=null?buscarRegistro(entViejo,opts.id):null;
     if(opts.id!=null&&!viejo)return{ok:false,error:'Esa transferencia ya no existe.'};
@@ -429,27 +619,14 @@ function guardarTransferencia(d,opts){
         ?{...base,montoOrigen:monto,montoDestino:mo==='UYU'&&md==='USD'?roundMoney(monto/tasa):roundMoney(monto*tasa),
           tasa,monedaOrigen:mo,monedaDestino:md}
         :{...base,monto,comision};
-    /* Validación con el efecto de lo viejo y lo nuevo, aunque cambie de tipo */
-    const dif=diferenciaDeEfecto(entNueva,null,nuevo);
-    if(viejo){
-        const quita=diferenciaDeEfecto(entViejo,viejo,null);
-        Object.entries(quita.bancos).forEach(([k,v])=>{dif.bancos[k]=roundMoney((dif.bancos[k]||0)+v)});
-    }
-    const probs=problemasDeSaldo(dif);
-    if(probs.length){
-        if(!viejo)return{ok:false,error:probs.join('. ')+'.'};
-        if(!opts.forzar)return{ok:false,confirmar:'Con este cambio:\n'+probs.join('\n')};
-    }
-    /* Cupo: una transferencia en la misma moneda también consume el de la cuenta de origen */
-    if(!cruce&&fecha>=_cupoDesde(o)){
-        const disp=cupoDisponibleUSD(o,viejo&&entViejo==='transferencias'?{tipo:'transferencias',id:viejo.id}:null);
-        const req=_montoEnUSDLimite(o,monto+comision);
-        if(disp!==Infinity&&req>disp+0.005){
-            const txt=nombreCuenta(o)+': el cupo de hoy no alcanza. Quedan US$'+fmtNum(Math.max(0,disp),0)+' y esto usa US$'+fmtNum(req,0)+'.';
-            if(!viejo)return{ok:false,error:txt,campo:'origen'};
-            if(!opts.forzar)return{ok:false,confirmar:txt};
-        }
-    }
+    /* Validación con lo viejo y lo nuevo, aunque cambie de transferencia a
+       conversión o al revés. v8.2.0 — Las transferencias entre tus cuentas no
+       gastan el cupo diario: el banco no las cuenta en el límite. */
+    const cambios=!viejo?[{entidad:entNueva,antes:null,despues:nuevo}]
+        :entViejo===entNueva?[{entidad:entNueva,antes:viejo,despues:nuevo}]
+        :[{entidad:entViejo,antes:viejo,despues:null},{entidad:entNueva,antes:null,despues:nuevo}];
+    const probs=revisarNegativos(cambios);
+    if(probs.length)return _bloqueoNegativo(probs);
     if(viejo&&entViejo!==entNueva){
         /* Cambió de transferencia a conversión o al revés: cambia de lista,
            conserva el id, la fecha y lo anotado */
@@ -466,9 +643,14 @@ function guardarTransferencia(d,opts){
 /* Desde "Corregir saldo": se dice cuánto hay de verdad en el banco y queda
    anotada la diferencia. */
 function corregirSaldo(cuenta,saldoReal,motivo){
+    _alDia();
     if(!AppState.datos.bancos[cuenta])return{ok:false,error:'Elegí la cuenta.',campo:'cuenta'};
     const real=roundMoney(Number(saldoReal));
-    if(!isFinite(real))return{ok:false,error:'Ingresá el saldo real.',campo:'monto'};
+    if(saldoReal===''||saldoReal===null||saldoReal===undefined||!isFinite(Number(saldoReal)))return{ok:false,error:'Ingresá el saldo real.',campo:'monto'};
+    /* v8.2.0 — Una cuenta no puede tener saldo negativo. La corrección queda
+       como último asiento del libro, así que con un saldo real de cero o más
+       la cuenta no queda en negativo en ningún momento. */
+    if(real<-_NEG)return{ok:false,error:'El saldo no puede ser negativo.',campo:'monto'};
     const aj=registrarAjusteSaldo(cuenta,real,motivo);
     if(!aj)return{ok:false,error:'Ese ya es el saldo registrado: no hay nada que corregir.',campo:'monto'};
     aj.creado=aj.timestamp;
@@ -477,14 +659,14 @@ function corregirSaldo(cuenta,saldoReal,motivo){
     return{ok:true,id:aj.id,entidad:'ajustesSaldo',delta:aj.delta};
 }
 /* Editar una corrección ya hecha: diferencia (con signo) y motivo */
-function editarCorreccion(id,d,opts){
-    opts=opts||{};
+function editarCorreccion(id,d){
+    _alDia();
     const viejo=buscarRegistro('ajustesSaldo',id);
     if(!viejo)return{ok:false,error:'Esa corrección ya no existe.'};
     const delta=roundMoney(Number(d.delta)||0);
     if(Math.abs(delta)<0.005)return{ok:false,error:'Ingresá la diferencia. Para quitar la corrección, borrala.',campo:'monto'};
     const nuevo=_limpiarParaGuardar({...JSON.parse(JSON.stringify(viejo)),delta,motivo:String(d.motivo||'').trim().slice(0,120)});
-    const sal=_chequeoSaldos('ajustesSaldo',viejo,nuevo,opts);if(sal)return sal;
+    const sal=_chequeoSaldos('ajustesSaldo',viejo,nuevo);if(sal)return sal;
     return _terminar('ajustesSaldo',viejo,nuevo);
 }
 
@@ -493,6 +675,7 @@ function editarCorreccion(id,d,opts){
    declaración, que es lo único que el recálculo respeta. */
 function guardarLoteManual(d,opts){
     opts=opts||{};
+    _alDia();
     const cantidad=truncUsdt(Number(d.cantidad)||0),precio=roundMoney(Number(d.precio)||0,3);
     if(!(cantidad>0))return{ok:false,error:'Ingresá cuántos USDT.',campo:'cantidad'};
     if(!(precio>0))return{ok:false,error:'Ingresá a cuánto te salió cada uno.',campo:'precio'};
@@ -502,7 +685,11 @@ function guardarLoteManual(d,opts){
         const l=(AppState.datos.lotes||[]).find(x=>x&&String(x.id)===String(opts.id));
         if(!l||!l.manual)return{ok:false,error:'Ese lote no se puede editar acá.'};
         const decl=l.carryover?(AppState.datos._archivoCarryover||[]).find(x=>String(x.id)===String(l.id)):l;
-        const antes={...decl};
+        const antes={...(decl||l)};
+        /* v8.2.0 — Bajar la cantidad o correr la fecha después de ventas que
+           usaron esos USDT dejaría vendido lo que no se tenía */
+        const probs=revisarNegativos([{entidad:'lotes',antes,despues:{...antes,cantidad,precioCompra:precio,fecha}}]);
+        if(probs.length)return _bloqueoNegativo(probs,{campo:'cantidad'});
         [l,decl].forEach(x=>{if(x){x.precioCompra=precio;x.cantidad=cantidad;x.disponible=cantidad;x.fecha=fecha}});
         if(decl)anotarCambios('lotes',antes,decl);
         if(decl&&decl!==l)l.cambios=decl.cambios;
@@ -516,16 +703,28 @@ function guardarLoteManual(d,opts){
 }
 
 /* ─── Configuración de cuentas ──────────────────────────────────────────── */
-function guardarLimiteCuenta(cuenta,limiteUSD,diasReset){
+/* v8.2.0 — o.propio (solo cuentas agregadas): true para que tenga su propio
+   límite, false para que use el de la cuenta de siempre de su banco. Sin
+   decirlo, sigue como estaba. El límite se guarda en la cuenta dueña. */
+function guardarLimiteCuenta(cuenta,limiteUSD,diasReset,o){
+    o=o||{};
     const bk=AppState.datos.bancos[cuenta];
     if(!bk)return{ok:false,error:'Esa cuenta no existe.'};
     const lim=roundMoney(Number(limiteUSD)||0);
     if(lim<0)return{ok:false,error:'El límite no puede ser negativo.',campo:'limite'};
-    bk.limiteDiarioUSD=lim;
+    const cambios=[];
+    if(esCuentaAgregada(cuenta)&&typeof o.propio==='boolean'&&o.propio!==(bk.limitePropio===true)){
+        bk.limitePropio=o.propio;
+        cambios.push({tipo:'update',entidad:'bancos',id:cuenta});
+    }
+    const duena=cuentaDelLimite(cuenta),bd=AppState.datos.bancos[duena];
+    if(!bd)return{ok:false,error:'Esa cuenta no existe.'};
+    bd.limiteDiarioUSD=lim;
     const dias=(diasReset||[]).map(Number).filter(x=>x>=0&&x<=6);
-    bk.diasReset=dias.length?Array.from(new Set(dias)).sort((a,b)=>a-b):DIAS_RESET_TODOS.slice();
-    confirmarCambios([{tipo:'update',entidad:'bancos',id:cuenta}]);
-    return{ok:true};
+    bd.diasReset=dias.length?Array.from(new Set(dias)).sort((a,b)=>a-b):DIAS_RESET_TODOS.slice();
+    if(duena!==cuenta||!cambios.length)cambios.push({tipo:'update',entidad:'bancos',id:duena});
+    confirmarCambios(cambios);
+    return{ok:true,cuenta:duena};
 }
 function activarCuenta(cuenta,activa){
     if(!AppState.datos.bancos[cuenta])AppState.datos.bancos[cuenta]={activo:false,saldo:0,limiteDiarioUSD:0,limiteUsadoUSD:0,ultimoResetLimite:null};
@@ -553,6 +752,7 @@ function revisarNombreCuenta(nombre,excepto){
    "Corregir saldo"). */
 function crearCuenta(d){
     d=d||{};
+    _alDia();
     const base=CONFIG.BANCOS.find(b=>b.nombre===d.banco);
     if(!base)return{ok:false,error:'Elegí el banco.',campo:'banco'};
     const moneda=d.moneda==='USD'?'USD':'UYU';
@@ -563,7 +763,8 @@ function crearCuenta(d){
     do{clave=base.nombre+'_'+moneda+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,4)}while(AppState.datos.bancos[clave]);
     const ahora=new Date().toISOString();
     AppState.datos.bancos[clave]={nombre:r.nombre,activo:true,saldo:0,saldoApertura:0,saldoAperturaTs:ahora,
-        limiteDiarioUSD:0,limiteUsadoUSD:0,ultimoResetLimite:null,creada:ahora};
+        limiteDiarioUSD:0,limiteUsadoUSD:0,ultimoResetLimite:null,creada:ahora,
+        limitePropio:false};   /* v8.2.0: usa el límite de la cuenta de siempre de su banco */
     confirmarCambios([{tipo:'update',entidad:'bancos',id:clave}]);
     if(saldo>=0.005)corregirSaldo(clave,saldo,'Saldo inicial');
     return{ok:true,clave,nombre:r.nombre};
@@ -596,6 +797,7 @@ function usosDeCuenta(cuenta){
    saldo (por ejemplo, el saldo inicial) se van con ella. Si algo de Eliminados
    la usaba y se recupera, la cuenta vuelve sola (ver inicializarBancos). */
 function borrarCuenta(cuenta){
+    _alDia();
     const bk=AppState.datos.bancos[cuenta];
     if(!bk||!esCuentaAgregada(cuenta))return{ok:false,error:'Esta cuenta no se puede borrar. Si no la usás, desactivala.'};
     const n=usosDeCuenta(cuenta);

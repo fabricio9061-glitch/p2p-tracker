@@ -108,7 +108,7 @@ function pintarLibro(cont,capa){
     if(!esUsdt){
         const cu=infoCupo(cuenta);
         if(cu)html+='<div class="barra'+(cu.disp<0.005?' lleno':'')+'"><i style="width:'+cu.pct+'%"></i></div>'+
-            '<div class="libro-cupo">Cupo de hoy: quedan US$'+fmtExacto(cu.disp)+' de '+fmtExacto(cu.lim)+'. '+escHtml(textoRenovacion(cuenta))+'</div>';
+            '<div class="libro-cupo">Cupo de hoy'+(cu.con.length?', compartido con '+escHtml(listaDeCuentas(cu.con)):'')+': quedan US$'+fmtExacto(cu.disp)+' de '+fmtExacto(cu.lim)+'. '+escHtml(textoRenovacion(cuenta))+'</div>';
         html+='<div class="libro-botones"><button type="button" class="btn" data-a="corregir" data-cuenta="'+escHtml(cuenta)+'">'+ico('corregir')+'Corregir saldo</button>'+
             '<button type="button" class="btn" data-a="limite" data-cuenta="'+escHtml(cuenta)+'">'+ico('reloj')+'Límite diario</button></div>';
     }else{
@@ -161,28 +161,60 @@ ACC['libro-mas']=t=>{const c=capaDe(t);if(!c)return;c.limite+=80;pintarLibro(c.c
 ACC['tab-cuentas-lotes']=()=>{cerrarTodasLasCapas();irATab('cuentas')};
 
 /* ─── Límite diario ────────────────────────────────────────────────────── */
+/* v8.2.0 — Como en el banco, las cuentas de un mismo banco comparten el
+   límite. En una cuenta agregada se elige si usa el de la cuenta de siempre
+   (Compartido, lo normal) o uno aparte (Propio). Lo que se escribe se guarda
+   en la cuenta donde vive el límite. */
 ACC['limite']=t=>{
     const cuenta=t.dataset.cuenta,bk=AppState.datos.bancos[cuenta];if(!bk)return;
-    const dias=getDiasReset(cuenta);
+    const agregada=esCuentaAgregada(cuenta);
     const html=cabHoja('Límite diario de '+nombreCuenta(cuenta),{chico:true})+
         '<div class="hoja-cuerpo"><div class="grupo-campos">'+
+            (agregada?'<div><div class="segmento ancho" role="tablist" aria-label="De quién es el límite">'+
+                '<button type="button" role="tab" data-a="li-modo" data-m="compartido">Compartido</button>'+
+                '<button type="button" role="tab" data-a="li-modo" data-m="propio">Propio</button></div>'+
+                '<p class="nota-campo" data-r="modo-nota"></p></div>'
+             :'<p class="nota-campo" data-r="modo-nota" style="margin-top:0"></p>')+
             '<div data-campo="limite"><label class="rotulo" for="liMonto">Cuánto podés mover por día, en dólares</label>'+
                 '<div class="monto-grande"><span class="sim cifra">US$</span><input id="liMonto" data-r="monto" inputmode="decimal" autocomplete="off" placeholder="Sin límite"></div>'+
-                '<p class="nota-campo">Cuentan las compras y las transferencias que salen de esta cuenta. Dejalo vacío si no tiene límite.</p></div>'+
+                '<p class="nota-campo">Cuentan las compras. Las transferencias entre tus cuentas no gastan límite. Dejalo vacío si no tiene límite.</p></div>'+
             '<div><span class="rotulo">Se renueva a las 0:30 de estos días</span><div class="dias-sel" data-r="dias">'+
-                [1,2,3,4,5,6,0].map(i=>'<button type="button" data-a="li-dia" data-d="'+i+'" aria-pressed="'+dias.includes(i)+'" aria-label="'+DIAS_LARGO[i]+'">'+DIAS_LETRA[i]+'</button>').join('')+'</div>'+
+                [1,2,3,4,5,6,0].map(i=>'<button type="button" data-a="li-dia" data-d="'+i+'" aria-pressed="false" aria-label="'+DIAS_LARGO[i]+'">'+DIAS_LETRA[i]+'</button>').join('')+'</div>'+
                 '<p class="nota-campo">Los días sin marcar siguen con el cupo del último día marcado.</p></div>'+
         '</div></div>'+
         '<div class="hoja-pie"><div data-r="error"></div><button type="button" class="btn" data-a="li-guardar" data-primario>Guardar</button></div>';
     abrirCapa({tipo:'hoja',etiqueta:'Límite diario',html,
-        montar(cont,capa){capa.st={cuenta};const m=q(cont,'monto');m.value=bk.limiteDiarioUSD>0?formatoCampo(bk.limiteDiarioUSD):'';formatearAlSalir(m)}});
+        montar(cont,capa){
+            capa.st={cuenta,agregada,base:bancoDeCuenta(cuenta),propio:agregada&&cuentaDelLimite(cuenta)===cuenta};
+            liPintar(capa);formatearAlSalir(q(cont,'monto'));
+        }});
 };
+/* Llena la hoja con el límite de la cuenta donde vive, según el modo elegido */
+function liPintar(capa){
+    const st=capa.st,cont=capa.cont;
+    const duena=st.agregada&&!st.propio?st.base:st.cuenta;
+    const bd=AppState.datos.bancos[duena]||{};
+    cont.querySelectorAll('[data-a="li-modo"]').forEach(b=>b.setAttribute('aria-selected',String((b.dataset.m==='propio')===st.propio)));
+    const nota=q(cont,'modo-nota');
+    if(st.agregada){
+        nota.textContent=st.propio?'Este límite es solo de esta cuenta, aparte del de '+nombreCuenta(st.base)+'.'
+            :'Usa el mismo cupo que '+nombreCuenta(st.base)+': lo que comprás desde las dos se suma.';
+    }else{
+        const otras=cuentasQueComparten(st.cuenta);
+        nota.textContent=otras.length?'Lo comparte con '+listaDeCuentas(otras)+': lo que comprás desde '+(otras.length===1?'las dos':'todas')+' se suma.':'';
+        nota.hidden=!otras.length;
+    }
+    q(cont,'monto').value=bd.limiteDiarioUSD>0?formatoCampo(bd.limiteDiarioUSD):'';
+    const dias=diasResetPropios(duena);
+    cont.querySelectorAll('[data-a="li-dia"]').forEach(b=>b.setAttribute('aria-pressed',String(dias.includes(Number(b.dataset.d)))));
+}
+ACC['li-modo']=t=>{const capa=capaDe(t);if(!capa)return;capa.st.propio=t.dataset.m==='propio';limpiarError(capa);liPintar(capa)};
 ACC['li-dia']=t=>t.setAttribute('aria-pressed',String(t.getAttribute('aria-pressed')!=='true'));
 ACC['li-guardar']=t=>{
-    const capa=capaDe(t),cont=capa.cont;
+    const capa=capaDe(t),cont=capa.cont,st=capa.st;
     const dias=[...cont.querySelectorAll('[data-a="li-dia"][aria-pressed="true"]')].map(b=>Number(b.dataset.d));
     if(!dias.length){mostrarError(capa,'Marcá por lo menos un día de renovación.');return}
-    const r=guardarLimiteCuenta(capa.st.cuenta,parseMonto(q(cont,'monto').value),dias);
+    const r=guardarLimiteCuenta(st.cuenta,parseMonto(q(cont,'monto').value),dias,st.agregada?{propio:st.propio}:undefined);
     if(r.ok){cerrarCapa(capa);avisar('Límite guardado.')}else mostrarError(capa,r.error,r.campo);
 };
 
