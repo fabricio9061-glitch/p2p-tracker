@@ -467,7 +467,22 @@ function _v2ConTimeout(p,ms,tag){
 function _v2Programar(){
     if(!_v2EstadoOk||!_v2EventosOk)return;
     clearTimeout(_v2RenderTimer);
-    _v2RenderTimer=setTimeout(()=>{
+    _v2RenderTimer=setTimeout(_v2Render,80);
+}
+/* ═══ v8.2.0 — Nada se valida con datos a medio aplicar ═══
+   Cuando llega una foto del servidor, los registros y el estado se cargan en
+   memoria al instante, pero los saldos, los lotes y las ganancias se
+   recalculan 80 ms después, para hacerlo una sola vez si llegan varias fotos
+   juntas. Si en ese ratito se guardaba o se borraba algo, la validación leía
+   saldos viejos y registros sin sus datos calculados: podía dejar pasar un
+   saldo negativo o frenar algo que estaba bien. Antes de cualquier cambio se
+   llama a v2AlDia(), que hace ese recálculo pendiente en el momento. */
+function v2AlDia(){
+    if(!_v2RenderTimer)return;
+    clearTimeout(_v2RenderTimer);
+    _v2Render();
+}
+function _v2Render(){
         _v2RenderTimer=null;
         try{
             if(typeof inicializarBancos==='function')inicializarBancos();
@@ -484,7 +499,6 @@ function _v2Programar(){
             if(!_v2FromCache&&AppState._uiHydratedFromCache)AppState._uiHydratedFromCache=false;
             if(_syncQueue.length===0&&!_guardando)setSyncStatus(_v2FromCache?'syncing':'online',_v2FromCache?'Usando lo guardado en el teléfono':undefined);
         }catch(e){console.error('[P2P][v2] render:',e)}
-    },80);
 }
 
 /* ─── Snapshot del documento de ESTADO ───────────────────────────────────── */

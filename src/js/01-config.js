@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.1.0',
+    APP_VERSION: '8.2.0',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,14 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.2.0', date:'2026-11-05', headline:'Ninguna cuenta puede quedar en negativo, y las cuentas de un mismo banco comparten el límite diario.', changes:[
+        {type:'fix', title:'Ninguna cuenta queda en negativo', desc:'Ya no se puede borrar ni editar una transferencia, un ingreso o una venta si esa plata ya se usó, ni recuperar un egreso que ya no entra. La app dice qué cuenta quedaría en negativo y qué hacer: primero cambiá o borrá lo que se pagó con esa plata. Ya no existen "Eliminar igual" ni "Guardar igual".'},
+        {type:'fix', title:'Tampoco en el pasado', desc:'Un egreso con fecha de ayer que deja la cuenta en negativo ayer no se guarda, aunque hoy cierre en positivo. Lo mismo con los USDT: no se puede vender lo que todavía no se había comprado.'},
+        {type:'improve', title:'Si una cuenta ya estaba en negativo', desc:'Se puede arreglar con Corregir saldo o recuperando lo que se borró, pero no hundirla más. Corregir saldo no acepta un saldo negativo.'},
+        {type:'feature', title:'Un límite para todo el banco', desc:'Itaú personal e Itaú empresa usan el mismo límite diario, como en el banco: lo que comprás desde las dos se suma. Si una cuenta tiene un límite aparte, en su Límite diario elegís Propio.'},
+        {type:'improve', title:'Las transferencias no gastan límite', desc:'Pasar plata entre tus cuentas ya no descuenta del cupo del día: solo cuentan las compras.'},
+        {type:'fix', title:'Con dos dispositivos', desc:'Si llegaba algo del otro dispositivo justo cuando guardabas o corregías un saldo, la app podía usar los saldos de un instante antes. Ahora primero termina de recalcular.'}
+    ]},
     {version:'8.1.0', date:'2026-10-29', headline:'Varias cuentas en el mismo banco, cuentas en dólares y la comisión de Binance para cada moneda.', changes:[
         {type:'feature', title:'Más de una cuenta por banco', desc:'En Cuentas → Agregar o quitar cuentas → Agregar otra cuenta, elegís el banco, si es en pesos o en dólares, le ponés un nombre (por ejemplo, Itaú empresa o Itaú dólares) y cuánto tiene hoy. Cada una tiene su saldo, su límite diario y su libro.'},
         {type:'feature', title:'Cada cuenta con su nombre', desc:'En el libro de una cuenta, con Editar, le cambiás el nombre: por ejemplo, la Itaú de siempre puede pasar a llamarse Itaú personal. En las listas, al lado del logo, dice de cuál cuenta es cada movimiento.'},
