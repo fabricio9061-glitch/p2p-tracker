@@ -764,11 +764,9 @@ ACC['co-guardar']=t=>{
     const r=corregirSaldo(st.cuenta,parseMonto(txt),q(cont,'motivo').value);
     if(r.ok){
         cerrarCapa(capa);
-        avisar('Saldo corregido: se anotó '+dinero(r.delta,monedaDeCuenta(st.cuenta),{signo:true})+'.',{deshacer:async()=>{
-            const e=eliminarRegistro('ajustesSaldo',r.id);
+        avisar('Saldo corregido: se anotó '+dinero(r.delta,monedaDeCuenta(st.cuenta),{signo:true})+'.',{deshacer:()=>{
+            const e=eliminarRegistro('ajustesSaldo',r.id,{forzar:true});
             if(e.ok)avisar('Se deshizo la corrección.');
-            else if(e.negativo)await avisarNoSePuede('No se puede deshacer',e);
-            else avisar(e.error||'No se pudo deshacer.',{error:true});
         }});
     }else{st.hayError=true;mostrarError(capa,r.error,r.campo)}
 };
@@ -835,10 +833,9 @@ ACC['lo-guardar']=t=>{
 };
 ACC['lo-eliminar']=async t=>{
     const capa=capaDe(t),st=capa.st;
-    const r=eliminarRegistro('lotes',st.id);
+    const r=await conConfirmacion(o=>eliminarRegistro('lotes',st.id,o),{titulo:'¿Eliminar igual?',si:'Eliminar igual'});
     if(r.ok){cerrarCapa(capa);avisar('Se eliminó el lote.',{deshacer:()=>recuperarEliminado(r.clave)})}
-    else if(r.negativo)await avisarNoSePuede('No se puede borrar',r);
-    else mostrarError(capa,r.error);
+    else if(!r.cancelado)mostrarError(capa,r.error);
 };
 
 /* ═══ Fecha y hora ═══════════════════════════════════════════════════════ */

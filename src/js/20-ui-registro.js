@@ -242,10 +242,9 @@ ACC['recuperar']=t=>{
     recuperarEliminado(t.dataset.k);
 };
 async function recuperarEliminado(clave){
-    const r=restaurarEliminado(clave);
+    const r=await conConfirmacion(o=>restaurarEliminado(clave,o),{titulo:'¿Recuperar igual?',si:'Recuperar igual'});
     if(r.ok)avisar('Se recuperó y los saldos se recalcularon.');
-    else if(r.negativo)await avisarNoSePuede('No se puede recuperar',r);
-    else avisar(r.error||'No se pudo recuperar.',{error:true});
+    else if(!r.cancelado)avisar(r.error||'No se pudo recuperar.',{error:true});
 }
 
 /* ─── Detalle de un registro ───────────────────────────────────────────── */
@@ -502,17 +501,15 @@ function editarRegistro(ent,id,o){
 }
 const TEXTO_ELIMINADO={venta:'Se eliminó la venta',compra:'Se eliminó la compra',ingreso:'Se eliminó el ingreso',egreso:'Se eliminó el egreso',
                        transferencia:'Se eliminó la transferencia',correccion:'Se eliminó la corrección',lote:'Se eliminó el lote'};
-/* Elimina sin preguntar (queda en Eliminados y el aviso trae Deshacer).
-   v8.2.0 — Si sacarlo deja una cuenta o los USDT en negativo (la plata ya se
-   usó, o esos USDT ya se vendieron) no se borra, y se explica por qué. */
+/* Elimina sin preguntar (queda en Eliminados y el aviso trae Deshacer). Solo
+   pregunta si sacarlo deja algo descuadrado, como USDT ya vendidos. */
 async function eliminarConDeshacer(ent,id){
     const rec=buscarRegistro(ent,id);
     if(!rec){avisar('Ese movimiento ya no está.',{error:true});return{ok:false}}
     const tipo=tipoDeRegistro(ent,rec);
-    const r=eliminarRegistro(ent,id);
+    const r=await conConfirmacion(o=>eliminarRegistro(ent,id,o),{titulo:'¿Eliminar igual?',si:'Eliminar igual'});
     if(r.ok)avisar(ent==='conversiones'?'Se eliminó la conversión':(TEXTO_ELIMINADO[tipo]||'Se eliminó'),{deshacer:()=>recuperarEliminado(r.clave)});
-    else if(r.negativo)await avisarNoSePuede('No se puede borrar',r);
-    else avisar(r.error||'No se pudo eliminar.',{error:true});
+    else if(!r.cancelado)avisar(r.error||'No se pudo eliminar.',{error:true});
     return r;
 }
 ACC['editar']=t=>{const c=capaDe(t);if(c)editarRegistro(c.ent,c.id,{reemplazar:true})};

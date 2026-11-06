@@ -174,24 +174,14 @@ function cuentasVisibles(){
         return bk&&(bk.activo||Math.abs(bk.saldo||0)>=0.005);
     }));
 }
-/* Cupo diario de una cuenta: cuánto queda hoy, en dólares.
-   v8.2.0 — Si comparte el límite con otras cuentas del banco, es el de todas:
-   duena es la cuenta donde vive el límite y con, las otras que lo usan. */
+/* Cupo diario de una cuenta: cuánto queda hoy, en dólares */
 function infoCupo(cuenta){
-    const duena=cuentaDelLimite(cuenta),bk=AppState.datos.bancos[duena];
+    const bk=AppState.datos.bancos[cuenta];
     if(!bk||!(bk.limiteDiarioUSD>0))return null;
     const lim=roundMoney(bk.limiteDiarioUSD);
-    const disp=Math.max(0,roundMoney(cupoDisponibleUSD(duena)));
+    const disp=Math.max(0,roundMoney(cupoDisponibleUSD(cuenta)));
     const usado=Math.max(0,Math.min(lim,roundMoney(lim-disp)));
-    const con=[duena,...cuentasQueComparten(duena)].filter(k=>k!==cuenta);
-    return{lim,disp,usado,pct:lim>0?Math.round(usado/lim*1000)/10:0,duena,con:cuentasQueComparten(duena).length?con:[]};
-}
-/* "Itaú empresa", "Itaú empresa e Itaú dólares", "A, B y C" */
-function listaDeCuentas(lista){
-    const n=lista.map(nombreCuenta);
-    if(n.length<2)return n[0]||'';
-    const ult=n[n.length-1];
-    return n.slice(0,-1).join(', ')+(/^[iI]|^[hH][iI]/.test(ult)&&!/^[hH]?[iI][aeouáéó]/.test(ult)?' e ':' y ')+ult;
+    return{lim,disp,usado,pct:lim>0?Math.round(usado/lim*1000)/10:0};
 }
 const _DIAS_PLURAL=['domingos','lunes','martes','miércoles','jueves','viernes','sábados'];
 function textoRenovacion(cuenta){
@@ -330,11 +320,6 @@ function preguntar(o){
             alCerrar(){res(resp)}
         });
     });
-}
-/* v8.2.0 — Cuando algo no se puede hacer porque dejaría una cuenta o los USDT
-   en negativo: se explica, con un solo botón. */
-function avisarNoSePuede(titulo,r){
-    return preguntar({titulo,texto:(r&&r.error||'')+(r&&r.pista?'\n\n'+r.pista:''),si:'Entendido',no:false});
 }
 /* Guardar con la regla del motor: si devuelve {confirmar}, se pregunta y, si
    la persona acepta, se vuelve a llamar con {forzar:true}. */

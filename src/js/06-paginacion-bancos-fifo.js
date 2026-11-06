@@ -19,32 +19,11 @@ function inicializarBancos(){
     ['transferencias','conversiones'].forEach(e=>(AppState.datos[e]||[]).forEach(t=>{if(t){ver(t.origen);ver(t.destino)}}));
     (AppState.datos.ajustesSaldo||[]).forEach(a=>{if(a)ver(a.cuenta)});
     faltan.forEach(k=>{
-        AppState.datos.bancos[k]={activo:true,saldo:0,saldoApertura:0,saldoAperturaTs:new Date().toISOString(),limiteDiarioUSD:0,limiteUsadoUSD:0,ultimoResetLimite:null,limitePropio:false};
+        AppState.datos.bancos[k]={activo:true,saldo:0,saldoApertura:0,saldoAperturaTs:new Date().toISOString(),limiteDiarioUSD:0,limiteUsadoUSD:0,ultimoResetLimite:null};
         console.warn('[P2P] Cuenta recuperada desde sus registros: '+k);
-    });
-    /* ═══ v8.2.0 — Las cuentas agregadas usan el límite de su banco ═══
-       El banco tiene un solo límite diario por cliente. Cada cuenta agregada
-       que viene de la 8.1.0 se revisa una sola vez y queda compartiendo
-       (limitePropio:false). Si se le había puesto un límite y la de siempre
-       no tenía, ese límite (con sus días) pasa a la de siempre para no
-       perderlo. Si la de siempre ya tenía uno, el de la agregada se guarda
-       como estaba: vuelve a usarse si se elige Propio. */
-    let limiteMovido=null;
-    Object.keys(AppState.datos.bancos).forEach(k=>{
-        const p=parteDeClave(k),bk=AppState.datos.bancos[k];
-        if(!p||!bk||typeof bk!=='object'||bk.limitePropio!==undefined)return;
-        const base=AppState.datos.bancos[p.banco];
-        if(Number(bk.limiteDiarioUSD)>0&&base&&!(Number(base.limiteDiarioUSD)>0)){
-            base.limiteDiarioUSD=bk.limiteDiarioUSD;
-            if(Array.isArray(bk.diasReset)&&bk.diasReset.length)base.diasReset=bk.diasReset.slice();
-            bk.limiteDiarioUSD=0;bk.limiteUsadoUSD=0;delete bk.diasReset;
-        }
-        bk.limitePropio=false;
-        limiteMovido=k;
     });
     /* Y se guarda, para que no haya que recuperarla otra vez */
     if(faltan.size&&typeof guardaOptimista==='function')guardaOptimista('update','bancos',[...faltan][0]);
-    else if(limiteMovido&&typeof guardaOptimista==='function')guardaOptimista('update','bancos',limiteMovido);
     Object.keys(AppState.datos.bancos).forEach(n=>{
         const bk=AppState.datos.bancos[n];if(!bk||typeof bk!=='object')return;
         if(bk.limiteDiarioUSD===undefined)bk.limiteDiarioUSD=bk.limiteDiario||0;
@@ -56,12 +35,7 @@ function inicializarBancos(){
 
 const DIAS_RESET_TODOS=[0,1,2,3,4,5,6];
 
-/* v8.2.0 — Si la cuenta comparte el límite de otra, renueva cuando renueva esa */
 function getDiasReset(nombreBanco){
-    return diasResetPropios(typeof cuentaDelLimite==='function'?cuentaDelLimite(nombreBanco):nombreBanco);
-}
-/* Los días marcados en la ficha de esa misma cuenta, sin mirar si comparte */
-function diasResetPropios(nombreBanco){
     const bk=AppState.datos.bancos[nombreBanco];
     if(bk&&Array.isArray(bk.diasReset)&&bk.diasReset.length)return bk.diasReset;
     /* Sin configurar: se hereda la regla que tenía el banco marcado como especial
