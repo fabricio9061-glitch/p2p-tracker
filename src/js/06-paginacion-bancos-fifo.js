@@ -122,22 +122,17 @@ function getBancosActivos(){return ordenarBancosPorSaldo(todasLasCuentas().filte
 /* ═══════════════════════════════════════
    §7 — INVENTARIO FIFO
    ═══════════════════════════════════════ */
+/* ═══ v8.3.0 — Cada compra es su propio lote: FIFO de verdad ═══
+   Antes, una compra al mismo precio exacto que un lote más viejo se sumaba a
+   ese lote (por ejemplo, dos órdenes iguales de $2.000 a 40,30). Así esos USDT
+   se vendían antes que compras hechas en el medio a otro precio, y la ganancia
+   se corría de una venta a otra (y a veces de un día o de un mes a otro). Ahora
+   cada compra queda en su lote, con su fecha, y se vende en el orden en que se
+   compró. Los lotes de arrastre (meses archivados) siguen siendo declaraciones
+   aparte, en datos._archivoCarryover, que el recálculo nunca modifica. */
 function agregarLote(id,fecha,hora,precio,cant,moneda,tasa){
     moneda=moneda||'UYU';cant=truncUsdt(cant);
-    /* Mergear con lotes automáticos del mismo precio y moneda, y también con los
-       de ARRASTRE: son sintéticos, reemplazan al lote automático que existía al
-       corte, y si no se fusionaran, la compra nueva quedaría en un lote con fecha
-       posterior → cambiaría el orden FIFO y con él la ganancia atribuida.
-       v5.0.1: esto es seguro AHORA porque la DECLARACIÓN de los lotes de arrastre
-       vive aparte, en datos._archivoCarryover, y es inmutable: lo que el replay
-       muta acá no se persiste nunca como declaración. Entre 4.9.0 y 5.0.0 sí se
-       persistía, y el saldo USDT se inflaba de forma acumulativa en cada ciclo. */
-    const ex=AppState.datos.lotes.find(l=>(!l.manual||l.carryover)&&l.precioCompra===precio&&l.disponible>0&&(l.moneda||'UYU')===moneda);
-    /* v7.3.0 — Sumas y restas entre cantidades que ya están en centésimos se
-       redondean, no se truncan: en coma flotante 800 − 501,92 da 298,0799999…
-       y truncar eso perdía un centavo en cada paso del inventario. */
-    if(ex){ex.cantidad=roundMoney(ex.cantidad+cant);ex.disponible=roundMoney(ex.disponible+cant)}
-    else AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant,moneda,...(tasa>0?{tasa}:{})});
+    AppState.datos.lotes.push({id,fecha,hora,precioCompra:precio,cantidad:cant,disponible:cant,moneda,...(tasa>0?{tasa}:{})});
 }
 
 function consumirFIFO(cant,precioVenta,monedaVenta){
@@ -231,10 +226,14 @@ function recalcularLotesYGanancias(){
                los USDT que salieron, comisión incluida. */
             if(op.tipo==='compra'){
                 const un=usdtNeto(uBase,cp,op.tipo);
-                if(isU){
-                    op.ganancia=roundMoney((utvU>0?roundMoney(un*(utvU-op.tasa)):0)-(op.comisionBanco||0));
-                    utcUL=op.tasa;
-                }else{utcL=op.tasa;op.ganancia=roundMoney(-(op.comisionBanco||0))}
+                /* v8.3.0 — Una compra en dólares tampoco gana nada por sí sola. Se le
+                   anotaba la diferencia contra la última venta en dólares, y la venta
+                   siguiente volvía a contar esa misma diferencia contra el costo del
+                   lote: la ganancia en dólares se sumaba dos veces. Ahora, igual que
+                   en pesos, la ganancia aparece al vender; la compra solo resta la
+                   comisión del banco, si la hubo. */
+                if(isU)utcUL=op.tasa;else utcL=op.tasa;
+                op.ganancia=roundMoney(-(op.comisionBanco||0));
                 agregarLote(op.id,op.fecha,op.hora||'00:00',un>0?op.monto/un:op.tasa,un,op.moneda||'UYU',op.tasa);
             }else{
                 const av=usdtNeto(uBase,cp,op.tipo);

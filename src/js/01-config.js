@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.2.0',
+    APP_VERSION: '8.3.0',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,13 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.3.0', date:'2026-11-07', headline:'La ganancia, revisada: ahora se ve de dónde sale y cuenta las correcciones de saldo.', changes:[
+        {type:'feature', title:'De dónde sale la ganancia', desc:'Debajo de la ganancia neta, en el registro, el inicio, el calendario y el resumen del mes, se ven sus partes: ventas, comisiones del banco, egresos y correcciones de saldo. Lo que se ganó en dólares, aparte.'},
+        {type:'improve', title:'Las correcciones de saldo cuentan', desc:'Si al corregir un saldo faltaba plata, eso resta de la ganancia; si sobraba, suma. El saldo con el que se crea una cuenta no cuenta.'},
+        {type:'improve', title:'Las comisiones de las transferencias también', desc:'Lo que cobra el banco por transferir ahora resta de la ganancia, igual que la comisión de una compra.'},
+        {type:'fix', title:'Cada compra se vende en su orden', desc:'Una compra al mismo precio exacto que otra más vieja se sumaba a ese lote y se vendía antes que las compras hechas en el medio a otro precio. La ganancia total era la misma, pero se corría de una venta a otra y a veces de un día a otro. Ahora se vende en el orden en que se compró.'},
+        {type:'fix', title:'La ganancia en dólares se contaba dos veces', desc:'Una compra en dólares sumaba la diferencia contra la última venta en dólares, y la venta siguiente la volvía a sumar. Ahora se cuenta una sola vez, al vender.'}
+    ]},
     {version:'8.2.0', date:'2026-11-05', headline:'Ninguna cuenta puede quedar en negativo, y las cuentas de un mismo banco comparten el límite diario.', changes:[
         {type:'fix', title:'Ninguna cuenta queda en negativo', desc:'Ya no se puede borrar ni editar una transferencia, un ingreso o una venta si esa plata ya se usó, ni recuperar un egreso que ya no entra. La app dice qué cuenta quedaría en negativo y qué hacer: primero cambiá o borrá lo que se pagó con esa plata. Ya no existen "Eliminar igual" ni "Guardar igual".'},
         {type:'fix', title:'Tampoco en el pasado', desc:'Un egreso con fecha de ayer que deja la cuenta en negativo ayer no se guarda, aunque hoy cierre en positivo. Lo mismo con los USDT: no se puede vender lo que todavía no se había comprado.'},

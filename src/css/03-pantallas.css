@@ -207,6 +207,10 @@ button.rc-fila:active{background:var(--papel-2)}
 .resumen-reg>.total{padding-top:6px;border-top:1px solid var(--linea);font-weight:650}
 .resumen-reg>span.total{color:var(--tinta)}
 .resumen-reg>b.total{font-size:20px;font-weight:740;font-stretch:72%;padding-top:4px}
+/* v8.3.0 — Las partes de la ganancia neta, debajo, más chicas */
+.resumen-reg>.parte{font-size:13.5px;margin-top:-2px}
+.resumen-reg>span.parte{padding-left:12px}
+.resumen-reg>b.parte{font-weight:560;color:var(--tenue)}
 .recuperar{flex:none;height:36px;padding:0 12px;border:1.5px solid var(--borde);border-radius:18px;background:var(--blanco);font-size:13.5px;font-weight:650;color:var(--tinta)}
 .fila-eliminado{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:10px;padding:12px 14px 12px 16px}
 .fila-eliminado+.fila-eliminado{border-top:1px solid var(--linea)}

@@ -590,6 +590,62 @@ function _montoEnUSDLimite(bancoNombre,monto){
      3. m.monto * tasaFallback (última tasa de compra)
    Para movs en banco: si banco USD → multiplica por tasaFallback; si banco UYU → retorna monto directo.
    Garantiza consistencia entre dashboard, análisis, resumen mensual y listados. */
+/* ═══ v8.3.0 — La ganancia, con una sola regla para todas las pantallas ═══
+   Cuánto suma o resta cada registro a la ganancia, y a qué parte va:
+     ventas        lo que dejó cada venta en pesos: lo cobrado menos lo que
+                   costaron los USDT que salieron (comisión de Binance incluida)
+     comisiones    lo que cobró el banco, en las compras y en las transferencias
+     egresos       los gastos (los de USDT, a lo que costaron esos USDT)
+     correcciones  lo que se corrigió a mano en el saldo de una cuenta: lo que
+                   faltaba es pérdida y lo que sobraba, ganancia. El saldo con el
+                   que se crea una cuenta no cuenta.
+     dolares       lo que dejaron las operaciones en dólares, aparte: en dólares
+   Los ingresos, las transferencias en sí y las conversiones no son ganancia.
+   Lo que está en una cuenta en dólares se pasa a pesos a la última tasa de
+   compra, como siempre se hizo con los egresos. */
+const PARTES_GANANCIA=['ventas','comisiones','egresos','correcciones'];
+function esSaldoInicial(aj){return/^saldo inicial$/i.test(String(aj&&aj.motivo||'').trim())}
+function _aPesos(v,cuenta){
+    return monedaDeCuenta(cuenta)==='USD'?roundMoney(v*(AppState.datos.ultimaTasaCompra||1)):roundMoney(v);
+}
+function aporteAGanancia(ent,r){
+    if(!r)return null;
+    if(ent==='operaciones'){
+        if(!(r.tasa>0))return null;
+        const g=roundMoney(Number(r.ganancia)||0);
+        if((r.moneda||'UYU')==='USD')return{parte:'dolares',v:g};
+        return{parte:r.tipo==='compra'?'comisiones':'ventas',v:g};
+    }
+    if(ent==='movimientos')return r.tipoMovimiento==='egreso'?{parte:'egresos',v:-movimientoValorUYU(r)}:null;
+    if(ent==='transferencias'){
+        const c=Number(r.comision)||0;
+        return c>=0.005?{parte:'comisiones',v:-_aPesos(c,r.origen)}:null;
+    }
+    if(ent==='ajustesSaldo'){
+        if(esSaldoInicial(r))return null;
+        const d=Number(r.delta)||0;
+        return Math.abs(d)>=0.005?{parte:'correcciones',v:_aPesos(d,r.cuenta)}:null;
+    }
+    return null;
+}
+/* Suma las partes de una lista de {ent, rec}. neta es en pesos; dolares, aparte. */
+function sumarGanancia(lista){
+    const t={ventas:0,comisiones:0,egresos:0,correcciones:0,dolares:0,neta:0,hay:false,hayDolares:false};
+    (lista||[]).forEach(x=>{
+        const a=aporteAGanancia(x.ent,x.rec);if(!a)return;
+        t[a.parte]=roundMoney(t[a.parte]+a.v);
+        if(a.parte==='dolares'){t.hayDolares=true;return}
+        t.neta=roundMoney(t.neta+a.v);t.hay=true;
+    });
+    return t;
+}
+/* Todos los registros en memoria como {ent, rec}, para sumar ganancias */
+function registrosParaGanancia(datos){
+    const D=datos||AppState.datos,out=[];
+    ['operaciones','movimientos','transferencias','ajustesSaldo'].forEach(ent=>(D[ent]||[]).forEach(rec=>{if(rec)out.push({ent,rec})})); /* coherencia:ok — una conversión no es ganancia ni gasto */
+    return out;
+}
+
 function movimientoValorUYU(m,tasaFallback){
     if(!m)return 0;
     const tasaFb=tasaFallback||AppState.datos.ultimaTasaCompra||1;

@@ -105,10 +105,8 @@ function pintarInicio(){
     const d=AppState.datos;
     const hoy=getUDateStr(),ayer=sumarDias(hoy,-1),mes=hoy.slice(0,7);
     const g=calcularGananciaDiaria();
-    const st=getDayStats(hoy)||{gananciaOps:0,gastos:0};
+    const st=getDayStats(hoy)||{partes:sumarGanancia([])};
     const gHoy=roundMoney(g[hoy]||0);
-    const gUSD=roundMoney((d.operaciones||[]).filter(o=>o&&o.fecha===hoy&&o.moneda==='USD')
-        .reduce((s,o)=>s+(Number(o.ganancia)||0),0));
     let html='';
 
     html+=htmlAvisosDatos();
@@ -141,11 +139,8 @@ function pintarInicio(){
     html+='<section class="heroe'+(plegado?' plegado':'')+'" aria-label="Ganancia de hoy">'+
         '<div class="heroe-fila"><div class="heroe-izq"><div class="heroe-rot">Ganancia de hoy</div>'+
             '<div class="heroe-cifra cifra '+claseSigno(gHoy)+'">'+tHoy+'</div></div>'+semana+'</div>'+
-        '<div class="heroe-desglose">'+
-            '<span>Operaciones <b class="'+claseSigno(st.gananciaOps)+'">'+dinero(st.gananciaOps,'UYU',{signo:true})+'</b></span>'+
-            '<span>Egresos <b>'+dinero(-(st.gastos||0),'UYU')+'</b></span>'+
-            (Math.abs(gUSD)>=0.005?'<span>En dólares <b class="'+claseSigno(gUSD)+'">'+dinero(gUSD,'USD',{signo:true})+'</b></span>':'')+
-        '</div>'+
+        /* v8.3.0 — Las mismas partes que en el registro y el resumen del mes */
+        '<div class="heroe-desglose">'+htmlPartesGanancia(st.partes,{enLinea:true})+'</div>'+
         '<div class="heroe-ops">'+lineaHoy+'</div>';
     let gMes=0;
     Object.entries(g).forEach(([f,v])=>{if(f.startsWith(mes))gMes=roundMoney(gMes+v)});

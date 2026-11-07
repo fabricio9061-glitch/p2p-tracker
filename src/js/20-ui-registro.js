@@ -50,9 +50,11 @@ function filtrarRegistro(){
         return true;
     });
 }
-/* Lo que entró y salió de las cuentas elegidas, y la ganancia neta */
+/* Lo que entró y salió de las cuentas elegidas, y la ganancia neta con sus
+   partes (v8.3.0: también las comisiones de las transferencias y las
+   correcciones de saldo; lo de dólares, aparte) */
 function resumenRegistro(items,cuenta){
-    const entra={},sale={};let gan=0,hayGan=false;
+    const entra={},sale={};
     items.forEach(it=>{
         if(cuenta==='USDT'){
             const v=efectoEnUsdt(it.ent,it.rec);
@@ -62,10 +64,9 @@ function resumenRegistro(items,cuenta){
                 if(v>=0.005)entra[m]=roundMoney((entra[m]||0)+v);else if(v<=-0.005)sale[m]=roundMoney((sale[m]||0)+v);
             });
         }
-        const g=gananciaDeItem(it);
-        if(Math.abs(g)>=0.005||it.tipo==='venta'||it.tipo==='egreso'){hayGan=true;gan=roundMoney(gan+g)}
     });
-    return{entra,sale,gan,hayGan};
+    const t=sumarGanancia(items);
+    return{entra,sale,gan:t.neta,hayGan:t.hay,partes:t};
 }
 
 function pintarRegistro(){
@@ -116,14 +117,21 @@ function pintarRegistro(){
         if(res.entra[m])lineas+='<span>'+escHtml(dondeE+extra)+'</span><b>'+fmt(m,res.entra[m],true)+'</b>';
         if(res.sale[m])lineas+='<span>'+escHtml(dondeS+extra)+'</span><b>'+fmt(m,res.sale[m],false)+'</b>';
     });
-    if(res.hayGan&&r.cuenta!=='USDT')lineas+='<span class="total">Ganancia neta</span><b class="total cifra '+claseSigno(res.gan)+'">'+dinero(res.gan,'UYU',{signo:true})+'</b>';
+    if(res.hayGan&&r.cuenta!=='USDT'){
+        lineas+='<span class="total">Ganancia neta</span><b class="total cifra '+claseSigno(res.gan)+'">'+dinero(res.gan,'UYU',{signo:true})+'</b>';
+        /* v8.3.0 — De dónde sale: las partes, debajo del total */
+        partesDeGanancia(res.partes).forEach(k=>{
+            lineas+='<span class="parte">'+NOMBRE_PARTE[k]+'</span><b class="parte cifra">'+dinero(res.partes[k],'UYU',{signo:true})+'</b>';
+        });
+    }
+    if(res.partes&&res.partes.hayDolares&&r.cuenta!=='USDT')lineas+='<span class="parte">Ganancia en dólares</span><b class="parte cifra">'+dinero(res.partes.dolares,'USD',{signo:true})+'</b>';
     let html=lineas?'<div class="bloque resumen-reg">'+lineas+'</div>':'';
 
     /* Por día */
     const ganDia={},conGan={};
     items.forEach(it=>{
-        const g=gananciaDeItem(it);
-        if(Math.abs(g)>=0.005||it.tipo==='venta'||it.tipo==='egreso'){conGan[it.fecha]=true;ganDia[it.fecha]=roundMoney((ganDia[it.fecha]||0)+g)}
+        if(!cuentaParaGanancia(it))return;
+        conGan[it.fecha]=true;ganDia[it.fecha]=roundMoney((ganDia[it.fecha]||0)+gananciaDeItem(it));
     });
     const vista=items.slice(0,r.limite||REG_PAGINA);
     let dia=null,filas='';
