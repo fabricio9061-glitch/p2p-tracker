@@ -185,10 +185,13 @@ button.rc-fila:active{background:var(--papel-2)}
 .linea-pie{font-size:13.5px;color:var(--tenue);text-align:center;font-variant-numeric:tabular-nums}
 .quedan>.linea-pie{margin-bottom:2px}
 /* Las últimas tasas, al lado de "Tasa por USDT" (las que no entran, no se ven) */
-.rotulo-fila{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.rotulo-fila{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
 .rotulo-fila>.rotulo{flex:none;margin-bottom:0}
-.rotulo-fila>.tasas-rapidas{flex:1 1 auto;min-width:0;margin-top:0;justify-content:flex-end;gap:6px;height:32px;overflow:hidden}
-.rotulo-fila .pastilla.chica{height:32px;padding:0 11px;border-radius:16px;font-size:13.5px}
+/* v8.3.0 — Cuatro tasas en la misma fila del rótulo: pastillas un poco más
+   justas, para que entren desde un teléfono de 375 de ancho. Si la pantalla es
+   más angosta, las que no entran quedan ocultas (las más viejas). */
+.rotulo-fila>.tasas-rapidas{flex:1 1 auto;min-width:0;margin-top:0;justify-content:flex-end;gap:5px;height:32px;overflow:hidden}
+.rotulo-fila .pastilla.chica{height:32px;padding:0 7px;border-radius:16px;font-size:13.5px}
 .nota-campo{font-size:13px;color:var(--tenue);margin-top:7px}
 .diferencia{margin-top:10px;font-size:14.5px;font-variant-numeric:tabular-nums}
 .diferencia b{font-weight:680}
@@ -207,6 +210,9 @@ button.rc-fila:active{background:var(--papel-2)}
 .resumen-reg>.total{padding-top:6px;border-top:1px solid var(--linea);font-weight:650}
 .resumen-reg>span.total{color:var(--tinta)}
 .resumen-reg>b.total{font-size:20px;font-weight:740;font-stretch:72%;padding-top:4px}
+/* v8.3.0 — Qué se está viendo: "22 operaciones de hoy" */
+.reg-que{margin:14px 4px 0;font-size:15px;font-weight:600;color:var(--tinta-2)}
+.reg-que+.resumen-reg{margin-top:8px}
 /* v8.3.0 — Las partes de la ganancia neta, debajo, más chicas */
 .resumen-reg>.parte{font-size:13.5px;margin-top:-2px}
 .resumen-reg>span.parte{padding-left:12px}

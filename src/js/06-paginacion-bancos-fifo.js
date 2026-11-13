@@ -201,6 +201,9 @@ function recalcularLotesYGanancias(){
        archivo) y el fallback de tasaRef en ingresos USDT. */
     const _seeds=AppState.datos._archivoSeeds||{};
     let utcL=_seeds.utcL||0,utcUL=_seeds.utcUL||0,utvL=_seeds.utvL||0,utvU=_seeds.utvU||0;
+    /* Para los USDT que salen sin lote antes de la primera compra en pesos */
+    const _pc=ev.find(e=>e.tipo==='op'&&e.data&&e.data.tipo==='compra'&&e.data.moneda!=='USD'&&e.data.tasa>0);
+    const primeraTasaUYU=_pc?_pc.data.tasa:0;
     ev.forEach(e=>{
         if(e.tipo==='op'){
             const op=e.data;if(!op.tasa||op.tasa<=0){op.ganancia=0;op.usdt=0;op.comisionPlataforma=0;return}
@@ -253,7 +256,19 @@ function recalcularLotesYGanancias(){
                no tenga que recalcular. tasaRef es la tasa de referencia del lote creado. */
             m.valorUYU=roundMoney(m.monto*pr);
         }
-        else if(e.tipo==='me'){const r=consumirFIFO(roundMoney(e.data.monto));e.data.valorUYU=r.costo;e.data.consumedLots=r.consumed}
+        else if(e.tipo==='me'){
+            /* v8.3.0 — Un egreso de USDT vale lo que costaron los USDT que salieron.
+               La parte que no sale de ningún lote (USDT que nunca se cargaron como
+               compra) valía cero si quedaba algo de inventario, y si no quedaba nada,
+               la tasa de la última compra de hoy: el mismo gasto cambiaba de valor
+               cada vez que comprabas. Ahora esa parte se calcula siempre con la tasa
+               de la última compra de ese momento (o la primera, si todavía no había). */
+            const m=e.data,r=consumirFIFO(roundMoney(m.monto));
+            const falta=roundMoney(truncUsdt(roundMoney(m.monto))-r.consumido);
+            const t=Number(m.tasaRef)||utcL||primeraTasaUYU||AppState.datos.ultimaTasaCompra||1;
+            m.valorUYU=roundMoney(r.costo+(falta>=0.005?roundMoney(falta*t):0));
+            m.consumedLots=r.consumed;
+        }
         else if(e.tipo==='lm'){
             const l=e.data;
             /* CRÍTICO: disponible se resetea a cantidad original — el replay FIFO 

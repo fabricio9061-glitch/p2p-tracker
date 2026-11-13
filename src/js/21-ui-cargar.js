@@ -182,7 +182,9 @@ function opPintarTodo(capa){
 }
 function opPintarTasas(capa){
     const st=capa.st,mon=opMoneda(st);
-    const ts=tasasRecientesDe(st.tipo,mon,3);
+    /* v8.3.0 — Cuatro tasas recientes (eran tres), en la misma fila del rótulo.
+       En una pantalla muy angosta se ven las que entran: las más nuevas. */
+    const ts=tasasRecientesDe(st.tipo,mon,4);
     q(capa.cont,'tasas').innerHTML=ts.map(t=>'<button type="button" class="pastilla chica" data-a="op-tasa-rapida" data-v="'+t+'" aria-pressed="false">'+escHtml(fmtTasa(t,mon))+'</button>').join('');
     opMarcarTasa(capa);
 }

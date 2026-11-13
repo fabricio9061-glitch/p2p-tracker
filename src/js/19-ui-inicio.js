@@ -189,7 +189,12 @@ function pintarInicio(){
     /* ── Hoy: las operaciones por un lado y lo demás por otro (v8.0.4) ── */
     const movsHoy=itemsDelRegistro().filter(it=>it.fecha===hoy);
     const opsHoy=movsHoy.filter(esOperacion),otrosHoy=movsHoy.filter(it=>!esOperacion(it));
-    html+='<section class="seccion"><div class="seccion-cab"><h2>Operaciones de hoy</h2><button type="button" class="ir" data-a="tab" data-tab="registro">Ver registro</button></div>';
+    /* v8.3.0 — Cada "Ver..." lleva a lo suyo en el registro: "Todo lo de hoy"
+       (operaciones y lo demás, juntos), las operaciones de hoy, o los otros
+       movimientos de hoy. Antes "Ver registro" abría el registro con el último
+       filtro que hubiera quedado, y "Ver todo lo de hoy" mostraba también las
+       operaciones: parecía que todos llevaban al mismo lugar. */
+    html+='<section class="seccion"><div class="seccion-cab"><h2>Operaciones de hoy</h2>'+(movsHoy.length?'<button type="button" class="ir" data-a="ir-dia" data-fecha="'+hoy+'" data-tipo="todo">Todo lo de hoy</button>':'')+'</div>';
     if(!opsHoy.length){
         html+='<div class="bloque vacio"><b>Todavía no hay operaciones hoy</b><p>Cargalas con Comprar USDT o Vender USDT.</p></div>';
     }else{
@@ -202,7 +207,7 @@ function pintarInicio(){
         html+='<section class="seccion"><div class="seccion-cab"><h2>Otros movimientos de hoy</h2>'+
             (huboEgresos?'<button type="button" class="ir" data-a="egresos-cat" data-p="hoy">En qué gastaste</button>':'')+'</div>'+
             '<div class="bloque lista">'+otrosHoy.slice(0,4).map(it=>filaRegistroHtml(it)).join('')+'</div>';
-        if(otrosHoy.length>4)html+='<button type="button" class="ver-mas" data-a="ir-dia" data-fecha="'+hoy+'">Ver todo lo de hoy</button>';
+        if(otrosHoy.length>4)html+='<button type="button" class="ver-mas" data-a="ir-dia" data-fecha="'+hoy+'" data-tipo="otros">Ver los '+otrosHoy.length+' movimientos de hoy</button>';
         html+='</section>';
     }
     c.innerHTML=html;

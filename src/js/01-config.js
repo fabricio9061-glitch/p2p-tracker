@@ -301,12 +301,15 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
-    {version:'8.3.0', date:'2026-11-07', headline:'La ganancia, revisada: ahora se ve de dónde sale y cuenta las correcciones de saldo.', changes:[
+    {version:'8.3.0', date:'2026-11-13', headline:'La ganancia, revisada: ahora se ve de dónde sale y cuenta las correcciones de saldo.', changes:[
         {type:'feature', title:'De dónde sale la ganancia', desc:'Debajo de la ganancia neta, en el registro, el inicio, el calendario y el resumen del mes, se ven sus partes: ventas, comisiones del banco, egresos y correcciones de saldo. Lo que se ganó en dólares, aparte.'},
         {type:'improve', title:'Las correcciones de saldo cuentan', desc:'Si al corregir un saldo faltaba plata, eso resta de la ganancia; si sobraba, suma. El saldo con el que se crea una cuenta no cuenta.'},
         {type:'improve', title:'Las comisiones de las transferencias también', desc:'Lo que cobra el banco por transferir ahora resta de la ganancia, igual que la comisión de una compra.'},
         {type:'fix', title:'Cada compra se vende en su orden', desc:'Una compra al mismo precio exacto que otra más vieja se sumaba a ese lote y se vendía antes que las compras hechas en el medio a otro precio. La ganancia total era la misma, pero se corría de una venta a otra y a veces de un día a otro. Ahora se vende en el orden en que se compró.'},
-        {type:'fix', title:'La ganancia en dólares se contaba dos veces', desc:'Una compra en dólares sumaba la diferencia contra la última venta en dólares, y la venta siguiente la volvía a sumar. Ahora se cuenta una sola vez, al vender.'}
+        {type:'fix', title:'La ganancia en dólares se contaba dos veces', desc:'Una compra en dólares sumaba la diferencia contra la última venta en dólares, y la venta siguiente la volvía a sumar. Ahora se cuenta una sola vez, al vender.'},
+        {type:'fix', title:'Gastos en USDT sin su compra cargada', desc:'Si al gastar USDT faltaba una parte en el inventario, esa parte valía cero; y si faltaba todo, se calculaba con la tasa de la última compra de hoy, así que el mismo gasto cambiaba cada vez que comprabas. Ahora esa parte se calcula siempre con la tasa de la última compra de ese momento, y el detalle lo dice.'},
+        {type:'improve', title:'Cada "Ver…" del inicio lleva a lo suyo', desc:'"Ver las operaciones de hoy" abre solo las compras y ventas de hoy; "Ver los movimientos de hoy", solo lo demás (ingresos, egresos, transferencias y correcciones), con el filtro nuevo Otros movimientos; y "Todo lo de hoy", todo junto. Arriba del registro dice qué estás viendo.'},
+        {type:'improve', title:'Cuatro tasas recientes', desc:'Al cargar una compra o una venta se ven tus últimas cuatro tasas en lugar de tres, en la misma fila.'}
     ]},
     {version:'8.2.1', date:'2026-11-05', headline:'Vender vuelve a andar aunque en tu historia haya ventas sin su compra cargada.', changes:[
         {type:'fix', title:'No dejaba vender', desc:'Si alguna vez vendiste USDT que no estaban cargados como compra, la 8.2.0 los seguía restando para siempre: decía "tenés 0,00" y no dejaba vender aunque tuvieras USDT de sobra. Ahora los USDT se cuentan igual que en el inventario, sin bajar de cero: solo se frena una venta si usa USDT que no tenés en ese momento.'},
