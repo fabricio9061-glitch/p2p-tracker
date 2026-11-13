@@ -233,6 +233,43 @@ function _recorrerSaldo(lista,inicio){
     if(peor())return{final:true,valor:sd,antes:sa};
     return primero?{final:false,valor:primero.valor,ev:primero.ev,antes:sa}:null;
 }
+/* ═══ v8.2.1 — Los USDT se cuentan como el inventario: nunca bajan de cero ═══
+   La 8.2.0 sumaba todo lo que entró y salió desde el principio. Pero el
+   inventario (recalcularLotesYGanancias) no baja de cero: si una venta de hace
+   meses salió de USDT que nunca se cargaron como compra, esa parte queda sin
+   lote y no se resta de nada. Con una sola venta así en la historia, la suma
+   quedaba negativa para siempre —aunque hoy hubiera USDT de sobra— y cualquier
+   venta nueva "la empeoraba": no se podía vender.
+
+   Ahora se recorre igual que el inventario, moneda por moneda: lo que entra
+   suma, lo que sale toma lo que hay, y lo que no alcanza queda como faltante.
+   Se hace con el cambio y sin el cambio, y solo si el cambio agrega faltante no
+   se guarda. Lo que ya faltaba de antes no frena nada.
+   lista = [{k, a, d, ev}] como en _recorrerSaldo. Devuelve null si se puede, o
+   cuánto faltaría en total, en qué registro empieza a faltar y cuánto había
+   en ese momento. */
+function _recorrerUsdt(lista){
+    lista.sort((x,y)=>x.k<y.k?-1:x.k>y.k?1:0);
+    let ia=0,idp=0,fa=0,fd=0,primero=null,ultimo=null;
+    for(let i=0;i<lista.length;){
+        const k=lista[i].k,fa0=fa,fd0=fd;let ev=null,habia=null;
+        while(i<lista.length&&lista[i].k===k){
+            const x=lista[i];
+            if(x.a>0)ia=roundMoney(ia+x.a);
+            else if(x.a<0){const c=Math.min(ia,-x.a);fa=roundMoney(fa-x.a-c);ia=roundMoney(ia-c)}
+            if(x.d>0)idp=roundMoney(idp+x.d);
+            else if(x.d<0){if(habia===null)habia=idp;const c=Math.min(idp,-x.d);fd=roundMoney(fd-x.d-c);idp=roundMoney(idp-c)}
+            if(!ev||x.d)ev=x.ev;
+            i++;
+        }
+        ultimo=ev;
+        const mas=roundMoney((fd-fd0)-(fa-fa0));
+        if(!primero&&mas>_NEG)primero={ev,habia:habia===null?idp:habia};
+    }
+    const falta=roundMoney(fd-fa);
+    if(falta<=_NEG||!primero)return null;
+    return{falta,ev:primero.ev,habia:Math.max(0,primero.habia),alFinal:primero.ev===ultimo};
+}
 function revisarNegativos(cambios){
     const D=AppState.datos;
     const cs=(cambios||[]).filter(c=>c&&c.entidad&&(c.antes||c.despues));
@@ -297,15 +334,25 @@ function revisarNegativos(cambios){
         out.push({texto,cuenta:k,valor:p.valor,final:p.final});
     });
     const conDolares=Object.keys(monedas).length>1||!!monedas.USD||(D.operaciones||[]).some(o=>o&&o.moneda==='USD');
+    const nuevos=new Set(cs.map(c=>c.despues).filter(Boolean));
     Object.keys(monedas).forEach(m=>{
-        const p=_recorrerSaldo(monedas[m],0);
+        const p=_recorrerUsdt(monedas[m]);
         if(!p)return;
         const cual=conDolares?(m==='USD'?' comprados con dólares':' comprados con pesos'):'';
-        const falta=fmtTrunc(Math.abs(p.valor),2);
+        const falta=fmtTrunc(p.falta,2),habia=fmtTrunc(p.habia,2);
+        const ev=p.ev||{},w=_cuandoFue(ev.fecha,ev.hora);
         let texto;
-        if(p.final)texto='Te faltarían '+falta+' USDT'+cual+' (tenés '+fmtTrunc(Math.max(0,p.antes),2)+')';
-        else{const w=_cuandoFue(p.ev&&p.ev.fecha,p.ev&&p.ev.hora);texto='Te faltarían '+falta+' USDT'+cual+(w?' '+w:'')+': todavía no los habías comprado'}
-        out.push({texto,usdt:m,valor:p.valor,final:p.final});
+        if(nuevos.has(p.ev)){
+            /* Falta en lo mismo que se está guardando */
+            if(p.alFinal)texto='Te faltarían '+falta+' USDT'+cual+' (tenés '+habia+')';
+            else texto='Te faltarían '+falta+' USDT'+cual+(w?' '+w:'')+': a esa hora tenías '+habia;
+        }else{
+            /* Lo que se cambia deja sin USDT a algo que ya salió después */
+            const cosa=ev.tipoCuenta==='usdt'?'la salida de USDT':'la venta';
+            const de=!w?'':/^el /.test(w)?' del '+w.slice(3):' de '+w;
+            texto='Te faltarían '+falta+' USDT'+cual+': '+cosa+de+' ya los usó';
+        }
+        out.push({texto,usdt:m,valor:-p.falta,final:!!p.alFinal});
     });
     return out;
 }

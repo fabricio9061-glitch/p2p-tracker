@@ -308,6 +308,10 @@ const CHANGELOG = [
         {type:'fix', title:'Cada compra se vende en su orden', desc:'Una compra al mismo precio exacto que otra más vieja se sumaba a ese lote y se vendía antes que las compras hechas en el medio a otro precio. La ganancia total era la misma, pero se corría de una venta a otra y a veces de un día a otro. Ahora se vende en el orden en que se compró.'},
         {type:'fix', title:'La ganancia en dólares se contaba dos veces', desc:'Una compra en dólares sumaba la diferencia contra la última venta en dólares, y la venta siguiente la volvía a sumar. Ahora se cuenta una sola vez, al vender.'}
     ]},
+    {version:'8.2.1', date:'2026-11-05', headline:'Vender vuelve a andar aunque en tu historia haya ventas sin su compra cargada.', changes:[
+        {type:'fix', title:'No dejaba vender', desc:'Si alguna vez vendiste USDT que no estaban cargados como compra, la 8.2.0 los seguía restando para siempre: decía "tenés 0,00" y no dejaba vender aunque tuvieras USDT de sobra. Ahora los USDT se cuentan igual que en el inventario, sin bajar de cero: solo se frena una venta si usa USDT que no tenés en ese momento.'},
+        {type:'improve', title:'Dice qué venta los usó', desc:'Si borrar o cambiar algo dejaría sin USDT a una venta que ya hiciste, el aviso dice cuál es.'}
+    ]},
     {version:'8.2.0', date:'2026-11-05', headline:'Ninguna cuenta puede quedar en negativo, y las cuentas de un mismo banco comparten el límite diario.', changes:[
         {type:'fix', title:'Ninguna cuenta queda en negativo', desc:'Ya no se puede borrar ni editar una transferencia, un ingreso o una venta si esa plata ya se usó, ni recuperar un egreso que ya no entra. La app dice qué cuenta quedaría en negativo y qué hacer: primero cambiá o borrá lo que se pagó con esa plata. Ya no existen "Eliminar igual" ni "Guardar igual".'},
         {type:'fix', title:'Tampoco en el pasado', desc:'Un egreso con fecha de ayer que deja la cuenta en negativo ayer no se guarda, aunque hoy cierre en positivo. Lo mismo con los USDT: no se puede vender lo que todavía no se había comprado.'},
