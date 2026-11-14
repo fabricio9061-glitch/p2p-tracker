@@ -9,8 +9,26 @@
    días en Eliminados. */
 PANTALLAS.registro={pintar:pintarRegistro};
 
-const TIPOS_REG=[['todo','Todo'],['operaciones','Operaciones'],['venta','Ventas'],['compra','Compras'],['ingreso','Ingresos'],['egreso','Egresos'],
+/* v8.3.0 — "Otros movimientos": todo lo que no es compra ni venta, igual que la
+   sección del inicio con ese nombre (ingresos, egresos, transferencias y
+   correcciones). Así cada "Ver..." del inicio lleva a lo suyo. */
+const TIPOS_REG=[['todo','Todo'],['operaciones','Operaciones'],['venta','Ventas'],['compra','Compras'],['otros','Otros movimientos'],['ingreso','Ingresos'],['egreso','Egresos'],
                  ['transferencia','Transferencias'],['correccion','Correcciones'],['eliminados','Eliminados']];
+/* Cómo se nombra lo que se está viendo, en singular y en plural */
+const NOMBRE_TIPO_REG={todo:['movimiento','movimientos'],operaciones:['operación','operaciones'],venta:['venta','ventas'],compra:['compra','compras'],
+                 otros:['otro movimiento','otros movimientos'],ingreso:['ingreso','ingresos'],egreso:['egreso','egresos'],
+                 transferencia:['transferencia','transferencias'],correccion:['corrección','correcciones']};
+/* "22 operaciones de hoy", "6 otros movimientos de hoy", "120 ventas de este mes":
+   lo mismo que dice el botón que trajo hasta acá, para que se vea que llegó */
+function textoDelFiltro(r,n){
+    const nom=(NOMBRE_TIPO_REG[r.tipo]||NOMBRE_TIPO_REG.todo)[n===1?0:1];
+    const hoy=getUDateStr();
+    let cuando='';
+    if(r.dia){
+        cuando=r.dia===hoy?' de hoy':r.dia===sumarDias(hoy,-1)?' de ayer':' del '+tituloDia(r.dia).replace(/^./,x=>x.toLowerCase());
+    }else cuando={hoy:' de hoy',ayer:' de ayer',semana:' de los últimos 7 días',mes:' de este mes',mespasado:' del mes pasado'}[r.periodo]||'';
+    return fmtNum(n,0)+' '+nom+cuando;
+}
 const PERIODOS_REG=[['hoy','Hoy'],['ayer','Ayer'],['semana','Últimos 7 días'],['mes','Este mes'],['mespasado','Mes pasado'],['todo','Todo']];
 const REG_PAGINA=60;
 
@@ -39,6 +57,7 @@ function filtrarRegistro(){
     const cat=typeof r.categoria==='string'?r.categoria:null;
     return itemsDelRegistro().filter(it=>{
         if(r.tipo==='operaciones'){if(!esOperacion(it))return false}
+        else if(r.tipo==='otros'){if(esOperacion(it))return false}
         else if(r.tipo!=='todo'&&it.tipo!==r.tipo)return false;
         if(cat!==null&&(!(it.tipo==='ingreso'||it.tipo==='egreso')||tagKey(it.rec.descripcion||'')!==cat))return false;
         if(it.fecha<desde||it.fecha>hasta)return false;
@@ -50,9 +69,11 @@ function filtrarRegistro(){
         return true;
     });
 }
-/* Lo que entró y salió de las cuentas elegidas, y la ganancia neta */
+/* Lo que entró y salió de las cuentas elegidas, y la ganancia neta con sus
+   partes (v8.3.0: también las comisiones de las transferencias y las
+   correcciones de saldo; lo de dólares, aparte) */
 function resumenRegistro(items,cuenta){
-    const entra={},sale={};let gan=0,hayGan=false;
+    const entra={},sale={};
     items.forEach(it=>{
         if(cuenta==='USDT'){
             const v=efectoEnUsdt(it.ent,it.rec);
@@ -62,10 +83,9 @@ function resumenRegistro(items,cuenta){
                 if(v>=0.005)entra[m]=roundMoney((entra[m]||0)+v);else if(v<=-0.005)sale[m]=roundMoney((sale[m]||0)+v);
             });
         }
-        const g=gananciaDeItem(it);
-        if(Math.abs(g)>=0.005||it.tipo==='venta'||it.tipo==='egreso'){hayGan=true;gan=roundMoney(gan+g)}
     });
-    return{entra,sale,gan,hayGan};
+    const t=sumarGanancia(items);
+    return{entra,sale,gan:t.neta,hayGan:t.hay,partes:t};
 }
 
 function pintarRegistro(){
@@ -116,14 +136,21 @@ function pintarRegistro(){
         if(res.entra[m])lineas+='<span>'+escHtml(dondeE+extra)+'</span><b>'+fmt(m,res.entra[m],true)+'</b>';
         if(res.sale[m])lineas+='<span>'+escHtml(dondeS+extra)+'</span><b>'+fmt(m,res.sale[m],false)+'</b>';
     });
-    if(res.hayGan&&r.cuenta!=='USDT')lineas+='<span class="total">Ganancia neta</span><b class="total cifra '+claseSigno(res.gan)+'">'+dinero(res.gan,'UYU',{signo:true})+'</b>';
-    let html=lineas?'<div class="bloque resumen-reg">'+lineas+'</div>':'';
+    if(res.hayGan&&r.cuenta!=='USDT'){
+        lineas+='<span class="total">Ganancia neta</span><b class="total cifra '+claseSigno(res.gan)+'">'+dinero(res.gan,'UYU',{signo:true})+'</b>';
+        /* v8.3.0 — De dónde sale: las partes, debajo del total */
+        partesDeGanancia(res.partes).forEach(k=>{
+            lineas+='<span class="parte">'+NOMBRE_PARTE[k]+'</span><b class="parte cifra">'+dinero(res.partes[k],'UYU',{signo:true})+'</b>';
+        });
+    }
+    if(res.partes&&res.partes.hayDolares&&r.cuenta!=='USDT')lineas+='<span class="parte">Ganancia en dólares</span><b class="parte cifra">'+dinero(res.partes.dolares,'USD',{signo:true})+'</b>';
+    let html='<p class="reg-que">'+escHtml(textoDelFiltro(r,items.length))+'</p>'+(lineas?'<div class="bloque resumen-reg">'+lineas+'</div>':'');
 
     /* Por día */
     const ganDia={},conGan={};
     items.forEach(it=>{
-        const g=gananciaDeItem(it);
-        if(Math.abs(g)>=0.005||it.tipo==='venta'||it.tipo==='egreso'){conGan[it.fecha]=true;ganDia[it.fecha]=roundMoney((ganDia[it.fecha]||0)+g)}
+        if(!cuentaParaGanancia(it))return;
+        conGan[it.fecha]=true;ganDia[it.fecha]=roundMoney((ganDia[it.fecha]||0)+gananciaDeItem(it));
     });
     const vista=items.slice(0,r.limite||REG_PAGINA);
     let dia=null,filas='';
@@ -426,7 +453,12 @@ function htmlDetalle(ent,rec,o){
         if(rec.nota)b+=dato('Nota',escHtml(rec.nota));
         b+=dato('Cuándo',cuando);
         if(cuenta==='USDT'&&tipo==='ingreso'&&rec.tasaRef>0)b+=dato('Te salió cada uno a',dinero(rec.tasaRef,'UYU'));
-        if(cuenta==='USDT'&&tipo==='egreso'&&!elim&&rec.valorUYU>0)b+=dato('Te habían costado',dinero(rec.valorUYU,'UYU'));
+        if(cuenta==='USDT'&&tipo==='egreso'&&!elim&&rec.valorUYU>0){
+            b+=dato('Te habían costado',dinero(rec.valorUYU,'UYU'));
+            const salio=(Array.isArray(rec.consumedLots)?rec.consumedLots:[]).reduce((s,x)=>s+(Number(x.amount)||0),0);
+            const sin=roundMoney((Number(rec.monto)||0)-salio);
+            if(sin>=0.005)b+='<div class="det-aviso">Cuando se cargó este egreso faltaban '+usdtTxt(sin)+' en tu inventario. Esa parte se calculó con la tasa de tu última compra.</div>';
+        }
         bloques.push(b);
     }else if(tipo==='transferencia'){
         if(ent==='conversiones'){

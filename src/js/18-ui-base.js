@@ -664,10 +664,22 @@ function netoPorMoneda(it,cuentas){
     });
     return r;
 }
-/* Ganancia de un registro, con el mismo criterio que la ganancia del día:
-   operaciones en pesos (una compra con comisión del banco resta) y egresos */
+/* Ganancia en pesos de un registro, con la regla de aporteAGanancia (v8.3.0):
+   ventas, comisiones del banco, egresos y correcciones. Lo que es en dólares
+   va aparte. */
 function gananciaDeItem(it){
-    if(it.ent==='operaciones'&&(it.rec.moneda||'UYU')!=='USD')return Number(it.rec.ganancia)||0;
-    if(it.ent==='movimientos'&&it.rec.tipoMovimiento==='egreso')return-movimientoValorUYU(it.rec);
-    return 0;
+    const a=aporteAGanancia(it.ent,it.rec);
+    return a&&a.parte!=='dolares'?a.v:0;
+}
+/* ¿Este registro cuenta para la ganancia en pesos? (para mostrar la del día) */
+function cuentaParaGanancia(it){
+    const a=aporteAGanancia(it.ent,it.rec);
+    return!!a&&a.parte!=='dolares';
+}
+/* Las partes de la ganancia, para mostrarlas debajo del total: solo las que
+   tienen algo, y solo si hay más de una (si no, son el mismo número) */
+const NOMBRE_PARTE={ventas:'Ventas',comisiones:'Comisiones del banco',egresos:'Egresos',correcciones:'Correcciones de saldo'};
+function partesDeGanancia(t){
+    const con=PARTES_GANANCIA.filter(k=>Math.abs(t[k])>=0.005);
+    return con.length>1||(con.length===1&&con[0]!=='ventas')?con:[];
 }

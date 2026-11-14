@@ -51,18 +51,28 @@ function pintarMas(){
 }
 
 /* ─── Resumen del mes ──────────────────────────────────────────────────── */
-/* Todo sale de las operaciones y los egresos del mes: la misma cuenta que la
-   ganancia del día, así que los números de una pantalla y otra coinciden. */
-function resumenMes(mes,ops,movs){
+/* La ganancia sale de la misma regla que en todas las pantallas
+   (aporteAGanancia): ventas, comisiones del banco, egresos y correcciones de
+   saldo; lo de dólares, aparte. Así el día, el mes, el calendario y el
+   registro dan lo mismo. trs y ajs: transferencias y correcciones (si no se
+   pasan, las que hay en memoria). */
+function resumenMes(mes,ops,movs,trs,ajs){
     const dias=diasDelMes(mes),porDia=new Array(dias).fill(0),egrDia=new Array(dias).fill(null);
-    let ganOps=0,egresos=0,ganUSD=0,comUsdt=0,comPesos=0;
+    let comUsdt=0,comPesos=0;
     const compras={n:0,monto:0,usdt:0},ventas={n:0,monto:0,usdt:0};
+    const delMes=x=>x&&String(x.fecha||'').startsWith(mes);
+    const lista=[];
+    (ops||[]).forEach(o=>{if(delMes(o))lista.push({ent:'operaciones',rec:o})});
+    (movs||[]).forEach(m=>{if(delMes(m))lista.push({ent:'movimientos',rec:m})});
+    (trs||AppState.datos.transferencias||[]).forEach(t=>{if(delMes(t))lista.push({ent:'transferencias',rec:t})});
+    (ajs||AppState.datos.ajustesSaldo||[]).forEach(a=>{if(delMes(a))lista.push({ent:'ajustesSaldo',rec:a})});
+    const t=sumarGanancia(lista);
+    lista.forEach(x=>{
+        const a=aporteAGanancia(x.ent,x.rec);
+        if(a&&a.parte!=='dolares'){const i=(parseInt(x.rec.fecha.slice(8,10),10)||1)-1;porDia[i]=roundMoney(porDia[i]+a.v)}
+    });
     (ops||[]).forEach(o=>{
-        if(!o||!String(o.fecha||'').startsWith(mes))return;
-        const i=(parseInt(o.fecha.slice(8,10),10)||1)-1;
-        if((o.moneda||'UYU')==='USD'){ganUSD=roundMoney(ganUSD+(Number(o.ganancia)||0));return}
-        const g=Number(o.ganancia)||0;
-        ganOps=roundMoney(ganOps+g);porDia[i]=roundMoney(porDia[i]+g);
+        if(!delMes(o)||(o.moneda||'UYU')==='USD')return;
         const k=o.tipo==='compra'?compras:ventas;
         k.n++;k.monto=roundMoney(k.monto+(Number(o.monto)||0));k.usdt=roundMoney(k.usdt+(Number(o.usdt)||0));
         const cp=Number(o.comisionPlataforma)||0;
@@ -70,17 +80,28 @@ function resumenMes(mes,ops,movs){
     });
     const cats={};
     (movs||[]).forEach(m=>{
-        if(!m||m.tipoMovimiento!=='egreso'||!String(m.fecha||'').startsWith(mes))return;
+        if(!delMes(m)||m.tipoMovimiento!=='egreso')return;
         const i=(parseInt(m.fecha.slice(8,10),10)||1)-1;
         const v=movimientoValorUYU(m);
-        egresos=roundMoney(egresos+v);porDia[i]=roundMoney(porDia[i]-v);
         const k=m.descripcion?tagKey(m.descripcion):'';
         if(!cats[k])cats[k]={nombre:m.descripcion||'sin categoría',total:0,n:0};
         cats[k].total=roundMoney(cats[k].total+v);cats[k].n++;
         if(!egrDia[i]||v>egrDia[i].v)egrDia[i]={v,nombre:m.descripcion||'un egreso'};
     });
-    return{mes,dias,porDia,egrDia,ganOps,egresos,neta:roundMoney(ganOps-egresos),ganUSD,comUsdt,comPesos,compras,ventas,
+    return{mes,dias,porDia,egrDia,partes:t,ganOps:t.ventas,egresos:roundMoney(-t.egresos),neta:t.neta,ganUSD:t.dolares,comUsdt,comPesos,compras,ventas,
            categorias:Object.values(cats).sort((a,b)=>b.total-a.total)};
+}
+/* Las partes de la ganancia, como renglones "nombre / cifra" (v8.3.0) */
+function htmlPartesGanancia(t,o){
+    o=o||{};
+    const ks=PARTES_GANANCIA.filter(k=>k==='ventas'||k==='egresos'||Math.abs(t[k])>=0.005);
+    let h=ks.map(k=>o.enLinea
+        ?'<span>'+NOMBRE_PARTE[k]+' <b class="'+(k==='ventas'||k==='correcciones'?claseSigno(t[k]):'')+'">'+dinero(t[k],'UYU',{signo:k!=='egresos'&&k!=='comisiones'})+'</b></span>'
+        :'<span>'+NOMBRE_PARTE[k]+'</span><span class="'+(k==='ventas'||k==='correcciones'?claseSigno(t[k]):'')+'">'+dinero(t[k],'UYU',{signo:k!=='egresos'&&k!=='comisiones'})+'</span>').join('');
+    if(t.hayDolares&&Math.abs(t.dolares)>=0.005)h+=o.enLinea
+        ?'<span>En dólares <b class="'+claseSigno(t.dolares)+'">'+dinero(t.dolares,'USD',{signo:true})+'</b></span>'
+        :'<span>En dólares</span><span class="'+claseSigno(t.dolares)+'">'+dinero(t.dolares,'USD',{signo:true})+'</span>';
+    return h;
 }
 function mesesConDatos(){
     const s=new Set([getMesActivo()]);
@@ -113,7 +134,7 @@ function pintarResumen(cont,capa){
     let r=null;
     if(arch){
         const cargado=capa.archivo[mes];
-        if(cargado)r=resumenMes(mes,cargado.ops,cargado.movimientos);
+        if(cargado)r=resumenMes(mes,cargado.ops,cargado.movimientos,cargado.transferencias);
         else{
             const s=AppState.datos._archivoIndex.meses[mes]||{};
             const tG=dinero(s.ganancia||0,'UYU',{signo:true});
@@ -129,9 +150,7 @@ function pintarResumen(cont,capa){
     const tN=dinero(r.neta,'UYU',{signo:true});
     const hoy=getUDateStr();
     html+='<section><div class="heroe-rot">Ganancia neta del mes</div><div class="heroe-cifra cifra '+claseSigno(r.neta)+' '+tamCifra(tN,10,13)+'" style="font-size:56px">'+tN+'</div>'+
-        '<div class="heroe-desglose"><span>Operaciones</span><span class="'+claseSigno(r.ganOps)+'">'+dinero(r.ganOps,'UYU',{signo:true})+'</span>'+
-        '<span>Egresos</span><span>'+dinero(-r.egresos,'UYU')+'</span>'+
-        (Math.abs(r.ganUSD)>=0.005?'<span>En dólares</span><span class="'+claseSigno(r.ganUSD)+'">'+dinero(r.ganUSD,'USD',{signo:true})+'</span>':'')+'</div>';
+        '<div class="heroe-desglose">'+htmlPartesGanancia(r.partes)+'</div>';
     /* Barras por día */
     const max=Math.max(1,...r.porDia.map(Math.abs));
     html+='<div class="mes-barras" style="--dias:'+r.dias+'" role="img" aria-label="Ganancia de cada día de '+escHtml(nombreMes(mes))+'">'+r.porDia.map((v,i)=>{
@@ -204,7 +223,7 @@ ACC['cal-dia']=t=>{
 };
 function htmlDiaCalendario(f){
     const g=roundMoney(calcularGananciaDiaria()[f]||0);
-    const st=getDayStats(f)||{gananciaOps:0,gastos:0};
+    const st=getDayStats(f)||{partes:sumarGanancia([])};
     const a=actividadEntre(f,f);
     const items=itemsDelRegistro().filter(it=>it.fecha===f);
     const ops=items.filter(esOperacion),otros=items.filter(it=>!esOperacion(it));
@@ -212,8 +231,7 @@ function htmlDiaCalendario(f){
         '<div class="seccion-cab"><h2>'+escHtml(tituloDia(f))+'</h2><button type="button" class="ir" data-a="ir-dia" data-fecha="'+f+'">Ver en el registro</button></div>'+
         '<div class="heroe tarjeta-hoy cal-tarjeta"><div class="heroe-rot">Ganancia del día</div>'+
             '<div class="heroe-cifra cifra '+claseSigno(g)+'">'+dinero(g,'UYU',{signo:true})+'</div>'+
-            '<div class="heroe-desglose"><span>Operaciones <b class="'+claseSigno(st.gananciaOps)+'">'+dinero(st.gananciaOps,'UYU',{signo:true})+'</b></span>'+
-                '<span>Egresos <b>'+dinero(-(st.gastos||0),'UYU')+'</b></span></div>'+
+            '<div class="heroe-desglose">'+htmlPartesGanancia(st.partes,{enLinea:true})+'</div>'+
             '<div class="heroe-ops">'+lineaOperaciones(a,'Sin operaciones ese día.')+'</div>'+
             '<div class="hoy-grilla">'+fichasDelDia(a)+'</div></div>';
     /* En qué se gastó ese día */
@@ -233,7 +251,7 @@ function pintarCalendario(cont,capa){
         cont.innerHTML=html;return;
     }
     const fuente=capa.archivo[mes];
-    const r=fuente?resumenMes(mes,fuente.ops,fuente.movimientos):resumenMes(mes,AppState.datos.operaciones,AppState.datos.movimientos);
+    const r=fuente?resumenMes(mes,fuente.ops,fuente.movimientos,fuente.transferencias):resumenMes(mes,AppState.datos.operaciones,AppState.datos.movimientos);
     const hoy=getUDateStr();
     /* De entrada, en el mes actual queda marcado hoy */
     if(!capa.dia&&!fuente&&mes===hoy.slice(0,7))capa.dia=hoy;

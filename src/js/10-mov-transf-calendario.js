@@ -16,8 +16,10 @@ const _gananciaCache={diaria:new Map(),total:new Map(),key:null};
 function _gananciaCacheKey(monedaFiltro){
     const v=AppState.datos._version||0;
     const opsLen=AppState.datos.operaciones.length,movsLen=AppState.datos.movimientos.length;
+    /* v8.3.0 — Las transferencias (comisiones) y las correcciones también cuentan */
+    const otros=(AppState.datos.transferencias||[]).length+'.'+(AppState.datos.ajustesSaldo||[]).length;
     const bump=AppState.ui._cacheBump||0;
-    return (monedaFiltro||'_all')+'|'+v+'|'+opsLen+'|'+movsLen+'|'+bump;
+    return (monedaFiltro||'_all')+'|'+v+'|'+opsLen+'|'+movsLen+'|'+otros+'|'+bump;
 }
 function invalidarGananciaCache(){
     _gananciaCache.diaria.clear();
@@ -30,14 +32,14 @@ function calcularGananciaDiaria(monedaFiltro){
     const key=_gananciaCacheKey(monedaFiltro);
     const cached=_gananciaCache.diaria.get(key);
     if(cached)return cached;
-    const g={};AppState.datos.operaciones.forEach(op=>{
-        if(monedaFiltro&&op.moneda!==monedaFiltro)return;
-        if(!monedaFiltro&&op.moneda==='USD')return;
-        if(!g[op.fecha])g[op.fecha]=0;if(op.ganancia!==undefined)g[op.fecha]=roundMoney(g[op.fecha]+op.ganancia)});
-    if(!monedaFiltro||monedaFiltro==='UYU'){
-        const tasaFb=AppState.datos.ultimaTasaCompra||1;
-        AppState.datos.movimientos.forEach(mv=>{if(mv.tipoMovimiento==='egreso'){if(!g[mv.fecha])g[mv.fecha]=0;g[mv.fecha]=roundMoney(g[mv.fecha]-movimientoValorUYU(mv,tasaFb))}});
-    }
+    /* v8.3.0 — Con la misma regla que todas las pantallas (aporteAGanancia):
+       ventas, comisiones del banco, egresos y correcciones; en dólares, aparte */
+    const g={},usd=monedaFiltro==='USD';
+    registrosParaGanancia().forEach(x=>{
+        const a=aporteAGanancia(x.ent,x.rec);if(!a||(a.parte==='dolares')!==usd)return;
+        const f=x.rec.fecha;if(!f)return;
+        g[f]=roundMoney((g[f]||0)+a.v);
+    });
     _gananciaCache.diaria.set(key,g);
     return g;
 }
@@ -57,14 +59,14 @@ function getDayStats(fecha){
         else{ventas++;montoVentas=roundMoney(montoVentas+op.monto);sumTasaV+=op.tasa}
         gananciaOps=roundMoney(gananciaOps+(op.ganancia||0));
     });
+    /* v8.3.0 — Las partes de la ganancia del día, con la regla de todas las pantallas */
+    const partes=sumarGanancia(registrosParaGanancia().filter(x=>x.rec.fecha===fecha));
     const tasaPromC=compras?roundMoney(sumTasaC/compras):0;
     const tasaPromV=ventas?roundMoney(sumTasaV/ventas):0;
     const spread=(compras&&ventas)?roundMoney(tasaPromV-tasaPromC):0;
-    const tasaFb=AppState.datos.ultimaTasaCompra||1;
-    let gastos=0;
-    movs.forEach(m=>{if(m.tipoMovimiento==='egreso')gastos=roundMoney(gastos+movimientoValorUYU(m,tasaFb))});
-    const gananciaNeta=roundMoney(gananciaOps-gastos);
-    const result={fecha,ops:ops.length,compras,ventas,montoCompras,montoVentas,ajustes:movs.length,transferencias:trans.length,spread,gananciaOps,gastos,gananciaNeta,tasaPromC,tasaPromV};
+    const gastos=roundMoney(-partes.egresos);
+    const gananciaNeta=partes.neta;
+    const result={fecha,ops:ops.length,compras,ventas,montoCompras,montoVentas,ajustes:movs.length,transferencias:trans.length,spread,gananciaOps,gastos,gananciaNeta,tasaPromC,tasaPromV,partes};
     _dayStatsCache.data.set(fecha,result);
     return result;
 }

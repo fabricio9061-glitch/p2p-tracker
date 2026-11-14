@@ -105,10 +105,8 @@ function pintarInicio(){
     const d=AppState.datos;
     const hoy=getUDateStr(),ayer=sumarDias(hoy,-1),mes=hoy.slice(0,7);
     const g=calcularGananciaDiaria();
-    const st=getDayStats(hoy)||{gananciaOps:0,gastos:0};
+    const st=getDayStats(hoy)||{partes:sumarGanancia([])};
     const gHoy=roundMoney(g[hoy]||0);
-    const gUSD=roundMoney((d.operaciones||[]).filter(o=>o&&o.fecha===hoy&&o.moneda==='USD')
-        .reduce((s,o)=>s+(Number(o.ganancia)||0),0));
     let html='';
 
     html+=htmlAvisosDatos();
@@ -141,11 +139,8 @@ function pintarInicio(){
     html+='<section class="heroe'+(plegado?' plegado':'')+'" aria-label="Ganancia de hoy">'+
         '<div class="heroe-fila"><div class="heroe-izq"><div class="heroe-rot">Ganancia de hoy</div>'+
             '<div class="heroe-cifra cifra '+claseSigno(gHoy)+'">'+tHoy+'</div></div>'+semana+'</div>'+
-        '<div class="heroe-desglose">'+
-            '<span>Operaciones <b class="'+claseSigno(st.gananciaOps)+'">'+dinero(st.gananciaOps,'UYU',{signo:true})+'</b></span>'+
-            '<span>Egresos <b>'+dinero(-(st.gastos||0),'UYU')+'</b></span>'+
-            (Math.abs(gUSD)>=0.005?'<span>En dólares <b class="'+claseSigno(gUSD)+'">'+dinero(gUSD,'USD',{signo:true})+'</b></span>':'')+
-        '</div>'+
+        /* v8.3.0 — Las mismas partes que en el registro y el resumen del mes */
+        '<div class="heroe-desglose">'+htmlPartesGanancia(st.partes,{enLinea:true})+'</div>'+
         '<div class="heroe-ops">'+lineaHoy+'</div>';
     let gMes=0;
     Object.entries(g).forEach(([f,v])=>{if(f.startsWith(mes))gMes=roundMoney(gMes+v)});
@@ -194,7 +189,12 @@ function pintarInicio(){
     /* ── Hoy: las operaciones por un lado y lo demás por otro (v8.0.4) ── */
     const movsHoy=itemsDelRegistro().filter(it=>it.fecha===hoy);
     const opsHoy=movsHoy.filter(esOperacion),otrosHoy=movsHoy.filter(it=>!esOperacion(it));
-    html+='<section class="seccion"><div class="seccion-cab"><h2>Operaciones de hoy</h2><button type="button" class="ir" data-a="tab" data-tab="registro">Ver registro</button></div>';
+    /* v8.3.0 — Cada "Ver..." lleva a lo suyo en el registro: "Todo lo de hoy"
+       (operaciones y lo demás, juntos), las operaciones de hoy, o los otros
+       movimientos de hoy. Antes "Ver registro" abría el registro con el último
+       filtro que hubiera quedado, y "Ver todo lo de hoy" mostraba también las
+       operaciones: parecía que todos llevaban al mismo lugar. */
+    html+='<section class="seccion"><div class="seccion-cab"><h2>Operaciones de hoy</h2>'+(movsHoy.length?'<button type="button" class="ir" data-a="ir-dia" data-fecha="'+hoy+'" data-tipo="todo">Todo lo de hoy</button>':'')+'</div>';
     if(!opsHoy.length){
         html+='<div class="bloque vacio"><b>Todavía no hay operaciones hoy</b><p>Cargalas con Comprar USDT o Vender USDT.</p></div>';
     }else{
@@ -207,7 +207,7 @@ function pintarInicio(){
         html+='<section class="seccion"><div class="seccion-cab"><h2>Otros movimientos de hoy</h2>'+
             (huboEgresos?'<button type="button" class="ir" data-a="egresos-cat" data-p="hoy">En qué gastaste</button>':'')+'</div>'+
             '<div class="bloque lista">'+otrosHoy.slice(0,4).map(it=>filaRegistroHtml(it)).join('')+'</div>';
-        if(otrosHoy.length>4)html+='<button type="button" class="ver-mas" data-a="ir-dia" data-fecha="'+hoy+'">Ver todo lo de hoy</button>';
+        if(otrosHoy.length>4)html+='<button type="button" class="ver-mas" data-a="ir-dia" data-fecha="'+hoy+'" data-tipo="otros">Ver los '+otrosHoy.length+' movimientos de hoy</button>';
         html+='</section>';
     }
     c.innerHTML=html;
