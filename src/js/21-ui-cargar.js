@@ -122,7 +122,7 @@ function abrirOperacion(o){
         st.extra=(Number(viejo.comisionBanco)||0)>0||(isFinite(viejo.comisionPct)&&Math.abs(viejo.comisionPct-comisionConfigurada(viejo.moneda||'UYU'))>1e-9);
     }else st.cuenta=cuentaInicial(tipo,bancosActivos());
     const mon=monedaDeCuenta(st.cuenta)||'UYU';
-    const seg=b=>'<button type="button" role="tab" class="'+b+'" data-a="op-tipo" data-tipo="'+b+'" aria-selected="'+(tipo===b)+'"'+(viejo&&tipo!==b?' disabled':'')+'>'+(b==='compra'?'Comprar':'Vender')+'</button>';
+    const seg=b=>'<button type="button" role="tab" class="'+b+'" data-a="op-tipo" data-tipo="'+b+'" aria-selected="'+(tipo===b)+'"'+'>'+(b==='compra'?'Comprar':'Vender')+'</button>';
     const html=cabHoja('',{izquierda:'<div class="segmento" role="tablist" aria-label="Tipo de operación">'+seg('compra')+seg('venta')+'</div>'})+
         '<div class="hoja-cuerpo"><div class="grupo-campos">'+
             '<div><label class="rotulo" for="opMonto" data-r="rot-monto"></label>'+
@@ -296,7 +296,7 @@ function opCalcular(capa){
 }
 ACC['op-tipo']=t=>{
     const capa=capaDe(t),st=capa.st;
-    if(st.id||st.tipo===t.dataset.tipo)return;
+    if(st.tipo===t.dataset.tipo)return;
     st.tipo=t.dataset.tipo;
     if(st.tipo==='venta')st.dividir=false;
     if(!st.cuentaTocada)st.cuenta=cuentaInicial(st.tipo,bancosActivos());

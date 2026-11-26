@@ -101,7 +101,7 @@ function _marcaDe(fecha,hora){return _aIso(fecha+'T'+(hora||'00:00'))||new Date(
 /* Campos que, si cambian, quedan anotados. Lo derivado (ganancia, USDT base,
    comisión en USDT) no se anota: es consecuencia de estos. */
 const CAMPOS_CAMBIO={
-    operaciones:['monto','tasa','banco','aportes','comisionBanco','comisionPct','fecha','hora'],
+    operaciones:['tipo','monto','tasa','banco','aportes','comisionBanco','comisionPct','fecha','hora'],
     movimientos:['tipoMovimiento','cuenta','monto','tasaRef','ganado','prestamo','descripcion','nota','fecha','hora'],
     transferencias:['origen','destino','monto','comision','tasa','fecha','hora'],
     conversiones:['origen','destino','montoOrigen','tasa','fecha','hora'],
@@ -486,13 +486,14 @@ function _limpiarParaGuardar(rec){
 
 /* ─── Compras y ventas de USDT ──────────────────────────────────────────── */
 /* d = {tipo, monto, tasa, banco, aportes:[{banco,monto}]?, comisionBanco,
-        comisionPct, fecha, hora}. En una edición el tipo no cambia. */
+        comisionPct, fecha, hora}. v8.4.1 — En una edición también se puede
+   cambiar el tipo (una venta cargada como compra, o al revés). */
 function guardarOperacion(d,opts){
     opts=opts||{};
     _alDia();
     const viejo=opts.id!=null?buscarRegistro('operaciones',opts.id):null;
     if(opts.id!=null&&!viejo)return{ok:false,error:'Esa operación ya no existe.'};
-    const tipo=viejo?viejo.tipo:(d.tipo==='venta'?'venta':'compra');
+    const tipo=d.tipo==='venta'||d.tipo==='compra'?d.tipo:(viejo?viejo.tipo:'compra');
     const monto=roundMoney(Number(d.monto)||0),tasa=Number(d.tasa)||0;
     if(!(monto>0))return{ok:false,error:'Ingresá el monto.',campo:'monto'};
     if(!(tasa>0))return{ok:false,error:'Ingresá la tasa.',campo:'tasa'};

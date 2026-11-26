@@ -312,7 +312,7 @@ function cambiosDeCuentas(ent,rec){
     return filas;
 }
 /* Historial: "Cambiaste la tasa de $40,90 a $40,95" */
-const ROTULO_CAMBIO={monto:'el monto',tasa:'la tasa',banco:'la cuenta',aportes:'el reparto entre cuentas',comisionBanco:'la comisión del banco',
+const ROTULO_CAMBIO={tipo:'el tipo',monto:'el monto',tasa:'la tasa',banco:'la cuenta',aportes:'el reparto entre cuentas',comisionBanco:'la comisión del banco',
     comisionPct:'la comisión de Binance',fecha:'la fecha',hora:'la hora',tipoMovimiento:'el tipo',cuenta:'la cuenta',tasaRef:'el costo por USDT',ganado:'si los ganaste',prestamo:'la devolución del préstamo',
     descripcion:'la categoría',nota:'la nota',origen:'la cuenta de origen',destino:'la cuenta de destino',comision:'la comisión',
     montoOrigen:'el monto',delta:'la diferencia',motivo:'el motivo',cantidad:'la cantidad',precioCompra:'el precio'};

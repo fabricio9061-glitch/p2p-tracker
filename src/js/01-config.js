@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.4.0',
+    APP_VERSION: '8.4.1',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,9 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.4.1', date:'2026-11-26', headline:'Una compra cargada como venta (o al revés) ya se corrige editándola.', changes:[
+        {type:'fix', title:'Cambiar entre compra y venta', desc:'Al editar una operación ahora se puede pasar de Comprar a Vender, o al revés. La ganancia, los USDT y los saldos se recalculan, y el cambio queda en el historial.'}
+    ]},
     {version:'8.4.0', date:'2026-11-26', headline:'Los préstamos y los USDT ganados, bien contados en la ganancia.', changes:[
         {type:'feature', title:'Devolución de un préstamo', desc:'Al cargar un egreso podés marcar "Es devolución de un préstamo" e indicar cuánto te habían prestado. Solo lo que pagaste de más (los intereses) cuenta como gasto; el saldo de la cuenta baja por todo lo que pagaste.'},
         {type:'feature', title:'USDT ganados', desc:'Al cargar un ingreso de USDT podés marcar "Los gané, no los compré" (apuestas, premios, regalos). No pide a cuánto te salieron: suman a la ganancia ese día, a la tasa de tu última compra, y al venderlos solo cuenta el spread.'}
