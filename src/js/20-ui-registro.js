@@ -312,8 +312,8 @@ function cambiosDeCuentas(ent,rec){
     return filas;
 }
 /* Historial: "Cambiaste la tasa de $40,90 a $40,95" */
-const ROTULO_CAMBIO={monto:'el monto',tasa:'la tasa',banco:'la cuenta',aportes:'el reparto entre cuentas',comisionBanco:'la comisión del banco',
-    comisionPct:'la comisión de Binance',fecha:'la fecha',hora:'la hora',tipoMovimiento:'el tipo',cuenta:'la cuenta',tasaRef:'el costo por USDT',ganado:'si los ganaste',prestamo:'la devolución del préstamo',
+const ROTULO_CAMBIO={tipo:'el tipo',monto:'el monto',tasa:'la tasa',banco:'la cuenta',aportes:'el reparto entre cuentas',comisionBanco:'la comisión del banco',
+    comisionPct:'la comisión de Binance',fecha:'la fecha',hora:'la hora',tipoMovimiento:'el tipo',cuenta:'la cuenta',tasaRef:'el costo por USDT',ganado:'si los ganaste',
     descripcion:'la categoría',nota:'la nota',origen:'la cuenta de origen',destino:'la cuenta de destino',comision:'la comisión',
     montoOrigen:'el monto',delta:'la diferencia',motivo:'el motivo',cantidad:'la cantidad',precioCompra:'el precio'};
 function valorCambio(ent,rec,campo,v){
@@ -327,7 +327,6 @@ function valorCambio(ent,rec,campo,v){
         case'tasa':return ent==='conversiones'?fmtNum(v,v<10?3:2):fmtTasaMon(v,mon);
         case'tasaRef':case'precioCompra':return dinero(v,'UYU');
         case'ganado':return v?'sí':'no';
-        case'prestamo':return mon==='USDT'?usdtTxt(v):dinero(v,mon);
         case'comisionPct':return pctTxt(v);
         case'banco':case'cuenta':case'origen':case'destino':return nombreCuenta(v);
         case'fecha':return fmtFechaCorta(v);
@@ -462,11 +461,14 @@ function htmlDetalle(ent,rec,o){
             }
         }
         else if(cuenta==='USDT'&&tipo==='ingreso'&&rec.tasaRef>0)b+=dato('Te salió cada uno a',dinero(rec.tasaRef,'UYU'));
-        if(tipo==='egreso'&&rec.prestamo>0){
+        /* v8.5.0 — Lo que se compensó con lo que entró en su categoría (o, de
+           v8.4.0, lo que se marcó como devolución de un préstamo) */
+        const comp=Math.min(Math.max(Number(rec.compensado)||0,Number(rec.prestamo)||0),Number(rec.monto)||0);
+        if(tipo==='egreso'&&!elim&&comp>0){
             const monP=cuenta==='USDT'?'USDT':monedaDeCuenta(cuenta);
             const fmt=x=>monP==='USDT'?usdtTxt(x):dinero(x,monP);
-            b+=dato('Devolución del préstamo',fmt(rec.prestamo));
-            b+=dato('Gasto (intereses)',fmt(roundMoney(Math.max(0,(Number(rec.monto)||0)-rec.prestamo))));
+            b+=dato('No es gasto',fmt(comp),{chico:rec.compensado>0&&rec.descripcion?'se compensa con lo que entró en '+escHtml(nombreCat(rec.descripcion)):'devolución del préstamo'});
+            b+=dato('Gasto',fmt(roundMoney(Math.max(0,(Number(rec.monto)||0)-comp))));
         }
         if(cuenta==='USDT'&&tipo==='egreso'&&!elim&&rec.valorUYU>0){
             b+=dato('Te habían costado',dinero(rec.valorUYU,'UYU'));

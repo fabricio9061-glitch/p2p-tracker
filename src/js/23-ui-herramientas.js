@@ -539,6 +539,17 @@ function pintarCategoria(cont,capa){
             '<div class="cat-accion"><input class="campo" id="ctNombre" data-r="nombre" maxlength="'+TAG_MAX_LEN+'" autocomplete="off" autocapitalize="sentences" value="'+escHtml(nom)+'" data-in="cat-nombre">'+
             '<button type="button" class="btn chico" data-a="cat-renombrar" data-r="guardar" data-primario disabled>Guardar</button></div>'+
             '<p class="nota-campo">'+(usos?'También cambia en '+escHtml(sus)+'. ':'')+'Podés usar mayúsculas y tildes.</p></section>';
+    /* v8.5.0 — Que se compensen sus ingresos y egresos */
+    const comp=esCompensada(c.nombre);
+    let pendTxt='';
+    if(comp){
+        const p=recalcularCompensaciones()[c.k]||{};
+        const ps=Object.keys(p).filter(m=>p[m]>=0.005).map(m=>m==='USDT'?usdtTxt(p[m]):dinero(p[m],m));
+        pendTxt=ps.length?' Pendiente: '+unirConY(ps)+'.':' No queda nada pendiente.';
+    }
+    h+='<section class="cat-seccion"><button type="button" class="opc" style="padding:0" role="switch" aria-checked="'+comp+'" data-a="cat-compensar">'+
+        '<span class="t">Se compensa<small>Préstamos, la plata de la empresa: lo que entra con esta categoría no es ganancia, y lo que sale con ella no es gasto hasta cubrir lo que entró.</small></span><span class="interruptor"></span></button>'+
+        (comp?'<p class="nota-campo">'+escHtml(pendTxt.trim())+'</p>':'')+'</section>';
     if(usos&&otras.length){
         h+='<section class="cat-seccion"><label class="rotulo" for="ctPasar">Pasar sus movimientos a otra</label>'+
             '<div class="cat-accion"><div class="campo-elegir"><select class="campo" id="ctPasar" data-r="pasar" data-ch="cat-pasar-elegir" required>'+
@@ -581,6 +592,14 @@ ACC['cat-pasar']=async t=>{
     const r=pasarCategoria(cat.nombre,dest.nombre);
     if(!r.ok){avisar(r.error,{error:true});return}
     _trasCambioCategorias(capa,r.n===1?'Listo: el movimiento ahora es de '+b+'.':'Listo: los '+r.n+' movimientos ahora son de '+b+'.');
+};
+ACC['cat-compensar']=t=>{
+    const {capa,cat}=_catDe(t);if(!cat)return;
+    const si=!esCompensada(cat.nombre);
+    marcarCompensada(cat.nombre,si);
+    invalidarItems();invalidarGananciaCache();actualizarVista();
+    pintarCategoria(capa.cont,capa);
+    avisar(si?nombreCat(cat.nombre)+' ahora se compensa.':nombreCat(cat.nombre)+' ya no se compensa.');
 };
 ACC['cat-borrar']=async t=>{
     const {capa,cat}=_catDe(t);if(!cat)return;

@@ -281,6 +281,8 @@ function recalcularLotesYGanancias(){
         }
     });
     AppState.datos.ultimaTasaCompra=utcL;AppState.datos.ultimaTasaCompraUSD=utcUL;
+    /* v8.5.0 — Cuánto de cada egreso se compensa con lo que entró en su categoría */
+    if(typeof recalcularCompensaciones==='function')recalcularCompensaciones();
     AppState.datos.ultimaTasaVenta=utvL;AppState.datos.ultimaTasaVentaUSD=utvU;
     sincronizarSaldoUsdt();
     /* v6.0.0 — Los saldos de las cuentas se reconstruyen acá mismo, en el mismo
