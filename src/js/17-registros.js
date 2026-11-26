@@ -102,7 +102,7 @@ function _marcaDe(fecha,hora){return _aIso(fecha+'T'+(hora||'00:00'))||new Date(
    comisión en USDT) no se anota: es consecuencia de estos. */
 const CAMPOS_CAMBIO={
     operaciones:['tipo','monto','tasa','banco','aportes','comisionBanco','comisionPct','fecha','hora'],
-    movimientos:['tipoMovimiento','cuenta','monto','tasaRef','ganado','prestamo','descripcion','nota','fecha','hora'],
+    movimientos:['tipoMovimiento','cuenta','monto','tasaRef','ganado','descripcion','nota','fecha','hora'],
     transferencias:['origen','destino','monto','comision','tasa','fecha','hora'],
     conversiones:['origen','destino','montoOrigen','tasa','fecha','hora'],
     ajustesSaldo:['delta','motivo'],
@@ -480,7 +480,7 @@ function _terminar(entidad,viejo,nuevo,extra){
     return{ok:true,id:nuevo.id,entidad};
 }
 function _limpiarParaGuardar(rec){
-    delete rec._syncState;delete rec.consumedLots;delete rec.costoUsdt;
+    delete rec._syncState;delete rec.consumedLots;delete rec.costoUsdt;delete rec.compensado;
     return rec;
 }
 
@@ -563,8 +563,9 @@ function guardarOperacion(d,opts){
 /* d = {tipoMovimiento, cuenta ('USDT' o un banco), monto, tasaRef, ganado,
         prestamo, descripcion, nota, fecha, hora}
    ganado (ingreso de USDT): no se compraron, se ganaron; no lleva costo.
-   prestamo (egreso): cuánto de lo pagado es devolución de un préstamo; eso
-   no es gasto, solo lo de más (los intereses). */
+   prestamo (egreso): de v8.4.0, cuánto de lo pagado era devolución de un
+   préstamo. v8.5.0 — Ya no se carga (lo reemplazan las categorías que se
+   compensan), pero si no viene se conserva el que tenía el registro. */
 function guardarMovimiento(d,opts){
     opts=opts||{};
     _alDia();
@@ -579,9 +580,10 @@ function guardarMovimiento(d,opts){
     const tasaRef=(esUsdt&&tipoMovimiento==='ingreso'&&!ganado)?Number(d.tasaRef)||0:0;
     if(esUsdt&&tipoMovimiento==='ingreso'&&!ganado&&!(tasaRef>0))
         return{ok:false,error:'Indicá a cuánto te salió cada USDT, para saber su costo.',campo:'tasaRef'};
-    const prestamo=tipoMovimiento==='egreso'?(esUsdt?truncUsdt(Number(d.prestamo)||0):roundMoney(Number(d.prestamo)||0)):0;
+    const prRaw=d.prestamo!==undefined?d.prestamo:(viejo&&viejo.prestamo)||0;
+    const prestamo=tipoMovimiento==='egreso'?(esUsdt?truncUsdt(Number(prRaw)||0):roundMoney(Number(prRaw)||0)):0;
     if(prestamo<0)return{ok:false,error:'Lo que era del préstamo no puede ser negativo.',campo:'prestamo'};
-    if(prestamo>monto)return{ok:false,error:'Lo que era del préstamo no puede ser más que lo que pagaste.',campo:'prestamo'};
+    if(prestamo>monto)return{ok:false,error:'Lo que era del préstamo no puede ser más que lo que pagaste.',campo:'monto'};
     const descripcion=normalizarTag(d.descripcion||'');
     const nota=String(d.nota||'').trim().slice(0,140);
     const {fecha,hora}=_fechaHoraDe(d,viejo);

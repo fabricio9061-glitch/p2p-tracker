@@ -21,7 +21,7 @@ const AppState = {
 function crearDatosVacios() {
     /* v6.8.2 — ajustesSaldo faltaba acá: tras un reseteo o una restauración
        quedaba sin definir y la app tenía que crearlo sobre la marcha. */
-    return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],ajustesSaldo:[],bancos:{},lotes:[],tags:[],tasasRecientes:[],
+    return {operaciones:[],movimientos:[],transferencias:[],conversiones:[],ajustesSaldo:[],bancos:{},lotes:[],tags:[],categoriasCompensadas:null,tasasRecientes:[],
             saldoUsdt:0,ultimaTasaCompra:0,ultimaTasaVenta:0,comisionPlataforma:0.14,
             ultimaTasaCompraUSD:0,ultimaTasaVentaUSD:0,comisionUSD:0.14,ultimoMesProcesado:'',_version:0,
             lastSeenVersion:'',dismissedVersions:[],

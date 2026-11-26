@@ -595,9 +595,10 @@ function _montoEnUSDLimite(bancoNombre,monto){
      ventas        lo que dejó cada venta en pesos: lo cobrado menos lo que
                    costaron los USDT que salieron (comisión de Binance incluida)
      comisiones    lo que cobró el banco, en las compras y en las transferencias
-     egresos       los gastos (los de USDT, a lo que costaron esos USDT). v8.4.0 —
-                   En la devolución de un préstamo solo cuenta lo que se pagó de
-                   más (los intereses): el préstamo en sí no es gasto.
+     egresos       los gastos (los de USDT, a lo que costaron esos USDT). v8.5.0 —
+                   En una categoría que se compensa (Préstamo, Empresa) un egreso
+                   primero descuenta lo que entró con esa categoría; solo lo que
+                   pasa de eso es gasto (los intereses, por ejemplo).
      ganados       v8.4.0 — USDT que se ganaron sin comprarlos (apuestas,
                    premios): cuentan el día que entran, a la tasa de la última
                    compra de ese momento. Al venderlos solo cuenta el spread.
@@ -628,8 +629,8 @@ function aporteAGanancia(ent,r){
             return v>=0.005?{parte:'ganados',v}:null;
         }
         const valor=movimientoValorUYU(r),monto=Number(r.monto)||0;
-        const prestamo=Math.min(Math.max(Number(r.prestamo)||0,0),monto);
-        const gasto=prestamo>0&&monto>0?roundMoney(valor*(monto-prestamo)/monto):valor;
+        const comp=Math.min(Math.max(Number(r.compensado)||0,Number(r.prestamo)||0,0),monto);
+        const gasto=comp>0&&monto>0?roundMoney(valor*(monto-comp)/monto):valor;
         return Math.abs(gasto)>=0.005?{parte:'egresos',v:-gasto}:null;
     }
     if(ent==='transferencias'){
@@ -659,6 +660,54 @@ function registrosParaGanancia(datos){
     const D=datos||AppState.datos,out=[];
     ['operaciones','movimientos','transferencias','ajustesSaldo'].forEach(ent=>(D[ent]||[]).forEach(rec=>{if(rec)out.push({ent,rec})})); /* coherencia:ok — una conversión no es ganancia ni gasto */
     return out;
+}
+
+/* ═══ v8.5.0 — Categorías que se compensan ═══
+   Hay plata que entra y sale sin ser ganancia ni gasto del P2P: un préstamo
+   que se devuelve, o los ingresos de la empresa con los que se pagan sueldos.
+   En una categoría marcada así, lo que entra queda pendiente (por categoría y
+   por moneda) y cada egreso de esa categoría lo descuenta primero; solo lo que
+   pasa de eso es gasto. Con un préstamo de 20.000 devuelto con 21.000, el
+   gasto es 1.000. Sin elegir nada, se compensan las categorías que se llaman
+   Empresa o que dicen Préstamo. */
+function _monedaMov(m){return m.tipoCuenta==='usdt'?'USDT':monedaDeCuenta(m.banco)}
+function claveCompensadas(){
+    const D=AppState.datos;
+    if(Array.isArray(D.categoriasCompensadas))return new Set(D.categoriasCompensadas);
+    const s=new Set();
+    (D.tags||[]).concat((D.movimientos||[]).map(m=>m&&m.descripcion)).forEach(t=>{
+        if(!t)return;const k=tagKey(t);if(k==='empresa'||k.includes('prestamo'))s.add(k);
+    });
+    return s;
+}
+function esCompensada(nombre){return!!nombre&&claveCompensadas().has(tagKey(nombre))}
+function _guardarCompensadas(set){
+    AppState.datos.categoriasCompensadas=[...set].sort();
+    guardaOptimista('update','tags','categorias');
+}
+function marcarCompensada(nombre,si){
+    const s=claveCompensadas(),k=tagKey(nombre);
+    if(si)s.add(k);else s.delete(k);
+    _guardarCompensadas(s);
+    if(typeof recalcularLotesYGanancias==='function')recalcularLotesYGanancias();
+}
+/* Recorre los movimientos en orden y anota en cada egreso cuánto se compensó.
+   Devuelve lo que queda pendiente: {clave: {moneda: monto}} */
+function recalcularCompensaciones(){
+    const cs=claveCompensadas(),pend={};
+    const movs=(AppState.datos.movimientos||[]).filter(m=>m)
+        .map(m=>({m,k:String(m.fecha||'')+String(m.hora||'00:00'),n:Number(m.id)||0}))
+        .sort((a,b)=>a.k<b.k?-1:a.k>b.k?1:a.n-b.n);
+    movs.forEach(({m})=>{
+        const k=m.descripcion?tagKey(m.descripcion):'';
+        if(!k||!cs.has(k)||m.ganado){delete m.compensado;return}
+        const mon=_monedaMov(m),p=pend[k]||(pend[k]={}),monto=Number(m.monto)||0;
+        if(m.tipoMovimiento==='ingreso'){p[mon]=roundMoney((p[mon]||0)+monto);delete m.compensado;return}
+        const c=roundMoney(Math.min(p[mon]||0,monto));
+        p[mon]=roundMoney((p[mon]||0)-c);
+        if(c>=0.005)m.compensado=c;else delete m.compensado;
+    });
+    return pend;
 }
 
 function movimientoValorUYU(m,tasaFallback){
@@ -725,6 +774,7 @@ function renombrarCategoria(viejo,nuevo){
     });
     AppState.datos.tags=(AppState.datos.tags||[]).filter(t=>tagKey(t)!==vk);
     AppState.datos.tags.push(nv);_ordenarCategorias();
+    const cs=claveCompensadas();if(cs.has(vk)){cs.delete(vk);cs.add(nk);AppState.datos.categoriasCompensadas=[...cs].sort()}
     _guardarCambioDeCategorias(tocados);
     return{ok:true,n:tocados.length,nombre:nv};
 }
@@ -741,6 +791,7 @@ function pasarCategoria(origen,destino){
     AppState.datos.tags=(AppState.datos.tags||[]).filter(t=>tagKey(t)!==ok);
     if(!AppState.datos.tags.some(t=>tagKey(t)===dk))AppState.datos.tags.push(nombre);
     _ordenarCategorias();
+    const cs=claveCompensadas();if(cs.has(ok)){cs.delete(ok);AppState.datos.categoriasCompensadas=[...cs].sort()}
     _guardarCambioDeCategorias(tocados);
     return{ok:true,n:tocados.length,nombre};
 }
@@ -752,6 +803,7 @@ function borrarCategoria(nombre){
     });
     AppState.datos.tags=(AppState.datos.tags||[]).filter(t=>tagKey(t)!==k);
     _ordenarCategorias();
+    const cs=claveCompensadas();if(cs.has(k)){cs.delete(k);AppState.datos.categoriasCompensadas=[...cs].sort()}
     _guardarCambioDeCategorias(tocados);
     return{ok:true,n:tocados.length};
 }

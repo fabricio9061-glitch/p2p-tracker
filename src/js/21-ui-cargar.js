@@ -153,7 +153,7 @@ function abrirOperacion(o){
             q(cont,'tasa').value=t0?fmtTasa(t0,mon):'';
             q(cont,'pct').value=pctCampo(viejo&&isFinite(viejo.comisionPct)?viejo.comisionPct:comisionConfigurada(mon));
             q(cont,'cb').value=viejo&&viejo.comisionBanco?formatoCampo(viejo.comisionBanco):'';
-            formatearAlSalir(q(cont,'monto'));formatearAlSalir(q(cont,'prestamo'));formatearAlSalir(q(cont,'cb'));
+            formatearAlSalir(q(cont,'monto'));formatearAlSalir(q(cont,'cb'));
             opPintarTodo(capa);
         },
         actualizar(cont,capa){opPintarCuentas(capa);opCalcular(capa)}
@@ -482,7 +482,7 @@ function abrirMovimiento(o){
     const st={id:viejo?viejo.id:null,desdeDetalle:!!o.reemplazar,tipo,
               cuenta:viejo?(viejo.tipoCuenta==='usdt'?'USDT':viejo.banco):(o.cuenta||cuentaInicial(tipo,lista)),
               desc:viejo?(viejo.descripcion||''):'',nuevaCat:false,todas:false,
-              ganado:!!(viejo&&viejo.ganado),prestamo:!!(viejo&&viejo.prestamo>0),
+              ganado:!!(viejo&&viejo.ganado),
               fecha:viejo?viejo.fecha:null,hora:viejo?viejo.hora:null};
     const seg=b=>'<button type="button" role="tab" data-a="mv-tipo" data-tipo="'+b+'" aria-selected="'+(tipo===b)+'">'+(b==='ingreso'?'Ingreso':'Egreso')+'</button>';
     const html=cabHoja('',{izquierda:'<div class="segmento" role="tablist" aria-label="Tipo de movimiento">'+seg('ingreso')+seg('egreso')+'</div>'})+
@@ -496,14 +496,10 @@ function abrirMovimiento(o){
             '<div data-r="bloque-tasa" data-campo="tasaRef"><label class="rotulo" for="mvTasa">A cuánto te salió cada USDT</label>'+
                 '<div class="campo-sufijo"><input class="campo" id="mvTasa" data-r="tasa" inputmode="decimal" autocomplete="off" placeholder="0,00" data-in="mv-calc"><span>$</span></div>'+
                 '<p class="nota-campo">Con esto se calcula la ganancia cuando los vendas.</p></div>'+
-            /* v8.4.0 — Devolución de un préstamo: solo los intereses son gasto */
-            '<div data-r="bloque-prestamo"><button type="button" class="opc" style="padding:0" role="switch" aria-checked="false" data-a="mv-prestamo" data-r="sw-prestamo">'+
-                '<span class="t">Es devolución de un préstamo<small>Lo que te prestaron no es gasto; solo lo que pagás de más.</small></span><span class="interruptor"></span></button>'+
-                '<div data-r="campo-prestamo" data-campo="prestamo" style="margin-top:10px"><label class="rotulo" for="mvPrestamo">Cuánto te habían prestado</label>'+
-                '<input class="campo" id="mvPrestamo" data-r="prestamo" inputmode="decimal" autocomplete="off" placeholder="0" data-in="mv-calc">'+
-                '<p class="nota-campo" data-r="nota-prestamo"></p></div></div>'+
+
             '<div><span class="rotulo">Categoría</span><div data-r="cats"></div>'+
-                '<input class="campo hidden" data-r="cat-nueva" data-in="mv-cat-nueva" placeholder="Nombre de la categoría" maxlength="24" autocomplete="off" style="margin-top:10px" aria-label="Nueva categoría"></div>'+
+                '<input class="campo hidden" data-r="cat-nueva" data-in="mv-cat-nueva" placeholder="Nombre de la categoría" maxlength="24" autocomplete="off" style="margin-top:10px" aria-label="Nueva categoría">'+
+                '<p class="nota-campo hidden" data-r="nota-comp"></p></div>'+
             '<div class="dos-campos" style="grid-template-columns:minmax(0,1fr) 140px"><div><label class="rotulo" for="mvNota">Nota</label>'+
                 '<input class="campo" id="mvNota" data-r="nota" placeholder="Opcional" maxlength="140" autocomplete="off"></div>'+
                 '<div><span class="rotulo">Cuándo</span>'+botonCuando(st,'mv-cuando')+'</div></div>'+
@@ -516,10 +512,9 @@ function abrirMovimiento(o){
             if(viejo){
                 q(cont,'monto').value=viejo.tipoCuenta==='usdt'?fmtTrunc(viejo.monto,2):formatoCampo(viejo.monto);
                 if(viejo.tasaRef)q(cont,'tasa').value=fmtTasa(viejo.tasaRef,'UYU');
-                if(viejo.prestamo>0)q(cont,'prestamo').value=viejo.tipoCuenta==='usdt'?fmtTrunc(viejo.prestamo,2):formatoCampo(viejo.prestamo);
                 q(cont,'nota').value=viejo.nota||'';
             }
-            formatearAlSalir(q(cont,'monto'));formatearAlSalir(q(cont,'prestamo'));
+            formatearAlSalir(q(cont,'monto'));
             mvPintarTodo(capa);
         },
         actualizar(cont,capa){mvPintarCuentas(capa);mvCalcular(capa)}
@@ -536,9 +531,6 @@ function mvPintarTodo(capa){
     q(cont,'bloque-ganado').classList.toggle('hidden',!ingUsdt);
     q(cont,'sw-ganado').setAttribute('aria-checked',String(st.ganado));
     q(cont,'bloque-tasa').classList.toggle('hidden',!ingUsdt||st.ganado);
-    q(cont,'bloque-prestamo').classList.toggle('hidden',st.tipo!=='egreso');
-    q(cont,'sw-prestamo').setAttribute('aria-checked',String(st.prestamo));
-    q(cont,'campo-prestamo').classList.toggle('hidden',!st.prestamo);
     mvPintarCategorias(capa);
     mvPintarCuentas(capa);
     mvCalcular(capa);
@@ -560,26 +552,19 @@ function mvPintarCategorias(capa){
         (!st.todas&&todas.length>8?'<button type="button" class="pastilla nueva" data-a="mv-cat-todas">Ver todas ('+todas.length+')</button>':'')+
         '<button type="button" class="pastilla nueva" data-a="mv-cat-nueva" aria-pressed="'+st.nuevaCat+'">Nueva</button></div>';
     q(capa.cont,'cat-nueva').classList.toggle('hidden',!st.nuevaCat);
+    mvNotaCompensada(capa);
 }
 function mvLeer(capa){
     const st=capa.st,cont=capa.cont;
     const raw=parseMonto(q(cont,'monto').value);
-    const rawP=parseMonto(q(cont,'prestamo').value)||0;
-    return{monto:st.cuenta==='USDT'?truncUsdt(raw):roundMoney(raw),tasaRef:parsearTasa(q(cont,'tasa').value)||0,nota:q(cont,'nota').value.trim(),
-           prestamo:st.cuenta==='USDT'?truncUsdt(rawP):roundMoney(rawP)};
+    return{monto:st.cuenta==='USDT'?truncUsdt(raw):roundMoney(raw),tasaRef:parsearTasa(q(cont,'tasa').value)||0,nota:q(cont,'nota').value.trim()};
 }
 function mvCalcular(capa){
     const st=capa.st,cont=capa.cont,v=mvLeer(capa);
     const g=q(cont,'guardar');
     g.textContent=st.id?'Guardar cambios':(st.tipo==='ingreso'?'Guardar ingreso':'Guardar egreso');
     const pie=q(cont,'pie');
-    /* Cuánto de este egreso es gasto (los intereses) */
-    const np=q(cont,'nota-prestamo');
-    if(st.tipo==='egreso'&&st.prestamo&&v.monto>0&&v.prestamo>0&&v.prestamo<=v.monto){
-        const mon=st.cuenta==='USDT'?'USDT':monedaDeCuenta(st.cuenta||'');
-        const extra=roundMoney(v.monto-v.prestamo);
-        np.textContent=extra>=0.005?'Cuenta como gasto solo lo que pagaste de más: '+(mon==='USDT'?usdtTxt(extra):dinero(extra,mon))+'.':'No cuenta como gasto: devolviste justo lo que te prestaron.';
-    }else np.textContent='';
+    mvNotaCompensada(capa,v);
     if(!st.cuenta||!(v.monto>0)){pie.textContent='';return}
     if(st.cuenta==='USDT'){
         const viejoEf=capa.viejo?efectoEnUsdt('movimientos',capa.viejo):0;
@@ -592,10 +577,27 @@ function mvCalcular(capa){
 }
 ACC['mv-tipo']=t=>{const capa=capaDe(t);capa.st.tipo=t.dataset.tipo;limpiarError(capa);mvPintarTodo(capa)};
 ACC['mv-ganado']=t=>{const capa=capaDe(t);capa.st.ganado=!capa.st.ganado;limpiarError(capa);mvPintarTodo(capa)};
-ACC['mv-prestamo']=t=>{
-    const capa=capaDe(t);capa.st.prestamo=!capa.st.prestamo;limpiarError(capa);mvPintarTodo(capa);
-    if(capa.st.prestamo)try{q(capa.cont,'prestamo').focus()}catch(_){}
-};
+/* v8.5.0 — Si la categoría se compensa, cuánto de este egreso no es gasto */
+function mvNotaCompensada(capa,v){
+    const st=capa.st,el=q(capa.cont,'nota-comp');
+    const cat=st.nuevaCat?categoriaCanonica(st.desc):st.desc;
+    if(!cat||!esCompensada(cat)||!st.cuenta||(st.tipo==='ingreso'&&st.cuenta==='USDT'&&st.ganado)){el.classList.add('hidden');return}
+    v=v||mvLeer(capa);
+    const nom=nombreCat(cat),mon=st.cuenta==='USDT'?'USDT':monedaDeCuenta(st.cuenta);
+    const fmt=x=>mon==='USDT'?usdtTxt(x):dinero(x,mon);
+    let txt;
+    if(st.tipo==='ingreso')txt=nom+' se compensa: esto no es ganancia, y cuando salga con '+nom+' tampoco va a ser gasto.';
+    else{
+        const pend=recalcularCompensaciones(),k=tagKey(cat);
+        let hay=((pend[k]||{})[mon])||0;
+        const vj=capa.viejo;
+        if(vj&&vj.tipoMovimiento==='egreso'&&vj.descripcion&&tagKey(vj.descripcion)===k&&_monedaMov(vj)===mon)hay=roundMoney(hay+(Number(vj.compensado)||0));
+        const c=Math.min(hay,v.monto||0),gasto=roundMoney((v.monto||0)-c);
+        txt=nom+' se compensa. Pendiente de lo que entró: '+fmt(hay)+'.'+
+            (v.monto>0?(gasto>=0.005?' Cuenta como gasto solo '+fmt(gasto)+'.':' Este egreso no cuenta como gasto.'):'');
+    }
+    el.textContent=txt;el.classList.remove('hidden');
+}
 ACC['mv-cuenta']=t=>{const capa=capaDe(t);capa.st.cuenta=t.dataset.cuenta;limpiarError(capa);mvPintarTodo(capa)};
 ENT['mv-calc']=el=>{const capa=capaDe(el);if(!capa)return;limpiarError(capa);mvCalcular(capa)};
 ACC['mv-cat']=t=>{
@@ -613,16 +615,15 @@ ACC['mv-cat-nueva']=t=>{
     mvPintarCategorias(capa);
     if(st.nuevaCat)inp.focus();
 };
-ENT['mv-cat-nueva']=el=>{const capa=capaDe(el);if(capa)capa.st.desc=el.value};
+ENT['mv-cat-nueva']=el=>{const capa=capaDe(el);if(capa){capa.st.desc=el.value;mvNotaCompensada(capa)}};
 ACC['mv-cuando']=t=>cambiarCuando(capaDe(t));
 ACC['mv-guardar']=async t=>{
     const capa=capaDe(t),st=capa.st;
     if(st.guardando)return;
     const v=mvLeer(capa);
-    if(st.tipo==='egreso'&&st.prestamo&&!(v.prestamo>0)){st.hayError=true;mostrarError(capa,'Ingresá cuánto te habían prestado.','prestamo');return}
     const ganado=st.tipo==='ingreso'&&st.cuenta==='USDT'&&st.ganado;
     const d={tipoMovimiento:st.tipo,cuenta:st.cuenta,monto:v.monto,tasaRef:ganado?0:v.tasaRef,ganado,
-             prestamo:st.tipo==='egreso'&&st.prestamo?v.prestamo:0,descripcion:categoriaCanonica(st.desc),nota:v.nota,
+             descripcion:categoriaCanonica(st.desc),nota:v.nota,
              ...(st.fecha?{fecha:st.fecha,hora:st.hora}:{})};
     st.guardando=true;t.disabled=true;
     try{
@@ -670,7 +671,7 @@ function abrirTransferencia(o){
                 if(ent==='conversiones')q(cont,'tasa').value=fmtTasa(viejo.tasa,'USD');
                 if(viejo.comision)q(cont,'com').value=formatoCampo(viejo.comision);
             }
-            formatearAlSalir(q(cont,'monto'));formatearAlSalir(q(cont,'prestamo'));formatearAlSalir(q(cont,'com'));
+            formatearAlSalir(q(cont,'monto'));formatearAlSalir(q(cont,'com'));
             trPintarTodo(capa);
         },
         actualizar(cont,capa){trPintarCuentas(capa);trCalcular(capa)}
