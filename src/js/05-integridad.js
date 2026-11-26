@@ -770,7 +770,10 @@ function renombrarCategoria(viejo,nuevo){
     const nv=nombreDeCategoria(nuevo);
     if(!nv||nv.length<2)return{ok:false,error:'Escribí un nombre de al menos 2 letras.'};
     const vk=tagKey(viejo),nk=tagKey(nv);
-    if(nk!==vk&&_existeCategoria(nk))return{ok:false,error:'Ya hay una categoría con ese nombre. Para juntarlas, usá "Pasar sus movimientos a otra".'};
+    if(nk!==vk&&_existeCategoria(nk)){
+        const ex=(AppState.datos.tags||[]).find(t=>tagKey(t)===nk)||((AppState.datos.movimientos||[]).find(m=>m&&m.descripcion&&tagKey(m.descripcion)===nk)||{}).descripcion||nv;
+        return{ok:false,existe:ex,error:'Ya hay una categoría con ese nombre.'};
+    }
     const tocados=[];
     (AppState.datos.movimientos||[]).forEach(m=>{
         if(m&&m.descripcion&&tagKey(m.descripcion)===vk&&m.descripcion!==nv){m.descripcion=nv;tocados.push(m.id)}

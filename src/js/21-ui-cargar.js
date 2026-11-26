@@ -279,13 +279,27 @@ function opCalcular(capa){
     if(!hay){res.innerHTML=h+'<p class="rc-nota">Escribí el monto y la tasa.</p>';return}
     if(st.tipo==='compra'){
         h+=filaRecibo('Cada uno te sale a',dinero(roundMoney(v.monto/neto,3),mon),'rc-extra');
-    }else if(!st.id){
+    }else{
+        /* v8.5.2 — También al editar: se ve cuánto deja la venta con la tasa y la
+           comisión que estás poniendo. Los USDT salen de los mismos lotes que ya
+           usaba esta venta; si ahora salen más, el resto, de los siguientes. */
+        const vj=capa.viejo,usados=vj&&vj.tipo==='venta'&&Array.isArray(vj.consumedLots)?vj.consumedLots:[];
+        let costo=0,falta=neto;
+        for(const x of usados){
+            if(falta<0.005)break;
+            const c=Math.min(Number(x.amount)||0,falta);
+            costo+=c*(Number(x.precio)||0);falta=roundMoney(falta-c);
+        }
         const disp=usdtDisponibleEn(mon);
-        if(neto>disp+0.005)h+='<p class="rc-nota baja">Tenés '+usdtTxt(disp)+': te faltan '+usdtTxt(roundMoney(neto-disp))+'.</p>';
+        if(falta>disp+0.005)h+='<p class="rc-nota baja">Tenés '+usdtTxt(disp)+': te faltan '+usdtTxt(roundMoney(falta-disp))+'.</p>';
         else{
-            const costo=previewFIFO(neto,mon).reduce((s,x)=>s+x.subtotal,0);
+            if(falta>=0.005)costo+=previewFIFO(falta,mon).reduce((s,x)=>s+x.subtotal,0);
             const gan=roundMoney(v.monto-costo);
             h+=filaRecibo(gan>=-0.004?'Ganás':'Perdés','<span class="'+(gan>=-0.004?'sube':'baja')+'">'+(gan>=-0.004?dinero(gan,mon,{signo:true}):dinero(Math.abs(gan),mon))+'</span>','rc-extra');
+            if(vj&&vj.tipo==='venta'&&isFinite(vj.ganancia)&&Math.abs(gan-vj.ganancia)>=0.005){
+                const d=roundMoney(gan-vj.ganancia);
+                h+=filaRecibo('Antes',dinero(vj.ganancia,mon,{signo:true})+' <span class="'+(d>0?'sube':'baja')+'">('+dinero(d,mon,{signo:true})+')</span>','rc-extra');
+            }
         }
     }
     const prov={tipo:st.tipo,monto:v.monto,banco:st.dividir?(st.reparto[0]||{}).banco:st.cuenta,comisionBanco:v.cb,
