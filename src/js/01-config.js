@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.5.0',
+    APP_VERSION: '8.5.1',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,9 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.5.1', date:'2026-11-26', headline:'Préstamo y Préstamos se compensan entre sí.', changes:[
+        {type:'fix', title:'Singular y plural, la misma', desc:'Un ingreso con la categoría Préstamo no se compensaba con un egreso con Préstamos, porque eran dos categorías distintas. Ahora el singular y el plural se compensan juntos (lo mismo con Empresa y Empresas).'}
+    ]},
     {version:'8.5.0', date:'2026-11-26', headline:'Categorías que se compensan: los préstamos y la plata de la empresa ya no se cuentan como gasto.', changes:[
         {type:'feature', title:'Categorías que se compensan', desc:'En Categorías, cada una tiene "Se compensa". Lo que entra con esa categoría no es ganancia, y lo que sale con ella no es gasto hasta cubrir lo que entró; solo lo que pasa de eso cuenta. Si te prestaron 20.000 y devolviste 21.000, el gasto es 1.000. Si la empresa te dejó 100.000 y pagaste 80.000 de sueldos, no hay gasto.'},
         {type:'improve', title:'Empresa y Préstamo, ya marcadas', desc:'Las categorías que se llaman Empresa o que dicen Préstamo se compensan desde ya. Se puede cambiar en cada una.'},

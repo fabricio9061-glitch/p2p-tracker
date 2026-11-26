@@ -588,10 +588,10 @@ function mvNotaCompensada(capa,v){
     let txt;
     if(st.tipo==='ingreso')txt=nom+' se compensa: esto no es ganancia, y cuando salga con '+nom+' tampoco va a ser gasto.';
     else{
-        const pend=recalcularCompensaciones(),k=tagKey(cat);
+        const pend=recalcularCompensaciones(),k=raizCategoria(cat);
         let hay=((pend[k]||{})[mon])||0;
         const vj=capa.viejo;
-        if(vj&&vj.tipoMovimiento==='egreso'&&vj.descripcion&&tagKey(vj.descripcion)===k&&_monedaMov(vj)===mon)hay=roundMoney(hay+(Number(vj.compensado)||0));
+        if(vj&&vj.tipoMovimiento==='egreso'&&vj.descripcion&&raizCategoria(vj.descripcion)===k&&_monedaMov(vj)===mon)hay=roundMoney(hay+(Number(vj.compensado)||0));
         const c=Math.min(hay,v.monto||0),gasto=roundMoney((v.monto||0)-c);
         txt=nom+' se compensa. Pendiente de lo que entró: '+fmt(hay)+'.'+
             (v.monto>0?(gasto>=0.005?' Cuenta como gasto solo '+fmt(gasto)+'.':' Este egreso no cuenta como gasto.'):'');
