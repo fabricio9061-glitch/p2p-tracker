@@ -96,8 +96,8 @@ function htmlPartesGanancia(t,o){
     o=o||{};
     const ks=PARTES_GANANCIA.filter(k=>k==='ventas'||k==='egresos'||Math.abs(t[k])>=0.005);
     let h=ks.map(k=>o.enLinea
-        ?'<span>'+NOMBRE_PARTE[k]+' <b class="'+(k==='ventas'||k==='correcciones'?claseSigno(t[k]):'')+'">'+dinero(t[k],'UYU',{signo:k!=='egresos'&&k!=='comisiones'})+'</b></span>'
-        :'<span>'+NOMBRE_PARTE[k]+'</span><span class="'+(k==='ventas'||k==='correcciones'?claseSigno(t[k]):'')+'">'+dinero(t[k],'UYU',{signo:k!=='egresos'&&k!=='comisiones'})+'</span>').join('');
+        ?'<span>'+NOMBRE_PARTE[k]+' <b class="'+(k==='ventas'||k==='ganados'||k==='correcciones'?claseSigno(t[k]):'')+'">'+dinero(t[k],'UYU',{signo:k!=='egresos'&&k!=='comisiones'})+'</b></span>'
+        :'<span>'+NOMBRE_PARTE[k]+'</span><span class="'+(k==='ventas'||k==='ganados'||k==='correcciones'?claseSigno(t[k]):'')+'">'+dinero(t[k],'UYU',{signo:k!=='egresos'&&k!=='comisiones'})+'</span>').join('');
     if(t.hayDolares&&Math.abs(t.dolares)>=0.005)h+=o.enLinea
         ?'<span>En dólares <b class="'+claseSigno(t.dolares)+'">'+dinero(t.dolares,'USD',{signo:true})+'</b></span>'
         :'<span>En dólares</span><span class="'+claseSigno(t.dolares)+'">'+dinero(t.dolares,'USD',{signo:true})+'</span>';

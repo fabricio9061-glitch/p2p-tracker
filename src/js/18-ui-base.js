@@ -678,7 +678,7 @@ function cuentaParaGanancia(it){
 }
 /* Las partes de la ganancia, para mostrarlas debajo del total: solo las que
    tienen algo, y solo si hay más de una (si no, son el mismo número) */
-const NOMBRE_PARTE={ventas:'Ventas',comisiones:'Comisiones del banco',egresos:'Egresos',correcciones:'Correcciones de saldo'};
+const NOMBRE_PARTE={ventas:'Ventas',ganados:'USDT ganados',comisiones:'Comisiones del banco',egresos:'Egresos',correcciones:'Correcciones de saldo'};
 function partesDeGanancia(t){
     const con=PARTES_GANANCIA.filter(k=>Math.abs(t[k])>=0.005);
     return con.length>1||(con.length===1&&con[0]!=='ventas')?con:[];

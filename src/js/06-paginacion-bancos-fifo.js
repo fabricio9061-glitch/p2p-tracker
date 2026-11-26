@@ -250,7 +250,11 @@ function recalcularLotesYGanancias(){
             }
             op.usdt=uBase;op.comisionPlataforma=cp;
         }else if(e.tipo==='mi'){
-            const m=e.data,pr=m.tasaRef||utcL||1;
+            /* v8.4.0 — Los USDT ganados (sin comprarlos) valen lo que costaba un
+               USDT ese momento: la tasa de la última compra (o la primera, si
+               todavía no había). Eso suma a la ganancia ese día y es el costo
+               del lote, para que al venderlos solo cuente el spread. */
+            const m=e.data,pr=m.ganado?(utcL||primeraTasaUYU||AppState.datos.ultimaTasaCompra||1):(m.tasaRef||utcL||1);
             agregarLote(m.id,m.fecha,m.hora||'00:00',pr,roundMoney(m.monto),'UYU');
             /* Persistir valorUYU también en ingresos USDT para que el helper unificado
                no tenga que recalcular. tasaRef es la tasa de referencia del lote creado. */
