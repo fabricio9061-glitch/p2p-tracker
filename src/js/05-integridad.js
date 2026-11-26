@@ -595,7 +595,12 @@ function _montoEnUSDLimite(bancoNombre,monto){
      ventas        lo que dejó cada venta en pesos: lo cobrado menos lo que
                    costaron los USDT que salieron (comisión de Binance incluida)
      comisiones    lo que cobró el banco, en las compras y en las transferencias
-     egresos       los gastos (los de USDT, a lo que costaron esos USDT)
+     egresos       los gastos (los de USDT, a lo que costaron esos USDT). v8.4.0 —
+                   En la devolución de un préstamo solo cuenta lo que se pagó de
+                   más (los intereses): el préstamo en sí no es gasto.
+     ganados       v8.4.0 — USDT que se ganaron sin comprarlos (apuestas,
+                   premios): cuentan el día que entran, a la tasa de la última
+                   compra de ese momento. Al venderlos solo cuenta el spread.
      correcciones  lo que se corrigió a mano en el saldo de una cuenta: lo que
                    faltaba es pérdida y lo que sobraba, ganancia. El saldo con el
                    que se crea una cuenta no cuenta.
@@ -603,7 +608,7 @@ function _montoEnUSDLimite(bancoNombre,monto){
    Los ingresos, las transferencias en sí y las conversiones no son ganancia.
    Lo que está en una cuenta en dólares se pasa a pesos a la última tasa de
    compra, como siempre se hizo con los egresos. */
-const PARTES_GANANCIA=['ventas','comisiones','egresos','correcciones'];
+const PARTES_GANANCIA=['ventas','ganados','comisiones','egresos','correcciones'];
 function esSaldoInicial(aj){return/^saldo inicial$/i.test(String(aj&&aj.motivo||'').trim())}
 function _aPesos(v,cuenta){
     return monedaDeCuenta(cuenta)==='USD'?roundMoney(v*(AppState.datos.ultimaTasaCompra||1)):roundMoney(v);
@@ -616,7 +621,17 @@ function aporteAGanancia(ent,r){
         if((r.moneda||'UYU')==='USD')return{parte:'dolares',v:g};
         return{parte:r.tipo==='compra'?'comisiones':'ventas',v:g};
     }
-    if(ent==='movimientos')return r.tipoMovimiento==='egreso'?{parte:'egresos',v:-movimientoValorUYU(r)}:null;
+    if(ent==='movimientos'){
+        if(r.tipoMovimiento==='ingreso'){
+            if(!(r.ganado&&r.tipoCuenta==='usdt'))return null;
+            const v=roundMoney(Number(r.valorUYU)||0);
+            return v>=0.005?{parte:'ganados',v}:null;
+        }
+        const valor=movimientoValorUYU(r),monto=Number(r.monto)||0;
+        const prestamo=Math.min(Math.max(Number(r.prestamo)||0,0),monto);
+        const gasto=prestamo>0&&monto>0?roundMoney(valor*(monto-prestamo)/monto):valor;
+        return Math.abs(gasto)>=0.005?{parte:'egresos',v:-gasto}:null;
+    }
     if(ent==='transferencias'){
         const c=Number(r.comision)||0;
         return c>=0.005?{parte:'comisiones',v:-_aPesos(c,r.origen)}:null;
@@ -630,7 +645,7 @@ function aporteAGanancia(ent,r){
 }
 /* Suma las partes de una lista de {ent, rec}. neta es en pesos; dolares, aparte. */
 function sumarGanancia(lista){
-    const t={ventas:0,comisiones:0,egresos:0,correcciones:0,dolares:0,neta:0,hay:false,hayDolares:false};
+    const t={ventas:0,ganados:0,comisiones:0,egresos:0,correcciones:0,dolares:0,neta:0,hay:false,hayDolares:false};
     (lista||[]).forEach(x=>{
         const a=aporteAGanancia(x.ent,x.rec);if(!a)return;
         t[a.parte]=roundMoney(t[a.parte]+a.v);

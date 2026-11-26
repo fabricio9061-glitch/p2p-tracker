@@ -102,7 +102,7 @@ function _marcaDe(fecha,hora){return _aIso(fecha+'T'+(hora||'00:00'))||new Date(
    comisión en USDT) no se anota: es consecuencia de estos. */
 const CAMPOS_CAMBIO={
     operaciones:['monto','tasa','banco','aportes','comisionBanco','comisionPct','fecha','hora'],
-    movimientos:['tipoMovimiento','cuenta','monto','tasaRef','descripcion','nota','fecha','hora'],
+    movimientos:['tipoMovimiento','cuenta','monto','tasaRef','ganado','prestamo','descripcion','nota','fecha','hora'],
     transferencias:['origen','destino','monto','comision','tasa','fecha','hora'],
     conversiones:['origen','destino','montoOrigen','tasa','fecha','hora'],
     ajustesSaldo:['delta','motivo'],
@@ -559,8 +559,11 @@ function guardarOperacion(d,opts){
 }
 
 /* ─── Ingresos y egresos ────────────────────────────────────────────────── */
-/* d = {tipoMovimiento, cuenta ('USDT' o un banco), monto, tasaRef, descripcion,
-        nota, fecha, hora} */
+/* d = {tipoMovimiento, cuenta ('USDT' o un banco), monto, tasaRef, ganado,
+        prestamo, descripcion, nota, fecha, hora}
+   ganado (ingreso de USDT): no se compraron, se ganaron; no lleva costo.
+   prestamo (egreso): cuánto de lo pagado es devolución de un préstamo; eso
+   no es gasto, solo lo de más (los intereses). */
 function guardarMovimiento(d,opts){
     opts=opts||{};
     _alDia();
@@ -571,9 +574,13 @@ function guardarMovimiento(d,opts){
     if(!esUsdt&&!(d.cuenta&&AppState.datos.bancos[d.cuenta]))return{ok:false,error:'Elegí la cuenta.',campo:'cuenta'};
     const monto=esUsdt?truncUsdt(Number(d.monto)||0):roundMoney(Number(d.monto)||0);
     if(!(monto>0))return{ok:false,error:'Ingresá el monto.',campo:'monto'};
-    const tasaRef=(esUsdt&&tipoMovimiento==='ingreso')?Number(d.tasaRef)||0:0;
-    if(esUsdt&&tipoMovimiento==='ingreso'&&!(tasaRef>0))
+    const ganado=esUsdt&&tipoMovimiento==='ingreso'&&!!d.ganado;
+    const tasaRef=(esUsdt&&tipoMovimiento==='ingreso'&&!ganado)?Number(d.tasaRef)||0:0;
+    if(esUsdt&&tipoMovimiento==='ingreso'&&!ganado&&!(tasaRef>0))
         return{ok:false,error:'Indicá a cuánto te salió cada USDT, para saber su costo.',campo:'tasaRef'};
+    const prestamo=tipoMovimiento==='egreso'?(esUsdt?truncUsdt(Number(d.prestamo)||0):roundMoney(Number(d.prestamo)||0)):0;
+    if(prestamo<0)return{ok:false,error:'Lo que era del préstamo no puede ser negativo.',campo:'prestamo'};
+    if(prestamo>monto)return{ok:false,error:'Lo que era del préstamo no puede ser más que lo que pagaste.',campo:'prestamo'};
     const descripcion=normalizarTag(d.descripcion||'');
     const nota=String(d.nota||'').trim().slice(0,140);
     const {fecha,hora}=_fechaHoraDe(d,viejo);
@@ -582,6 +589,8 @@ function guardarMovimiento(d,opts){
         id:viejo?viejo.id:uid(),tipoMovimiento,tipoCuenta:esUsdt?'usdt':'banco',banco:esUsdt?null:d.cuenta,
         monto,valorUYU:0,tasaRef,descripcion,fecha,hora,timestamp:_marcaDe(fecha,hora)});
     if(nota)nuevo.nota=nota;else delete nuevo.nota;
+    if(ganado)nuevo.ganado=true;else delete nuevo.ganado;
+    if(prestamo>0)nuevo.prestamo=prestamo;else delete nuevo.prestamo;
     if(!viejo)nuevo.creado=new Date().toISOString();
     const sal=_chequeoSaldos('movimientos',viejo,nuevo);if(sal)return sal;
     if(descripcion&&!(AppState.datos.tags||[]).some(t=>tagKey(t)===tagKey(descripcion)))agregarTag(descripcion);
