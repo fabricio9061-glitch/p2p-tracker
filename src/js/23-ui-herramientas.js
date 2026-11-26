@@ -543,7 +543,7 @@ function pintarCategoria(cont,capa){
     const comp=esCompensada(c.nombre);
     let pendTxt='';
     if(comp){
-        const p=recalcularCompensaciones()[c.k]||{};
+        const p=recalcularCompensaciones()[raizCategoria(c.nombre)]||{};
         const ps=Object.keys(p).filter(m=>p[m]>=0.005).map(m=>m==='USDT'?usdtTxt(p[m]):dinero(p[m],m));
         pendTxt=ps.length?' Pendiente: '+unirConY(ps)+'.':' No queda nada pendiente.';
     }

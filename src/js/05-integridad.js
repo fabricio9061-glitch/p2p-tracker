@@ -671,35 +671,38 @@ function registrosParaGanancia(datos){
    gasto es 1.000. Sin elegir nada, se compensan las categorías que se llaman
    Empresa o que dicen Préstamo. */
 function _monedaMov(m){return m.tipoCuenta==='usdt'?'USDT':monedaDeCuenta(m.banco)}
+/* v8.5.1 — El singular y el plural son la misma: un préstamo cargado como
+   "Préstamo" se compensa con su devolución cargada como "Préstamos". */
+function raizCategoria(nombre){return tagKey(nombre||'').trim().replace(/s$/,'')}
 function claveCompensadas(){
     const D=AppState.datos;
-    if(Array.isArray(D.categoriasCompensadas))return new Set(D.categoriasCompensadas);
+    if(Array.isArray(D.categoriasCompensadas))return new Set(D.categoriasCompensadas.map(raizCategoria));
     const s=new Set();
     (D.tags||[]).concat((D.movimientos||[]).map(m=>m&&m.descripcion)).forEach(t=>{
-        if(!t)return;const k=tagKey(t);if(k==='empresa'||k.includes('prestamo'))s.add(k);
+        if(!t)return;const k=tagKey(t);if(k==='empresa'||k==='empresas'||k.includes('prestamo'))s.add(raizCategoria(t));
     });
     return s;
 }
-function esCompensada(nombre){return!!nombre&&claveCompensadas().has(tagKey(nombre))}
+function esCompensada(nombre){return!!nombre&&claveCompensadas().has(raizCategoria(nombre))}
 function _guardarCompensadas(set){
     AppState.datos.categoriasCompensadas=[...set].sort();
     guardaOptimista('update','tags','categorias');
 }
 function marcarCompensada(nombre,si){
-    const s=claveCompensadas(),k=tagKey(nombre);
+    const s=claveCompensadas(),k=raizCategoria(nombre);
     if(si)s.add(k);else s.delete(k);
     _guardarCompensadas(s);
     if(typeof recalcularLotesYGanancias==='function')recalcularLotesYGanancias();
 }
 /* Recorre los movimientos en orden y anota en cada egreso cuánto se compensó.
-   Devuelve lo que queda pendiente: {clave: {moneda: monto}} */
+   Devuelve lo que queda pendiente: {raíz de la categoría: {moneda: monto}} */
 function recalcularCompensaciones(){
     const cs=claveCompensadas(),pend={};
     const movs=(AppState.datos.movimientos||[]).filter(m=>m)
         .map(m=>({m,k:String(m.fecha||'')+String(m.hora||'00:00'),n:Number(m.id)||0}))
         .sort((a,b)=>a.k<b.k?-1:a.k>b.k?1:a.n-b.n);
     movs.forEach(({m})=>{
-        const k=m.descripcion?tagKey(m.descripcion):'';
+        const k=m.descripcion?raizCategoria(m.descripcion):'';
         if(!k||!cs.has(k)||m.ganado){delete m.compensado;return}
         const mon=_monedaMov(m),p=pend[k]||(pend[k]={}),monto=Number(m.monto)||0;
         if(m.tipoMovimiento==='ingreso'){p[mon]=roundMoney((p[mon]||0)+monto);delete m.compensado;return}
@@ -774,7 +777,7 @@ function renombrarCategoria(viejo,nuevo){
     });
     AppState.datos.tags=(AppState.datos.tags||[]).filter(t=>tagKey(t)!==vk);
     AppState.datos.tags.push(nv);_ordenarCategorias();
-    const cs=claveCompensadas();if(cs.has(vk)){cs.delete(vk);cs.add(nk);AppState.datos.categoriasCompensadas=[...cs].sort()}
+    const cs=claveCompensadas(),rv=raizCategoria(viejo),rn=raizCategoria(nv);if(cs.has(rv)&&rv!==rn){cs.delete(rv);cs.add(rn);AppState.datos.categoriasCompensadas=[...cs].sort()}
     _guardarCambioDeCategorias(tocados);
     return{ok:true,n:tocados.length,nombre:nv};
 }
@@ -791,7 +794,7 @@ function pasarCategoria(origen,destino){
     AppState.datos.tags=(AppState.datos.tags||[]).filter(t=>tagKey(t)!==ok);
     if(!AppState.datos.tags.some(t=>tagKey(t)===dk))AppState.datos.tags.push(nombre);
     _ordenarCategorias();
-    const cs=claveCompensadas();if(cs.has(ok)){cs.delete(ok);AppState.datos.categoriasCompensadas=[...cs].sort()}
+    const cs=claveCompensadas(),ro=raizCategoria(origen);if(cs.has(ro)&&ro!==raizCategoria(nombre)&&!_existeCategoria(ro)&&!_existeCategoria(ro+'s')){cs.delete(ro);AppState.datos.categoriasCompensadas=[...cs].sort()}
     _guardarCambioDeCategorias(tocados);
     return{ok:true,n:tocados.length,nombre};
 }
@@ -803,7 +806,7 @@ function borrarCategoria(nombre){
     });
     AppState.datos.tags=(AppState.datos.tags||[]).filter(t=>tagKey(t)!==k);
     _ordenarCategorias();
-    const cs=claveCompensadas();if(cs.has(k)){cs.delete(k);AppState.datos.categoriasCompensadas=[...cs].sort()}
+    const cs=claveCompensadas(),rb=raizCategoria(nombre);if(cs.has(rb)&&!_existeCategoria(rb)&&!_existeCategoria(rb+'s')){cs.delete(rb);AppState.datos.categoriasCompensadas=[...cs].sort()}
     _guardarCambioDeCategorias(tocados);
     return{ok:true,n:tocados.length};
 }
