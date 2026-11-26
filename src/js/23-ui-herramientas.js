@@ -528,8 +528,10 @@ function pintarCategoria(cont,capa){
     if(c.egresos)partes.push(c.egresos+(c.egresos===1?' egreso':' egresos'));
     if(c.ingresos)partes.push(c.ingresos+(c.ingresos===1?' ingreso':' ingresos'));
     const resumen=usos?(usos===1?'La usa ':'La usan ')+unirConY(partes)+'.'+(c.ultima?' La última vez fue '+cuandoTexto(c.ultima,'')+'.':''):'Todavía no la usa ningún movimiento.';
-    /* A dónde se pueden pasar: las del mismo tipo y las que no se usaron */
-    const otras=Object.values(todas).filter(x=>x.k!==c.k&&(c.ingresos&&c.egresos||(c.egresos?x.egresos>0:x.ingresos>0)||!x.egresos&&!x.ingresos))
+    /* A dónde se pueden pasar: v8.5.2 — a cualquier otra (antes, solo a las del
+       mismo tipo, y "Préstamos" con egresos no podía juntarse con "Préstamo",
+       que solo tenía ingresos) */
+    const otras=Object.values(todas).filter(x=>x.k!==c.k)
         .sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
     const sus=usos===1?'su movimiento':'sus '+usos+' movimientos';
     let h=cabHoja(nom,{chico:true})+'<div class="hoja-cuerpo">'+
@@ -576,9 +578,20 @@ ENT['cat-nombre']=el=>{
     q(c.cont,'guardar').disabled=v.length<2||v===cat.nombre;
 };
 ENT['cat-pasar-elegir']=el=>{const c=capaDe(el);if(c)q(c.cont,'pasar-btn').disabled=!el.value};
-ACC['cat-renombrar']=t=>{
+ACC['cat-renombrar']=async t=>{
     const {capa,cat}=_catDe(t);if(!cat)return;
     const r=renombrarCategoria(cat.nombre,q(capa.cont,'nombre').value);
+    /* v8.5.2 — Si ya existe una con ese nombre, se ofrece juntarlas */
+    if(!r.ok&&r.existe){
+        const a=nombreCat(cat.nombre),b=nombreCat(r.existe),usos=cat.egresos+cat.ingresos;
+        const si=await preguntar({titulo:'¿Juntar '+a+' con '+b+'?',
+            texto:'Ya existe '+b+'. '+(usos===1?'El movimiento de '+a+' pasa':'Los '+usos+' movimientos de '+a+' pasan')+' a '+b+' y '+a+' deja de existir.',si:'Juntar'});
+        if(!si||!capa.el.isConnected)return;
+        const p=pasarCategoria(cat.nombre,r.existe);
+        if(!p.ok){avisar(p.error,{error:true});return}
+        _trasCambioCategorias(capa,'Listo: ahora todo está en '+b+'.');
+        return;
+    }
     if(!r.ok){avisar(r.error,{error:true});return}
     _trasCambioCategorias(capa,'Ahora se llama '+r.nombre+'.');
 };

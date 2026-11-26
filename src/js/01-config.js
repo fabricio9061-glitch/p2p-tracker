@@ -26,7 +26,7 @@ const CONFIG = {
      * Antes de cada commit: subir APP_VERSION y agregar la entrada en CHANGELOG.
      * La versión la ve el usuario en Más y en Novedades.
      * ═══════════════════════════════════════════════════════════════════════ */
-    APP_VERSION: '8.5.1',
+    APP_VERSION: '8.5.2',
     EMAIL_DOMAIN: '@p2p-tracker.app',
     /* v8.0.0 — Cada cuenta se identifica con su sigla sobre su color; las que
        tienen logo (ver LOGOS, abajo) muestran el logo. Los colores se
@@ -301,6 +301,10 @@ _selftestWireCompression();
  * type: 'feature' | 'improve' | 'fix' | 'perf'
  */
 const CHANGELOG = [
+    {version:'8.5.2', date:'2026-11-26', headline:'Al editar una venta se ve cuánto deja, y dos categorías se juntan cambiándole el nombre a una.', changes:[
+        {type:'feature', title:'La ganancia, también al editar', desc:'Al editar una venta, abajo se ve cuánto ganás con la tasa y la comisión que estás poniendo, y cuánto cambia contra lo que tenía.'},
+        {type:'fix', title:'Juntar categorías', desc:'Si le ponés a una categoría el nombre de otra que ya existe, la app ofrece juntarlas. Y en "Pasar sus movimientos a otra" ahora aparecen todas las categorías.'}
+    ]},
     {version:'8.5.1', date:'2026-11-26', headline:'Préstamo y Préstamos se compensan entre sí.', changes:[
         {type:'fix', title:'Singular y plural, la misma', desc:'Un ingreso con la categoría Préstamo no se compensaba con un egreso con Préstamos, porque eran dos categorías distintas. Ahora el singular y el plural se compensan juntos (lo mismo con Empresa y Empresas).'}
     ]},
